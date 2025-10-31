@@ -1,0 +1,13 @@
+aiogram==3.4.1
+SQLAlchemy==2.0.36
+aiosqlite==0.20.0
+alembic==1.13.2
+APScheduler==3.10.4
+python-dotenv==1.0.1
+pydantic==2.5.3
+pydantic-settings==2.1.0
+httpx[http2]==0.27.2
+python-dateutil==2.9.0.post0
+rapidfuzz==3.10.0
+PyYAML==6.0.2
+greenlet==3.0.3
