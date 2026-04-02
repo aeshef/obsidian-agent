@@ -1,7 +1,8 @@
 #!/bin/bash
 # Скрипт для запуска knowledge_bot
 
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
 # Загружаем переменные окружения из .env если есть
 if [ -f .env ]; then
@@ -32,7 +33,7 @@ if [ -d "venv" ]; then
 fi
 
 # Устанавливаем PYTHONPATH для относительных импортов
-export PYTHONPATH=$(pwd)
+export PYTHONPATH="$ROOT"
 
 # На серверах с ограниченной памятью ASR по умолчанию использует tiny (см. extract.py)
 # Для лучшего качества голоса: ASR_MODEL=small (требует больше RAM)

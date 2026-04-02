@@ -34,7 +34,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
       pgrep -af "start_bot|watchdog" || echo "Нет процессов"'
     sleep 1
     echo "🚀 Запуск..."
-    ssh example-server "cd ~/bots/knowledge_bot && chmod +x watchdog.sh run.sh 2>/dev/null; mkdir -p logs && nohup ./watchdog.sh > logs/watchdog.log 2>&1 & sleep 3 && echo 'Watchdog PID:' && pgrep -f 'knowledge_bot/watchdog.sh' | head -1 && echo 'Bot PID:' && pgrep -f 'start_bot.py' | head -1"
+    ssh example-server "cd ~/bots/knowledge_bot && chmod +x scripts/watchdog.sh scripts/run.sh 2>/dev/null; mkdir -p logs && nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3 && echo 'Watchdog PID:' && pgrep -f 'knowledge_bot/watchdog.sh' | head -1 && echo 'Bot PID:' && pgrep -f 'start_bot.py' | head -1"
     
     echo ""
     echo "📋 Новые логи:"

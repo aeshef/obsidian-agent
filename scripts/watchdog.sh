@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 mkdir -p logs
 
 # Single instance lock to avoid duplicate watchdogs (cron/@reboot/manual).
@@ -22,11 +23,11 @@ while true; do
     continue
   fi
 
-  echo "$(date '+%Y-%m-%d %H:%M:%S') | watchdog | launching ./run.sh"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') | watchdog | launching ./scripts/run.sh"
 
   # Run in foreground so we can detect exit and restart.
   set +e
-  ./run.sh >> logs/bot.log 2>&1
+  ./scripts/run.sh >> logs/bot.log 2>&1
   code=$?
   set -e
 
