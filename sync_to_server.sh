@@ -10,7 +10,7 @@ echo ""
 cd "$BOT_DIR"
 
 # Синхронизируем код (исключаем venv, логи, БД, .env)
-rsync -avz -e 'ssh -o UseKeychain=yes' \
+rsync -avz --delete -e 'ssh -o UseKeychain=yes' \
   --exclude='.venv' --exclude='__pycache__' --exclude='*.pyc' \
   --exclude='logs' --exclude='finance.db' --exclude='.env' \
   --exclude='.git' \

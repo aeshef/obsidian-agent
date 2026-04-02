@@ -50,7 +50,7 @@ pip install --upgrade pip -q
 pip install -r requirements.txt -q
 
 # Делаем скрипты исполняемыми
-chmod +x run.sh watchdog.sh check_bot.sh watch_logs.sh sync_to_server.sh check_and_restart.sh init_accounts.py reset_data.py 2>/dev/null || true
+chmod +x run.sh watchdog.sh check_bot.sh watch_logs.sh sync_to_server.sh check_and_restart.sh tools/init_accounts.py tools/reset_data.py tools/tinkoff_sync.py 2>/dev/null || true
 chmod +x scripts/*.sh 2>/dev/null || true
 
 # Создаем директории для логов
