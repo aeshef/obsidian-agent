@@ -11,3 +11,5 @@ python-dateutil==2.9.0.post0
 rapidfuzz==3.10.0
 PyYAML==6.0.2
 greenlet==3.0.3
+faster-whisper>=1.0.0
+# tinkoff-invest (SDK) опционален - при отсутствии используется REST API fallback
