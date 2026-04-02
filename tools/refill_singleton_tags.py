@@ -33,10 +33,10 @@ for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().pa
                 if _k.strip():
                     os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
 
-from config import load_config
-from tags_inventory import scan_all_notes
-from settings import load_enums_config
-from llm import LLMClient
+from knowledge_bot.core.config import load_config
+from knowledge_bot.services.tags_inventory import scan_all_notes
+from knowledge_bot.core.settings import load_enums_config
+from knowledge_bot.core.llm import LLMClient
 
 REFILL_SYSTEM = """Задача: у заметки есть список тегов. Для каждого тега указано, сколько заметок в базе знаний его используют (count).
 

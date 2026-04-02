@@ -26,9 +26,9 @@ for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().pa
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
-from llm import LLMClient
-from wikilinks import inject_wikilinks, get_candidates, body_has_any_candidate
+from knowledge_bot.core.config import load_config
+from knowledge_bot.core.llm import LLMClient
+from knowledge_bot.services.wikilinks import inject_wikilinks, get_candidates, body_has_any_candidate
 
 
 def main() -> None:

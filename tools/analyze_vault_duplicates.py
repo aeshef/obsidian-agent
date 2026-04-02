@@ -30,7 +30,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
+from knowledge_bot.core.config import load_config
 
 # «Серии» — generic-названия, когда модель не смогла нормально назвать (нет/плохой контекст).
 # Одинаковые по смыслу варианты (База_Данных / База_данных) считаем одной серией по lower().

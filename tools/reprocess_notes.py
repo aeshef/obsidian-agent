@@ -17,7 +17,8 @@ from __future__ import annotations
 
 # Подгрузка .env
 from pathlib import Path
-for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parent.parent / ".env"]:
+package_root = Path(__file__).resolve().parent.parent
+for _p in [package_root / ".env", package_root.parent / ".env"]:
     if _p.exists():
         for _line in _p.read_text().splitlines():
             _line = _line.strip()
@@ -33,18 +34,18 @@ import sys
 import yaml
 from pathlib import Path
 
-# Add parent for imports
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add parent of package root for absolute imports (`knowledge_bot.*`)
+sys.path.insert(0, str(package_root.parent))
 
-from config import load_config
-from extract import extract_from_path, fetch_youtube_transcript, VisionRateLimitError
-from llm import LLMClient
-from persist import write_note
-from render import render_note
-from routing import route_and_fill
-from schema import allowed_fields_for_type
-from settings import load_prompt, load_enums_config, get_author_context
-from tags_inventory import get_tags_inventory_for_prompt, update_inventory_with_new_tags
+from knowledge_bot.core.config import load_config
+from knowledge_bot.services.extract import extract_from_path, fetch_youtube_transcript, VisionRateLimitError
+from knowledge_bot.core.llm import LLMClient
+from knowledge_bot.services.persist import write_note
+from knowledge_bot.services.render import render_note
+from knowledge_bot.services.routing import route_and_fill
+from knowledge_bot.core.schema import allowed_fields_for_type
+from knowledge_bot.core.settings import load_prompt, load_enums_config, get_author_context
+from knowledge_bot.services.tags_inventory import get_tags_inventory_for_prompt, update_inventory_with_new_tags
 
 
 def parse_note(note_path: Path) -> tuple[dict, str]:

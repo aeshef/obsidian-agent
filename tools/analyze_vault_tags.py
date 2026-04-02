@@ -20,8 +20,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
-from tags_inventory import scan_all_notes
+from knowledge_bot.core.config import load_config
+from knowledge_bot.services.tags_inventory import scan_all_notes
 
 # Выпилены из системы — не показываем в отчёте
 LEGACY_NAMESPACES = frozenset({"priority", "language", "vibe"})

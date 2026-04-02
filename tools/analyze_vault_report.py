@@ -67,7 +67,7 @@ def main() -> None:
         if not out_path.is_absolute():
             # Относительно vault
             try:
-                from config import load_config
+                from knowledge_bot.core.config import load_config
                 out_path = load_config().vault_path / args.out
             except Exception:
                 out_path = SCRIPT_DIR / args.out

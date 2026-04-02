@@ -645,9 +645,9 @@ def _merge_ocr_results(tesseract_text: str, easyocr_text: str) -> str:
 # --- Vision (OpenRouter + Molmo) для видео ---
 def _load_vision_prompt() -> str:
     try:
-        from config import load_config
+        from knowledge_bot.core.config import load_config
         cfg = load_config()
-        from settings import load_prompt
+        from knowledge_bot.core.settings import load_prompt
         return load_prompt(cfg.agent_config_path, "vision").strip()
     except Exception:
         p = Path(__file__).resolve().parent / "config" / "prompts" / "vision.txt"
@@ -845,9 +845,9 @@ def extract_from_image(path: Path, llm_client: Optional[Any] = None) -> str:
                 import json
                 # Пробуем загрузить промпт через config
                 try:
-                    from config import load_config
+                    from knowledge_bot.core.config import load_config
                     cfg = load_config()
-                    from settings import load_prompt
+                    from knowledge_bot.core.settings import load_prompt
                     ocr_clean_prompt = load_prompt(cfg.agent_config_path, "ocr_clean")
                 except Exception:
                     # Fallback: пробуем прямой путь
@@ -976,9 +976,9 @@ def extract_ocr_from_video(path: Path, frame_interval: float = 1.0, llm_client: 
                     import json
                     # Пробуем загрузить промпт через config
                     try:
-                        from config import load_config
+                        from knowledge_bot.core.config import load_config
                         cfg = load_config()
-                        from settings import load_prompt
+                        from knowledge_bot.core.settings import load_prompt
                         ocr_clean_prompt = load_prompt(cfg.agent_config_path, "ocr_clean")
                     except Exception:
                         # Fallback: пробуем прямой путь

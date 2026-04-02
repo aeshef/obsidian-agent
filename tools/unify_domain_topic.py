@@ -20,7 +20,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
+from knowledge_bot.core.config import load_config
 
 # Значения, которые по смыслу — domain (область жизни), не topic
 CANONICAL_DOMAIN_VALUES = frozenset({

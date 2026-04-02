@@ -17,7 +17,7 @@ import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
+from knowledge_bot.core.config import load_config
 
 LEGACY_PREFIXES = ("priority/", "language/", "vibe/")
 

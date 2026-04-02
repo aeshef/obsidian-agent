@@ -12,8 +12,8 @@ from pathlib import Path
 # Add parent for imports
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from config import load_config
-from tags_inventory import scan_all_notes
+from knowledge_bot.core.config import load_config
+from knowledge_bot.services.tags_inventory import scan_all_notes
 
 
 def main() -> None:
