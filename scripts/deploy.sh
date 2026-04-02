@@ -50,7 +50,7 @@ pip install --upgrade pip -q
 pip install -r requirements.txt -q
 
 # Делаем скрипты исполняемыми
-chmod +x run.sh watchdog.sh check_bot.sh watch_logs.sh sync_to_server.sh check_and_restart.sh tools/init_accounts.py tools/reset_data.py tools/tinkoff_sync.py 2>/dev/null || true
+chmod +x scripts/run.sh scripts/watchdog.sh scripts/check_bot.sh scripts/watch_logs.sh scripts/sync_to_server.sh scripts/check_and_restart.sh scripts/deploy.sh tools/init_accounts.py tools/reset_data.py tools/tinkoff_sync.py 2>/dev/null || true
 chmod +x scripts/*.sh 2>/dev/null || true
 
 # Создаем директории для логов
@@ -69,17 +69,17 @@ pkill -9 -f 'bot.main' 2>/dev/null || true
 sleep 2
 
 # Запускаем через watchdog
-if [ -f watchdog.sh ]; then
-    pkill -f 'watchdog.sh' 2>/dev/null || true
+if [ -f scripts/watchdog.sh ]; then
+    pkill -f 'scripts/watchdog.sh' 2>/dev/null || true
     sleep 1
-    nohup ./watchdog.sh > logs/watchdog.log 2>&1 &
+    nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 &
     echo "✅ Watchdog запущен"
     sleep 3
     tail -20 logs/watchdog.log
 else
     # Если нет watchdog, запускаем напрямую
     mkdir -p logs
-    nohup ./run.sh > logs/bot.log 2>&1 &
+    nohup ./scripts/run.sh > logs/bot.log 2>&1 &
     echo \$! > logs/bot.pid
     echo "✅ Бот запущен, PID:" \$(cat logs/bot.pid)
     sleep 2
@@ -91,4 +91,4 @@ echo ""
 echo "✅ Деплой завершен!"
 echo ""
 echo "📋 Проверка статуса:"
-ssh $SERVER "cd ~/bots/finance_bot && ./check_bot.sh"
+ssh $SERVER "cd ~/bots/finance_bot && ./scripts/check_bot.sh"

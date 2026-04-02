@@ -1,9 +1,10 @@
 #!/bin/bash
 # Скрипт-сторож для автоматического перезапуска бота при падении
 
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
-BOT_SCRIPT="./run.sh"
+BOT_SCRIPT="./scripts/run.sh"
 CHECK_INTERVAL=60  # Проверка каждые 60 секунд
 LOG_FILE="logs/watchdog.log"
 MAX_RESTART_ATTEMPTS=5  # Максимум попыток перезапуска в течение часа

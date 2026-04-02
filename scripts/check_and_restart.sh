@@ -22,7 +22,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     sleep 2
 
     echo "🚀 Запуск через watchdog..."
-    ssh example-server "cd ~/bots/finance_bot && chmod +x run.sh watchdog.sh check_bot.sh 2>/dev/null; mkdir -p logs && nohup ./watchdog.sh > logs/watchdog.log 2>&1 & sleep 3 && pgrep -f 'bot.main|watchdog' | head -2"
+    ssh example-server "cd ~/bots/finance_bot && chmod +x scripts/run.sh scripts/watchdog.sh scripts/check_bot.sh 2>/dev/null; mkdir -p logs && nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3 && pgrep -f 'bot.main|watchdog' | head -2"
 
     echo ""
     echo "📋 Новые логи:"

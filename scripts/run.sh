@@ -1,7 +1,8 @@
 #!/bin/bash
 # Скрипт для запуска finance_bot
 
-cd "$(dirname "$0")"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
 
 # Загружаем переменные окружения из .env если есть
 if [ -f .env ]; then
