@@ -1,0 +1,96 @@
+#!/usr/bin/env python3
+from planning_bot.core.pdmsg import pdmsg
+import os
+import sys
+import logging
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT.parent) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT.parent))
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
+
+REMAP_ALL = '--remap-all' in sys.argv
+
+
+def main():
+    # (comment)
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.goals_mapper import GoalsMapper
+    from planning_bot.core.llm import DeepSeekClient
+
+    kanban = KanbanBoard()
+    goals_mapper = GoalsMapper()
+    llm = DeepSeekClient()
+
+    if REMAP_ALL:
+        logger.info(pdmsg("auto_6ef8e6f330"))
+        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=False)
+        tasks_with_id = [t for t in all_tasks if t.get('task_id')]
+        # (comment)
+        for t in tasks_with_id:
+            tid = t['task_id']
+            if tid in goals_mapper.mapping:
+                del goals_mapper.mapping[tid]
+        if tasks_with_id:
+            goals_mapper.save_mapping()
+        missing = tasks_with_id
+        limit = 500
+        logger.info(pdmsg("auto_78daa6c5ee", _p1=len(missing)))
+    else:
+        logger.info(pdmsg("auto_b01c8bed70"))
+        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=True)
+        active_tasks = [t for t in all_tasks if not t.get('completed') and t.get('task_id')]
+        missing = [t for t in active_tasks if t['task_id'] not in goals_mapper.mapping]
+        limit = 20
+        logger.info(pdmsg("auto_ffbd805644", _p1=len(active_tasks), _p3=len(missing)))
+
+    if not missing:
+        logger.info(pdmsg("auto_0848da3bdb"))
+        return 0
+
+    all_goals = goals_mapper.get_all_goals()
+    if not all_goals:
+        logger.warning(pdmsg("auto_ad2a96d8e8"))
+        return 1
+
+    goals_by_id = {g["id"]: g.get("text", "?") for g in all_goals}
+    logging.getLogger("llm").setLevel(logging.WARNING)  # (comment)
+    to_process = missing[:limit]
+    print(pdmsg("auto_549b646b63", _p1=len(all_goals), _p3=len(to_process)))
+    mapped = 0
+    for idx, task in enumerate(to_process, 1):
+        task_id = task['task_id']
+        title = task.get('title', '') or task.get('raw_text', '')[:200]
+        category = task.get('category') or pdmsg("auto_1945da1fe5")
+
+        print(f"[{idx}/{len(to_process)}] {title[:60]}...", end=" ", flush=True)
+        try:
+            result = llm.map_task_to_goals(title, category, all_goals)
+            goal_ids = result.get('goal_ids', [])
+            reasoning = result.get('reasoning', '').strip()
+
+            if goal_ids:
+                goals_mapper.add_task_mapping(task_id, goal_ids, task_title=title)
+                mapped += 1
+                goal_names = [goals_by_id.get(gid, f"??{gid}") for gid in goal_ids]
+                print(f"✅ → {', '.join(goal_names)}")
+            else:
+                print(pdmsg("auto_4e30ce6f86"))
+
+        except Exception as e:
+            logger.error(f"❌ {task_id}: {e}")
+            continue
+
+    print(pdmsg("auto_1a09008344", _p1=mapped, _p3=len(missing)))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

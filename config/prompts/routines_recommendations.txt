@@ -1,0 +1,4 @@
+# Шаблон промпта «routines_recommendations» (без личных данных)
+  # Скопируйте в routines_recommendations.txt и заполните своими инструкциями.
+  # Файл routines_recommendations.txt в git не попадает.
+  

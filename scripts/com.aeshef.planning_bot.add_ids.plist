@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.planning_bot.add_ids</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/example/Documents/800_Автоматизация/Agent/planning_bot/venv/bin/python3</string>
+        <string>/Users/example/Documents/800_Автоматизация/Agent/planning_bot/scripts/watch_and_add_ids.py</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Users/example/Documents/800_Автоматизация/Agent/planning_bot</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>StandardOutPath</key>
+    <string>/Users/example/Documents/800_Автоматизация/Agent/planning_bot/logs/add_ids_watcher.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Users/example/Documents/800_Автоматизация/Agent/planning_bot/logs/add_ids_watcher.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/example/.pyenv/versions/3.12.7/bin:/Users/example/.pyenv/shims:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PYENV_ROOT</key>
+        <string>/Users/example/.pyenv</string>
+        <key>PYENV_SHELL</key>
+        <string>zsh</string>
+    </dict>
+</dict>
+</plist>

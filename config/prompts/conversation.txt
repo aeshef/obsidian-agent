@@ -1,0 +1,9 @@
+# Prompt: conversation
+  # Prod: planning_bot/config/prompts/conversation.txt (gitignore)
+  #
+  # Роль: свободный чат planning-бота.
+  # Заполните в prod:
+  # - факты только из контекста/tools
+  # - даты → day=YYYY-MM-DD для tools
+  # - стиль ответа (без markdown-заголовков)
+  

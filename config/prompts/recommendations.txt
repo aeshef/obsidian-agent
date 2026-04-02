@@ -1,0 +1,11 @@
+# Шаблон промпта «recommendations» (без личных данных)
+  # Скопируйте в recommendations.txt и заполните своими инструкциями.
+  # Файл recommendations.txt в git не попадает — на сервер копируется rsync с локальной машины.
+  #
+  # Обязательные плейсхолдеры для .format() в коде (см. core/llm.py → generate_recommendations):
+  #   {current_date_iso}   — например 2026-05-06
+  #   {current_date_ru}    — например «6 мая 2026 г.»
+  #   {current_time_msk}
+  #   {day_of_week}
+  #   {is_weekend}
+  
