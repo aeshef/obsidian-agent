@@ -1,0 +1,1289 @@
+tags:
+  category/еда:
+    count: 22
+    examples:
+    - 700_База_Данных/Места/Ресторан_бабушек.md
+    - 700_База_Данных/Места/Бразильская_закусочная_Москва.md
+    - 700_База_Данных/Места/Вкусно_и_просто.md
+  category/культура:
+    count: 27
+    examples:
+    - 700_База_Данных/Видео/Исследование_исторического_памятника.md
+    - 700_База_Данных/Места/Архитектурные_стили_Москва.md
+    - 700_База_Данных/Места/Дом-бутылка_Саратов.md
+  category/природа:
+    count: 13
+    examples:
+    - 700_База_Данных/Места/Остров_Нуса_Пенида.md
+    - 700_База_Данных/Места/Shebara_Resort.md
+    - 700_База_Данных/Места/Дешевый_релакс_горы.md
+  category/техника:
+    count: 2
+    examples:
+    - 700_База_Данных/Вишлист/Умные_гантели_Xiaomi.md
+    - 700_База_Данных/Вишлист/Чайник_Гриль_Ведро.md
+  cuisine/american:
+    count: 21
+    examples:
+    - 700_База_Данных/Рецепты/Лимонные_уровни_напитков.md
+    - 700_База_Данных/Рецепты/Блины_ветчиной.md
+    - 700_База_Данных/Рецепты/Низкокалорийный_чизкейк.md
+  cuisine/asian:
+    count: 8
+    examples:
+    - 700_База_Данных/Рецепты/Сосиски_с_лапшой.md
+    - 700_База_Данных/Рецепты/Мандариновый_джин.md
+    - 700_База_Данных/Рецепты/Леопардовые_блины.md
+  cuisine/greek:
+    count: 18
+    examples:
+    - 700_База_Данных/Рецепты/Рецепт_холодильника.md
+    - 700_База_Данных/Рецепты/Приготовление_напитка.md
+    - 700_База_Данных/Рецепты/Кулинарный_урок.md
+  cuisine/indian:
+    count: 5
+    examples:
+    - 700_База_Данных/Рецепты/Имбирь_перец_куркума.md
+    - 700_База_Данных/Рецепты/Чайные_ингредиенты.md
+    - 700_База_Данных/Рецепты/Бастурма_рецепт.md
+  cuisine/italian:
+    count: 7
+    examples:
+    - 700_База_Данных/Знания/Приготовление_пиццы.md
+    - 700_База_Данных/Рецепты/Приготовление_пиццы.md
+    - 700_База_Данных/Рецепты/Пицца_с_кремовой_начинкой.md
+  cuisine/japanese:
+    count: 1
+    examples:
+    - 700_База_Данных/Рецепты/Ахуенный_рамен.md
+  cuisine/mexican:
+    count: 1
+    examples:
+    - 700_База_Данных/Рецепты/Запеченные_чиликоны.md
+  domain/business:
+    count: 238
+    examples:
+    - 700_База_Данных/Цитаты/Thiel_Stanford_conservative.md
+    - 700_База_Данных/Мысли/BLESSUSDT_сделки.md
+    - 700_База_Данных/Мысли/Стив_вердикты_идеи.md
+  domain/career:
+    count: 115
+    examples:
+    - 700_База_Данных/Мысли/Стив_вердикты_идеи.md
+    - 700_База_Данных/Мысли/Странный_период.md
+    - 700_База_Данных/Мысли/Телеграм_канал_хайп.md
+  domain/creative:
+    count: 639
+    examples:
+    - 700_База_Данных/Песни/Интро_альбома.md
+    - 700_База_Данных/Песни/Желстей_матушка.md
+    - 700_База_Данных/Песни/Позитивная_мелодия.md
+  domain/education:
+    count: 34
+    examples:
+    - 700_База_Данных/Цитаты/Thiel_Stanford_conservative.md
+    - 700_База_Данных/Мысли/Запрет_математики.md
+    - 700_База_Данных/Видео/Академические_трудности_студентов.md
+  domain/entertainment:
+    count: 162
+    examples:
+    - 700_База_Данных/Мысли/Российские_фильмы_90-х.md
+    - 700_База_Данных/Видео/Ночное_видео_НЛО.md
+    - 700_База_Данных/Видео/Хоккей_конфликт_футбол.md
+  domain/food:
+    count: 112
+    examples:
+    - 700_База_Данных/Видео/Каст-ирон_жуцер.md
+    - 700_База_Данных/Видео/Espresso_machine_Argos.md
+    - 700_База_Данных/Видео/Элитарный_ресторан.md
+  domain/health:
+    count: 120
+    examples:
+    - 700_База_Данных/Мысли/Hours_sleep_catch.md
+    - 700_База_Данных/Видео/Здоровый_образ_жизни.md
+    - 700_База_Данных/Видео/Вирусные_способы_красоты.md
+  domain/life:
+    count: 190
+    examples:
+    - 700_База_Данных/Цитаты/Цель_пустяки.md
+    - 700_База_Данных/Мысли/Звёздный_час_мужчины.md
+    - 700_База_Данных/Мысли/Приветствие.md
+  domain/philosophy:
+    count: 5
+    examples:
+    - 700_База_Данных/Мысли/Свобода_воли.md
+    - 700_База_Данных/Идеи/Философия_желания.md
+    - 700_База_Данных/Идеи/Добрый_глаз.md
+  domain/study:
+    count: 887
+    examples:
+    - 700_База_Данных/Песни/Москва_майская.md
+    - 700_База_Данных/Песни/Men_prefer_women.md
+    - 700_База_Данных/Цитаты/Собака_обед.md
+  domain/tech:
+    count: 316
+    examples:
+    - 700_База_Данных/Мысли/CD_пластинки.md
+    - 700_База_Данных/Мысли/Tesla_Optimus.md
+    - 700_База_Данных/Видео/Виртуальная_реальность_эксперимент.md
+  domain/trading:
+    count: 5
+    examples:
+    - 700_База_Данных/Учебники/Халл_опционы_фьючерсы.md
+    - 700_База_Данных/Ссылки/Битва_трейдеров.md
+    - 700_База_Данных/Ссылки/Командная битва трейдеров.md
+  domain/travel:
+    count: 107
+    examples:
+    - 700_База_Данных/Видео/Путешествие_молодого_человека.md
+    - 700_База_Данных/Видео/Путешествие_по_Египту.md
+    - 700_База_Данных/Видео/Полёт_Антарктида.md
+  kind/appetizer:
+    count: 7
+    examples:
+    - 700_База_Данных/Рецепты/Приготовление_напитка.md
+    - 700_База_Данных/Рецепты/Полезный_напиток.md
+    - 700_База_Данных/Рецепты/Соус_для_хлеба.md
+  kind/dessert:
+    count: 10
+    examples:
+    - 700_База_Данных/Рецепты/Мандариновый_джин.md
+    - 700_База_Данных/Рецепты/Лимонные_уровни_напитков.md
+    - 700_База_Данных/Рецепты/Низкокалорийный_чизкейк.md
+  kind/main:
+    count: 34
+    examples:
+    - 700_База_Данных/Рецепты/Сосиски_с_лапшой.md
+    - 700_База_Данных/Рецепты/Имбирь_перец_куркума.md
+    - 700_База_Данных/Рецепты/Рецепт_холодильника.md
+  kind/soup:
+    count: 5
+    examples:
+    - 700_База_Данных/Рецепты/Простой_рецепт.md
+    - 700_База_Данных/Рецепты/Испанская_окрошка.md
+    - 700_База_Данных/Рецепты/Ахуенный_рамен.md
+  source/instagram:
+    count: 14
+    examples:
+    - 700_База_Данных/Видео/Вечерний_метод_кубика.md
+    - 700_База_Данных/Видео/Реклама_Instagram_метро.md
+    - 700_База_Данных/Видео/Путешествие_на_поезде.md
+  source/tiktok:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Leonardo_da_Vinci.md
+    - 700_База_Данных/Видео/Jet-2_Holiday.md
+  source/youtube:
+    count: 355
+    examples:
+    - 700_База_Данных/Песни/Земфира_Jim_Beam.md
+    - 700_База_Данных/Песни/Ты_солдат.md
+    - 700_База_Данных/Песни/Сиять_Джона_Гарика.md
+  subtype/meme:
+    count: 96
+    examples:
+    - 700_База_Данных/Мемы/Фауст_21_века.md
+    - 700_База_Данных/Мемы/Zer_POV.md
+    - 700_База_Данных/Мемы/Autistic_Activities_Detected.md
+  subtype/screenshot:
+    count: 45
+    examples:
+    - 700_База_Данных/Мемы/Idiots_all_way.md
+    - 700_База_Данных/Мемы/Лудоманы_пролете.md
+    - 700_База_Данных/Мемы/Now_wanna_see.md
+  topic/3d-printing:
+    count: 62
+    examples:
+    - 700_База_Данных/Видео/3D_Windows.md
+    - 700_База_Данных/Видео/Minecraft_3D-печать.md
+    - 700_База_Данных/Видео/3D_операционная_система.md
+  topic/academic-journals:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Финансовые_статьи_датасет.md
+  topic/accident:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Автомобильное_происшествие.md
+  topic/adventure:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Приключения_преодоление_препятствий.md
+  topic/ai:
+    count: 257
+    examples:
+    - 700_База_Данных/Песни/Compute_My_Heart.md
+    - 700_База_Данных/Мысли/Телеграм_канал_хайп.md
+    - 700_База_Данных/Мысли/Слон_комнате.md
+  topic/ancient-texts:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Восхождение_духовное_путешествие.md
+  topic/animals:
+    count: 41
+    examples:
+    - 700_База_Данных/Цитаты/Собака_обед.md
+    - 700_База_Данных/Мысли/Мальчик_сосиски.md
+    - 700_База_Данных/Видео/Bluey_cat_sign.md
+  topic/antarctica:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Полёт_Антарктида.md
+  topic/app:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Sortd_приложение.md
+  topic/archaeology:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Археологические_раскопки.md
+  topic/art:
+    count: 18
+    examples:
+    - 700_База_Данных/Видео/Дизайн_подкаст.md
+    - 700_База_Данных/Видео/Leonardo_da_Vinci.md
+    - 700_База_Данных/Видео/Анализ_изображений.md
+  topic/astronomy:
+    count: 5
+    examples:
+    - 700_База_Данных/Видео/Женщина_астрономия_карьера.md
+    - 700_База_Данных/Видео/Astronomy_crisis.md
+    - 700_База_Данных/Идеи/Телескоп_1500_долларов.md
+  topic/athlete:
+    count: 1
+    examples:
+    - 700_База_Данных/Личности/Eileen_Gu_достижения.md
+  topic/automation:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/Автоматизация_телефона.md
+    - 700_База_Данных/Знания/Создание_автоматов.md
+    - 700_База_Данных/Знания/Unfuck_microwave_cronjob.md
+  topic/autonomous-navigation:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Autonomous_delivery_robots.md
+  topic/ballet:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Балет_кино.md
+  topic/barber:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/European_flow_hairstyle.md
+  topic/beauty:
+    count: 5
+    examples:
+    - 700_База_Данных/Видео/Спа_процедуры.md
+    - 700_База_Данных/Видео/Косметическое_средство_уход.md
+    - 700_База_Данных/Знания/Удаление_7_износа.md
+  topic/beverages:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Приготовление_напитков.md
+  topic/books:
+    count: 5
+    examples:
+    - 700_База_Данных/Идеи/Книги_с_метками.md
+    - 700_База_Данных/Идеи/Идеи_из_книг.md
+    - 700_База_Данных/Знания/Банка_книг.md
+  topic/calligraphy:
+    count: 2
+    examples:
+    - 700_База_Данных/Знания/Каллиграфия_вязь.md
+    - 700_База_Данных/Знания/Прописи_по_вязи.md
+  topic/camera:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Камера_для_влогов.md
+  topic/captain-fantastic:
+    count: 1
+    examples:
+    - 700_База_Данных/Фильмы/Captain_Fantastic.md
+  topic/cardistry:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Кардистри_трюк.md
+  topic/cars:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Реставрация_Порше.md
+  topic/chess:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Шахматы_стратегия_история.md
+    - 700_База_Данных/Идеи/Шахматное_поле_искусство.md
+  topic/children:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/День_рождения_празднование.md
+  topic/cleaning:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Чистка_лейки_душа.md
+  topic/cocktail:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Эспрессо_мартини.md
+  topic/coding:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Aider_кодинг.md
+    - 700_База_Данных/Знания/Aider_вайбкодинг.md
+  topic/coffee:
+    count: 22
+    examples:
+    - 700_База_Данных/Видео/Кот_кофе_еда.md
+    - 700_База_Данных/Видео/Женщина_пьет_кофе.md
+    - 700_База_Данных/Видео/Espresso_machine_unboxing.md
+  topic/collectibles:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Коллекция_Hot_Wheels.md
+  topic/college:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Студенческая_жизнь_стартап.md
+  topic/comedy:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Юмор_Мэтт_Райф.md
+  topic/communication:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Жесты_и_слова.md
+  topic/competition:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Competition_Losers_Lecture.md
+  topic/computer-vision:
+    count: 35
+    examples:
+    - 700_База_Данных/Видео/3D_Windows.md
+    - 700_База_Данных/Видео/How_to_CPU.md
+    - 700_База_Данных/Видео/Стерео_зрение_реконструкция.md
+  topic/conference:
+    count: 1
+    examples:
+    - 700_База_Данных/Документы/ICLR_Deadlines.md
+  topic/conflict:
+    count: 1
+    examples:
+    - 700_База_Данных/Мысли/Уровень_уверенности_родителей.md
+  topic/constraint-systems:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Constraint_systems.md
+  topic/cooking:
+    count: 13
+    examples:
+    - 700_База_Данных/Видео/Яппардовы_блины.md
+    - 700_База_Данных/Видео/Приготовление_лапши.md
+    - 700_База_Данных/Видео/Частный_шеф_бургер.md
+  topic/cosmetics:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Щетка_для_пор.md
+  topic/creative-thinking:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Curiosity_fuels_inventions.md
+  topic/creativity:
+    count: 3
+    examples:
+    - 700_База_Данных/Видео/Миниатюрная_сцена.md
+    - 700_База_Данных/Знания/Ледяной_домик.md
+    - 700_База_Данных/Знания/Компонент-альтерация_идеи.md
+  topic/curiosity:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Curiosity_fuels_inventions.md
+  topic/cursor:
+    count: 1
+    examples:
+    - 700_База_Данных/Документы/Установка_компонента_Cursor.md
+  topic/cybersecurity:
+    count: 17
+    examples:
+    - 700_База_Данных/Видео/Защита_личных_данных.md
+    - 700_База_Данных/Идеи/Poisoning_your_footprint.md
+    - 700_База_Данных/Идеи/Уран_кибербез_грибтех.md
+  topic/databases:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/ClamDBot_уязвимость.md
+  topic/decision-making:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Принятие_решений_тело.md
+  topic/design:
+    count: 57
+    examples:
+    - 700_База_Данных/Видео/Создание_поста_фотография.md
+    - 700_База_Данных/Видео/Valery_Pro_Design.md
+    - 700_База_Данных/Видео/Демонстрация_часов.md
+  topic/detox:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Детокс_протокол.md
+  topic/dj:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/DJ_вечеринка.md
+  topic/drones:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Дрон_охотник_комаров.md
+    - 700_База_Данных/Идеи/Автомобиль_с_дроном.md
+  topic/economics:
+    count: 21
+    examples:
+    - 700_База_Данных/Видео/Гуманитарии_главные.md
+    - 700_База_Данных/Видео/Jazz_Drumming_Prodigy.md
+    - 700_База_Данных/Видео/Польша_сверхдержава.md
+  topic/editing:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Редактор_субтитров.md
+  topic/egypt:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Путешествие_по_Египту.md
+  topic/electronics:
+    count: 21
+    examples:
+    - 700_База_Данных/Видео/Bang_Olufsen_CD_плеер.md
+    - 700_База_Данных/Видео/Проектор_120_дюймов.md
+    - 700_База_Данных/Видео/Динамики_Алиэкспресс.md
+  topic/environment:
+    count: 1
+    examples:
+    - 700_База_Данных/Фильмы/Темные_воды.md
+  topic/essay:
+    count: 3
+    examples:
+    - 700_База_Данных/Учебники/Upgrade_Essay.md
+    - 700_База_Данных/Идеи/Paul_Graham_доткомы.md
+    - 700_База_Данных/Книги/Наедине_с_собой.md
+  topic/etiquette:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Этикет_эксперт.md
+  topic/exams:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Экзамены_завтра.md
+  topic/family:
+    count: 5
+    examples:
+    - 700_База_Данных/Видео/День_рождения_подарок.md
+    - 700_База_Данных/Видео/Папа_книга_истории.md
+    - 700_База_Данных/Видео/Семейное_воспитание_детей.md
+  topic/fashion:
+    count: 6
+    examples:
+    - 700_База_Данных/Видео/Кеды_Японского_Брэндра.md
+    - 700_База_Данных/Видео/Мужская_мода.md
+    - 700_База_Данных/Идеи/Тапки_ключ.md
+  topic/film:
+    count: 94
+    examples:
+    - 700_База_Данных/Видео/Балет_кино.md
+    - 700_База_Данных/Видео/Эмоциональное_развитие_человека.md
+    - 700_База_Данных/Видео/Посещение_кафе.md
+  topic/finance:
+    count: 184
+    examples:
+    - 700_База_Данных/Мысли/Сквиз_юаня.md
+    - 700_База_Данных/Мысли/Джейн_Стрит.md
+    - 700_База_Данных/Мысли/Принцип_Паретто.md
+  topic/fire-safety:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Пожарная_безопасность_дома.md
+  topic/fitness:
+    count: 67
+    examples:
+    - 700_База_Данных/Видео/Здоровый_образ_жизни.md
+    - 700_База_Данных/Видео/Футбольная_тренировка.md
+    - 700_База_Данных/Видео/Тестостерон_стероиды.md
+  topic/flowers:
+    count: 3
+    examples:
+    - 700_База_Данных/Видео/Продажа_цветов.md
+    - 700_База_Данных/Видео/Работа_цветочного_магазина.md
+    - 700_База_Данных/Видео/Доставка_букетов.md
+  topic/fragrance:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Мужские_ароматы.md
+  topic/freedom:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Путешествие_свобода.md
+  topic/games:
+    count: 2
+    examples:
+    - 700_База_Данных/Ссылки/Игры_рекомендации.md
+    - 700_База_Данных/Знания/Vita_Маджонг.md
+  topic/gaming:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/МОКА_озвучка_Шифрина.md
+  topic/genetics:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Генеалогия_генетика.md
+  topic/geopolitics:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Геополитика_Украина.md
+  topic/gift:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Подарок_маме.md
+  topic/grandmothers:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Ресторан_бабушек.md
+  topic/haircare:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/OZON_INFRA_SILK.md
+  topic/hairstyle:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/European_flow_hairstyle.md
+  topic/hardware:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Создание_компьютерной_платы.md
+  topic/health:
+    count: 13
+    examples:
+    - 700_База_Данных/Мысли/Чемпионат_Буфарда.md
+    - 700_База_Данных/Видео/Предупреждение_о_позе.md
+    - 700_База_Данных/Личности/Cady_Radionovaa.md
+  topic/herbs:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Экстракты_для_печени.md
+  topic/history:
+    count: 105
+    examples:
+    - 700_База_Данных/Цитаты/Собака_обед.md
+    - 700_База_Данных/Мысли/Залоговые_аукционы.md
+    - 700_База_Данных/Мысли/Рассказ_литейщика_Козырева.md
+  topic/hockey:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Хоккей_конфликт_футбол.md
+    - 700_База_Данных/Видео/Тренировка_хоккея_устройством.md
+  topic/hotel:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Luxury_hotel_booking.md
+  topic/humor:
+    count: 3
+    examples:
+    - 700_База_Данных/Личности/Siberian_teacher.md
+    - 700_База_Данных/Идеи/Приколы_контроля.md
+    - 700_База_Данных/Ссылки/Генератор_шуток.md
+  topic/hygiene:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Стерилизация_зубной_щетки.md
+  topic/ielts-writing:
+    count: 1
+    examples:
+    - 700_База_Данных/Учебники/IELTS_Writing.md
+  topic/indonesia:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Путешествие_Индонезия.md
+  topic/indoor-plants:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Уход_за_Стрелицией.md
+  topic/instagram:
+    count: 3
+    examples:
+    - 700_База_Данных/Видео/Instagram_контент_развитие.md
+    - 700_База_Данных/Видео/Instagram_контент_туман.md
+    - 700_База_Данных/Знания/Instagram_контент.md
+  topic/internet:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Кроличья_нора.md
+  topic/interview:
+    count: 50
+    examples:
+    - 700_База_Данных/Видео/Мэтью_Макконахи_интервью.md
+    - 700_База_Данных/Видео/Найм_рекрутера.md
+    - 700_База_Данных/Видео/Студенческая_жизнь_Notion.md
+  topic/kubernetes:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Side_project_Kubernetes.md
+    - 700_База_Данных/Знания/Kubernetes_инструменты_настройка.md
+  topic/kung-fu:
+    count: 6
+    examples:
+    - 700_База_Данных/Мысли/Tesla_Optimus.md
+    - 700_База_Данных/Видео/Упражнения_60_раз.md
+    - 700_База_Данных/Видео/Советская_школа_бокса.md
+  topic/law:
+    count: 2
+    examples:
+    - 700_База_Данных/Знания/Сделки_недвижимости_пенсионеров.md
+    - 700_База_Данных/Знания/Снятие_с_учета.md
+  topic/lgbtq:
+    count: 1
+    examples:
+    - 700_База_Данных/Ссылки/LGBTQ_Test.md
+  topic/light:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Свет_наблюдение_границы.md
+  topic/literature:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Татуированный_парень_книга.md
+  topic/mahjong:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Vita_Маджонг.md
+  topic/mathematics:
+    count: 34
+    examples:
+    - 700_База_Данных/Мысли/Запрет_математики.md
+    - 700_База_Данных/Видео/Тензоры_FloatHeadPhysics.md
+    - 700_База_Данных/Видео/Математик_пределы_разума.md
+  topic/military:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Сворачивание_футболки.md
+  topic/minecraft:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Minecraft_3D-печать.md
+    - 700_База_Данных/Видео/Создание_Minecraft_мира.md
+  topic/moscow:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Интересные_вывески.md
+  topic/motivation:
+    count: 273
+    examples:
+    - 700_База_Данных/Песни/Black_Grand_National.md
+    - 700_База_Данных/Песни/Why_not_you.md
+    - 700_База_Данных/Цитаты/Мысли_становятся_реальностью.md
+  topic/music:
+    count: 154
+    examples:
+    - 700_База_Данных/Песни/Желстей_матушка.md
+    - 700_База_Данных/Песни/Позитивная_мелодия.md
+    - 700_База_Данных/Песни/Messy_Clean.md
+  topic/mystery:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Загадочное_видео.md
+  topic/nature:
+    count: 3
+    examples:
+    - 700_База_Данных/Видео/Создание_костра.md
+    - 700_База_Данных/Видео/Зимний_ребенок_платформа.md
+    - 700_База_Данных/Знания/Строительство_костра.md
+  topic/necromancer:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Фильм_Некромант.md
+  topic/network:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Network_Steve_Blowjobs.md
+  topic/neuroplasticity:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Мозг_повторение_нейропластичность.md
+  topic/neuroscience:
+    count: 3
+    examples:
+    - 700_База_Данных/Идеи/Мозг_обезценивает_впечатления.md
+    - 700_База_Данных/Идеи/Древние_манускрипты_техника.md
+    - 700_База_Данных/Знания/Регулярка_Нейро.md
+  topic/news:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Новости_Израиля.md
+  topic/number-theory:
+    count: 2
+    examples:
+    - 700_База_Данных/Мысли/Erdős-Straus_conjecture.md
+    - 700_База_Данных/Знания/Числа_размерности_вращений.md
+  topic/nutrition:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/Белок_клетчатка_продукты.md
+    - 700_База_Данных/Знания/Витамины_и_здоровье.md
+    - 700_База_Данных/Знания/Продукты_для_здоровья.md
+  topic/organization:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Правильное_вешание_одежды.md
+  topic/paranormal:
+    count: 1
+    examples:
+    - 700_База_Данных/Книги/Becoming_Supernatural.md
+  topic/parents:
+    count: 1
+    examples:
+    - 700_База_Данных/Мысли/Уровень_уверенности_родителей.md
+  topic/park:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Прогулка_в_парк.md
+  topic/personal-growth:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Уверенность (гайды).md
+    - 700_База_Данных/Знания/Dark_GPT_prompt.md
+  topic/personal-life:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Личное_событие.md
+  topic/philosophy:
+    count: 7
+    examples:
+    - 700_База_Данных/Видео/Эта_история_изменит.md
+    - 700_База_Данных/Личности/Уильям_Берроуз.md
+    - 700_База_Данных/Идеи/Архонт_реальность.md
+  topic/photography:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Скелетная_фотография.md
+  topic/physics:
+    count: 14
+    examples:
+    - 700_База_Данных/Видео/До_Большого_Взрыва.md
+    - 700_База_Данных/Видео/Прыжок_парашютом.md
+    - 700_База_Данных/Идеи/PHYSICS_ESPRESSO.md
+  topic/pid-control:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Самобалансирующийся_робот.md
+  topic/pinterest:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Сохранить_пины.md
+  topic/planning:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Итоги_года.md
+    - 700_База_Данных/Идеи/Planning_little_goals.md
+  topic/plants:
+    count: 3
+    examples:
+    - 700_База_Данных/Видео/Комнатное_растение_декора.md
+    - 700_База_Данных/Знания/Рост_комнатных_растений.md
+    - 700_База_Данных/Знания/Уход_за_Стрелицией.md
+  topic/podcast:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Подкаст_открытие.md
+  topic/politics:
+    count: 4
+    examples:
+    - 700_База_Данных/Видео/Интервью_Зеленский.md
+    - 700_База_Данных/Знания/Арест_Смирнова.md
+    - 700_База_Данных/Знания/График_голосования.md
+  topic/productivity:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Sortd_приложение.md
+    - 700_База_Данных/Знания/Elon_Musk_process.md
+  topic/programming:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/Программирование_устройства.md
+    - 700_База_Данных/Знания/Программирование_графических_проектов.md
+    - 700_База_Данных/Знания/Программирование_тесты_конфликт.md
+  topic/propaganda:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Как_работает_пропаганда.md
+    - 700_База_Данных/Видео/Русская_пропаганда.md
+  topic/psychology:
+    count: 18
+    examples:
+    - 700_База_Данных/Мысли/Мысль_об_уязвимости.md
+    - 700_База_Данных/Мысли/Незнание.md
+    - 700_База_Данных/Видео/Академические_трудности_студентов.md
+  topic/quantum-mechanics:
+    count: 1
+    examples:
+    - 700_База_Данных/Книги/Einsteins_Mirror.md
+  topic/relationships:
+    count: 7
+    examples:
+    - 700_База_Данных/Мысли/Мысль_об_уязвимости.md
+    - 700_База_Данных/Видео/Развитие_отношений.md
+    - 700_База_Данных/Идеи/Вопросы_для_сближения.md
+  topic/relativity:
+    count: 1
+    examples:
+    - 700_База_Данных/Книги/Einsteins_Mirror.md
+  topic/religion:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Чтение_Писания_превращение.md
+  topic/remote-work:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/Премия_за_дистант.md
+    - 700_База_Данных/Знания/Валютные_удаленки.md
+    - 700_База_Данных/Знания/Грант_удаленщикам_Арктика.md
+  topic/restaurant:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Ресторанное_обслуживание.md
+    - 700_База_Данных/Идеи/Ресторан_бабушек.md
+  topic/rhetoric:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Риторика_и_юмор.md
+  topic/robotics:
+    count: 8
+    examples:
+    - 700_База_Данных/Видео/Робототехника_мягкие_ткани.md
+    - 700_База_Данных/Идеи/Autonomous_delivery_robots.md
+    - 700_База_Данных/Идеи/Sweep_Dynamics_Robotics.md
+  topic/romance:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Романтическое_свидание.md
+  topic/sauna:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Местер_Силы.md
+  topic/scripting:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Unfuck_microwave_cronjob.md
+  topic/security:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/ClamDBot_уязвимость.md
+    - 700_База_Данных/Знания/Защита_приватности.md
+    - 700_База_Данных/Знания/Threat_Reclassification_Policy.md
+  topic/self-care:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Косметическое_средство_уход.md
+  topic/self-development:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Принятие_решений_тело.md
+  topic/self-discovery:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Девушка_в_саду.md
+  topic/self-help:
+    count: 1
+    examples:
+    - 700_База_Данных/Книги/Becoming_Supernatural.md
+  topic/self-improvement:
+    count: 1
+    examples:
+    - 700_База_Данных/Личности/Рефлексия_и_план.md
+  topic/self-presentation:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Новый_hairstyle_демонстрация.md
+  topic/shaolin:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Кунг-фу_Шаолинь.md
+  topic/simulation:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Авиа_симуляция.md
+  topic/skincare:
+    count: 3
+    examples:
+    - 700_База_Данных/Знания/Уход_за_кожей.md
+    - 700_База_Данных/Знания/Теневые_лица.md
+    - 700_База_Данных/Знания/Кожные_проблемы_уход.md
+  topic/sleep:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Эффективный_сон.md
+  topic/social-issues:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Heartware_vs_Hardware.md
+  topic/social-justice:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Социальная_справедливость.md
+  topic/social-media:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Датирование_социальные_сети.md
+  topic/software-installation:
+    count: 1
+    examples:
+    - 700_База_Данных/Документы/Установка_компонента_Cursor.md
+  topic/soviet-cinema:
+    count: 1
+    examples:
+    - 700_База_Данных/Фильмы/Зинара_Санова_кино.md
+  topic/spa:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Спа_процедуры.md
+  topic/spiritual-journey:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Восхождение_духовное_путешествие.md
+  topic/spirituality:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Чтение_Писания_превращение.md
+  topic/startup:
+    count: 6
+    examples:
+    - 700_База_Данных/Видео/Стартап_без_друзей.md
+    - 700_База_Данных/Идеи/Fireflies_стартап_фейк.md
+    - 700_База_Данных/Идеи/Competition_Losers_Lecture.md
+  topic/startups:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Стартапы_удалёнка_релокация.md
+  topic/statistics:
+    count: 4
+    examples:
+    - 700_База_Данных/Идеи/Статистические_последствия_жирных_хвостов.md
+    - 700_База_Данных/Знания/Критерий_МаннаУитни.md
+    - 700_База_Данных/Знания/Выбросы_в_данных.md
+  topic/survival:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Прогулка_в_парк.md
+  topic/symbolism:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Оправление_змеи.md
+    - 700_База_Данных/Идеи/Самопоглощающаяся_змея.md
+  topic/tattoo:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Ed_Sheeran_Tattoo.md
+  topic/technology:
+    count: 75
+    examples:
+    - 700_База_Данных/Видео/Виртуальная_реальность_эксперимент.md
+    - 700_База_Данных/Видео/Fusion_Two_Realities.md
+    - 700_База_Данных/Видео/Волшебный_телевизор.md
+  topic/terminator:
+    count: 1
+    examples:
+    - 700_База_Данных/Фильмы/The_Terminator.md
+  topic/theater:
+    count: 2
+    examples:
+    - 700_База_Данных/Видео/Театральное_представление.md
+    - 700_База_Данных/Видео/Эротический_театр.md
+  topic/trading:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/HFT_стратегии_Solana.md
+    - 700_База_Данных/Знания/Нефть_золото.md
+  topic/transparency:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Улей_с_кабинетом.md
+  topic/ufo:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Ночное_видео_НЛО.md
+  topic/ukraine:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Геополитика_Украина.md
+  topic/venice-film-festival:
+    count: 1
+    examples:
+    - 700_База_Данных/Идеи/Венецианский_кинофестиваль.md
+  topic/visual-effects:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Бесконечный_вал.md
+  topic/vitamins:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Сочетание_витаминов.md
+  topic/voynich-manuscript:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Рукопись_Войнича.md
+    - 700_База_Данных/Знания/Рукопись_Войнича.md
+  topic/watches:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Часы_Roberto_Scarpa.md
+  topic/water-filter:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Фильтр_сантехники.md
+  topic/wedding:
+    count: 2
+    examples:
+    - 700_База_Данных/Идеи/Свадебный_сигарный_бар.md
+    - 700_База_Данных/Идеи/Свадебные_идеи_Lego.md
+  topic/wellness:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Butter_candle_season.md
+  topic/winter-adventures:
+    count: 1
+    examples:
+    - 700_База_Данных/Видео/Зимние_приключения_цифровой_след.md
+  topic/yoga:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Йога_медитация.md
+  topic/youtube:
+    count: 1
+    examples:
+    - 700_База_Данных/Знания/Ключ_YouTube.md
+namespaces:
+  domain:
+  - business
+  - career
+  - creative
+  - education
+  - entertainment
+  - food
+  - health
+  - life
+  - philosophy
+  - study
+  - tech
+  - trading
+  - travel
+  topic:
+  - 3d-printing
+  - academic-journals
+  - accident
+  - adventure
+  - ai
+  - ancient-texts
+  - animals
+  - antarctica
+  - app
+  - archaeology
+  - art
+  - astronomy
+  - athlete
+  - automation
+  - autonomous-navigation
+  - ballet
+  - barber
+  - beauty
+  - beverages
+  - books
+  - calligraphy
+  - camera
+  - captain-fantastic
+  - cardistry
+  - cars
+  - chess
+  - children
+  - cleaning
+  - cocktail
+  - coding
+  - coffee
+  - collectibles
+  - college
+  - comedy
+  - communication
+  - competition
+  - computer-vision
+  - conference
+  - conflict
+  - constraint-systems
+  - cooking
+  - cosmetics
+  - creative-thinking
+  - creativity
+  - curiosity
+  - cursor
+  - cybersecurity
+  - databases
+  - decision-making
+  - design
+  - detox
+  - dj
+  - drones
+  - economics
+  - editing
+  - egypt
+  - electronics
+  - environment
+  - essay
+  - etiquette
+  - exams
+  - family
+  - fashion
+  - film
+  - finance
+  - fire-safety
+  - fitness
+  - flowers
+  - fragrance
+  - freedom
+  - games
+  - gaming
+  - genetics
+  - geopolitics
+  - gift
+  - grandmothers
+  - haircare
+  - hairstyle
+  - hardware
+  - health
+  - herbs
+  - history
+  - hockey
+  - hotel
+  - humor
+  - hygiene
+  - ielts-writing
+  - indonesia
+  - indoor-plants
+  - instagram
+  - internet
+  - interview
+  - kubernetes
+  - kung-fu
+  - law
+  - lgbtq
+  - light
+  - literature
+  - mahjong
+  - mathematics
+  - military
+  - minecraft
+  - moscow
+  - motivation
+  - music
+  - mystery
+  - nature
+  - necromancer
+  - network
+  - neuroplasticity
+  - neuroscience
+  - news
+  - number-theory
+  - nutrition
+  - organization
+  - paranormal
+  - parents
+  - park
+  - personal-growth
+  - personal-life
+  - philosophy
+  - photography
+  - physics
+  - pid-control
+  - pinterest
+  - planning
+  - plants
+  - podcast
+  - politics
+  - productivity
+  - programming
+  - propaganda
+  - psychology
+  - quantum-mechanics
+  - relationships
+  - relativity
+  - religion
+  - remote-work
+  - restaurant
+  - rhetoric
+  - robotics
+  - romance
+  - sauna
+  - scripting
+  - security
+  - self-care
+  - self-development
+  - self-discovery
+  - self-help
+  - self-improvement
+  - self-presentation
+  - shaolin
+  - simulation
+  - skincare
+  - sleep
+  - social-issues
+  - social-justice
+  - social-media
+  - software-installation
+  - soviet-cinema
+  - spa
+  - spiritual-journey
+  - spirituality
+  - startup
+  - startups
+  - statistics
+  - survival
+  - symbolism
+  - tattoo
+  - technology
+  - terminator
+  - theater
+  - trading
+  - transparency
+  - ufo
+  - ukraine
+  - venice-film-festival
+  - visual-effects
+  - vitamins
+  - voynich-manuscript
+  - watches
+  - water-filter
+  - wedding
+  - wellness
+  - winter-adventures
+  - yoga
+  - youtube
+  source:
+  - instagram
+  - tiktok
+  - youtube
+  category:
+  - еда
+  - культура
+  - природа
+  - техника
+  cuisine:
+  - american
+  - asian
+  - greek
+  - indian
+  - italian
+  - japanese
+  - mexican
+  kind:
+  - appetizer
+  - dessert
+  - main
+  - soup
+  subtype:
+  - meme
+  - screenshot
+total_notes: 2654
+notes_with_tags: 2652

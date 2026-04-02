@@ -1,0 +1,4 @@
+# Шаблон промпта «yt_transcript_summary» (без личных данных)
+  # Скопируйте в yt_transcript_summary.txt и заполните своими инструкциями.
+  # Файл yt_transcript_summary.txt в git не попадает.
+  
