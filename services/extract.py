@@ -642,7 +642,7 @@ def _merge_ocr_results(tesseract_text: str, easyocr_text: str) -> str:
     return result
 
 
-# --- Vision (OpenRouter + Molmo) для видео ---
+# --- Vision (OpenRouter, мультимодель из VISION_MODEL) для видео ---
 def _load_vision_prompt() -> str:
     try:
         from knowledge_bot.core.config import load_config
@@ -739,7 +739,7 @@ def _is_asr_garbage(asr_text: str) -> bool:
 
 
 def extract_vision_from_video(path: Path, asr_text: str = "") -> str:
-    """Vision-анализ видео: извлекает кадры, отправляет в OpenRouter (Molmo)."""
+    """Vision-анализ видео: извлекает кадры, отправляет в OpenRouter (см. VISION_MODEL)."""
     log = logging.getLogger("kb.extract")
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key or not requests:
@@ -749,7 +749,8 @@ def extract_vision_from_video(path: Path, asr_text: str = "") -> str:
     if os.environ.get("VISION_SKIP_IF_ASR_GOOD", "1") == "1" and asr_text and not _is_asr_garbage(asr_text):
         log.info("Vision skip: ASR already useful (%d chars)", len(asr_text))
         return ""
-    model = os.environ.get("VISION_MODEL") or os.environ.get("VISION_FALLBACK_MODEL", "allenai/molmo-2-8b:free")
+    # Было: allenai/molmo-2-8b:free — условия у провайдера менялись; дефолт — Gemini Flash на OpenRouter.
+    model = os.environ.get("VISION_MODEL") or os.environ.get("VISION_FALLBACK_MODEL", "google/gemini-2.0-flash-001")
     base_url = "https://openrouter.ai/api/v1"
     frames = []
     tmpdir = None

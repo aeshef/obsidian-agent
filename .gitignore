@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Environment variables / secrets
+.env
+*.env
+
+# Logs
+*.log
+Логи/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+
+# Audio/media temp files
+*.oga
+*.ogg
+*.mp3
+*.wav
+*.mp4
