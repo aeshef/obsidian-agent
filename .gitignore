@@ -28,3 +28,6 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local scratch / clippings (not part of the bot)
+karpath_idea.md

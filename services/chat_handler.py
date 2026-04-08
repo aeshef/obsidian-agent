@@ -1,11 +1,13 @@
 """Обработчик чат-режима: контекст, история переписки, LLM-ответ."""
 import json
 import logging
-from pathlib import Path
+import os
+import re
 from typing import TYPE_CHECKING, List, Dict, Optional
 
-from planning_bot.core.config import ACTION_LOGS_DIR, LOG_DIR, BOT_DIR
+from planning_bot.core.config import LOG_DIR, KANBAN_COLUMNS
 from planning_bot.core.settings import load_prompt, get_config_path
+from planning_bot.services.action_logger import ActionLogger
 
 if TYPE_CHECKING:
     from planning_bot.core.llm import DeepSeekClient
@@ -16,10 +18,77 @@ logger = logging.getLogger(__name__)
 
 # Файл хранения истории чата
 CHAT_HISTORY_FILE = LOG_DIR / "chat_history.json"
-# Максимум сообщений в истории (rolling window)
-HISTORY_WINDOW = 20
-# Максимум задач бэклога в компактном контексте
-BACKLOG_LIMIT = 30
+# Rolling window: user+assistant сообщения. Длинные прошлые ответы ассистента иначе шаблонят следующий ответ.
+_default_hw = 8
+try:
+    HISTORY_WINDOW = int(os.getenv("PLANNING_CHAT_HISTORY_MAX_MESSAGES", str(_default_hw)))
+except ValueError:
+    HISTORY_WINDOW = _default_hw
+HISTORY_WINDOW = max(2, min(40, HISTORY_WINDOW))
+
+# Прошлые ответы ассистента в истории иначе «заражают» следующий ответ тем же шаблоном (длинные обзоры).
+# Режимы: omit — один символ (не длинная инструкция — иначе модель цитирует её как ответ пользователю).
+# truncate — первые N символов; full — как в файле (не рекомендуется).
+_ASSIST_HIST_PLACEHOLDER = "…"
+
+
+def _compress_assistant_history(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    mode = os.getenv("PLANNING_CHAT_ASSISTANT_HISTORY_MODE", "omit").strip().lower()
+    try:
+        max_chars = int(os.getenv("PLANNING_CHAT_ASSISTANT_HISTORY_MAX_CHARS", "400"))
+    except ValueError:
+        max_chars = 400
+    out: List[Dict[str, str]] = []
+    for m in history:
+        if m.get("role") != "assistant":
+            out.append(dict(m))
+            continue
+        content = m.get("content") or ""
+        if mode == "full":
+            out.append({"role": "assistant", "content": content})
+        elif mode == "omit":
+            out.append({"role": "assistant", "content": _ASSIST_HIST_PLACEHOLDER})
+        else:
+            # truncate
+            if max_chars <= 0:
+                out.append({"role": "assistant", "content": _ASSIST_HIST_PLACEHOLDER})
+            elif len(content) <= max_chars:
+                out.append({"role": "assistant", "content": content})
+            else:
+                out.append({"role": "assistant", "content": content[:max_chars] + "…"})
+    return out
+
+
+def _is_meta_garbage_reply(text: str) -> bool:
+    """Ответ похож на цитату инструкции / старую заглушку, а не на диалог с пользователем."""
+    t = (text or "").strip()
+    if not t or len(t) < 2:
+        return True
+    low = t.lower()
+    if "предыдущий ответ бота" in low or "не передаётся целиком" in low:
+        return True
+    if "не повторяй структуру" in low and "[" in t:
+        return True
+    # Одна строка в квадратных скобках с мета-инструкцией
+    if t.startswith("[") and t.endswith("]") and len(t) < 600 and any(
+        x in low for x in ("лог", "system", "контекст", "бот", "повтор")
+    ):
+        return True
+    return False
+
+
+def _plain_text_for_telegram(text: str) -> str:
+    """Убирает типичный Markdown из ответа: Telegram показывает его как мусор, если не включён parse_mode."""
+    if not text:
+        return text
+    out = text
+    while "**" in out:
+        out = re.sub(r"\*\*([^*]+)\*\*", r"\1", out)
+    out = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"\1", out)
+    out = re.sub(r"__([^_]+)__", r"\1", out)
+    out = re.sub(r"`([^`]+)`", r"\1", out)
+    out = re.sub(r"(?m)^#{1,6}\s*", "", out)
+    return out.strip()
 
 
 class ChatHandler:
@@ -30,10 +99,12 @@ class ChatHandler:
         llm: "DeepSeekClient",
         kanban: "KanbanBoard",
         goals_manager: "GoalsManager",
+        action_logger: Optional[ActionLogger] = None,
     ):
         self.llm = llm
         self.kanban = kanban
         self.goals_manager = goals_manager
+        self.action_logger = action_logger
         self.config_path = get_config_path()
 
     # ------------------------------------------------------------------ #
@@ -41,12 +112,19 @@ class ChatHandler:
     # ------------------------------------------------------------------ #
 
     def load_history(self, chat_id: int) -> List[Dict[str, str]]:
-        """Загружает историю переписки для данного chat_id."""
+        """Загружает историю переписки для данного chat_id.
+
+        Всегда обрезаем до HISTORY_WINDOW последних сообщений. Иначе после смены лимита
+        в коде старый chat_history.json на диске (например 20 пар) целиком уходил в LLM.
+        """
         try:
             if CHAT_HISTORY_FILE.exists():
                 with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                return data.get(str(chat_id), [])
+                raw = data.get(str(chat_id), [])
+                if isinstance(raw, list) and len(raw) > HISTORY_WINDOW:
+                    return raw[-HISTORY_WINDOW:]
+                return raw if isinstance(raw, list) else []
         except Exception as e:
             logger.warning("Не удалось загрузить историю чата: %s", e)
         return []
@@ -75,19 +153,48 @@ class ChatHandler:
         self.save_history(chat_id, history)
         return history
 
+    def clear_history(self, chat_id: int) -> bool:
+        """Удаляет сохранённую переписку для chat_id (сброс контекста LLM в чате)."""
+        try:
+            if not CHAT_HISTORY_FILE.exists():
+                return True
+            with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return False
+            key = str(chat_id)
+            if key in data:
+                del data[key]
+            with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            logger.info("chat history cleared for chat_id=%s", chat_id)
+            return True
+        except Exception as e:
+            logger.warning("clear_history failed: %s", e)
+            return False
+
     # ------------------------------------------------------------------ #
     # Сборка контекста                                                     #
     # ------------------------------------------------------------------ #
 
     def assemble_context(self, user_message: str = "") -> str:
-        """Собирает компактный контекст: цели + kanban + опциональные логи."""
+        """Собирает контекст: сначала цепочка логов (факты), затем цели, затем канбан."""
         parts: List[str] = []
+
+        # 0. Цепочка событий из action-логов — в начале контекста (чтобы LLM не подменяла факты снимком доски)
+        if self.action_logger is not None:
+            try:
+                chain = self.action_logger.get_recent_events_chain()
+                if chain:
+                    parts.append(chain)
+            except Exception as e:
+                logger.debug("Не удалось собрать цепочку логов: %s", e)
 
         # 1. Годовые цели
         try:
             goals = self.goals_manager.get_goals()
             if goals:
-                parts.append("### Годовые цели:\n" + "\n".join(f"- {g}" for g in goals[:10]))
+                parts.append("Годовые цели:\n" + "\n".join(f"— {g}" for g in goals))
         except Exception as e:
             logger.debug("Не удалось загрузить цели: %s", e)
 
@@ -95,90 +202,84 @@ class ChatHandler:
         try:
             qf = self.goals_manager.get_quarterly_focus()
             if qf:
-                parts.append("### Квартальные фокусы:\n" + "\n".join(f"- {g}" for g in qf[:10]))
+                parts.append("Квартальные фокусы:\n" + "\n".join(f"— {g}" for g in qf))
         except Exception as e:
             logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
 
-        # 3. Контекст целей (goals_context.md)
+        # 3. Только блоки «Что нужно сделать:» из goals_context.md
         try:
-            gc = self.goals_manager.get_goals_context()
+            gc = self.goals_manager.get_goals_context_what_to_do_only()
             if gc:
-                parts.append(f"### Контекст целей:\n{gc[:600]}")
+                parts.append(
+                    "Цели — что нужно сделать (выдержка из goals_context.md):\n" + gc
+                )
         except Exception as e:
-            logger.debug("Не удалось загрузить goals_context: %s", e)
+            logger.debug("Не удалось загрузить goals_context what-to-do: %s", e)
 
-        # 4. Компактный срез канбана
+        # 4. Вся доска: все колонки, все задачи (без лимитов)
         try:
             all_tasks = self.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-            in_progress = [t for t in all_tasks if t.get("column") == "🔄 В работе"]
-            blocked = [t for t in all_tasks if t.get("column") == "🚫 Заблокировано"]
-            backlog = [t for t in all_tasks if t.get("column") == "📋 Бэклог"]
 
             def fmt(t: Dict) -> str:
                 pri = t.get("priority") or "—"
                 cat = t.get("category") or "—"
                 dl = f" | дедлайн {t['deadline']}" if t.get("deadline") else ""
-                return f"  [{pri}] {t['title']} | {cat}{dl}"
+                done = " | выполнено" if t.get("completed") else ""
+                return f"  [{pri}] {t['title']} | {cat}{dl}{done}"
 
-            kanban_lines = ["### Доска задач (снимок):"]
-            if in_progress:
-                kanban_lines.append("🔄 В работе:")
-                kanban_lines.extend(fmt(t) for t in in_progress)
-            if blocked:
-                kanban_lines.append("🚫 Заблокировано:")
-                kanban_lines.extend(fmt(t) for t in blocked[:10])
-            if backlog:
-                kanban_lines.append(f"📋 Бэклог (первые {min(len(backlog), BACKLOG_LIMIT)}):")
-                kanban_lines.extend(fmt(t) for t in backlog[:BACKLOG_LIMIT])
+            by_col: Dict[str, List[Dict]] = {col: [] for col in KANBAN_COLUMNS}
+            unknown_col: List[Dict] = []
+            for t in all_tasks:
+                col = t.get("column")
+                if col in by_col:
+                    by_col[col].append(t)
+                else:
+                    unknown_col.append(t)
+
+            kanban_lines = ["Доска задач (полный снимок, все колонки):"]
+            for col in KANBAN_COLUMNS:
+                tasks = by_col[col]
+                kanban_lines.append(f"{col} ({len(tasks)}):")
+                if tasks:
+                    kanban_lines.extend(fmt(t) for t in tasks)
+                else:
+                    kanban_lines.append("  (пусто)")
+            if unknown_col:
+                kanban_lines.append(f"Колонка не из списка ({len(unknown_col)}):")
+                kanban_lines.extend(fmt(t) for t in unknown_col)
             parts.append("\n".join(kanban_lines))
         except Exception as e:
             logger.debug("Не удалось загрузить канбан: %s", e)
 
-        # 5. Логи действий — только при ключевых словах в запросе
-        keywords_need_logs = (
-            "история", "паттерн", "месяц", "неделя", "прогресс",
-            "динамик", "последн", "тренд", "сколько", "когда",
-        )
-        msg_lower = user_message.lower()
-        if any(kw in msg_lower for kw in keywords_need_logs):
-            try:
-                logs_text = self._get_recent_action_logs(days=60)
-                if logs_text:
-                    parts.append(f"### Логи действий (последние 60 дней):\n{logs_text}")
-            except Exception as e:
-                logger.debug("Не удалось загрузить логи: %s", e)
-
         return "\n\n".join(parts)
 
-    def _get_recent_action_logs(self, days: int = 60) -> str:
-        """Читает файлы логов действий за последние `days` дней."""
-        from datetime import datetime, timedelta
-        from planning_bot.core.config import ACTION_LOG_PREFIX
-
-        if not ACTION_LOGS_DIR.exists():
-            return ""
-
-        cutoff = datetime.now() - timedelta(days=days)
-        lines: List[str] = []
-        for log_file in sorted(ACTION_LOGS_DIR.glob(f"{ACTION_LOG_PREFIX}*.md")):
+    def _fallback_reply_from_log(self) -> str:
+        """Если LLM дважды вернула мусор — показываем сырые строки лога (всё ещё лучше, чем тишина)."""
+        if self.action_logger is None:
+            return (
+                "Не получилось сформулировать ответ. Напиши /reset_context и повтори вопрос "
+                "или сформулируй конкретнее."
+            )
+        try:
+            raw = self.action_logger.get_recent_events_chain()
+            if not raw or len(raw.strip()) < 30:
+                return (
+                    "За выбранное окно в логе почти нет событий или лог недоступен. "
+                    "Проверь, что на сервере актуальный vault и файл логов в 300_Дашборды/Логи/."
+                )
             try:
-                # Имя файла: "📊 Логи_Действий_2026-04.md"
-                date_part = log_file.stem.replace(ACTION_LOG_PREFIX, "")
-                file_month = datetime.strptime(date_part, "%Y-%m")
-                if file_month < cutoff.replace(day=1):
-                    continue
-                with open(log_file, "r", encoding="utf-8") as f:
-                    for line in f:
-                        # Берём только строки с данными (дата + действие)
-                        stripped = line.strip()
-                        if stripped and not stripped.startswith("#") and "|" in stripped:
-                            lines.append(stripped)
-            except Exception:
-                continue
-
-        # Ограничиваем размер (~3000 токенов ≈ 12000 символов)
-        result = "\n".join(lines[-400:])
-        return result[:12000]
+                cap = int(os.getenv("PLANNING_CHAT_FALLBACK_LOG_CHARS", "3800"))
+            except ValueError:
+                cap = 3800
+            body = raw if len(raw) <= cap else raw[:cap] + "\n…"
+            return (
+                "Авто-ответ не собрался — ниже сырые строки из лога задач за окно "
+                "(факты без интерпретации). Потом можно снова спросить обычным языком.\n\n"
+                + body
+            )
+        except Exception as e:
+            logger.warning("fallback_reply_from_log: %s", e)
+            return "Ошибка при чтении лога. Попробуй /reset_context и вопрос ещё раз."
 
     # ------------------------------------------------------------------ #
     # Генерация ответа                                                     #
@@ -204,17 +305,72 @@ class ChatHandler:
         # Системный промпт + контекст
         system_with_context = system_prompt
         if context_str:
-            system_with_context += f"\n\n---\n### ТВОЙ КОНТЕКСТ (обновляется при каждом запросе):\n{context_str}"
+            system_with_context += (
+                "\n\n---\nТВОЙ КОНТЕКСТ (обновляется при каждом запросе):\n"
+                + context_str
+            )
+        # Короткий якорь: длинные «инструкции» в конце system модель иногда цитирует в ответ пользователю
+        system_with_context += (
+            "\n\n---\nЯКОРЬ: факты о задачах — из блока «ЛОГ СОБЫТИЙ» в ТВОЙ КОНТЕКСТ выше. "
+            "История чата ниже не источник фактов. Пиши обычным текстом пользователю, без квадратных скобок и без мета-инструкций."
+        )
 
-        # История + новое сообщение
+        # История: урезаем тела прошлых ответов ассистента (иначе шаблон длинного «обзора» повторяется)
         history = self.load_history(chat_id)
-        messages = [{"role": "system", "content": system_with_context}]
-        messages.extend(history)
-        messages.append({"role": "user", "content": user_message})
+        hist_raw_chars = sum(len(m.get("content") or "") for m in history)
+        history_for_llm = _compress_assistant_history(history)
+        hist_llm_chars = sum(len(m.get("content") or "") for m in history_for_llm)
+        logger.info(
+            "chat LLM: context_chars=%d history_msgs=%d history_raw_chars=%d history_llm_chars=%d user_len=%d mode=%s",
+            len(context_str),
+            len(history_for_llm),
+            hist_raw_chars,
+            hist_llm_chars,
+            len(user_message),
+            os.getenv("PLANNING_CHAT_ASSISTANT_HISTORY_MODE", "omit"),
+        )
+        base_messages: List[Dict[str, str]] = [{"role": "system", "content": system_with_context}]
+        base_messages.extend(history_for_llm)
+        base_messages.append({"role": "user", "content": user_message})
 
-        reply = self.llm.chat(messages, temperature=0.8)
+        chat_temp = float(os.getenv("PLANNING_CHAT_LLM_TEMPERATURE", "0.55"))
+        reply = self.llm.chat(base_messages, temperature=chat_temp)
+        reply = _plain_text_for_telegram(reply)
 
-        # Сохраняем диалог в историю
+        # Повтор при мусоре / только «…» — один раз, ниже температура
+        retry_temp = float(os.getenv("PLANNING_CHAT_RETRY_TEMPERATURE", "0.28"))
+        if _is_meta_garbage_reply(reply) or not reply.strip() or reply.strip() in (
+            "…",
+            "...",
+            "—",
+            "-",
+        ):
+            logger.warning("chat: garbage/trivial first reply, retry once")
+            retry_msgs = list(base_messages)
+            retry_msgs.append({"role": "assistant", "content": reply})
+            retry_msgs.append(
+                {
+                    "role": "user",
+                    "content": (
+                        "Нужен нормальный ответ по-русски: по смыслу вопроса и по строкам лога в system. "
+                        "Без квадратных скобок, без цитирования инструкций, 5–12 предложений."
+                    ),
+                }
+            )
+            reply = self.llm.chat(retry_msgs, temperature=retry_temp)
+            reply = _plain_text_for_telegram(reply)
+
+        # Всё ещё плохо — отдаём сырые строки лога (без второго LLM)
+        if _is_meta_garbage_reply(reply) or not reply.strip() or reply.strip() in (
+            "…",
+            "...",
+            "—",
+            "-",
+        ):
+            logger.warning("chat: reply still bad after retry, log digest fallback")
+            reply = self._fallback_reply_from_log()
+
+        # Сохраняем диалог в историю (уже без markdown-артефактов)
         new_history = history + [
             {"role": "user", "content": user_message},
             {"role": "assistant", "content": reply},
