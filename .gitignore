@@ -33,3 +33,6 @@ Thumbs.db
 *.mp3
 *.wav
 *.mp4
+
+# Generated vault index (local paths, large)
+data/

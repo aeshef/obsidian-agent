@@ -1,0 +1,6 @@
+# Prompt: query_select
+  # Prod: knowledge_bot/config/prompts/query_select.txt (gitignore)
+  #
+  # Роль: финальный отбор заметок для ответа на вопрос.
+  # Заполните в prod: вход (вопрос, кандидаты), формат выхода.
+  

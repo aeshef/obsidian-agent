@@ -1,0 +1,7 @@
+# Prompt: query_preselect
+  # Prod: knowledge_bot/config/prompts/query_preselect.txt (gitignore)
+  # Деплой: sync_to_server.sh / локальный rsync (не из git example как боевой текст).
+  #
+  # Роль: первичный отбор заметок по каталогу vault.
+  # Заполните в prod: критерии релевантности, формат ответа (id/path).
+  
