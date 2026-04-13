@@ -21,7 +21,6 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 # Скрипт в scripts/, парсер в planning_bot/
-from planning_bot.core.config import normalize_goal_category
 from planning_bot.services.action_log_parser import (
     collect_events_from_logs,
     get_completion_events,
@@ -55,7 +54,6 @@ def _completions_from_soc(soc_path: Path) -> tuple[list[dict], int]:
         if not at:
             continue
         cat = (e.get("category") or "").strip() or None
-        cat = normalize_goal_category(cat) or cat
         if not _valid_category(cat):
             skipped += 1
             continue
@@ -78,7 +76,7 @@ def _completions_from_logs(events: list[dict]) -> tuple[list[dict], int]:
         cat = d.get("category") or ""
         if not cat:
             continue
-        cat = normalize_goal_category(cat.strip()) or cat.strip()
+        cat = cat.strip()
         tid = d.get("task_id")
         title = (d.get("title") or "").strip()
         if tid:
@@ -105,7 +103,6 @@ def _completions_from_logs(events: list[dict]) -> tuple[list[dict], int]:
     skipped = 0
     for e in completion_events:
         cat = get_cat(e.get("data") or {})
-        cat = normalize_goal_category(cat) if cat else cat
         if not _valid_category(cat):
             skipped += 1
             continue
