@@ -1,7 +1,11 @@
 #!/bin/bash
-# Скрипт для синхронизации и перезапуска бота на сервере
+# Скрипт для синхронизации и перезапуска бота на сервере (с мака).
+# Задай корень vault: export LOCAL_VAULT=/path/to/Obsidian\ Vault
+# или VAULT_PATH — иначе по умолчанию ~/Documents/Obsidian Vault (подставь свой путь).
 
-[REDACTED]
+set -u
+: "${LOCAL_VAULT:=${VAULT_PATH:-$HOME/Documents/Obsidian Vault}}"
+VAULT_PATH="$LOCAL_VAULT"
 BOT_DIR="$VAULT_PATH/800_Автоматизация/Agent/planning_bot"
 
 cd "$VAULT_PATH"

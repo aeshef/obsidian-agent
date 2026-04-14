@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Одноразовая утилита: убрать точные дубликаты блоков в файле лога. Путь к файлу обязателен."""
+import argparse
 import json
 import re
 from pathlib import Path
@@ -10,7 +12,14 @@ PAT = re.compile(
 
 
 def main() -> int:
-    log_path = Path('/root/obsidian-vault/300_Дашборды/Логи/📊 Логи_Действий_2026-03.md')
+    p = argparse.ArgumentParser(description="Deduplicate action log entries (exact JSON match)")
+    p.add_argument(
+        "log_file",
+        type=Path,
+        help="Путь к 📊 Логи_Действий_YYYY-MM.md",
+    )
+    args = p.parse_args()
+    log_path = args.log_file.resolve()
     if not log_path.exists():
         print('log not found:', log_path)
         return 1
