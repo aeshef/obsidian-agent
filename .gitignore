@@ -31,3 +31,6 @@ Thumbs.db
 
 # Local scratch / clippings (not part of the bot)
 karpath_idea.md
+
+# Личный контекст целей (в репо только goals_context.md.example)
+goals_context.md
