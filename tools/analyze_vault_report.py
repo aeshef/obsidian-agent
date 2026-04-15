@@ -5,10 +5,12 @@
 
   python analyze_vault_report.py
   python analyze_vault_report.py --out "300_Дашборды/Аудит_хранилища_отчет.md"
+  PYTHONPATH=../.. python tools/analyze_vault_report.py --vault /path/to/vault --out ...
 """
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -16,10 +18,27 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
+def _vault_root(args: argparse.Namespace) -> Path:
+    if args.vault:
+        return Path(args.vault).expanduser().resolve()
+    from knowledge_bot.core.config import load_config
+
+    return load_config().vault_path
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Сводный отчёт по тегам и дублям (read-only)")
+    ap.add_argument(
+        "--vault",
+        type=str,
+        default="",
+        help="Корень Obsidian vault (как VAULT_PATH). Если не задан — из окружения/конфига.",
+    )
     ap.add_argument("--out", "-o", type=str, default="", help="Путь к .md файлу отчёта (относительно vault или абсолютный)")
     args = ap.parse_args()
+
+    vault = _vault_root(args)
+    child_env = {**os.environ, "VAULT_PATH": str(vault)}
 
     # Запускаем оба скрипта и собираем вывод
     tags_out = subprocess.run(
@@ -27,14 +46,16 @@ def main() -> None:
         cwd=str(SCRIPT_DIR),
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=600,
+        env=child_env,
     )
     dups_out = subprocess.run(
         [sys.executable, str(SCRIPT_DIR / "analyze_vault_duplicates.py")],
         cwd=str(SCRIPT_DIR),
         capture_output=True,
         text=True,
-        timeout=120,
+        timeout=600,
+        env=child_env,
     )
 
     report_lines = [
@@ -65,12 +86,7 @@ def main() -> None:
     if args.out:
         out_path = Path(args.out)
         if not out_path.is_absolute():
-            # Относительно vault
-            try:
-                from knowledge_bot.core.config import load_config
-                out_path = load_config().vault_path / args.out
-            except Exception:
-                out_path = SCRIPT_DIR / args.out
+            out_path = vault / args.out
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(report_text, encoding="utf-8")
         print(f"Отчёт записан: {out_path}")
