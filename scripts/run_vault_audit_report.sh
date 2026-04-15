@@ -17,6 +17,8 @@ fi
 
 export PYTHONPATH="$AGENT_DIR${PYTHONPATH:+:$PYTHONPATH}"
 cd "$BOT_DIR"
-exec python3 tools/analyze_vault_report.py \
+KN_PY="$BOT_DIR/venv/bin/python3"
+[ -x "$KN_PY" ] || KN_PY=python3
+exec "$KN_PY" tools/analyze_vault_report.py \
   --vault "$VAULT" \
   --out "$VAULT/300_Дашборды/Аудит_хранилища_отчет.md"
