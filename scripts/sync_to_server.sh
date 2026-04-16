@@ -1,7 +1,13 @@
 #!/bin/zsh
 # Синхронизация изменений finance_bot на сервер (без перезапуска)
 
-[REDACTED]
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
+    VAULT_PATH="$HOME/Documents/Obsidian Vault"
+  else
+    VAULT_PATH="$HOME/Obsidian Vault"
+  fi
+fi
 BOT_DIR="$VAULT_PATH/800_Автоматизация/Agent/finance_bot"
 
 echo "🔄 Синхронизация finance_bot на сервер..."

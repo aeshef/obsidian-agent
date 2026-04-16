@@ -1,6 +1,9 @@
 .venv/
 .env
 finance.db
+# Локальные данные пользователя (не в git — в репозитории только *.example)
+config/initial_accounts.yaml
+config/user_context.md
 __pycache__/
 *.pyc
 .DS_Store

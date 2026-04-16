@@ -4,7 +4,13 @@
 
 set -u
 
-VAULT_PATH="${VAULT_PATH:-/Users/example/Documents/Obsidian Vault}"
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
+    VAULT_PATH="$HOME/Documents/Obsidian Vault"
+  else
+    VAULT_PATH="$HOME/Obsidian Vault"
+  fi
+fi
 DATA_DIR="$VAULT_PATH/300_Дашборды/Данные"
 SERVER="${SERVER:-example-server}"
 REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-/root/bots/finance_bot}"

@@ -1,7 +1,14 @@
 #!/bin/bash
 # Скрипт для деплоя finance_bot на сервер example-server
 
-[REDACTED]
+# Корень Obsidian vault: задай VAULT_PATH явно или положи vault в ~/Documents/Obsidian Vault или ~/Obsidian Vault
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
+    VAULT_PATH="$HOME/Documents/Obsidian Vault"
+  else
+    VAULT_PATH="$HOME/Obsidian Vault"
+  fi
+fi
 BOT_DIR="$VAULT_PATH/800_Автоматизация/Agent/finance_bot"
 SERVER="example-server"
 SERVER_BOT_DIR="~/bots/finance_bot"
