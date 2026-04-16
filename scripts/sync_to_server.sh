@@ -20,6 +20,8 @@ rsync -avz --delete -e 'ssh -o UseKeychain=yes' \
   --exclude='.venv' --exclude='__pycache__' --exclude='*.pyc' \
   --exclude='logs' --exclude='finance.db' --exclude='.env' \
   --exclude='.git' \
+  --exclude='config/initial_accounts.yaml' --exclude='config/user_context.md' \
+  --exclude='config/*.local.yaml' --exclude='config/*.local.md' \
   "$BOT_DIR/" example-server:~/bots/finance_bot/
 
 echo ""
