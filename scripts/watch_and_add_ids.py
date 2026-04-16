@@ -9,7 +9,7 @@ Watcher для автоматического добавления ID к зад�
     python scripts/watch_and_add_ids.py
     
 Или через launchd (macOS):
-    См. scripts/com.example.planning_bot.add_ids.plist
+    Шаблон scripts/com.example.planning_bot.add_ids.plist.example; установка: scripts/setup_watcher.sh
 """
 
 import sys

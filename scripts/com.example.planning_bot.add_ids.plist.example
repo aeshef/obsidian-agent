@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON_EXEC__</string>
+        <string>__PLANNING_BOT_ROOT__/scripts/watch_and_add_ids.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__PLANNING_BOT_ROOT__</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__PLANNING_BOT_ROOT__/logs/add_ids_watcher.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__PLANNING_BOT_ROOT__/logs/add_ids_watcher.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__LAUNCHD_PATH__</string>
+    </dict>
+</dict>
+</plist>

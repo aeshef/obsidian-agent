@@ -1,15 +1,24 @@
 #!/bin/bash
-# Скрипт для установки watcher'а добавления ID к задачам
+# Установка launchd-watcher'а для watch_and_add_ids.py (macOS).
+# Читает шаблон scripts/com.example.planning_bot.add_ids.plist.example и пишет готовый plist в ~/Library/LaunchAgents/
+# (репозиторий не изменяется).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLANNING_BOT_DIR="$(dirname "$SCRIPT_DIR")"
-PLIST_NAME="com.example.planning_bot.add_ids"
-PLIST_FILE="$SCRIPT_DIR/$PLIST_NAME.plist"
+TEMPLATE="$SCRIPT_DIR/com.example.planning_bot.add_ids.plist.example"
+LABEL="${LAUNCH_AGENT_LABEL:-com.example.planning_bot.add_ids}"
+PLIST_NAME="$LABEL"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
-LAUNCH_AGENTS_PLIST="$LAUNCH_AGENTS_DIR/$PLIST_NAME.plist"
+LAUNCH_AGENTS_PLIST="$LAUNCH_AGENTS_DIR/${PLIST_NAME}.plist"
 
 echo "🔧 Установка watcher'а для автоматического добавления ID к задачам"
+echo "   Label: $LABEL (override: LAUNCH_AGENT_LABEL=com.yourname.planning_bot.add_ids)"
 echo ""
+
+if [ ! -f "$TEMPLATE" ]; then
+    echo "❌ Не найден шаблон: $TEMPLATE"
+    exit 1
+fi
 
 # Проверяем наличие watchdog
 if ! python3 -c "import watchdog" 2>/dev/null; then
@@ -22,14 +31,12 @@ if ! python3 -c "import watchdog" 2>/dev/null; then
     echo "✅ watchdog установлен"
 fi
 
-# Определяем путь к Python (используем тот же, что и в venv если есть)
+# Путь к Python: venv приоритетнее
 if [ -f "$PLANNING_BOT_DIR/venv/bin/python3" ]; then
     PYTHON_PATH="$PLANNING_BOT_DIR/venv/bin/python3"
 elif command -v python3 &> /dev/null; then
-    # Получаем реальный путь к Python (не shim)
     PYTHON_PATH=$(python3 -c "import sys; print(sys.executable)" 2>/dev/null)
     if [ -z "$PYTHON_PATH" ] || [ ! -f "$PYTHON_PATH" ]; then
-        # Fallback на which если не получилось
         PYTHON_PATH=$(which python3)
     fi
 else
@@ -38,33 +45,56 @@ fi
 
 echo "🐍 Используется Python: $PYTHON_PATH"
 
-# Обновляем пути в plist файле
-echo "📝 Обновление путей в plist файле..."
-# Экранируем слеши для sed
-PYTHON_PATH_ESC=$(echo "$PYTHON_PATH" | sed 's|/|\\/|g')
-VAULT_PATH_ESC=$(echo "$(dirname "$(dirname "$(dirname "$(dirname "$PLANNING_BOT_DIR")")")")" | sed 's|/|\\/|g')
+ROOT_RESOLVED=$(cd "$PLANNING_BOT_DIR" && pwd)
+PY_RESOLVED=$(cd "$(dirname "$PYTHON_PATH")" && pwd)/$(basename "$PYTHON_PATH")
+BIN_DIR=$(dirname "$PY_RESOLVED")
+LAUNCHD_PATH="${BIN_DIR}:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-# Создаем временный файл с обновленными путями
-sed "s|/Users/example/\\.pyenv/versions/3\\.12\\.7/bin/python3|$PYTHON_PATH|g" "$PLIST_FILE" | \
-sed "s|/Users/example/Documents/Obsidian Vault|$(dirname "$(dirname "$(dirname "$(dirname "$PLANNING_BOT_DIR")")")")|g" > "$PLIST_FILE.tmp"
-mv "$PLIST_FILE.tmp" "$PLIST_FILE"
+echo "📝 Генерация plist из шаблона..."
+GEN=$(mktemp /tmp/planning_add_ids.XXXXXX.plist)
+python3 - "$ROOT_RESOLVED" "$PY_RESOLVED" "$LAUNCHD_PATH" "$LABEL" "$TEMPLATE" "$GEN" <<'PY'
+import sys
+from pathlib import Path
 
-# Проверяем, запущен ли уже watcher
+root = Path(sys.argv[1]).resolve()
+py = Path(sys.argv[2]).resolve()
+launchd_path = sys.argv[3]
+label = sys.argv[4]
+template = Path(sys.argv[5])
+out = Path(sys.argv[6])
+
+text = template.read_text(encoding="utf-8")
+text = text.replace("__LABEL__", label)
+text = text.replace("__PLANNING_BOT_ROOT__", str(root))
+text = text.replace("__PYTHON_EXEC__", str(py))
+text = text.replace("__LAUNCHD_PATH__", launchd_path)
+out.write_text(text, encoding="utf-8")
+PY
+
+if [ $? -ne 0 ] || [ ! -s "$GEN" ]; then
+    echo "❌ Ошибка генерации plist"
+    rm -f "$GEN"
+    exit 1
+fi
+
+# Миграция: старый личный bundle id из прежних версий репозитория
+launchctl bootout "gui/$(id -u)/com.example.planning_bot.add_ids" 2>/dev/null || true
+rm -f "$LAUNCH_AGENTS_DIR/com.example.planning_bot.add_ids.plist"
+
 if [ -f "$LAUNCH_AGENTS_PLIST" ]; then
     echo "🛑 Выгружаем существующий watcher..."
     launchctl unload "$LAUNCH_AGENTS_PLIST" 2>/dev/null || launchctl bootout "gui/$(id -u)/$PLIST_NAME" 2>/dev/null || true
     sleep 1
 fi
 
-# Копируем plist в LaunchAgents
 echo "📋 Копирование plist в LaunchAgents..."
+mkdir -p "$PLANNING_BOT_DIR/logs"
 mkdir -p "$LAUNCH_AGENTS_DIR"
-cp "$PLIST_FILE" "$LAUNCH_AGENTS_PLIST"
+cp "$GEN" "$LAUNCH_AGENTS_PLIST"
+rm -f "$GEN"
 
-# Загружаем launchd job
 echo "🚀 Запуск watcher через launchd..."
 
-# Пробуем новый способ (macOS 10.11+)
 if launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS_PLIST" 2>/dev/null; then
     echo "✅ Watcher загружен через launchctl bootstrap"
 elif launchctl load "$LAUNCH_AGENTS_PLIST" 2>/dev/null; then
@@ -72,8 +102,6 @@ elif launchctl load "$LAUNCH_AGENTS_PLIST" 2>/dev/null; then
 else
     echo "❌ Не удалось загрузить watcher. Попробуйте вручную:"
     echo "   launchctl bootstrap gui/$(id -u) $LAUNCH_AGENTS_PLIST"
-    echo ""
-    echo "Или проверьте ошибки:"
     launchctl bootstrap "gui/$(id -u)" "$LAUNCH_AGENTS_PLIST" 2>&1 || launchctl load "$LAUNCH_AGENTS_PLIST" 2>&1
     exit 1
 fi
