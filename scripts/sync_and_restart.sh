@@ -14,6 +14,8 @@ echo "🔄 Синхронизация файлов..."
 rsync -avz --delete --exclude='.git' --exclude='node_modules' --exclude='.DS_Store' \
   --exclude='venv/' --exclude='__pycache__/' --exclude='*.pyc' \
   --exclude='logs/' --exclude='CHAT_ID.txt' \
+  --exclude='.env' --exclude='.env.local' \
+  --exclude='goals_context.md' \
   --exclude='📊 Рутины_2026-*.md' --exclude='📋 Шаблон_Рутин.md' \
   --exclude='📊 Прогресс_2026.md' \
   "$BOT_DIR/" example-server:~/bots/planning_bot/

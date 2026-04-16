@@ -11,6 +11,7 @@ ENV/
 # Environment
 .env
 .env.local
+!.env.example
 
 # Secrets / runtime
 CHAT_ID.txt
