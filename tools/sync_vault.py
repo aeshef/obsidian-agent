@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 # Путь к vault из переменных окружения
-[REDACTED]
+VAULT_PATH = Path(os.getenv("VAULT_PATH", str(Path.home() / "Obsidian Vault")))
 
 # Пути для синхронизации knowledge_bot
 SYNC_PATHS = [

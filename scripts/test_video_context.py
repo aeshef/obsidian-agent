@@ -5,7 +5,8 @@
 
 Пример:
   python scripts/test_video_context.py "/path/to/video.mp4"
-  VISION_SKIP_IF_ASR_GOOD=0 python scripts/test_video_context.py   # всегда вызвать Vision
+  TEST_VIDEO_PATH=/path/to/x.mp4 python scripts/test_video_context.py
+  VISION_SKIP_IF_ASR_GOOD=0 python scripts/test_video_context.py /path/to/video.mp4   # всегда вызвать Vision
 """
 from __future__ import annotations
 
@@ -45,15 +46,17 @@ def main() -> int:
     kb_dir = Path(__file__).resolve().parent.parent
     _load_dotenv(kb_dir / ".env")
 
-    default_video = (
-        Path(os.environ.get("VAULT_PATH", "/Users/example/Documents/Obsidian Vault"))
-        / "700_База_Данных"
-        / "Export"
-        / "2026"
-        / "04"
-        / "fb43d2c7_IMG_9130.MP4"
-    )
-    video = Path(sys.argv[1]).expanduser() if len(sys.argv) > 1 else default_video
+    if len(sys.argv) > 1:
+        video = Path(sys.argv[1]).expanduser()
+    elif os.environ.get("TEST_VIDEO_PATH"):
+        video = Path(os.environ["TEST_VIDEO_PATH"]).expanduser()
+    else:
+        print(
+            "Укажи путь к видео: python scripts/test_video_context.py /path/to/file.mp4\n"
+            "или задай TEST_VIDEO_PATH в окружении.",
+            file=sys.stderr,
+        )
+        return 1
     if not video.is_file():
         print(f"Файл не найден: {video}", file=sys.stderr)
         return 1
