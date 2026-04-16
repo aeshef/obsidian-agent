@@ -14,6 +14,8 @@ cd "$BOT_DIR"
 # которых больше нет локально. Это важно после структурных рефакторингов.
 rsync -avz --delete -e 'ssh -o UseKeychain=yes' \
     --exclude='.git' --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' --exclude='logs' --exclude='.env' \
+    --exclude='config/author_context.txt' \
+    --exclude='data/' \
     "$BOT_DIR/" example-server:~/bots/knowledge_bot/
 
 echo ""
