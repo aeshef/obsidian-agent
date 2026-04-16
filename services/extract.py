@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 import re
 from pathlib import Path
@@ -727,27 +728,52 @@ def _extract_video_frames(video_path: Path, n: int = 5) -> Tuple[list[Path], Pat
     return frames, tmpdir
 
 
-def _is_asr_garbage(asr_text: str) -> bool:
-    """True если ASR — артефакт (тишина/overlay), нужен vision. False = ASR полезен, vision можно пропустить."""
-    if not asr_text or len(asr_text.strip()) < 20:
-        return True
-    lower = asr_text.lower()
-    garbage = ["редактор субтитров", "корректор", "субтитры субтитры", "динамичная музыка",
-               "спокойная музыка", "позитивная музыка", "добро пожаловать на наш канал",
-               "thanks for watching", "продолжение следует"]
-    return any(g in lower for g in garbage) or len(lower.strip()) < 20
+def _llm_asr_sufficient_to_skip_vision(llm_client: Optional[Any], asr_text: str) -> bool:
+    """
+    Один короткий JSON-запрос к основному LLM: достаточен ли транскрипт, чтобы не вызывать Vision.
+    При отсутствии клиента или ошибке — False (Vision выполняем).
+    """
+    log = logging.getLogger("kb.extract")
+    if not llm_client:
+        return False
+    t = (asr_text or "").strip()
+    if len(t) < 25:
+        return False
+    try:
+        from knowledge_bot.core.config import load_config
+        from knowledge_bot.core.settings import load_prompt
+
+        cfg = load_config()
+        system = load_prompt(cfg.agent_config_path, "asr_skip_vision_gate")
+        user = json.dumps({"transcript": t[:4500]}, ensure_ascii=False)
+        model = os.environ.get("VISION_ASR_GATE_MODEL", "deepseek-chat")
+        result = llm_client.chat_json(system, user, model=model, timeout=35.0, max_tokens=96)
+        payload = result.content if isinstance(result.content, dict) else {}
+        val = payload.get("sufficient")
+        if isinstance(val, bool):
+            log.info("ASR vision gate: sufficient=%s", val)
+            return val
+        log.warning("ASR vision gate: unexpected JSON, running Vision")
+        return False
+    except Exception as e:
+        log.warning("ASR vision gate failed: %s — running Vision", e)
+        return False
 
 
-def extract_vision_from_video(path: Path, asr_text: str = "") -> str:
+def extract_vision_from_video(path: Path, asr_text: str = "", llm_client: Optional[Any] = None) -> str:
     """Vision-анализ видео: извлекает кадры, отправляет в OpenRouter (см. VISION_MODEL)."""
     log = logging.getLogger("kb.extract")
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key or not requests:
         log.info("Vision skip: OPENROUTER_API_KEY or requests not available")
         return ""
-    # Экономия лимита: пропускаем vision если ASR уже содержательный
-    if os.environ.get("VISION_SKIP_IF_ASR_GOOD", "1") == "1" and asr_text and not _is_asr_garbage(asr_text):
-        log.info("Vision skip: ASR already useful (%d chars)", len(asr_text))
+    # Экономия лимита: один LLM-запрос — достаточен ли ASR без описания кадров
+    if (
+        os.environ.get("VISION_SKIP_IF_ASR_GOOD", "1") == "1"
+        and asr_text
+        and _llm_asr_sufficient_to_skip_vision(llm_client, asr_text)
+    ):
+        log.info("Vision skip: LLM says ASR sufficient (%d chars)", len(asr_text))
         return ""
     # Было: allenai/molmo-2-8b:free — условия у провайдера менялись; дефолт — Gemini Flash на OpenRouter.
     model = os.environ.get("VISION_MODEL") or os.environ.get("VISION_FALLBACK_MODEL", "google/gemini-2.0-flash-001")
@@ -1062,7 +1088,7 @@ def extract_from_path(path_str: str, note_text: Optional[str] = None, llm_client
         # Vision: описание сцены (пропускаем если ASR содержательный — экономия лимита)
         vision_text = ""
         if os.environ.get("OPENROUTER_API_KEY"):
-            vision_text = extract_vision_from_video(path, asr_text=asr_text or "")
+            vision_text = extract_vision_from_video(path, asr_text=asr_text or "", llm_client=llm_client)
         
         return ExtractedBundle(
             raw_text=raw, 
