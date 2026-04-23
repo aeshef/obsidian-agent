@@ -18,7 +18,10 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Пакет knowledge_bot лежит в Agent/knowledge_bot — в sys.path нужен Agent/
+_AGENT = Path(__file__).resolve().parent.parent.parent
+if str(_AGENT) not in sys.path:
+    sys.path.insert(0, str(_AGENT))
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.tags_inventory import scan_all_notes

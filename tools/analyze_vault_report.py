@@ -16,6 +16,10 @@ import sys
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+# 800_Автоматизация/Agent — для import knowledge_bot и дочерних подпроцессов
+AGENT_DIR = SCRIPT_DIR.parent.parent
+if str(AGENT_DIR) not in sys.path:
+    sys.path.insert(0, str(AGENT_DIR))
 
 
 def _vault_root(args: argparse.Namespace) -> Path:
@@ -112,7 +116,11 @@ def main() -> None:
     args = ap.parse_args()
 
     vault = _vault_root(args)
-    child_env = {**os.environ, "VAULT_PATH": str(vault)}
+    _pp = str(AGENT_DIR)
+    _existing = os.environ.get("PYTHONPATH", "")
+    if _existing:
+        _pp = f"{_pp}{os.pathsep}{_existing}"
+    child_env = {**os.environ, "VAULT_PATH": str(vault), "PYTHONPATH": _pp}
 
     # Запускаем оба скрипта и собираем вывод
     tags_out = subprocess.run(
