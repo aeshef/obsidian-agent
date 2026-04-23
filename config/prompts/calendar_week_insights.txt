@@ -1,0 +1,4 @@
+# Шаблон промпта «calendar_week_insights» (без личных данных)
+  # Скопируйте в calendar_week_insights.txt и заполните своими инструкциями.
+  # Файл calendar_week_insights.txt в git не попадает.
+  
