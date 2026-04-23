@@ -810,6 +810,9 @@ def extract_vision_from_video(path: Path, asr_text: str = "", llm_client: Option
                 text = (r.json() or {}).get("choices", [{}])[0].get("message", {}).get("content", "")
                 log.info("Vision: %d chars from %d frames (%s) for %s", len(text or ""), len(frames), model, path.name)
                 return (text or "").strip()
+            from knowledge_bot.services.api_billing_alerts import send_billing_alert_if_needed
+
+            send_billing_alert_if_needed("OpenRouter (Vision)", r.status_code, r.text or "")
             if r.status_code == 429:
                 log.warning("Vision API 429 (лимит исчерпан) — останавливаем")
                 raise VisionRateLimitError("OpenRouter Vision rate limit (429)")
