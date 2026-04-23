@@ -1,19 +1,281 @@
-# Публичный заглушечный инвентарь. Для своего vault пересобери из заметок:
-#   export VAULT_PATH=/path/to/vault
-#   cd …/Agent && python -m knowledge_bot.services.tags_inventory
 tags:
   domain/study:
-    count: 1
+    count: 26
     examples:
-      - 700_База_Данных/Знания/Example_Note_Study.md
+    - 700_База_Данных/Знания/Example_Note_Study.md
   topic/sample:
     count: 1
     examples:
-      - 700_База_Данных/Знания/Example_Note_Topic.md
+    - 700_База_Данных/Знания/Example_Note_Topic.md
+  domain/creative:
+    count: 10
+    examples: []
+  topic/creative-thinking:
+    count: 1
+    examples: []
+  topic/curiosity:
+    count: 1
+    examples: []
+  domain/life:
+    count: 20
+    examples: []
+  topic/barber:
+    count: 1
+    examples: []
+  topic/hairstyle:
+    count: 1
+    examples: []
+  domain/tech:
+    count: 3
+    examples: []
+  topic/cursor:
+    count: 1
+    examples: []
+  topic/software-installation:
+    count: 1
+    examples: []
+  domain/entertainment:
+    count: 8
+    examples: []
+  topic/ufo:
+    count: 1
+    examples: []
+  topic/beauty:
+    count: 2
+    examples: []
+  topic/spa:
+    count: 1
+    examples: []
+  topic/religion:
+    count: 1
+    examples: []
+  topic/spiritual-journey:
+    count: 2
+    examples: []
+  source/youtube:
+    count: 3
+    examples: []
+  topic/etiquette:
+    count: 1
+    examples: []
+  topic/sauna:
+    count: 1
+    examples: []
+  topic/accident:
+    count: 1
+    examples: []
+  topic/ancient-texts:
+    count: 1
+    examples: []
+  source/tiktok:
+    count: 1
+    examples: []
+  topic/comedy:
+    count: 1
+    examples: []
+  topic/social-media:
+    count: 1
+    examples: []
+  topic/communication:
+    count: 1
+    examples: []
+  topic/podcast:
+    count: 1
+    examples: []
+  domain/travel:
+    count: 1
+    examples: []
+  topic/freedom:
+    count: 1
+    examples: []
+  topic/music:
+    count: 1
+    examples: []
+  topic/children:
+    count: 1
+    examples: []
+  topic/family:
+    count: 1
+    examples: []
+  topic/athlete:
+    count: 1
+    examples: []
+  domain/food:
+    count: 2
+    examples: []
+  topic/grandmothers:
+    count: 1
+    examples: []
+  topic/restaurant:
+    count: 1
+    examples: []
+  topic/neuroplasticity:
+    count: 1
+    examples: []
+  topic/psychology:
+    count: 1
+    examples: []
+  domain/business:
+    count: 1
+    examples: []
+  topic/business:
+    count: 1
+    examples: []
+  topic/transparency:
+    count: 1
+    examples: []
+  topic/simulation:
+    count: 1
+    examples: []
+  topic/lgbtq:
+    count: 1
+    examples: []
+  domain/health:
+    count: 7
+    examples: []
+  topic/health:
+    count: 2
+    examples: []
+  topic/medicine:
+    count: 1
+    examples: []
+  topic/vitamins:
+    count: 1
+    examples: []
+  domain/career:
+    count: 1
+    examples: []
+  topic/public-speaking:
+    count: 1
+    examples: []
+  topic/fire-safety:
+    count: 1
+    examples: []
+  topic/military:
+    count: 1
+    examples: []
+  topic/haircare:
+    count: 1
+    examples: []
+  topic/herbs:
+    count: 1
+    examples: []
+  topic/sleep:
+    count: 1
+    examples: []
+  topic/water-filter:
+    count: 1
+    examples: []
+  topic/hygiene:
+    count: 1
+    examples: []
+  topic/fragrance:
+    count: 1
+    examples: []
+  topic/indoor-plants:
+    count: 1
+    examples: []
+  topic/plants:
+    count: 1
+    examples: []
+  topic/news:
+    count: 1
+    examples: []
+  topic/food-tracking:
+    count: 1
+    examples: []
+  topic/nutrition:
+    count: 1
+    examples: []
+  topic/pinterest:
+    count: 1
+    examples: []
+  topic/gaming:
+    count: 1
+    examples: []
+  topic/mahjong:
+    count: 1
+    examples: []
+  topic/juggling:
+    count: 1
+    examples: []
+  topic/cosmetics:
+    count: 1
+    examples: []
+  topic/skincare:
+    count: 1
+    examples: []
 namespaces:
   domain:
+  - business
+  - career
+  - creative
+  - entertainment
+  - food
+  - health
+  - life
   - study
+  - tech
+  - travel
   topic:
-    - sample
+  - accident
+  - ancient-texts
+  - athlete
+  - barber
+  - beauty
+  - business
+  - children
+  - comedy
+  - communication
+  - cosmetics
+  - creative-thinking
+  - curiosity
+  - cursor
+  - etiquette
+  - family
+  - fire-safety
+  - food-tracking
+  - fragrance
+  - freedom
+  - gaming
+  - grandmothers
+  - haircare
+  - hairstyle
+  - health
+  - herbs
+  - hygiene
+  - indoor-plants
+  - juggling
+  - lgbtq
+  - mahjong
+  - medicine
+  - military
+  - music
+  - neuroplasticity
+  - news
+  - nutrition
+  - pinterest
+  - plants
+  - podcast
+  - psychology
+  - public-speaking
+  - religion
+  - restaurant
+  - sample
+  - sauna
+  - simulation
+  - skincare
+  - sleep
+  - social-media
+  - software-installation
+  - spa
+  - spiritual-journey
+  - transparency
+  - ufo
+  - vitamins
+  - water-filter
+  source:
+  - tiktok
+  - youtube
 total_notes: 0
 notes_with_tags: 0
