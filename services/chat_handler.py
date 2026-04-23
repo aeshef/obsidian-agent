@@ -207,11 +207,19 @@ class ChatHandler:
             logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
 
         # 2b. Контекст Mac (батарея, фокус, приложение, погода)
+        # Сначала context_today.json (после rsync с мака на сервер — канон без txt);
+        # иначе парсинг Mac/Контекст_*.txt (окно 10:00–02:00).
         try:
-            from planning_bot.core.config import CONTEXT_MAC_DIR
-            from planning_bot.services.context_parser import get_today_snapshot, format_for_llm
+            from planning_bot.core.config import CONTEXT_MAC_DIR, CONTEXT_TODAY_JSON
+            from planning_bot.services.context_parser import (
+                format_for_llm,
+                get_today_snapshot,
+                load_chat_snapshot_from_json,
+            )
 
-            snap = get_today_snapshot(CONTEXT_MAC_DIR)
+            snap = load_chat_snapshot_from_json(CONTEXT_TODAY_JSON)
+            if not snap:
+                snap = get_today_snapshot(CONTEXT_MAC_DIR, logging_window_only=True)
             ctx_str = format_for_llm(snap)
             if ctx_str:
                 parts.append(ctx_str)
