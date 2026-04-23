@@ -1,0 +1,14 @@
+# Утверждённые переносы тегов: "было" -> "стало" (полные строки namespace/slug)
+# Сначала: python tools/tag_ontology.py propose
+# Проверь data/tag_ontology_proposal.yaml, перенеси сюда, затем: python tools/tag_ontology.py apply --apply
+
+version: 1
+# Пример: mappings: { "topic/gift": "topic/gifts" }
+mappings: {}
+
+propose:
+  namespaces:
+    - topic
+    - domain
+  max_per_llm_batch: 50
+  model: deepseek-chat

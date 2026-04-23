@@ -1,0 +1,4 @@
+# Шаблон промпта «tag_ontology_propose» (без личных данных)
+  # Скопируйте в tag_ontology_propose.txt и заполните своими инструкциями.
+  # Файл tag_ontology_propose.txt в git не попадает.
+  

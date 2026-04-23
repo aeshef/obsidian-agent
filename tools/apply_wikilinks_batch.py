@@ -24,7 +24,8 @@ for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().pa
                 os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
         break
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# пакет knowledge_bot: родительский каталог — Agent/
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.llm import LLMClient

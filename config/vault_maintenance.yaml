@@ -1,0 +1,23 @@
+# Ежедневное обслуживание 700_ (запуск: tools/vault_daily_maintenance.py из obsidian_sync, маркер в .sync)
+# Без жёсткого кода: лимиты и флаги здесь.
+
+daily:
+  enabled: true
+  marker_basename: daily_vault_write_maintenance_date.txt
+
+# Хабы: wikilinks-страницы по hubs_registry.yaml (лёгко, без API)
+sync_hubs:
+  enabled: true
+  write: true
+
+# Пакетные [[wikilinks]] в телах заметок (нужен DEEPSEEK_API_KEY)
+apply_wikilinks:
+  enabled: true
+  apply: true
+  limit: 30
+
+# Переобработка «плохих» имён (ASR/Vision, дорого) — по умолчанию выкл.
+reprocess_notes:
+  enabled: false
+  apply: true
+  limit: 8
