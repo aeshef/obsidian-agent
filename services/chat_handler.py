@@ -206,7 +206,19 @@ class ChatHandler:
         except Exception as e:
             logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
 
-        # 2b. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
+        # 2b. Контекст Mac (батарея, фокус, приложение, погода)
+        try:
+            from planning_bot.core.config import CONTEXT_MAC_DIR
+            from planning_bot.services.context_parser import get_today_snapshot, format_for_llm
+
+            snap = get_today_snapshot(CONTEXT_MAC_DIR)
+            ctx_str = format_for_llm(snap)
+            if ctx_str:
+                parts.append(ctx_str)
+        except Exception as e:
+            logger.debug("Не удалось загрузить контекст Mac: %s", e)
+
+        # 2c. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
         try:
             from planning_bot.core.config import CALENDAR_JSON_FILE
             from planning_bot.services.calendar_service import get_chat_calendar_context

@@ -971,6 +971,14 @@ def run_all() -> bool:
     except Exception as e:
         print(f"⚠️ Ошибка при синхронизации календаря: {e}")
         results.append(("Синхронизация календаря", False))
+
+    # 5. Синхронизация контекста Mac (шорткат «Контекст (Obsidian)»)
+    try:
+        from planning_bot.tools.context_sync import run_context_sync
+        results.append(("Синхронизация контекста", run_context_sync()))
+    except Exception as e:
+        print(f"⚠️ Ошибка при синхронизации контекста: {e}")
+        results.append(("Синхронизация контекста", False))
     print()
 
     # Итоги
