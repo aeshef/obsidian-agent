@@ -963,7 +963,16 @@ def run_all() -> bool:
     # 3. Завершённые задачи логируются только при переходе в «Сделано» (log_task_movements и kanban_monitor).
     # Массовая выгрузка всех задач из колонки «Сделано» в лог отключена — она давала нереалистичные цифры на графиках.
     pass
-    
+
+    # 4. Синхронизация Календарь.txt → Календарь.json
+    try:
+        from planning_bot.tools.calendar_sync import run_calendar_sync
+        results.append(("Синхронизация календаря", run_calendar_sync()))
+    except Exception as e:
+        print(f"⚠️ Ошибка при синхронизации календаря: {e}")
+        results.append(("Синхронизация календаря", False))
+    print()
+
     # Итоги
     print("=" * 50)
     print("📊 Итоги:")
