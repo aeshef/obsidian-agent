@@ -20,6 +20,13 @@ mappings:
   topic/career-change: topic/career
   topic/social-justice: topic/social-issues
   topic/spirituality: topic/spiritual-journey
+  # Domain/topic collisions → unify on domain side
+  topic/business: domain/business
+  topic/career: domain/career
+  topic/health: domain/health
+  topic/philosophy: domain/philosophy
+  topic/trading: domain/trading
+  topic/travel: domain/travel
 
 propose:
   namespaces:
