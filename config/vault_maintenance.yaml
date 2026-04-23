@@ -16,8 +16,9 @@ apply_wikilinks:
   apply: true
   limit: 30
 
-# Переобработка «плохих» имён (ASR/Vision, дорого) — по умолчанию выкл.
+# Переобработка «плохих» имён (ASR/Vision, дорого): 8 заметок в сутки
+# Заметки с title="Без_названия"/"Субтитры"/"IMG*" обрабатываются первыми
 reprocess_notes:
-  enabled: false
+  enabled: true
   apply: true
   limit: 8

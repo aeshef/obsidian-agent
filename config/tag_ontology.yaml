@@ -3,8 +3,23 @@
 # Проверь data/tag_ontology_proposal.yaml, перенеси сюда, затем: python tools/tag_ontology.py apply --apply
 
 version: 1
-# Пример: mappings: { "topic/gift": "topic/gifts" }
-mappings: {}
+# Слияния проверены: из аудита + LLM-propose (data/tag_ontology_proposal.yaml)
+mappings:
+  # Singular/plural variants → plural canonical
+  topic/dream: topic/dreams
+  topic/gift: topic/gifts
+  topic/startup: topic/startups
+  topic/game: topic/gaming
+  # Self-improvement cluster → unified
+  topic/self-improvement: topic/personal-development
+  topic/self-development: topic/personal-development
+  topic/self-help: topic/personal-development
+  topic/personal-growth: topic/personal-development
+  # Specific → broader (only if truly synonymous)
+  topic/self-care: topic/wellness
+  topic/career-change: topic/career
+  topic/social-justice: topic/social-issues
+  topic/spirituality: topic/spiritual-journey
 
 propose:
   namespaces:

@@ -12,7 +12,7 @@ tags:
       - 700_База_Данных/Знания/Example_Note_Topic.md
 namespaces:
   domain:
-    - study
+  - study
   topic:
     - sample
 total_notes: 0
