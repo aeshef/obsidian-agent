@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -21,7 +22,9 @@ from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_AGENT = Path(__file__).resolve().parent.parent.parent
+if str(_AGENT) not in sys.path:
+    sys.path.insert(0, str(_AGENT))
 
 from knowledge_bot.core.config import load_config
 
@@ -51,12 +54,18 @@ def main() -> None:
         sys.exit(1)
 
     # Получаем рекомендации из анализа дублей
+    _env = {**os.environ, "VAULT_PATH": str(cfg.vault_path)}
+    _pp = str(_AGENT)
+    if os.environ.get("PYTHONPATH"):
+        _pp = f"{_pp}{os.pathsep}{os.environ['PYTHONPATH']}"
+    _env["PYTHONPATH"] = _pp
     result = subprocess.run(
         [sys.executable, str(SCRIPT_DIR / "analyze_vault_duplicates.py"), "--json"],
         cwd=str(SCRIPT_DIR),
         capture_output=True,
         text=True,
         timeout=120,
+        env=_env,
     )
     if result.returncode != 0:
         print(result.stderr or result.stdout, file=sys.stderr)
