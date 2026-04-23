@@ -206,6 +206,17 @@ class ChatHandler:
         except Exception as e:
             logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
 
+        # 2b. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
+        try:
+            from planning_bot.core.config import CALENDAR_JSON_FILE
+            from planning_bot.services.calendar_service import get_chat_calendar_context
+
+            cal = get_chat_calendar_context(CALENDAR_JSON_FILE)
+            if cal:
+                parts.append(cal)
+        except Exception as e:
+            logger.debug("Не удалось загрузить календарь для чата: %s", e)
+
         # 3. Только блоки «Что нужно сделать:» из goals_context.md
         try:
             gc = self.goals_manager.get_goals_context_what_to_do_only()
