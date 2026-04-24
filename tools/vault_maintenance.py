@@ -986,11 +986,19 @@ def run_all() -> bool:
     if os.environ.get("GMAIL_IMAP_USER") and os.environ.get("GMAIL_IMAP_APP_PASSWORD"):
         try:
             from planning_bot.tools.iphone_mail_sync import run_iphone_mail_sync
-            res = run_iphone_mail_sync()
+
+            # По умолчанию только письма «за сегодня» в IPHONE_SYNC_TZ; IPHONE_MAIL_SYNC_TODAY_ONLY=0 — бэкфилл
+            _to = os.environ.get("IPHONE_MAIL_SYNC_TODAY_ONLY", "1").lower() not in (
+                "0",
+                "false",
+                "no",
+                "off",
+            )
+            res = run_iphone_mail_sync(today_only=_to)
             ok = res.get("ok", False)
             written = res.get("written", 0)
             print(
-                f"   iphone_mail_sync: ok={ok} written={written}"
+                f"   iphone_mail_sync: ok={ok} written={written} today_only={res.get('today_only')}"
                 + (f" errors={res.get('errors')}" if res.get("errors") else ""),
                 flush=True,
             )
@@ -1000,6 +1008,16 @@ def run_all() -> bool:
             results.append(("iPhone mail sync", False))
     else:
         print("   iphone_mail_sync: пропуск (GMAIL_IMAP_USER не задан)", flush=True)
+    print()
+
+    # 7. JSON по iPhone-снапшотам (iphone_today.json / iphone_week.json)
+    try:
+        from planning_bot.tools.iphone_context_sync import run_iphone_context_sync
+
+        results.append(("Синхронизация iPhone JSON", run_iphone_context_sync()))
+    except Exception as e:
+        print(f"⚠️ Ошибка при iphone_context_sync: {e}")
+        results.append(("Синхронизация iPhone JSON", False))
     print()
 
     # Итоги
