@@ -178,6 +178,11 @@ def main() -> None:
         if not RE_BAD.search(stem):
             continue
         fm, body = parse_note(note_path)
+        # Пропускаем заметки, которые уже помечены как «не стоит переобрабатывать»:
+        # reprocess_skip: true — LLM не смог дать лучшее имя при предыдущем прогоне,
+        # бесконечный цикл переобработки нежелателен. Сбросить вручную: удалить поле из frontmatter.
+        if fm.get("reprocess_skip"):
+            continue
         candidates.append((note_path, fm, body))
 
     if limit:
@@ -397,7 +402,9 @@ def main() -> None:
         if verbose:
             print("  [полная заметка]\n" + (rendered[:3000] + "\n..." if len(rendered) > 3000 else rendered))
         if apply:
-            new_path = write_note(vault, routed["type"], routed["title"], rendered)
+            # source_path → write_note → choose_unique_note_path не создаёт _N когда
+            # целевой путь совпадает с источником (перезапись на месте).
+            new_path = write_note(vault, routed["type"], routed["title"], rendered, source_path=note_path)
             if new_path.resolve() != note_path.resolve():
                 try:
                     note_path.unlink()
@@ -406,6 +413,23 @@ def main() -> None:
             if routed.get("tags"):
                 update_inventory_with_new_tags(cfg.agent_config_path, routed["tags"])
             print(f"  ✓ Записано: {new_path.relative_to(vault)}")
+            # Если после переобработки slug результата всё ещё матчит RE_BAD
+            # (LLM не смог придумать лучшее имя), помечаем reprocess_skip: true —
+            # чтобы следующий ежедневный прогон не гонял эту заметку снова.
+            # Сбросить вручную: удалить поле reprocess_skip из frontmatter.
+            new_slug = re.sub(r"[^а-яёА-ЯЁa-zA-Z0-9_]", "_", routed["title"])
+            if RE_BAD.search(new_slug):
+                try:
+                    _text = new_path.read_text(encoding="utf-8")
+                    if _text.startswith("---"):
+                        _end = _text.index("\n---", 3)
+                        _fm_block = _text[3:_end]
+                        if "reprocess_skip" not in _fm_block:
+                            _new_text = "---" + _fm_block + "\nreprocess_skip: true" + _text[_end:]
+                            new_path.write_text(_new_text, encoding="utf-8")
+                            print(f"  ⚠ Slug всё ещё в RE_BAD → reprocess_skip: true (сбросить: удалить поле из frontmatter)")
+                except Exception:
+                    pass  # не критично, следующий прогон просто повторит попытку
 
 
 if __name__ == "__main__":

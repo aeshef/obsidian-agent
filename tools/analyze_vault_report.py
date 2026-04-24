@@ -30,6 +30,79 @@ def _vault_root(args: argparse.Namespace) -> Path:
     return load_config().vault_path
 
 
+def _parse_last_maintenance_run(log_path: Path) -> dict | None:
+    """
+    Читает лог vault_write_maintenance.log и возвращает последний полный JSON-блок
+    с результатами прогона ({"sync_dir": ..., "steps": [...], "ok": ...}).
+    Возвращает None если лог не найден или JSON не распарсился.
+    """
+    import json as _json
+
+    if not log_path.exists():
+        return None
+    try:
+        text = log_path.read_text(encoding="utf-8", errors="ignore")
+    except Exception:
+        return None
+
+    # Ищем все JSON-блоки: { ... "steps": [...] ... }
+    # Берём последний полный блок (ориентируемся на наличие "steps")
+    last_block: dict | None = None
+    depth = 0
+    start = -1
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start != -1:
+                chunk = text[start : i + 1]
+                try:
+                    obj = _json.loads(chunk)
+                    if isinstance(obj, dict) and "steps" in obj:
+                        last_block = obj
+                except Exception:
+                    pass
+                start = -1
+    return last_block
+
+
+def _format_maintenance_run(run: dict) -> list[str]:
+    """Форматирует результаты прогона vault_daily_maintenance в читаемые строки."""
+    lines: list[str] = []
+    ok = run.get("ok", True)
+    steps = run.get("steps") or []
+    lines.append(f"**Итоги последнего прогона** ({'✅ ok' if ok else '❌ ошибка'}), {len(steps)} шагов:")
+    lines.append("")
+    step_labels = {
+        "sync_hubs": "Хабы (sync_hubs)",
+        "apply_wikilinks_batch": "Wikilinks (apply_wikilinks_batch)",
+        "retag_notes": "Перетегирование (retag_notes)",
+        "reprocess_notes": "Переобработка имён (reprocess_notes)",
+    }
+    for s in steps:
+        name = s.get("name", "?")
+        rc = s.get("returncode", "?")
+        sec = s.get("seconds", 0)
+        label = step_labels.get(name, name)
+        status = "✅" if rc == 0 else "❌"
+        lines.append(f"  - {status} **{label}** — {sec:.1f}с")
+        stdout = (s.get("stdout_tail") or "").strip()
+        if stdout:
+            # Берём последние 3 строки вывода — самое важное (итог шага)
+            tail = [ln for ln in stdout.splitlines() if ln.strip()][-3:]
+            for ln in tail:
+                lines.append(f"    > {ln}")
+        stderr = (s.get("stderr_tail") or "").strip()
+        if stderr:
+            err_lines = [ln for ln in stderr.splitlines() if ln.strip() and "NOT available" not in ln]
+            for ln in err_lines[-2:]:
+                lines.append(f"    ⚠ {ln}")
+    return lines
+
+
 def _build_maintenance_section(vault: Path) -> str:
     """Собирает секцию состояния ежедневного обслуживания."""
     import yaml, datetime
@@ -76,6 +149,26 @@ def _build_maintenance_section(vault: Path) -> str:
         lines.append(f"**Последний запуск обслуживания**: `{last_run}`")
     else:
         lines.append("**Последний запуск обслуживания**: ещё не запускалось (маркер не найден)")
+
+    lines.append("")
+
+    # Итоги последнего прогона из лога
+    # Лог живёт рядом с planning_bot (не в knowledge_bot), так как obsidian_sync пишет туда всё.
+    # Ищем по стандартным расположениям: planning_bot/logs/ или knowledge_bot/../planning_bot/logs/
+    log_candidates = [
+        vault / "800_Автоматизация" / "Agent" / "planning_bot" / "logs" / "vault_write_maintenance.log",
+        Path(__file__).resolve().parent.parent.parent / "planning_bot" / "logs" / "vault_write_maintenance.log",
+    ]
+    last_run_data: dict | None = None
+    for lp in log_candidates:
+        last_run_data = _parse_last_maintenance_run(lp)
+        if last_run_data:
+            break
+
+    if last_run_data:
+        lines.extend(_format_maintenance_run(last_run_data))
+    else:
+        lines.append("**Итоги прогона**: лог не найден или пуст (`planning_bot/logs/vault_write_maintenance.log`)")
 
     lines.append("")
 
