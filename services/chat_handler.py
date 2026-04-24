@@ -226,7 +226,22 @@ class ChatHandler:
         except Exception as e:
             logger.debug("Не удалось загрузить контекст Mac: %s", e)
 
-        # 2c. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
+        # 2c. Последний iPhone-снапшот (здоровье, шаги, вес)
+        try:
+            from planning_bot.core.config import IPHONE_CONTEXT_DIR
+            from planning_bot.services.iphone_context_parser import (
+                format_for_llm as iphone_format_for_llm,
+                get_latest_snapshot,
+            )
+
+            iphone_snap = get_latest_snapshot(IPHONE_CONTEXT_DIR)
+            iphone_str = iphone_format_for_llm(iphone_snap)
+            if iphone_str:
+                parts.append(iphone_str)
+        except Exception as e:
+            logger.debug("Не удалось загрузить iPhone-контекст: %s", e)
+
+        # 2d. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
         try:
             from planning_bot.core.config import CALENDAR_JSON_FILE
             from planning_bot.services.calendar_service import get_chat_calendar_context

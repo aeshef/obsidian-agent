@@ -981,6 +981,27 @@ def run_all() -> bool:
         results.append(("Синхронизация контекста", False))
     print()
 
+    # 6. Инжест iPhone-контекста из Gmail IMAP (iphone_mail_sync)
+    # Запускается только если заданы GMAIL_IMAP_USER / GMAIL_IMAP_APP_PASSWORD
+    if os.environ.get("GMAIL_IMAP_USER") and os.environ.get("GMAIL_IMAP_APP_PASSWORD"):
+        try:
+            from planning_bot.tools.iphone_mail_sync import run_iphone_mail_sync
+            res = run_iphone_mail_sync()
+            ok = res.get("ok", False)
+            written = res.get("written", 0)
+            print(
+                f"   iphone_mail_sync: ok={ok} written={written}"
+                + (f" errors={res.get('errors')}" if res.get("errors") else ""),
+                flush=True,
+            )
+            results.append(("iPhone mail sync", ok or written == 0))
+        except Exception as e:
+            print(f"⚠️ Ошибка при iPhone mail sync: {e}")
+            results.append(("iPhone mail sync", False))
+    else:
+        print("   iphone_mail_sync: пропуск (GMAIL_IMAP_USER не задан)", flush=True)
+    print()
+
     # Итоги
     print("=" * 50)
     print("📊 Итоги:")
