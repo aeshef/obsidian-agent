@@ -7,6 +7,7 @@ namespaces:
   - subtype
   - cuisine
   - kind
+  - meme
 # priority, language, vibe — выпилены: неконсистентны (проставлены у 5–10 заметок), не используем
 common: {}
 per_type:

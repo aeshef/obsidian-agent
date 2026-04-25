@@ -1,6 +1,6 @@
 tags:
   domain/study:
-    count: 26
+    count: 44
     examples:
     - 700_База_Данных/Знания/Example_Note_Study.md
   topic/sample:
@@ -8,25 +8,25 @@ tags:
     examples:
     - 700_База_Данных/Знания/Example_Note_Topic.md
   domain/creative:
-    count: 10
+    count: 29
     examples: []
   topic/creative-thinking:
-    count: 1
+    count: 4
     examples: []
   topic/curiosity:
     count: 1
     examples: []
   domain/life:
-    count: 20
+    count: 33
     examples: []
   topic/barber:
-    count: 1
+    count: 3
     examples: []
   topic/hairstyle:
-    count: 1
+    count: 3
     examples: []
   domain/tech:
-    count: 3
+    count: 5
     examples: []
   topic/cursor:
     count: 1
@@ -35,37 +35,37 @@ tags:
     count: 1
     examples: []
   domain/entertainment:
-    count: 8
+    count: 40
     examples: []
   topic/ufo:
-    count: 1
+    count: 2
     examples: []
   topic/beauty:
-    count: 2
+    count: 13
     examples: []
   topic/spa:
-    count: 1
-    examples: []
-  topic/religion:
-    count: 1
-    examples: []
-  topic/spiritual-journey:
-    count: 2
-    examples: []
-  source/youtube:
     count: 3
     examples: []
+  topic/religion:
+    count: 3
+    examples: []
+  topic/spiritual-journey:
+    count: 9
+    examples: []
+  source/youtube:
+    count: 23
+    examples: []
   topic/etiquette:
-    count: 1
+    count: 2
     examples: []
   topic/sauna:
-    count: 1
+    count: 3
     examples: []
   topic/accident:
-    count: 1
+    count: 3
     examples: []
   topic/ancient-texts:
-    count: 1
+    count: 2
     examples: []
   source/tiktok:
     count: 1
@@ -83,13 +83,13 @@ tags:
     count: 1
     examples: []
   domain/travel:
-    count: 1
+    count: 4
     examples: []
   topic/freedom:
     count: 1
     examples: []
   topic/music:
-    count: 1
+    count: 14
     examples: []
   topic/children:
     count: 1
@@ -131,10 +131,10 @@ tags:
     count: 1
     examples: []
   domain/health:
-    count: 7
+    count: 14
     examples: []
   topic/health:
-    count: 2
+    count: 7
     examples: []
   topic/medicine:
     count: 1
@@ -205,6 +205,84 @@ tags:
   topic/skincare:
     count: 1
     examples: []
+  topic/evolution:
+    count: 2
+    examples: []
+  topic/humor:
+    count: 2
+    examples: []
+  topic/neuroscience:
+    count: 3
+    examples: []
+  topic/cambridge:
+    count: 2
+    examples: []
+  topic/intellectual-capital:
+    count: 2
+    examples: []
+  topic/ballet:
+    count: 2
+    examples: []
+  topic/film:
+    count: 2
+    examples: []
+  topic/adventure:
+    count: 2
+    examples: []
+  topic/collectibles:
+    count: 3
+    examples: []
+  topic/dj:
+    count: 1
+    examples: []
+  topic/egypt:
+    count: 2
+    examples: []
+  topic/antarctica:
+    count: 1
+    examples: []
+  topic/neon-genesis-evangelion:
+    count: 2
+    examples: []
+  topic/sports:
+    count: 1
+    examples: []
+  topic/watches:
+    count: 2
+    examples: []
+  subtype/meme:
+    count: 4
+    examples: []
+  subtype/screenshot:
+    count: 2
+    examples: []
+  topic/physics:
+    count: 2
+    examples: []
+  topic/quantum-mechanics:
+    count: 2
+    examples: []
+  topic/relativity:
+    count: 2
+    examples: []
+  topic/park:
+    count: 2
+    examples: []
+  topic/survival:
+    count: 2
+    examples: []
+  topic/geopolitics:
+    count: 1
+    examples: []
+  topic/ukraine:
+    count: 1
+    examples: []
+  topic/ab-testing:
+    count: 1
+    examples: []
+  topic/internet:
+    count: 1
+    examples: []
 namespaces:
   domain:
   - business
@@ -218,26 +296,37 @@ namespaces:
   - tech
   - travel
   topic:
+  - ab-testing
   - accident
+  - adventure
   - ancient-texts
+  - antarctica
   - athlete
+  - ballet
   - barber
   - beauty
   - business
+  - cambridge
   - children
+  - collectibles
   - comedy
   - communication
   - cosmetics
   - creative-thinking
   - curiosity
   - cursor
+  - dj
+  - egypt
   - etiquette
+  - evolution
   - family
+  - film
   - fire-safety
   - food-tracking
   - fragrance
   - freedom
   - gaming
+  - geopolitics
   - grandmothers
   - haircare
   - hairstyle
@@ -245,20 +334,29 @@ namespaces:
   - herbs
   - hygiene
   - indoor-plants
+  - intellectual-capital
+  - internet
   - juggling
   - lgbtq
   - mahjong
   - medicine
+  - humor
   - military
   - music
+  - neon-genesis-evangelion
   - neuroplasticity
+  - neuroscience
   - news
   - nutrition
+  - park
+  - physics
   - pinterest
   - plants
   - podcast
   - psychology
   - public-speaking
+  - quantum-mechanics
+  - relativity
   - religion
   - restaurant
   - sample
@@ -270,12 +368,19 @@ namespaces:
   - software-installation
   - spa
   - spiritual-journey
+  - sports
+  - survival
   - transparency
   - ufo
+  - ukraine
   - vitamins
+  - watches
   - water-filter
   source:
   - tiktok
   - youtube
+  subtype:
+  - meme
+  - screenshot
 total_notes: 0
 notes_with_tags: 0
