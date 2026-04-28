@@ -30,3 +30,14 @@ reprocess_notes:
   enabled: true
   apply: true
   limit: 3
+
+# Дедупликация: content dups (keep_base/keep_fullest) + generic-серии (Без_названия_N) + сиротские Export.
+# Сначала dry-run → подсчёт; если count > max_delete_per_run — отмена + Telegram-алерт; иначе apply.
+apply_duplicates:
+  enabled: true
+  max_delete_per_run: 100   # безопасный потолок; при превышении — алерт вместо применения
+
+# Синглтон-теги (count=1): только dry-run-отчёт → Telegram-подсказка с командой для ручного применения.
+# Автоприменение намеренно отключено — решение остаётся за пользователем.
+singleton_tags_report:
+  enabled: true
