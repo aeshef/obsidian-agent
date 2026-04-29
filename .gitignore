@@ -11,10 +11,17 @@ ENV/
 # Environment
 .env
 .env.local
+.env.*
 !.env.example
 
 # Secrets / runtime
 CHAT_ID.txt
+*.pem
+*.key
+*.p12
+*.pfx
+secrets*.json
+credentials*.json
 
 # Logs
 logs/
@@ -35,3 +42,19 @@ karpath_idea.md
 
 # Личный контекст целей (в репо только goals_context.md.example)
 goals_context.md
+goals_context.local.md
+
+# Local private context/identity notes
+identity.md
+author_context.txt
+
+# Local databases and dumps
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# Промпты с личным контекстом — в git только шаблоны *.example.txt (реальные *.txt локально)
+config/prompts/*.txt
+!config/prompts/*.example.txt

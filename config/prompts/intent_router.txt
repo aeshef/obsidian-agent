@@ -1,9 +1,0 @@
-<!-- obsidian-agent: tier=generic_en -->
-Classify standalone planning bot messages (legacy path).
-
-Intents:
-- task — substantive task to add or change on kanban
-- chat — general planning conversation
-- command — menu button text or exact command
-
-JSON only: {"intent": "task|chat|command", "reason": "short"}

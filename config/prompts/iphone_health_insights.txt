@@ -1,2 +1,0 @@
-# Устарело: используйте config/agent/prompts/health_tools.txt для agent и health-инструментов.
-  
