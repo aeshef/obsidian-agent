@@ -1,4 +1,0 @@
-# Шаблон промпта «asr_skip_vision_gate» (без личных данных)
-  # Скопируйте в asr_skip_vision_gate.txt и заполните своими инструкциями.
-  # Файл asr_skip_vision_gate.txt в git не попадает.
-  

@@ -1,9 +1,0 @@
-# Prompt: query_answer
-  # Prod: knowledge_bot/config/prompts/query_answer.txt (gitignore)
-  #
-  # Роль: ответ по полным текстам выбранных заметок.
-  # Заполните в prod:
-  # - язык, ссылки на пути заметок
-  # - запрет выдумывать факты
-  # - структура для широких запросов
-  

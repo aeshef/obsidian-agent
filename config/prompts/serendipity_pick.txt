@@ -1,4 +1,0 @@
-# Шаблон промпта «serendipity_pick» (без личных данных)
-  # Скопируйте в serendipity_pick.txt и заполните своими инструкциями.
-  # Файл serendipity_pick.txt в git не попадает.
-  

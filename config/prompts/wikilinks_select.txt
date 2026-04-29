@@ -1,4 +1,0 @@
-# Шаблон промпта «wikilinks_select» (без личных данных)
-  # Скопируйте в wikilinks_select.txt и заполните своими инструкциями.
-  # Файл wikilinks_select.txt в git не попадает.
-  

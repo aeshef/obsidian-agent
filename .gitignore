@@ -18,6 +18,11 @@ env/
 
 # Локальный контекст автора (шаблон в репо: config/author_context.txt.example)
 config/author_context.txt
+config/author_context.local.txt
+
+# Промпты с личным контекстом — в git только шаблоны *.example.txt (реальные *.txt локально)
+config/prompts/*.txt
+!config/prompts/*.example.txt
 
 # Logs
 *.log
