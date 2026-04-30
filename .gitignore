@@ -1,5 +1,6 @@
 .venv/
 .env
+.env.*
 finance.db
 # Локальные данные пользователя (не в git — в репозитории только *.example)
 config/initial_accounts.yaml
@@ -13,3 +14,23 @@ __pycache__/
 bot.log
 logs/
 .cache/
+
+# Secrets / credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets*.json
+credentials*.json
+
+# Local DBs / dumps
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# Local private config overrides
+config/*.private.yaml
+config/*.private.md
+config/*.secrets.yaml

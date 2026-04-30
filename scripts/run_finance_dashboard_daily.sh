@@ -10,6 +10,10 @@ cd "$BOT_ROOT"
 VAULT_PATH="${VAULT_PATH:-$(cd "$BOT_ROOT/../../.." && pwd)}"
 export VAULT_PATH
 
+# obsidian_sync (и др.) могут оставить PYTHONPATH с чужим venv (например knowledge_bot).
+# Тогда python3 из Homebrew подтягивает numpy из site-packages другой версии Python → ImportError в matplotlib.
+unset PYTHONPATH
+
 # Чтобы matplotlib не падал под launchd (нет доступа к ~/.matplotlib)
 export MPLCONFIGDIR="${MPLCONFIGDIR:-$BOT_ROOT/.cache/matplotlib}"
 mkdir -p "$MPLCONFIGDIR"
