@@ -12,9 +12,10 @@ cd "$BOT_DIR"
 
 # Синхронизируем код (исключаем venv, логи, кэш) и удаляем на сервере файлы,
 # которых больше нет локально. Это важно после структурных рефакторингов.
+# Личные промпты (config/prompts/*.txt) и author_context.txt в git не коммитятся
+# (.gitignore), но на сервер копируются с локальной машины — так работает прод.
 rsync -avz --delete -e 'ssh -o UseKeychain=yes' \
     --exclude='.git' --exclude='venv' --exclude='__pycache__' --exclude='*.pyc' --exclude='logs' --exclude='.env' \
-    --exclude='config/author_context.txt' \
     --exclude='data/' \
     "$BOT_DIR/" example-server:~/bots/knowledge_bot/
 
