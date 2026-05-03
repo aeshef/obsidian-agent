@@ -21,15 +21,17 @@ apply_wikilinks:
 retag_notes:
   enabled: true
   apply: true
-  limit: 25          # пачка в сутки; для единоразового прогона: tools/retag_notes.py --all --apply
+  limit: 35          # пачка в сутки; для единоразового прогона: tools/retag_notes.py --all --apply
   threshold: 1       # только синглтоны (count=1); ставь 2 для более агрессивной чистки
+  # Если LLM добавил устоявшийся topic/* — убрать старые topic/* с count≤threshold (шум в графе)
+  strip_obsolete_singleton_topics: true
 
 # Переобработка «плохих» имён (ASR/Vision, дорого): поставь 0 — отключить шаг, или 8+ если готов(а) к длинным sync
 # Заметки с title="Без_названия"/"Субтитры"/"IMG*" обрабатываются первыми
 reprocess_notes:
   enabled: true
   apply: true
-  limit: 3
+  limit: 8
 
 # Дедупликация: content dups (keep_base/keep_fullest) + generic-серии (Без_названия_N) + сиротские Export.
 # Сначала dry-run → подсчёт; если count > max_delete_per_run — отмена + Telegram-алерт; иначе apply.

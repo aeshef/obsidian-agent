@@ -72,6 +72,18 @@ def _parse_last_maintenance_run(log_path: Path) -> dict | None:
 def _format_maintenance_run(run: dict) -> list[str]:
     """Форматирует результаты прогона vault_daily_maintenance в читаемые строки."""
     lines: list[str] = []
+    if run.get("skipped"):
+        reason = run.get("reason", "?")
+        extra = ""
+        if run.get("wrote_marker"):
+            extra = " (маркер дня записан без шагов)"
+        lines.append(
+            f"**Итоги последнего прогона**: ⏭ **пропуск** — `{reason}`{extra}. "
+            "Повторный запуск в тот же день шаги не выполняет — это ожидаемо."
+        )
+        lines.append("")
+        return lines
+
     ok = run.get("ok", True)
     steps = run.get("steps") or []
     lines.append(f"**Итоги последнего прогона** ({'✅ ok' if ok else '❌ ошибка'}), {len(steps)} шагов:")
@@ -105,7 +117,9 @@ def _format_maintenance_run(run: dict) -> list[str]:
 
 def _build_maintenance_section(vault: Path) -> str:
     """Собирает секцию состояния ежедневного обслуживания."""
-    import yaml, datetime
+    import datetime
+
+    from knowledge_bot.services.reprocess_candidates import discover_candidate_paths, load_reprocess_yaml
 
     lines = ["## 3. Ежедневное обслуживание (vault_daily_maintenance)", ""]
 
@@ -126,6 +140,8 @@ def _build_maintenance_section(vault: Path) -> str:
         lines.append("**Хабы**: папка `_Хабы/` ещё не создана (запусти `sync_hubs.py --apply`)")
 
     lines.append("")
+
+    import yaml
 
     # Tag ontology mappings count
     tag_cfg_path = Path(__file__).resolve().parent.parent / "config" / "tag_ontology.yaml"
@@ -172,26 +188,27 @@ def _build_maintenance_section(vault: Path) -> str:
 
     lines.append("")
 
-    # Notes with bad titles (quick count)
-    bad_stems = {"Без_названия", "Субтитры", "Редактор_субтитров", "Динамичная_музыка",
-                 "Позитивная_музыка", "Спокойная_музыка", "OCR_текст", "YouTube"}
-    bad_notes = []
-    target_dirs = [vault / "700_База_Данных" / d for d in ["Видео", "Знания", "Песни", "Ссылки"]]
-    for d in target_dirs:
-        if d.exists():
-            for f in d.glob("*.md"):
-                for stem in bad_stems:
-                    if f.stem.startswith(stem):
-                        bad_notes.append(f.relative_to(vault))
-                        break
-    if bad_notes:
-        lines.append(f"**Заметки для reprocess** (generic имена): {len(bad_notes)}")
-        for p in sorted(bad_notes)[:8]:
-            lines.append(f"  - `{p}`")
-        if len(bad_notes) > 8:
-            lines.append(f"  - … и ещё {len(bad_notes) - 8}")
+    # Заметки под reprocess — те же правила, что tools/reprocess_notes.py (config/reprocess.yaml).
+    # Путь к конфигу от файла пакета — не зависит от VAULT_PATH / --vault.
+    agent_config_dir = Path(__file__).resolve().parent.parent / "config"
+    rpcfg = load_reprocess_yaml(agent_config_dir)
+    all_generic = discover_candidate_paths(vault, rpcfg, skip_if_flag=False)
+    eligible = discover_candidate_paths(vault, rpcfg, skip_if_flag=True)
+    skipped_ct = len(all_generic) - len(eligible)
+    if all_generic:
+        lines.append(
+            f"**Заметки для reprocess** (`bad_stem_pattern` из `config/reprocess.yaml`): "
+            f"всего **{len(all_generic)}**, в очереди без `reprocess_skip` — **{len(eligible)}**"
+            + (f" (с флагом пропуска: {skipped_ct})" if skipped_ct else "")
+        )
+        for p in eligible[:8]:
+            lines.append(f"  - `{p.relative_to(vault)}`")
+        if len(eligible) > 8:
+            lines.append(f"  - … и ещё {len(eligible) - 8} в очереди")
+        if skipped_ct and not eligible:
+            lines.append("  - Очередь пуста: все совпадения помечены `reprocess_skip: true` (сброс вручную в frontmatter).")
     else:
-        lines.append("**Заметки для reprocess**: не найдено (все имена нормальные)")
+        lines.append("**Заметки для reprocess**: не найдено по паттерну из `config/reprocess.yaml`")
 
     lines.append("")
     return "\n".join(lines)

@@ -10,6 +10,7 @@ LLM получает ТОЛЬКО инвентарь тегов с count≥2, ч
   python retag_notes.py --all        # единоразовый прогон ВСЕХ подходящих заметок
   python retag_notes.py --limit 10   # не больше 10 заметок
   python retag_notes.py --threshold 2  # считать «плохим» тег с count <= N (дефолт: 2)
+  python retag_notes.py --strip-singleton-topics  # убрать старые topic/*-синглтоны после добавления topic от LLM
   python retag_notes.py --vault /path
 """
 from __future__ import annotations
@@ -29,6 +30,7 @@ for _p in (_pkg / ".env", _pkg.parent / ".env"):
 import json
 import re
 import sys
+import yaml
 
 sys.path.insert(0, str(_pkg.parent))
 
@@ -117,7 +119,7 @@ def _find_candidates(
     """
     tags_info: dict = inv.get("tags", {})
     dirs = target_dirs or ["700_База_Данных"]
-    candidates: list[tuple[Path, list[str], int]] = []
+    candidates: list[tuple[Path, list[str], int, bool]] = []
 
     for d in dirs:
         for md in (vault / d).rglob("*.md"):
@@ -133,10 +135,13 @@ def _find_candidates(
                 continue
             bad = [t for t in tags if isinstance(t, str) and tags_info.get(t, {}).get("count", 0) <= threshold]
             if bad:
-                candidates.append((md, bad, len(bad)))
+                all_tags = [t for t in tags if isinstance(t, str)]
+                all_bad = len(all_tags) > 0 and len(bad) == len(all_tags)
+                candidates.append((md, bad, len(bad), all_bad))
 
-    candidates.sort(key=lambda x: -x[2])
-    return [(p, b) for p, b, _ in candidates]
+    # Сначала заметки, где все теги «плохие» (часто только синглтоны), затем по числу плохих тегов
+    candidates.sort(key=lambda x: (-int(x[3]), -x[2], str(x[0])))
+    return [(p, b) for p, b, _, _ in candidates]
 
 
 # ── main ─────────────────────────────────────────────────────────────────────
@@ -149,6 +154,7 @@ def retag_notes(
     threshold: int,
     apply: bool,
     verbose: bool = False,
+    strip_obsolete_singleton_topics: bool = False,
 ) -> dict:
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
     enums_cfg = load_enums_config(cfg.agent_config_path)
@@ -156,6 +162,17 @@ def retag_notes(
     # Инвентарь: сканируем свежий (чтобы учесть предыдущие прогоны)
     inv = scan_all_notes(vault)
     candidates = _find_candidates(vault, inv, threshold=threshold)
+
+    ontology_mappings: dict[str, str] = {}
+    ont_path = cfg.agent_config_path / "tag_ontology.yaml"
+    if ont_path.exists():
+        try:
+            oc = yaml.safe_load(ont_path.read_text(encoding="utf-8")) or {}
+            m = oc.get("mappings") or {}
+            if isinstance(m, dict):
+                ontology_mappings = {str(k): str(v) for k, v in m.items()}
+        except Exception:
+            ontology_mappings = {}
 
     if limit is not None:
         candidates = candidates[:limit]
@@ -223,9 +240,11 @@ def retag_notes(
             continue
 
         llm_tags = _normalize_tags(raw, enums_cfg, inv)
+        llm_tags = list(dict.fromkeys(ontology_mappings.get(t, t) for t in llm_tags))
 
         # Принимаем LLM-тег только если он уже есть в established инвентаре
-        # (иначе создадим новый синглтон, что контрпродуктивно)
+        # (иначе создадим новый синглтон, что контрпродуктивно). Переносы из tag_ontology.yaml —
+        # чтобы LLM мог выбрать синоним, а мы приняли канонический устоявшийся тег.
         accepted_from_llm = [t for t in llm_tags if t in established and t not in old_tags]
 
         # Стратегия: ТОЛЬКО ДОБАВЛЯЕМ established теги поверх оригинальных.
@@ -239,7 +258,26 @@ def retag_notes(
             continue
 
         # Объединяем: все оригинальные + новые established от LLM
-        new_tags = sorted(dict.fromkeys(old_tags + accepted_from_llm))
+        new_tags = list(dict.fromkeys(old_tags + accepted_from_llm))
+
+        # Снять устаревшие topic/* с count≤threshold, если LLM добавил другой устоявшийся topic/*
+        if strip_obsolete_singleton_topics and accepted_from_llm:
+            added_topic_established = [
+                t for t in accepted_from_llm
+                if isinstance(t, str) and t.startswith("topic/") and t in established
+            ]
+            if added_topic_established:
+                new_tags = [
+                    t for t in new_tags
+                    if not (
+                        isinstance(t, str)
+                        and t.startswith("topic/")
+                        and (tags_info.get(t, {}).get("count") or 0) <= threshold
+                        and t not in accepted_from_llm
+                    )
+                ]
+
+        new_tags = sorted(dict.fromkeys(new_tags))
 
         if sorted(new_tags) == sorted(old_tags):
             if verbose:
@@ -277,6 +315,11 @@ def main() -> int:
     ap.add_argument("--threshold", type=int, default=1, help="count≤N считается плохим тегом (дефолт 1: только синглтоны)")
     ap.add_argument("--vault", type=str, default="", help="Путь к vault")
     ap.add_argument("--verbose", action="store_true")
+    ap.add_argument(
+        "--strip-singleton-topics",
+        action="store_true",
+        help="После добавления topic/* от LLM убрать старые topic/* с count≤threshold",
+    )
     args = ap.parse_args()
 
     if args.vault:
@@ -292,6 +335,7 @@ def main() -> int:
         threshold=args.threshold,
         apply=args.apply,
         verbose=args.verbose,
+        strip_obsolete_singleton_topics=args.strip_singleton_topics,
     )
     return 0
 

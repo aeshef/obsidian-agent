@@ -31,7 +31,6 @@ for _p in [package_root / ".env", package_root.parent / ".env"]:
 import json
 import re
 import sys
-import yaml
 from pathlib import Path
 
 # Add parent of package root for absolute imports (`knowledge_bot.*`)
@@ -46,6 +45,11 @@ from knowledge_bot.services.routing import route_and_fill
 from knowledge_bot.core.schema import allowed_fields_for_type
 from knowledge_bot.core.settings import load_prompt, load_enums_config, get_author_context
 from knowledge_bot.services.tags_inventory import get_tags_inventory_for_prompt, update_inventory_with_new_tags
+from knowledge_bot.services.reprocess_candidates import (
+    load_reprocess_yaml,
+    discover_candidate_paths,
+    compile_bad_stem_regex,
+)
 
 
 def parse_note(note_path: Path) -> tuple[dict, str]:
@@ -153,36 +157,12 @@ def main() -> None:
     db_root = vault / "700_База_Данных"
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
 
-    # Паттерны из config/reprocess.yaml
-    reprocess_cfg_path = cfg.agent_config_path / "reprocess.yaml"
-    if reprocess_cfg_path.exists():
-        reprocess_cfg = yaml.safe_load(reprocess_cfg_path.read_text(encoding="utf-8")) or {}
-    else:
-        reprocess_cfg = {}
-    bad_pattern = reprocess_cfg.get("bad_stem_pattern", r"^(IMG|YouTube|Без_названия|Субтитры|Редактор_субтитров|Динамичная_музыка|Позитивная_музыка|Позитивирующая_музыка|Спокойная_музыка|OCR_текст)")
-    allowed_folders = set(reprocess_cfg.get("allowed_folders", ["Видео", "Знания", "Песни", "Ссылки"]))
-    RE_BAD = re.compile(bad_pattern, re.I)
+    reprocess_cfg = load_reprocess_yaml(cfg.agent_config_path)
+    RE_BAD = compile_bad_stem_regex(reprocess_cfg)
 
     candidates = []
-    for note_path in db_root.rglob("*.md"):
-        if "Export" in str(note_path):
-            continue
-        try:
-            rel = note_path.relative_to(db_root)
-        except ValueError:
-            continue
-        parts = rel.parts
-        if not parts or parts[0] not in allowed_folders:
-            continue
-        stem = note_path.stem
-        if not RE_BAD.search(stem):
-            continue
+    for note_path in discover_candidate_paths(vault, reprocess_cfg, skip_if_flag=True):
         fm, body = parse_note(note_path)
-        # Пропускаем заметки, которые уже помечены как «не стоит переобрабатывать»:
-        # reprocess_skip: true — LLM не смог дать лучшее имя при предыдущем прогоне,
-        # бесконечный цикл переобработки нежелателен. Сбросить вручную: удалить поле из frontmatter.
-        if fm.get("reprocess_skip"):
-            continue
         candidates.append((note_path, fm, body))
 
     if limit:
@@ -396,6 +376,7 @@ def main() -> None:
             print(f"  Ошибка render: {e}")
             continue
 
+        old_title = (fm.get("title") or note_path.stem or "").strip()
         print(f"  Было: {fm.get('title')} | type={fm.get('type')}")
         print(f"  Стало: {routed.get('title')} | type={routed.get('type')} | tags={routed.get('tags', [])[:5]}...")
         print(f"  [attachments] files={routed.get('attachments', {}).get('files', [])} links={len(routed.get('attachments', {}).get('links', []))} шт.")
@@ -413,12 +394,11 @@ def main() -> None:
             if routed.get("tags"):
                 update_inventory_with_new_tags(cfg.agent_config_path, routed["tags"])
             print(f"  ✓ Записано: {new_path.relative_to(vault)}")
-            # Если после переобработки slug результата всё ещё матчит RE_BAD
-            # (LLM не смог придумать лучшее имя), помечаем reprocess_skip: true —
-            # чтобы следующий ежедневный прогон не гонял эту заметку снова.
-            # Сбросить вручную: удалить поле reprocess_skip из frontmatter.
-            new_slug = re.sub(r"[^а-яёА-ЯЁa-zA-Z0-9_]", "_", routed["title"])
-            if RE_BAD.search(new_slug):
+            # reprocess_skip только если slug всё ещё «плохой» И title по сути не изменился
+            # (иначе заметка с обогащённым контентом, но прежним названием, не «замораживается» навсегда).
+            new_title = (routed.get("title") or "").strip()
+            new_slug = re.sub(r"[^а-яёА-ЯЁa-zA-Z0-9_]", "_", routed.get("title") or "")
+            if RE_BAD.search(new_slug) and new_title == old_title:
                 try:
                     _text = new_path.read_text(encoding="utf-8")
                     if _text.startswith("---"):
