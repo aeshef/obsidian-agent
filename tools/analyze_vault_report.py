@@ -251,7 +251,11 @@ def main() -> None:
     )
 
     import datetime
+
+    from knowledge_bot.services.maintenance_metrics import build_dynamics_markdown_section
+
     maintenance_section = _build_maintenance_section(vault)
+    dynamics_section = build_dynamics_markdown_section(vault)
 
     report_lines = [
         "# Аудит хранилища 700_База_Данных",
@@ -277,6 +281,9 @@ def main() -> None:
         "---",
         "",
         maintenance_section,
+        "---",
+        "",
+        dynamics_section,
     ]
 
     report_text = "\n".join(report_lines)
