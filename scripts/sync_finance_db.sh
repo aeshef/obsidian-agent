@@ -1,6 +1,10 @@
 #!/bin/zsh
 # Скачивает актуальную finance.db с сервера в локаль для дашборда.
 # Запускается из finance_bot. VAULT_PATH можно задать снаружи.
+#
+# По умолчанию ПЕРЕД scp дергается синк брокера на сервере (тот же код, что cron в 7:00),
+# чтобы балансы Т-Инвест и снимки на «сегодня» в БД были свежие. Отключить:
+#   FINANCE_REFRESH_BROKER_BEFORE_PULL=0
 
 set -u
 
@@ -18,6 +22,29 @@ REMOTE_DB="${REMOTE_DB:-}"
 
 mkdir -p "$DATA_DIR"
 SSH_OPTS=(-o UseKeychain=yes -o AddKeysToAgent=yes -o ConnectTimeout=10)
+
+# Обновить брокера на сервере, затем уже качать БД (иначе дашборд видит вчерашний снимок до 7:00).
+_refresh_broker_on_server() {
+  [[ "${FINANCE_REFRESH_BROKER_BEFORE_PULL:-1}" == "0" ]] && return 0
+  echo "ℹ️ Брокер на сервере: синх перед скачиванием БД…" >&2
+  if ssh "${SSH_OPTS[@]}" "$SERVER" "REMOTE_BOT_DIR='$REMOTE_BOT_DIR'" bash -s <<'REMOTE'
+set -euo pipefail
+cd "${REMOTE_BOT_DIR:?}"
+set -a
+[[ -f .env ]] && . ./.env
+set +a
+if [[ -x .venv/bin/python ]]; then PY=".venv/bin/python"
+elif [[ -x venv/bin/python ]]; then PY="venv/bin/python"
+else PY="python3"
+fi
+exec "$PY" scripts/run_broker_sync_once.py
+REMOTE
+  then
+    echo "✅ Брокер на сервере обновлён" >&2
+  else
+    echo "⚠️ Не удалось обновить брокер по SSH — качаю finance.db как есть (возможны вчерашние снимки)." >&2
+  fi
+}
 
 resolve_remote_db() {
   ssh "${SSH_OPTS[@]}" "$SERVER" "REMOTE_DB='$REMOTE_DB' REMOTE_BOT_DIR='$REMOTE_BOT_DIR' python3 - <<'PY'
@@ -94,6 +121,8 @@ if [ -z "$REMOTE_DB_RESOLVED" ]; then
   echo "❌ Не удалось определить путь к БД на сервере и локальной копии нет: $DATA_DIR/finance.db" >&2
   exit 1
 fi
+
+_refresh_broker_on_server
 
 echo "ℹ️ Серверная БД: $REMOTE_DB_RESOLVED"
 if scp "${SSH_OPTS[@]}" "$SERVER:$REMOTE_DB_RESOLVED" "$DATA_DIR/finance.db"; then
