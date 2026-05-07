@@ -6,6 +6,7 @@
   остальные удалить.
 
 Удаляет Export-файлы, которые ссылаются только на удаляемые заметки.
+Учитывает standalone_weak_notes из analyze_vault_duplicates (duplicate_cleanup.yaml).
 Использует вывод analyze_vault_duplicates.py --json. По умолчанию — dry-run.
   python apply_duplicates_resolution.py
   python apply_duplicates_resolution.py --apply
@@ -79,10 +80,15 @@ def main() -> None:
     content_duplicates = data.get("content_duplicates", [])
     recommendations = data.get("content_recommendations", {})
     generic_series = data.get("generic_series", [])
+    standalone_weak = data.get("standalone_weak_notes") or []
     has_content = bool(recommendations)
     has_generic = any(len(g.get("notes", [])) >= 2 for g in generic_series)
-    if not has_content and not has_generic:
-        print("Нет групп дублей контента и нет generic-серий (2+ заметок) для применения.")
+    has_standalone = len(standalone_weak) > 0
+    if not has_content and not has_generic and not has_standalone:
+        print(
+            "Нет групп дублей контента, нет generic-серий (2+ заметок) "
+            "и нет standalone_weak (duplicate_cleanup.yaml)."
+        )
         return
 
     # Собираем пути заметок, которые будут удалены, и их attachments (для последующего удаления сиротских Export)
@@ -123,6 +129,26 @@ def main() -> None:
                 for ap in n.get("attachments", []):
                     if ap and "Export" in ap:
                         attachments_from_deleted.add(ap.strip())
+
+    # Короткие заметки с «мусорным» stem (субтитры / без_названия …) — полное удаление файла
+    for sw in standalone_weak:
+        rel = (sw.get("path") or "").strip()
+        if not rel:
+            continue
+        deleted_note_paths.add(rel)
+        fp = cfg.vault_path / rel
+        if fp.is_file():
+            try:
+                text = fp.read_text(encoding="utf-8", errors="ignore")
+                m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.DOTALL)
+                if m:
+                    fm = yaml.safe_load(m.group(1)) or {}
+                    if isinstance(fm, dict):
+                        for ap in get_attachment_files_from_frontmatter(fm):
+                            if ap and "Export" in ap:
+                                attachments_from_deleted.add(ap.strip())
+            except Exception:
+                pass
 
     dry = not args.apply
     if dry:
@@ -214,6 +240,23 @@ def main() -> None:
             if full.exists():
                 if dry:
                     print(f"    удалить: {rel}")
+                else:
+                    full.unlink()
+                    print(f"    удалён: {rel}")
+            else:
+                print(f"    (нет файла) {rel}")
+
+    # 1.55) Standalone weak — удаление целых заметок (короткое тело + имя из duplicate_cleanup.yaml)
+    if standalone_weak:
+        print("\n--- standalone_weak_notes ---")
+        for sw in standalone_weak:
+            rel = (sw.get("path") or "").strip()
+            if not rel:
+                continue
+            full = cfg.vault_path / rel
+            if full.exists():
+                if dry:
+                    print(f"    удалить: {rel}  ({sw.get('reason', '')})")
                 else:
                     full.unlink()
                     print(f"    удалён: {rel}")

@@ -40,6 +40,27 @@ from knowledge_bot.core.config import load_config
 GENERIC_BASE_SLUGS = frozenset({"без_названия", "база_данных", "img"})
 
 
+def _load_duplicate_cleanup(agent_config: Path) -> dict:
+    p = agent_config / "duplicate_cleanup.yaml"
+    if not p.exists():
+        return {}
+    try:
+        return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return {}
+
+
+def _is_generic_base_slug(base_slug: str, dup_cfg: dict) -> bool:
+    """Generic-серия: базовые slug + подстроки из duplicate_cleanup.yaml (напр. «субтитры»)."""
+    s = base_slug.lower()
+    if s in GENERIC_BASE_SLUGS:
+        return True
+    for sub in dup_cfg.get("generic_slug_substrings") or ["субтитры"]:
+        if sub and str(sub).lower() in s:
+            return True
+    return False
+
+
 def parse_note(path: Path) -> tuple[dict, str]:
     """Читает заметку, возвращает (frontmatter_dict, body)."""
     try:
@@ -78,6 +99,10 @@ def main() -> None:
     if not db_root.exists():
         print("700_База_Данных не найден", file=sys.stderr)
         sys.exit(1)
+
+    dup_cfg = _load_duplicate_cleanup(cfg.agent_config_path)
+    standalone_subs = list(dup_cfg.get("standalone_weak_substrings") or ["субтитры", "без_названия"])
+    standalone_max = int(dup_cfg.get("standalone_max_body_chars") or 220)
 
     # Собираем все .md, кроме Export
     notes: list[Path] = []
@@ -128,7 +153,7 @@ def main() -> None:
     content_duplicates = {}
     for k, g in duplicate_groups.items():
         folder, base_slug = k[0], k[1]
-        if base_slug.lower() in GENERIC_BASE_SLUGS:
+        if _is_generic_base_slug(base_slug, dup_cfg):
             generic_series[k] = g
         else:
             content_duplicates[k] = g
@@ -182,9 +207,22 @@ def main() -> None:
                 "delete_paths": [x["path"] for x in g if x["path"] != fullest_in_group["path"]],
             }
 
+    # Одиночные «мусорные» generic (_1 без пары): не переименовываем в base — кандидат на удаление
+    standalone_weak_notes: list[dict] = []
+
     # Рекомендации для одиночных суффиксов
     for (folder, base_slug), g in single_suffix_groups.items():
-        if base_slug.lower() in GENERIC_BASE_SLUGS:
+        if _is_generic_base_slug(base_slug, dup_cfg):
+            n0 = g[0]
+            if n0.get("body_len", 0) <= standalone_max:
+                standalone_weak_notes.append(
+                    {
+                        "path": n0["path"],
+                        "body_len": n0["body_len"],
+                        "reason": "generic_single_suffix",
+                        "base_slug": base_slug,
+                    }
+                )
             continue
         base_note_path = db_root / folder / f"{base_slug}.md"
         base_rel = str(Path("700_База_Данных") / folder / f"{base_slug}.md")
@@ -206,6 +244,32 @@ def main() -> None:
                 "rename_to": base_rel,
                 "delete_paths": [],
             }
+
+    # Одиночные файлы без суффикса _N: короткое тело + подстрока в stem (duplicate_cleanup.yaml)
+    seen_sw = {x["path"] for x in standalone_weak_notes}
+    for path in notes:
+        stem = path.stem
+        if suffix_re.match(stem):
+            continue
+        sl = stem.lower()
+        if not any(str(sub).lower() in sl for sub in standalone_subs):
+            continue
+        _fm, body = parse_note(path)
+        bl = len(body.strip())
+        if bl > standalone_max:
+            continue
+        rel = str(path.relative_to(cfg.vault_path))
+        if rel in seen_sw:
+            continue
+        standalone_weak_notes.append(
+            {
+                "path": rel,
+                "body_len": bl,
+                "reason": "weak_stem_short_body",
+                "stem": stem,
+            }
+        )
+        seen_sw.add(rel)
 
     # Собираем все Export-файлы, на которые ссылаются дубли
     export_files: dict[str, int] = {}  # path -> size
@@ -250,6 +314,8 @@ def main() -> None:
                 {"path": p, "size_bytes": s} for p, s in sorted(export_files.items(), key=lambda x: -x[1])
             ],
             "export_total_size_bytes": sum(export_files.values()),
+            "standalone_weak_notes": standalone_weak_notes,
+            "standalone_max_body_chars": standalone_max,
         }
         print(json.dumps(out, ensure_ascii=False, indent=2))
         return
@@ -298,7 +364,17 @@ def main() -> None:
             print(f"    Удалить: {delete_list}")
     print()
 
-    print("## 3. Файлы Export, на которые ссылаются дубли")
+    print("## 3. Кандидаты на удаление — короткое тело и «мусорное» имя")
+    print(f"    (body ≤ {standalone_max} симв.; см. duplicate_cleanup.yaml)")
+    print("-" * 60)
+    if standalone_weak_notes:
+        for x in standalone_weak_notes:
+            print(f"    → {x['path']}  body={x['body_len']}  ({x.get('reason', '')})")
+    else:
+        print("    (нет)")
+    print()
+
+    print("## 4. Файлы Export, на которые ссылаются дубли")
     print("-" * 60)
     total_size = sum(export_files.values())
     print(f"  Всего файлов: {len(export_files)}, суммарный размер: {total_size / (1024*1024):.2f} МБ")

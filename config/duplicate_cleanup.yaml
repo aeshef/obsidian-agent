@@ -1,0 +1,16 @@
+# Правила для analyze_vault_duplicates.py / apply_duplicates_resolution.py
+# Расширяют «generic»-серии без хардкода в коде: правь списки здесь.
+
+# Подстроки в base_slug (stem без суффикса _12): группа считается generic-серией как «Без_названия»
+generic_slug_substrings:
+  - "субтитры"
+  - "subtitles"
+
+# Одиночные .md без суффикса _N: stem содержит подстроку → кандидат на удаление,
+# если тело заметки не длиннее порога (символов Unicode в теле без frontmatter)
+standalone_weak_substrings:
+  - "субтитры"
+  - "subtitles"
+  - "без_названия"
+
+standalone_max_body_chars: 220

@@ -1,6 +1,6 @@
 tags:
   domain/study:
-    count: 44
+    count: 56
     examples:
     - 700_База_Данных/Знания/Example_Note_Study.md
   topic/sample:
@@ -8,16 +8,16 @@ tags:
     examples:
     - 700_База_Данных/Знания/Example_Note_Topic.md
   domain/creative:
-    count: 29
+    count: 56
     examples: []
   topic/creative-thinking:
-    count: 4
+    count: 5
     examples: []
   topic/curiosity:
-    count: 1
+    count: 8
     examples: []
   domain/life:
-    count: 33
+    count: 50
     examples: []
   topic/barber:
     count: 3
@@ -26,7 +26,7 @@ tags:
     count: 3
     examples: []
   domain/tech:
-    count: 5
+    count: 10
     examples: []
   topic/cursor:
     count: 1
@@ -35,16 +35,16 @@ tags:
     count: 1
     examples: []
   domain/entertainment:
-    count: 40
+    count: 76
     examples: []
   topic/ufo:
     count: 2
     examples: []
   topic/beauty:
-    count: 13
+    count: 16
     examples: []
   topic/spa:
-    count: 3
+    count: 4
     examples: []
   topic/religion:
     count: 3
@@ -53,55 +53,55 @@ tags:
     count: 9
     examples: []
   source/youtube:
-    count: 23
+    count: 64
     examples: []
   topic/etiquette:
-    count: 2
+    count: 7
     examples: []
   topic/sauna:
-    count: 3
+    count: 4
     examples: []
   topic/accident:
-    count: 3
+    count: 9
     examples: []
   topic/ancient-texts:
     count: 2
     examples: []
   source/tiktok:
-    count: 1
+    count: 14
     examples: []
   topic/comedy:
-    count: 1
+    count: 2
     examples: []
   topic/social-media:
     count: 1
     examples: []
   topic/communication:
-    count: 1
+    count: 2
     examples: []
   topic/podcast:
-    count: 1
+    count: 2
     examples: []
   domain/travel:
-    count: 4
+    count: 10
     examples: []
   topic/freedom:
-    count: 1
+    count: 3
     examples: []
   topic/music:
-    count: 14
+    count: 31
     examples: []
   topic/children:
-    count: 1
+    count: 2
     examples: []
   topic/family:
-    count: 1
+    count: 3
     examples: []
   topic/athlete:
     count: 1
     examples: []
   domain/food:
-    count: 2
+    count: 5
     examples: []
   topic/grandmothers:
     count: 1
@@ -116,7 +116,7 @@ tags:
     count: 1
     examples: []
   domain/business:
-    count: 1
+    count: 2
     examples: []
   topic/business:
     count: 1
@@ -131,10 +131,10 @@ tags:
     count: 1
     examples: []
   domain/health:
-    count: 14
+    count: 16
     examples: []
   topic/health:
-    count: 7
+    count: 8
     examples: []
   topic/medicine:
     count: 1
@@ -143,7 +143,7 @@ tags:
     count: 1
     examples: []
   domain/career:
-    count: 1
+    count: 3
     examples: []
   topic/public-speaking:
     count: 1
@@ -209,7 +209,7 @@ tags:
     count: 2
     examples: []
   topic/humor:
-    count: 2
+    count: 4
     examples: []
   topic/neuroscience:
     count: 3
@@ -224,19 +224,19 @@ tags:
     count: 2
     examples: []
   topic/film:
-    count: 2
+    count: 6
     examples: []
   topic/adventure:
     count: 2
     examples: []
   topic/collectibles:
-    count: 3
+    count: 4
     examples: []
   topic/dj:
-    count: 1
+    count: 2
     examples: []
   topic/egypt:
-    count: 2
+    count: 3
     examples: []
   topic/antarctica:
     count: 1
@@ -245,7 +245,7 @@ tags:
     count: 2
     examples: []
   topic/sports:
-    count: 1
+    count: 2
     examples: []
   topic/watches:
     count: 2
@@ -266,21 +266,63 @@ tags:
     count: 2
     examples: []
   topic/park:
-    count: 2
+    count: 3
     examples: []
   topic/survival:
-    count: 2
+    count: 3
     examples: []
   topic/geopolitics:
-    count: 1
+    count: 2
     examples: []
   topic/ukraine:
-    count: 1
+    count: 2
     examples: []
   topic/ab-testing:
     count: 1
     examples: []
   topic/internet:
+    count: 1
+    examples: []
+  topic/conflict:
+    count: 1
+    examples: []
+  topic/parents:
+    count: 1
+    examples: []
+  topic/self-presentation:
+    count: 1
+    examples: []
+  topic/motivation:
+    count: 3
+    examples: []
+  topic/urban-exploration:
+    count: 1
+    examples: []
+  topic/nfc:
+    count: 1
+    examples: []
+  topic/self-discovery:
+    count: 2
+    examples: []
+  topic/mystery:
+    count: 2
+    examples: []
+  topic/winter-adventures:
+    count: 2
+    examples: []
+  topic/beverages:
+    count: 3
+    examples: []
+  topic/indonesia:
+    count: 1
+    examples: []
+  topic/romance:
+    count: 1
+    examples: []
+  topic/college:
+    count: 1
+    examples: []
+  topic/necromancer:
     count: 1
     examples: []
 namespaces:
@@ -305,12 +347,15 @@ namespaces:
   - ballet
   - barber
   - beauty
+  - beverages
   - business
   - cambridge
   - children
   - collectibles
+  - college
   - comedy
   - communication
+  - conflict
   - cosmetics
   - creative-thinking
   - curiosity
@@ -332,7 +377,9 @@ namespaces:
   - hairstyle
   - health
   - herbs
+  - humor
   - hygiene
+  - indonesia
   - indoor-plants
   - intellectual-capital
   - internet
@@ -340,14 +387,18 @@ namespaces:
   - lgbtq
   - mahjong
   - medicine
-  - humor
   - military
+  - motivation
   - music
+  - mystery
+  - necromancer
   - neon-genesis-evangelion
   - neuroplasticity
   - neuroscience
   - news
+  - nfc
   - nutrition
+  - parents
   - park
   - physics
   - pinterest
@@ -359,8 +410,11 @@ namespaces:
   - relativity
   - religion
   - restaurant
+  - romance
   - sample
   - sauna
+  - self-discovery
+  - self-presentation
   - simulation
   - skincare
   - sleep
@@ -373,9 +427,11 @@ namespaces:
   - transparency
   - ufo
   - ukraine
+  - urban-exploration
   - vitamins
   - watches
   - water-filter
+  - winter-adventures
   source:
   - tiktok
   - youtube
