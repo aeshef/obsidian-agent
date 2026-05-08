@@ -44,28 +44,30 @@ def _parse_last_maintenance_run(log_path: Path) -> dict | None:
         text = log_path.read_text(encoding="utf-8", errors="ignore")
     except Exception:
         return None
+    if not text.strip():
+        return None
 
-    # Ищем все JSON-блоки: { ... "steps": [...] ... }
-    # Берём последний полный блок (ориентируемся на наличие "steps")
+    # Нельзя считать скобки по символам: в JSON внутри stdout_tail/stderr_tail шагов
+    # попадают фрагменты вывода с «левыми» { } — тогда последний блок не находится.
+    decoder = _json.JSONDecoder()
     last_block: dict | None = None
-    depth = 0
-    start = -1
-    for i, ch in enumerate(text):
-        if ch == "{":
-            if depth == 0:
-                start = i
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0 and start != -1:
-                chunk = text[start : i + 1]
-                try:
-                    obj = _json.loads(chunk)
-                    if isinstance(obj, dict) and "steps" in obj:
-                        last_block = obj
-                except Exception:
-                    pass
-                start = -1
+    i = 0
+    n = len(text)
+    while i < n:
+        while i < n and text[i] in " \t\r\n":
+            i += 1
+        if i >= n:
+            break
+        if text[i] != "{":
+            i += 1
+            continue
+        try:
+            obj, end = decoder.raw_decode(text, i)
+            if isinstance(obj, dict) and "steps" in obj:
+                last_block = obj
+            i = end
+        except ValueError:
+            i += 1
     return last_block
 
 
@@ -168,23 +170,38 @@ def _build_maintenance_section(vault: Path) -> str:
 
     lines.append("")
 
-    # Итоги последнего прогона из лога
-    # Лог живёт рядом с planning_bot (не в knowledge_bot), так как obsidian_sync пишет туда всё.
-    # Ищем по стандартным расположениям: planning_bot/logs/ или knowledge_bot/../planning_bot/logs/
-    log_candidates = [
-        vault / "800_Автоматизация" / "Agent" / "planning_bot" / "logs" / "vault_write_maintenance.log",
-        Path(__file__).resolve().parent.parent.parent / "planning_bot" / "logs" / "vault_write_maintenance.log",
-    ]
+    # Итоги последнего прогона: сначала sidecar (пишет runner после каждого полного прогона),
+    # иначе разбор лога (obsidian_sync пишет JSON в planning_bot/logs/…; tail может обрезать начало).
+    import json as _json
+
     last_run_data: dict | None = None
-    for lp in log_candidates:
-        last_run_data = _parse_last_maintenance_run(lp)
-        if last_run_data:
-            break
+    sidecar = sync_dir / "last_vault_maintenance_run.json"
+    if sidecar.exists():
+        try:
+            raw = _json.loads(sidecar.read_text(encoding="utf-8"))
+            if isinstance(raw, dict) and "steps" in raw:
+                last_run_data = raw
+        except Exception:
+            last_run_data = None
+
+    if last_run_data is None:
+        log_candidates = [
+            vault / "800_Автоматизация" / "Agent" / "planning_bot" / "logs" / "vault_write_maintenance.log",
+            Path(__file__).resolve().parent.parent.parent / "planning_bot" / "logs" / "vault_write_maintenance.log",
+        ]
+        for lp in log_candidates:
+            last_run_data = _parse_last_maintenance_run(lp)
+            if last_run_data:
+                break
 
     if last_run_data:
         lines.extend(_format_maintenance_run(last_run_data))
     else:
-        lines.append("**Итоги прогона**: лог не найден или пуст (`planning_bot/logs/vault_write_maintenance.log`)")
+        lines.append(
+            "**Итоги прогона**: нет данных — ни `.sync/last_vault_maintenance_run.json`, "
+            "ни распарсиваемого JSON в `planning_bot/logs/vault_write_maintenance.log` "
+            "(после следующего успешного 5b.2 появится sidecar)."
+        )
 
     lines.append("")
 
