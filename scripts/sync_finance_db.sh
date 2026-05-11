@@ -30,6 +30,7 @@ _refresh_broker_on_server() {
   if ssh "${SSH_OPTS[@]}" "$SERVER" "REMOTE_BOT_DIR='$REMOTE_BOT_DIR'" bash -s <<'REMOTE'
 set -euo pipefail
 cd "${REMOTE_BOT_DIR:?}"
+export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
 set -a
 [[ -f .env ]] && . ./.env
 set +a
@@ -134,4 +135,18 @@ else
   fi
   echo "❌ Не удалось скачать БД с сервера ($REMOTE_DB_RESOLVED) и локальной копии нет: $DATA_DIR/finance.db" >&2
   exit 1
+fi
+
+# Графики и markdown не входят в scp — пересобираем дашборд (отключить: FINANCE_BUILD_DASHBOARD_AFTER_PULL=0)
+if [[ "${FINANCE_BUILD_DASHBOARD_AFTER_PULL:-1}" != "0" ]]; then
+  echo "ℹ️ Пересборка дашборда (PNG + 📊 Финансы_Дашборд.md)…" >&2
+  export VAULT_PATH
+  export FINANCE_DB_PATH="$DATA_DIR/finance.db"
+  BOT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+  if ( cd "$BOT_ROOT" && chmod +x scripts/run_finance_dashboard.sh 2>/dev/null; true ) && \
+     ( cd "$BOT_ROOT" && ./scripts/run_finance_dashboard.sh ); then
+    echo "✅ Дашборд обновлён" >&2
+  else
+    echo "⚠️ Дашборд не собран (нужен matplotlib в venv: pip install matplotlib). Запусти вручную: cd \"$BOT_ROOT\" && ./scripts/run_finance_dashboard.sh" >&2
+  fi
 fi
