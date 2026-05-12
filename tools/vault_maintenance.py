@@ -500,6 +500,16 @@ def sort_kanban_tasks(target_path: Optional[Path] = None) -> bool:
                 else:
                     break
     
+    # Content-hash защита: если результат сортировки идентичен исходному содержимому —
+    # не трогаем файл, чтобы не двигать mtime. Иначе обсидиановский синк увидит «обновлённый»
+    # файл на сервере и шаг 4 в obsidian_sync.sh перетрёт локальные правки, которые
+    # пользователь как раз вносит (это и есть сценарий «перетёрло задачу при создании»).
+    input_hash = hashlib.sha1(content.encode('utf-8')).hexdigest()
+    output_hash = hashlib.sha1(new_content.encode('utf-8')).hexdigest()
+    if input_hash == output_hash:
+        print("ℹ️ Канбан-доска уже отсортирована (sha1 совпадает) — запись пропущена.", flush=True)
+        return True
+
     with open(path_to_use, 'w', encoding='utf-8') as f:
         f.write(new_content)
     
