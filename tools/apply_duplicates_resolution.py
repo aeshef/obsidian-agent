@@ -43,6 +43,63 @@ def get_attachment_files_from_frontmatter(frontmatter: dict) -> list[str]:
     return []
 
 
+_FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
+
+
+def _read_frontmatter(full_path: Path) -> tuple[dict, str]:
+    """Возвращает (frontmatter_dict, full_text). Если фронтматтера нет — dict пустой."""
+    text = full_path.read_text(encoding="utf-8", errors="ignore")
+    m = _FRONTMATTER_RE.match(text)
+    if not m:
+        return {}, text
+    try:
+        fm = yaml.safe_load(m.group(1)) or {}
+    except Exception:
+        fm = {}
+    return (fm if isinstance(fm, dict) else {}), text
+
+
+def _write_frontmatter(full_path: Path, frontmatter: dict, original_text: str) -> None:
+    """Пишет обновлённый frontmatter, сохраняя body как есть."""
+    if not isinstance(frontmatter, dict):
+        return
+    body = original_text
+    m = _FRONTMATTER_RE.match(original_text)
+    if m:
+        body = original_text[m.end() :]
+    fm_yaml = yaml.safe_dump(frontmatter, allow_unicode=True, sort_keys=False).strip()
+    out = f"---\n{fm_yaml}\n---\n{body.lstrip()}"
+    full_path.write_text(out, encoding="utf-8")
+
+
+def _promote_reprocess_skip_to_kept_note(keep_full: Path, delete_fulls: list[Path]) -> None:
+    """Если среди удаляемых дублей есть reprocess_skip=true — проставить его на оставляемой заметке.
+
+    Иначе возникает цикл: reprocess создаёт *_1.md → apply_duplicates удаляет *_1.md (keep_base)
+    → base.md снова попадает в очередь RE_BAD и переобрабатывается каждый день, сжигая Vision/ASR квоту.
+    """
+    if not keep_full.exists():
+        return
+
+    has_skip = False
+    for p in delete_fulls:
+        if not p.exists():
+            continue
+        fm, _ = _read_frontmatter(p)
+        if (fm.get("reprocess_skip") is True) or (str(fm.get("reprocess_skip", "")).lower() == "true"):
+            has_skip = True
+            break
+
+    if not has_skip:
+        return
+
+    keep_fm, keep_text = _read_frontmatter(keep_full)
+    if (keep_fm.get("reprocess_skip") is True) or (str(keep_fm.get("reprocess_skip", "")).lower() == "true"):
+        return
+    keep_fm["reprocess_skip"] = True
+    _write_frontmatter(keep_full, keep_fm, keep_text)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Применить разрешение дублей и удалить сиротские Export")
     ap.add_argument("--apply", action="store_true", help="Реально выполнить изменения")
@@ -186,6 +243,18 @@ def main() -> None:
             continue
 
         if action == "keep_base":
+            # В keep_base мы удаляем только *_1.md и т.п., оставляя base.md. Если reprocess_notes
+            # проставил reprocess_skip на *_1.md, то без переноса флага base.md будет переобрабатываться
+            # снова и снова (каждый день), создавая новые *_1.md и создавая видимость “появляются новые
+            # файлы даже когда я ничего не добавляю”.
+            if not dry:
+                keep_full = cfg.vault_path / keep_path if keep_path else None
+                if keep_full is not None:
+                    delete_fulls = [cfg.vault_path / rel for rel in delete_paths if rel]
+                    try:
+                        _promote_reprocess_skip_to_kept_note(keep_full, delete_fulls)
+                    except Exception:
+                        pass
             for rel in delete_paths:
                 full = cfg.vault_path / rel
                 if full.exists():
