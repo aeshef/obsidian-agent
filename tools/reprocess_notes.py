@@ -11,7 +11,7 @@
   python reprocess_notes.py --limit 5    # только первые 5 заметок
   python reprocess_notes.py --verbose    # вывод asr/vision, логов и причин пропуска
 
-При 429 (Vision лимит) — скрипт сразу завершает работу.
+При 429 после всех retry (Vision RPM) — скрипт завершает работу.
 """
 from __future__ import annotations
 

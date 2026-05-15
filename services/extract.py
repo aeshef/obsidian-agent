@@ -73,7 +73,7 @@ else:
 
 
 class VisionRateLimitError(Exception):
-    """OpenRouter Vision API лимит исчерпан (429). Остановить reprocess."""
+    """OpenRouter Vision 429 после retry (RPM). Остановить reprocess batch."""
 
 
 @dataclass
@@ -795,16 +795,18 @@ def extract_vision_from_video(path: Path, asr_text: str = "", llm_client: Option
             "max_tokens": 500,
             "temperature": 0.2,
         }
+        from knowledge_bot.services.openrouter_rate_limit import openrouter_post
+
         try:
-            r = requests.post(
+            r = openrouter_post(
                 f"{base_url}/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                     "HTTP-Referer": "https://github.com/knowledge-bot",
                 },
-                json=payload,
-                timeout=90,
+                json_payload=payload,
+                timeout=90.0,
             )
             if r.ok:
                 text = (r.json() or {}).get("choices", [{}])[0].get("message", {}).get("content", "")
@@ -814,10 +816,12 @@ def extract_vision_from_video(path: Path, asr_text: str = "", llm_client: Option
 
             send_billing_alert_if_needed("OpenRouter (Vision)", r.status_code, r.text or "")
             if r.status_code == 429:
-                log.warning("Vision API 429 (лимит исчерпан) — останавливаем")
+                log.warning("Vision API 429 (rate limit после retry) — останавливаем batch")
                 raise VisionRateLimitError("OpenRouter Vision rate limit (429)")
             log.warning("Vision API %s: %s", r.status_code, (r.text or "")[:200])
             return ""
+        except VisionRateLimitError:
+            raise
         except Exception as e:
             log.warning("Vision failed: %s", e)
             return ""
