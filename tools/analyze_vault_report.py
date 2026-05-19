@@ -95,7 +95,14 @@ def _format_maintenance_run(run: dict) -> list[str]:
         "apply_wikilinks_batch": "Wikilinks (apply_wikilinks_batch)",
         "retag_notes": "Перетегирование (retag_notes)",
         "reprocess_notes": "Переобработка имён (reprocess_notes)",
+        "llm_preflight": "Сеть / DeepSeek (preflight)",
     }
+    if not ok and any(s.get("name") == "llm_preflight" for s in steps):
+        lines.append(
+            "_При обрыве DNS в полночь шаги с LLM пропускаются; счётчик заметок «до» на следующий день "
+            "растёт из‑за новых записей с VPS (knowledge bot) между прогонами — это не отмена вчерашней чистки._"
+        )
+        lines.append("")
     for s in steps:
         name = s.get("name", "?")
         rc = s.get("returncode", "?")

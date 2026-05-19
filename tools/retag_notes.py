@@ -156,6 +156,15 @@ def retag_notes(
     verbose: bool = False,
     strip_obsolete_singleton_topics: bool = False,
 ) -> dict:
+    if apply:
+        from knowledge_bot.services.llm_reachable import deepseek_api_reachable
+
+        if not deepseek_api_reachable():
+            print(
+                "⚠️ api.deepseek.com недоступен (DNS/сеть) — retag с --apply пропущен.\n"
+                "   Проверь Wi‑Fi/VPN и повтори: FORCE_VAULT_MAINTENANCE=1 obsidian_sync.sh"
+            )
+            return {"ok": False, "touched": 0, "skipped": 0, "network_skip": True}
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
     enums_cfg = load_enums_config(cfg.agent_config_path)
 
@@ -328,7 +337,7 @@ def main() -> int:
     cfg = load_config()
     limit = None if args.all_notes else args.limit
 
-    retag_notes(
+    result = retag_notes(
         vault=cfg.vault_path,
         cfg=cfg,
         limit=limit,
@@ -337,7 +346,9 @@ def main() -> int:
         verbose=args.verbose,
         strip_obsolete_singleton_topics=args.strip_singleton_topics,
     )
-    return 0
+    if result.get("network_skip"):
+        return 3
+    return 0 if result.get("ok", True) else 1
 
 
 if __name__ == "__main__":

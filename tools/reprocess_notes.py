@@ -155,6 +155,15 @@ def main() -> None:
     cfg = load_config()
     vault = vault_override or cfg.vault_path
     db_root = vault / "700_База_Данных"
+    if apply:
+        from knowledge_bot.services.llm_reachable import deepseek_api_reachable
+
+        if not deepseek_api_reachable():
+            print(
+                "⚠️ api.deepseek.com недоступен (DNS/сеть) — reprocess с --apply пропущен.\n"
+                "   Проверь Wi‑Fi/VPN и повтори: FORCE_VAULT_MAINTENANCE=1 obsidian_sync.sh"
+            )
+            sys.exit(3)
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
 
     reprocess_cfg = load_reprocess_yaml(cfg.agent_config_path)
@@ -322,9 +331,13 @@ def main() -> None:
             "filenames": all_files or fm.get("attachments", {}).get("files", []) or [],
             "hint_title": routed.get("title")
         }, ensure_ascii=False)
+        from knowledge_bot.services.llm_reachable import is_garbage_fallback_title
+
         named = llm.chat_json(naming_system, naming_input).content or {}
         if isinstance(named, dict) and isinstance(named.get("title"), str) and named["title"].strip():
-            routed["title"] = named["title"].strip()
+            candidate_title = named["title"].strip()
+            if not is_garbage_fallback_title(candidate_title):
+                routed["title"] = candidate_title
 
         enums_cfg = load_enums_config(cfg.agent_config_path)
         allowed_fields = allowed_fields_for_type(routed["type"]) or []
@@ -383,6 +396,19 @@ def main() -> None:
         if verbose:
             print("  [полная заметка]\n" + (rendered[:3000] + "\n..." if len(rendered) > 3000 else rendered))
         if apply:
+            final_title = (routed.get("title") or "").strip()
+            if is_garbage_fallback_title(final_title):
+                if old_title:
+                    routed["title"] = old_title
+                    final_title = old_title
+                    try:
+                        rendered = render_note(cfg.templates_path, routed)
+                    except Exception as e:
+                        print(f"  Ошибка render (fallback title): {e}")
+                        continue
+                else:
+                    print(f"  ⚠ Пропуск записи: плохой title без LLM ({final_title[:70]!r})")
+                    continue
             # source_path → write_note → choose_unique_note_path не создаёт _N когда
             # целевой путь совпадает с источником (перезапись на месте).
             new_path = write_note(vault, routed["type"], routed["title"], rendered, source_path=note_path)
