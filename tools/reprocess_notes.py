@@ -414,6 +414,8 @@ def main() -> None:
             new_path = write_note(vault, routed["type"], routed["title"], rendered, source_path=note_path)
             if new_path.resolve() != note_path.resolve():
                 try:
+                    # Метка для runner.py: нужно удалить этот файл и на VPS (5b.2c obsidian_sync).
+                    print(f"DELETED_ORIGINAL: {note_path.relative_to(vault)}")
                     note_path.unlink()
                 except FileNotFoundError:
                     pass  # уже удалён (sync и т.п.)
