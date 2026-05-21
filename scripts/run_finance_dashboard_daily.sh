@@ -25,8 +25,10 @@ exec 1> >(tee -a "$LOG_FILE") 2>&1
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] VAULT_PATH=$VAULT_PATH MPLCONFIGDIR=$MPLCONFIGDIR"
 
 ./scripts/sync_finance_db.sh
-# Важно: не используем finance_bot/.venv для сборки дашборда (нужен matplotlib для PNG).
-python3 scripts/build_finance_dashboard.py --vault "$VAULT_PATH"
+# Используем .venv если есть (содержит sqlalchemy + matplotlib), иначе системный python3
+PYTHON="${BOT_ROOT}/.venv/bin/python"
+[ -x "$PYTHON" ] || PYTHON="python3"
+"$PYTHON" scripts/build_finance_dashboard.py --vault "$VAULT_PATH"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] OK"
 # Маркеры для check_sync_health: при ручном запуске или из obsidian_sync — отчёт видит последний успех
 SYNC_DIR="$VAULT_PATH/.sync"
