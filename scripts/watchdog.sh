@@ -34,12 +34,14 @@ MAX_BACKOFF="${WATCHDOG_MAX_BACKOFF:-60}"
 cd "$BOT_ROOT"
 mkdir -p logs
 
+# Обёртки ботов редиректят stdout в logs/watchdog.log, поэтому пишем только в stdout
+# (иначе tee + редирект дублируют каждую строку). count_recent_restarts грепает тот же файл.
 log_message() {
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
 }
 
 log_message_simple() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') | watchdog | $1" | tee -a "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') | watchdog | $1"
 }
 
 count_recent_restarts() {
