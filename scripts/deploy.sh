@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Единый деплой монорепо obsidian-agent (Вариант A: серверная структура /root/bots/<comp> сохраняется).
+# Единый деплой монорепо obsidian-agent (серверная структура: $SERVER_BOTS/<component>).
 #
 #   ./deploy.sh --component shared --no-restart        # только shared/, без рестартов (безопасно)
 #   ./deploy.sh --component finance_bot --install-deps # finance + pip install + рестарт

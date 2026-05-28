@@ -37,6 +37,7 @@ sys.path.insert(0, str(_pkg.parent))
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.llm import LLMClient
 from knowledge_bot.core.settings import load_prompt, load_enums_config, get_author_context
+from knowledge_bot.services.tag_normalize import normalize_tags
 from knowledge_bot.services.tags_inventory import (
     scan_all_notes,
     get_tags_inventory_for_prompt_restricted,
@@ -75,34 +76,6 @@ def _note_summary(fm: dict, body: str) -> str:
     if clean:
         parts.append("body: " + clean[:800])
     return "\n".join(parts) or "(нет контента)"
-
-
-def _slug(s: str) -> str:
-    import unicodedata
-    s = unicodedata.normalize("NFKD", s.lower()).encode("ascii", "ignore").decode()
-    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
-
-
-def _normalize_tags(raw: list, enums_cfg, existing_inv: dict) -> list[str]:
-    """Базовая нормализация тегов — та же логика что в bot.py."""
-    result = []
-    for tag in raw:
-        if not isinstance(tag, str) or "/" not in tag:
-            continue
-        ns, _, val = tag.strip().partition("/")
-        ns = ns.lower()
-        val_slug = _slug(val)
-        if not val_slug:
-            continue
-        # Сверяем с синонимами из enums
-        syns = (enums_cfg.synonyms or {}).get(ns, {})
-        for canon, aliases in syns.items():
-            if val_slug in ([_slug(a) for a in (aliases if isinstance(aliases, list) else [aliases])]):
-                val_slug = _slug(canon)
-                break
-        result.append(f"{ns}/{val_slug}")
-    # Дедупликация, сортировка
-    return sorted(dict.fromkeys(result))
 
 
 # ── candidate selection ──────────────────────────────────────────────────────
@@ -248,7 +221,7 @@ def retag_notes(
             skipped += 1
             continue
 
-        llm_tags = _normalize_tags(raw, enums_cfg, inv)
+        llm_tags = normalize_tags(raw, enums_cfg, fm.get("type", "unknown"))
         llm_tags = list(dict.fromkeys(ontology_mappings.get(t, t) for t in llm_tags))
 
         # Принимаем LLM-тег только если он уже есть в established инвентаре

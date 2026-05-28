@@ -132,8 +132,8 @@ def main():
         print("Нормализация не потребовалась (to/from уже однострочные).", flush=True)
 
     if args.push_to_server and not args.dry_run and logs_dir.is_dir():
-        server = os.environ.get("SERVER", "example-server")
-        server_vault = os.environ.get("SERVER_VAULT", "/root/obsidian-vault")
+        server = os.environ["SERVER"]
+        server_vault = os.environ.get("SERVER_VAULT", "/opt/obsidian-vault")
         rsh = os.environ.get("RSYNC_RSH", "ssh -o UseKeychain=yes -o BatchMode=yes")
         src = str(logs_dir.resolve()).rstrip("/") + "/"
         dst = f"{server}:{server_vault}/300_Дашборды/Логи/"

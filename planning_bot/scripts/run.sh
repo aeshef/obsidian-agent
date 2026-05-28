@@ -41,7 +41,7 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# PYTHONPATH: planning_bot + родитель (/root/bots — shared/)
+# PYTHONPATH: planning_bot + родитель (shared/ в $SERVER_BOTS)
 export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
 # На сервере бот часто в ~/bots/planning_bot, а vault — отдельно. Без VAULT_PATH

@@ -55,7 +55,7 @@ def main():
     elif not args.dry_run:
         print(f"Удалено файлов: {len(removed)}", flush=True)
         print("На сервере выполни один раз (подставь свой vault на сервере при необходимости):", flush=True)
-        print('  ssh example-server "rm -f /root/obsidian-vault/300_Дашборды/📊 Логи_Действий_*.md"', flush=True)
+        print('  ssh "$SERVER" "rm -f ${SERVER_VAULT:-/opt/obsidian-vault}/300_Дашборды/📊 Логи_Действий_*.md"', flush=True)
     return 0
 
 

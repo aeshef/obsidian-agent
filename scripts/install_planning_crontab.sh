@@ -1,7 +1,7 @@
 #!/bin/bash
 # Устанавливает cron-задачи planning_bot на сервере (идемпотентно).
 # Запуск: ./scripts/install_planning_crontab.sh
-#   или:  ssh example-server 'bash -s' < scripts/install_planning_crontab.sh
+#   или:  ssh "$SERVER" 'bash -s' < scripts/install_planning_crontab.sh
 set -euo pipefail
 
 BOT_ROOT="${PLANNING_BOT_ROOT:-${SERVER_BOTS:-/opt/obsidian-bots}/planning_bot}"
