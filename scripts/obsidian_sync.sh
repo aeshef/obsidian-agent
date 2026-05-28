@@ -284,7 +284,7 @@ if [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
             >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || echo "⚠️ obsidian_sync: 5b.2b завершился с ошибкой — см. vault_write_maintenance.log" >&2
 set -euo pipefail
 export VAULT_PATH
-export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
+export SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
 KB=""
 for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot" "${SERVER_BOTS}/knowledge_bot"; do
   [ -z "${d}" ] && continue

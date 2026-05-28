@@ -55,7 +55,7 @@ import os
 from pathlib import Path
 
 remote_db = os.environ.get('REMOTE_DB', '').strip()
-bot_dir = Path(os.environ.get('REMOTE_BOT_DIR', '/root/bots/finance_bot')).expanduser()
+bot_dir = Path(os.environ.get('REMOTE_BOT_DIR', os.environ.get('SERVER_BOTS', '/opt/obsidian-bots') + '/finance_bot')).expanduser()
 candidates = []
 
 def add_candidate(path_str: str) -> None:
@@ -82,10 +82,12 @@ if env_path.exists():
                 add_candidate(url[len('sqlite:///'):])
             break
 
+_bots = os.environ.get('SERVER_BOTS', '/opt/obsidian-bots')
+_default_bot = Path(os.environ.get('REMOTE_BOT_DIR', f"{_bots}/finance_bot"))
 fallbacks = [
     bot_dir / 'finance.db',
-    Path('/root/bots/finance_bot/finance.db'),
-    Path('/root/finance.db'),
+    _default_bot / 'finance.db',
+    Path(os.environ.get('REMOTE_DB', '/opt/finance.db')),
 ]
 for p in fallbacks:
     add_candidate(str(p))

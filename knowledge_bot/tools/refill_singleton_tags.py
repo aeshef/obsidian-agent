@@ -51,76 +51,7 @@ REFILL_SYSTEM = """Задача: у заметки есть список тег�
 Выход: JSON с одним полем "tags" — массив строк, только те теги, которые должны остаться у заметки. Без комментариев."""
 
 
-def _translit_ru(s: str) -> str:
-    table = str.maketrans({
-        "а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "e", "ж": "zh", "з": "z",
-        "и": "i", "й": "i", "к": "k", "л": "l", "м": "m", "н": "n", "о": "o", "п": "p", "р": "r",
-        "с": "s", "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh", "щ": "shch",
-        "ы": "y", "э": "e", "ю": "yu", "я": "ya",
-        "А": "a", "Б": "b", "В": "v", "Г": "g", "Д": "d", "Е": "e", "Ё": "e", "Ж": "zh", "З": "z",
-        "И": "i", "Й": "i", "К": "k", "Л": "l", "М": "m", "Н": "n", "О": "o", "П": "p", "Р": "r",
-        "С": "s", "Т": "t", "У": "u", "Ф": "f", "Х": "h", "Ц": "c", "Ч": "ch", "Ш": "sh", "Щ": "shch",
-        "Ы": "y", "Э": "e", "Ю": "yu", "Я": "ya",
-    })
-    return s.translate(table)
-
-
-def _slug_ascii(s: str) -> str:
-    s = _translit_ru(s)
-    s = s.lower().replace(" ", "-").replace("_", "-")
-    s = re.sub(r"[^a-z0-9\-/]", "", s)
-    s = re.sub(r"-+", "-", s).strip("-")
-    return s
-
-
-def normalize_tags(
-    tag_candidates: list,
-    enums_cfg,
-    note_type: str,
-    *,
-    allowed_tags: set[str] | None = None,
-) -> list[str]:
-    """Приводит теги к ASCII, применяет enums. Если allowed_tags задан — оставляет только теги из этого множества; иначе разрешены любые (как в стандартном пайплайне)."""
-    tag_values = []
-    for tag in tag_candidates:
-        if not isinstance(tag, str) or "/" not in tag:
-            continue
-        ns, _, val = tag.strip().partition("/")
-        ns = (ns or "").strip().lower()
-        raw_val = (val or "").strip()
-        syn_map = getattr(enums_cfg, "synonyms", {}).get(ns, {})
-        mapped = syn_map.get(raw_val.lower())
-        if mapped:
-            raw_val = mapped
-        cand_slug = _slug_ascii(raw_val)
-        per_type_enums = enums_cfg.per_type.get(note_type, {})
-        allowed_list = (enums_cfg.common.get(ns) or per_type_enums.get(ns)) or []
-        is_controlled = ns in enums_cfg.namespaces_controlled
-        if is_controlled and allowed_list:
-            chosen = None
-            for allowed_val in allowed_list:
-                if _slug_ascii(str(allowed_val)) == cand_slug:
-                    chosen = allowed_val
-                    break
-            if chosen:
-                tag_values.append(f"{ns}/{chosen}")
-        else:
-            if ns and cand_slug:
-                tag_values.append(f"{ns}/{cand_slug}")
-
-    filtered = []
-    per_type_enums = enums_cfg.per_type.get(note_type, {})
-    for tag in tag_values:
-        if allowed_tags is not None and tag not in allowed_tags:
-            continue
-        ns, _, value = tag.partition("/")
-        if ns in enums_cfg.namespaces_controlled:
-            allowed = enums_cfg.common.get(ns) or per_type_enums.get(ns)
-            if allowed and value in allowed:
-                filtered.append(tag)
-        else:
-            filtered.append(tag)
-    return sorted(dict.fromkeys(filtered))
+from knowledge_bot.services.tag_normalize import normalize_tags
 
 
 def main() -> None:

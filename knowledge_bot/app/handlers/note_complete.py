@@ -370,72 +370,11 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             tag_candidates = tag_resp.get("tags") or []
         else:
             tag_candidates = tag_resp if isinstance(tag_resp, list) else []
-        # Normalize tags to all-English ASCII slugs (free namespaces), lower-case namespaces
-        def _translit_ru(s: str) -> str:
-            table = str.maketrans({
-                "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"i",
-                "к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f",
-                "х":"h","ц":"c","ч":"ch","ш":"sh","щ":"shch","ы":"y","э":"e","ю":"yu","я":"ya",
-                "А":"a","Б":"b","В":"v","Г":"g","Д":"d","Е":"e","Ё":"e","Ж":"zh","З":"z","И":"i","Й":"i",
-                "К":"k","Л":"l","М":"m","Н":"n","О":"o","П":"p","Р":"r","С":"s","Т":"t","У":"u","Ф":"f",
-                "Х":"h","Ц":"c","Ч":"ch","Ш":"sh","Щ":"shch","Ы":"y","Э":"e","Ю":"yu","Я":"ya",
-            })
-            return s.translate(table)
+        from knowledge_bot.services.tag_normalize import normalize_tags
 
-        def _slug_ascii(s: str) -> str:
-            import re
-            s = _translit_ru(s)
-            s = s.lower()
-            s = s.replace(" ", "-").replace("_", "-")
-            s = re.sub(r"[^a-z0-9\-/]", "", s)
-            s = re.sub(r"-+", "-", s).strip("-")
-            return s
-
-        tag_values = []
-        for tag in tag_candidates:
-            if isinstance(tag, str) and "/" in tag:
-                ns, _, val = tag.strip().partition("/")
-                ns = (ns or "").strip().lower()
-                raw_val = (val or "").strip()
-                # apply synonyms if provided for namespace (exact match, case-insensitive)
-                syn_map = getattr(enums_cfg, "synonyms", {}).get(ns, {}) if 'enums_cfg' in locals() else {}
-                mapped = syn_map.get(raw_val.lower())
-                if mapped:
-                    raw_val = mapped
-                # candidate ascii slug
-                cand_slug = _slug_ascii(raw_val)
-                # if namespace is controlled (per config), try to map to allowed canonical values
-                per_type_enums = enums_cfg.per_type.get(routed.get("type", ""), {})
-                allowed_list = (enums_cfg.common.get(ns) or per_type_enums.get(ns)) or []
-                is_controlled = ns in enums_cfg.namespaces_controlled
-                if is_controlled and allowed_list:
-                    # pick allowed value whose slug matches candidate
-                    chosen = None
-                    for allowed_val in allowed_list:
-                        if _slug_ascii(str(allowed_val)) == cand_slug:
-                            chosen = allowed_val
-                            break
-                    if chosen:
-                        tag_values.append(f"{ns}/{chosen}")
-                    else:
-                        # no good match -> skip to avoid non-canonical values
-                        continue
-                else:
-                    # free namespace
-                    if ns and cand_slug:
-                        tag_values.append(f"{ns}/{cand_slug}")
-        # Filter controlled namespaces against enums
-        filtered = []
-        per_type_enums = enums_cfg.per_type.get(routed.get("type", ""), {})
-        for tag in tag_values:
-            ns, _, value = tag.partition("/")
-            if ns in enums_cfg.namespaces_controlled:
-                allowed = enums_cfg.common.get(ns) or per_type_enums.get(ns)
-                if allowed and value in allowed:
-                    filtered.append(tag)
-            else:
-                filtered.append(tag)
-        routed["tags"] = sorted(dict.fromkeys(filtered))
+        routed["tags"] = normalize_tags(
+            tag_candidates, enums_cfg, routed.get("type", "")
+        )
     except Exception as e:
         logging.getLogger("kb.bot").warning("tags generation failed: %s", e)
         routed.setdefault("tags", [])
