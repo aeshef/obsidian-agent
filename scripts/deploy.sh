@@ -61,8 +61,10 @@ rsync_comp() {
 install_deps() {
   local name="$1" vdir="$2"
   [ "$INSTALL_DEPS" = 1 ] || return 0
-  echo "📦 pip install ($name)"
-  ssh "$SERVER" "cd $SERVER_BOTS/$name && [ -d $vdir ] || python3 -m venv $vdir; $vdir/bin/pip install -q --upgrade pip && $vdir/bin/pip install -q -r requirements.txt"
+  echo "📦 pip install ($name) под общим constraints.txt"
+  # доставляем единый потолок версий в корень bots
+  [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
+  ssh "$SERVER" "cd $SERVER_BOTS/$name && { [ -d $vdir ] || python3 -m venv $vdir; }; $vdir/bin/pip install -q --upgrade pip; CONS=''; [ -f ../constraints.txt ] && CONS='-c ../constraints.txt'; $vdir/bin/pip install -q -r requirements.txt \$CONS"
 }
 
 restart_comp() {
