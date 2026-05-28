@@ -1,0 +1,7 @@
+python-telegram-bot==20.7
+requests==2.31.0
+schedule==1.2.0
+pytz==2024.1
+matplotlib>=3.8,<4
+PyYAML>=6.0
+faster-whisper>=1.0.0

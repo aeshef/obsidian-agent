@@ -1,0 +1,10 @@
+# ASR (голосовые сообщения) — те же идеи, что в finance_bot
+default_model: "small"
+languages:
+  - ru
+  - en
+vad:
+  enabled: true
+  min_silence_duration_ms: 500
+min_text_length: 10
+compute_type: "int8"

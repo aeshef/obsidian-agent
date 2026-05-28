@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+from planning_bot.core.pdmsg import pdmsg
+import hashlib
+import json
+import logging
+import re
+import sys
+from datetime import date, datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PACKAGE_PARENT = PROJECT_ROOT.parent
+if str(PACKAGE_PARENT) not in sys.path:
+    sys.path.insert(0, str(PACKAGE_PARENT))
+
+from planning_bot.core.config import (
+    CALENDAR_TXT_FILE,
+    CALENDAR_JSON_FILE,
+    CALENDAR_DASHBOARD_MD,
+    CALENDAR_ANALYTICS_JSON,
+    CALENDAR_INSIGHTS_CACHE,
+)
+from planning_bot.services.calendar_analytics import (
+    analytics_stable_hash,
+    compute_week_analytics,
+    write_analytics_json,
+)
+from planning_bot.services.calendar_dashboard import write_meeting_focus_dashboard
+from planning_bot.services.calendar_insights_llm import get_or_create_insights
+from planning_bot.services.calendar_retention import (
+    apply_retention,
+    compact_calendar_txt,
+    should_compact_txt,
+)
+
+
+def _build_and_write_dashboard(events: List[Dict], now_iso: str) -> None:
+    'Operation implementation.'
+    analytics = compute_week_analytics(events, date.today(), horizon_days=8)
+    write_analytics_json(CALENDAR_ANALYTICS_JSON, analytics)
+    h = analytics_stable_hash(analytics)
+    insights, _from_cache = get_or_create_insights(analytics, CALENDAR_INSIGHTS_CACHE, h, now_iso)
+    write_meeting_focus_dashboard(CALENDAR_DASHBOARD_MD, now_iso, analytics, insights)
+
+# DD.MM.YYYY HH:MM - HH:MM TITLE
+_LINE_RE = re.compile(
+    r"^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})\s*(.*)$"
+)
+# "23 Apr 2026 at 17:52"
+_TS_RE = re.compile(r"^\d{1,2} [A-Za-z]+ \d{4} at \d{2}:\d{2}$")
+
+TAG_RE = re.compile(r"^\[([^\]]+)\]\s*")
+
+
+def _event_id(date: str, start: str, end: str, title: str) -> str:
+    'Operation implementation.'
+    key = f"{date}|{start}|{end}|{title.strip().lower()[:40]}"
+    return hashlib.md5(key.encode("utf-8")).hexdigest()[:12]
+
+
+def _load_json(path: Path) -> Dict:
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning(pdmsg("auto_e3939e1bdb"), path, e)
+    return {"meta": {"last_updated": None, "txt_last_parsed": None}, "events": []}
+
+
+def _save_json(path: Path, data: Dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def _extract_txt_timestamp(txt_content: str) -> Optional[str]:
+    'Operation implementation.'
+    last: Optional[str] = None
+    for line in txt_content.splitlines():
+        line = line.strip()
+        if not line or line == "---":
+            continue
+        if _TS_RE.match(line):
+            try:
+                dt = datetime.strptime(line, "%d %b %Y at %H:%M")
+                last = dt.isoformat()
+            except ValueError:
+                pass
+    return last
+
+
+def _parse_txt(txt_content: str) -> List[Dict]:
+    'Operation implementation.'
+    # (comment)
+    raw: List[Dict] = []
+    for line in txt_content.splitlines():
+        m = _LINE_RE.match(line.strip())
+        if not m:
+            continue
+        day, month, year, start, end, title = m.groups()
+        date_str = f"{year}-{month}-{day}"
+        title = title.strip()
+
+        is_cancelled = False
+        if title.startswith(pdmsg("auto_d0edfc7fdc")):
+            is_cancelled = True
+            title = title[len(pdmsg("auto_d0edfc7fdc")):].strip()
+
+        is_allday = (start == "00:00" and end == "23:59")
+
+        tag = None
+        tag_m = TAG_RE.match(title)
+        if tag_m:
+            tag = tag_m.group(1)
+            title = title[tag_m.end() :].strip()
+
+        raw.append({
+            "date": date_str,
+            "start": start,
+            "end": end,
+            "title": title,
+            "is_allday": is_allday,
+            "is_cancelled": is_cancelled,
+            "tag": tag,
+        })
+
+    # (comment)
+    # (comment)
+    # (comment)
+    seen: Dict[str, Dict] = {}  # key → event
+    duplicates_dropped = 0
+    for ev in raw:
+        key = f"{ev['date']}|{ev['start']}|{ev['end']}"
+        if key not in seen:
+            seen[key] = ev
+        else:
+            existing = seen[key]
+            if not existing["title"] and ev["title"]:
+                # (comment)
+                seen[key] = ev
+                duplicates_dropped += 1
+            elif existing["title"] and not ev["title"]:
+                # (comment)
+                duplicates_dropped += 1
+            elif existing["title"] != ev["title"]:
+                # (comment)
+                seen[f"{key}|{ev['title'][:20]}"] = ev
+
+    events = sorted(seen.values(), key=lambda e: (e["date"], e["start"]))
+    logger.info(pdmsg("auto_c24be15722"),
+                len(raw), len(events), duplicates_dropped)
+    return events
+
+
+def _merge(existing_events: List[Dict], new_events: List[Dict]) -> Tuple[List[Dict], int, int]:
+    'Operation implementation.'
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    existing_by_id: Dict[str, Dict] = {e["id"]: e for e in existing_events if "id" in e}
+
+    added, updated = 0, 0
+    for ev in new_events:
+        ev_id = _event_id(ev["date"], ev["start"], ev["end"], ev["title"])
+        ev["id"] = ev_id
+
+        if ev_id not in existing_by_id:
+            ev["added_at"] = now_iso
+            existing_by_id[ev_id] = ev
+            added += 1
+        else:
+            old = existing_by_id[ev_id]
+            if old.get("is_cancelled") != ev.get("is_cancelled"):
+                old["is_cancelled"] = ev["is_cancelled"]
+                old["updated_at"] = now_iso
+                updated += 1
+
+    merged = sorted(existing_by_id.values(), key=lambda e: (e["date"], e["start"]))
+    return merged, added, updated
+
+
+def _dedupe_same_time_slot(events: List[Dict]) -> List[Dict]:
+    'Operation implementation.'
+    best: Dict[str, Dict] = {}
+
+    def score(ev: Dict) -> Tuple[int, int, str]:
+        not_can = 0 if ev.get("is_cancelled") else 1
+        tlen = len(ev.get("title") or "")
+        added = ev.get("added_at") or ""
+        return (not_can, tlen, added)
+
+    for ev in events:
+        k = f"{ev['date']}|{ev['start']}|{ev['end']}"
+        cur = best.get(k)
+        if cur is None or score(ev) > score(cur):
+            best[k] = ev
+    return sorted(best.values(), key=lambda e: (e["date"], e["start"]))
+
+
+def run_calendar_sync() -> bool:
+    'Operation implementation.'
+    if not CALENDAR_TXT_FILE.exists():
+        logger.info(pdmsg("auto_b198725f3a"), CALENDAR_TXT_FILE)
+        return True
+
+    with open(CALENDAR_TXT_FILE, "r", encoding="utf-8") as f:
+        txt_content = f.read()
+
+    txt_ts = _extract_txt_timestamp(txt_content)
+
+    data = _load_json(CALENDAR_JSON_FILE)
+    last_parsed = data["meta"].get("txt_last_parsed")
+
+    if txt_ts and txt_ts == last_parsed:
+        logger.info(pdmsg("auto_db56dcef25"), txt_ts)
+        print(pdmsg("auto_80593794b5"), flush=True)
+        try:
+            evs = data.get("events", [])
+            data, moved, _ = apply_retention(data)
+            if moved:
+                _save_json(CALENDAR_JSON_FILE, data)
+            now_iso = datetime.now().isoformat(timespec="seconds")
+            _build_and_write_dashboard(evs, now_iso)
+            print(pdmsg("auto_f2964bb97c", CALENDAR_DASHBOARD_MD={CALENDAR_DASHBOARD_MD}), flush=True)
+        except Exception as e:
+            logger.warning(pdmsg("auto_9f886df28c"), e)
+        return True
+
+    print(pdmsg("auto_c8a1e8f8bb"), flush=True)
+    print(pdmsg("auto_779ae56025", CALENDAR_TXT_FILE={CALENDAR_TXT_FILE}), flush=True)
+    print(pdmsg("auto_8fe3e14bf5", _p1=last_parsed or pdmsg('auto_f0cf0b41cc')), flush=True)
+    print(pdmsg("auto_81a548769a", txt_ts={txt_ts}), flush=True)
+
+    new_events = _parse_txt(txt_content)
+
+    merged, added, updated = _merge(data.get("events", []), new_events)
+    merged = _dedupe_same_time_slot(merged)
+
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    data["meta"]["last_updated"] = now_iso
+    data["meta"]["txt_last_parsed"] = txt_ts or now_iso
+    data["meta"]["total_events"] = len(merged)
+    data["events"] = merged
+
+    data, moved, detail_n = apply_retention(data)
+    if moved:
+        logger.info("calendar retention: moved %s events to archive, detail=%s", moved, detail_n)
+    _save_json(CALENDAR_JSON_FILE, data)
+
+    line_count = txt_content.count("\n") + (1 if txt_content else 0)
+    if should_compact_txt(line_count):
+        compacted, dropped = compact_calendar_txt(txt_content)
+        if dropped > 0 and compacted != txt_content:
+            CALENDAR_TXT_FILE.write_text(compacted, encoding="utf-8")
+            logger.info("calendar txt compacted: dropped %s lines before %s", dropped, data["meta"].get("detail_cutoff"))
+
+    try:
+        _build_and_write_dashboard(data.get("events", merged), now_iso)
+        print(pdmsg("auto_f2964bb97c", CALENDAR_DASHBOARD_MD={CALENDAR_DASHBOARD_MD}), flush=True)
+    except Exception as e:
+        logger.warning(pdmsg("auto_58b2a8d2f2"), e)
+
+    print(pdmsg("auto_3d9d657bf4", _p1=added, _p3=updated, _p5=len(merged)), flush=True)
+    return True
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    success = run_calendar_sync()
+    sys.exit(0 if success else 1)
