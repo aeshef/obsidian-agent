@@ -1,0 +1,26 @@
+# obsidian-agent monorepo
+.env
+.env.local
+**/.env
+**/venv/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+**/.cache/
+**/.DS_Store
+**/logs/
+**/data/
+**/finance.db
+*.db
+*.db-shm
+*.db-wal
+**/config/prompts/*.txt
+**/config/author_context.txt
+**/config/initial_accounts.yaml
+**/config/user_context.md
+**/config/badge.yaml
+**/config/badge_import_*.yaml
+planning_bot/CHAT_ID.txt
+planning_bot/goals_context.md
+knowledge_bot/CHAT_ID.txt
+.sync/

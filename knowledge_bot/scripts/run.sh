@@ -32,8 +32,8 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Устанавливаем PYTHONPATH для относительных импортов
-export PYTHONPATH="$ROOT"
+# PYTHONPATH: сам бот + родитель (там лежит shared/ — общий пакет монорепо)
+export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
 # На серверах с ограниченной памятью ASR по умолчанию использует tiny (см. extract.py)
 # Для лучшего качества голоса: ASR_MODEL=small (требует больше RAM)

@@ -34,6 +34,9 @@ else
     PYTHON_CMD="python3"
 fi
 
+# PYTHONPATH: finance_bot + родитель (shared/ в /root/bots)
+export PYTHONPATH="$(cd "$(dirname "$0")/.." && pwd):$(cd "$(dirname "$0")/../.." && pwd)${PYTHONPATH:+:$PYTHONPATH}"
+
 # Создаем директорию для логов если нужно
 mkdir -p logs
 

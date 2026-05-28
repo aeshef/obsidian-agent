@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.example.obsidian-sync</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/example/bin/obsidian_sync_launchagent.sh</string>
+	</array>
+
+	<key>RunAtLoad</key>
+	<true/>
+
+	<key>StartInterval</key>
+	<integer>300</integer>
+
+	<key>WorkingDirectory</key>
+	<string>/Users/example/Documents/Obsidian Vault</string>
+
+	<key>StandardOutPath</key>
+	<string>/tmp/obsidian-sync.out</string>
+
+	<key>StandardErrorPath</key>
+	<string>/tmp/obsidian-sync.err</string>
+
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>LOCAL_VAULT</key>
+		<string>/Users/example/Documents/Obsidian Vault</string>
+		<key>PATH</key>
+		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+		<key>LANG</key>
+		<string>en_US.UTF-8</string>
+		<key>LC_ALL</key>
+		<string>en_US.UTF-8</string>
+	</dict>
+</dict>
+</plist>

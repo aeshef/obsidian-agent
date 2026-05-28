@@ -38,8 +38,8 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Устанавливаем PYTHONPATH для импортов
-export PYTHONPATH="$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
+# PYTHONPATH: planning_bot + родитель (/root/bots — shared/)
+export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
 # На сервере бот часто в ~/bots/planning_bot, а vault — отдельно. Без VAULT_PATH
 # config.py поднимается от planning_bot вверх и получает неверный путь (например /),

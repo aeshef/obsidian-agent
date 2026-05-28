@@ -1,0 +1,12 @@
+build started Thu May 28 22:46:07 MSK 2026
+==== [planning_bot] create venv (venv) ====
+==== [planning_bot] pip install -r requirements.txt ====
+
+
+Successfully installed PyYAML-6.0.3 annotated-doc-0.0.4 anyio-4.13.0 av-17.0.1 certifi-2026.5.20 charset-normalizer-3.4.7 click-8.4.1 contourpy-1.3.3 ctranslate2-4.7.2 cycler-0.12.1 faster-whisper-1.2.1 filelock-3.29.0 flatbuffers-25.12.19 fonttools-4.63.0 fsspec-2026.4.0 h11-0.16.0 hf-xet-1.5.0 httpcore-1.0.9 httpx-0.25.2 huggingface-hub-1.17.0 idna-3.17 kiwisolver-1.5.0 markdown-it-py-4.2.0 matplotlib-3.10.9 mdurl-0.1.2 numpy-2.4.6 onnxruntime-1.26.0 packaging-26.2 pillow-12.2.0 protobuf-7.35.0 pygments-2.20.0 pyparsing-3.3.2 python-dateutil-2.9.0.post0 python-telegram-bot-20.7 pytz-2024.1 requests-2.31.0 rich-15.0.0 schedule-1.2.0 setuptools-82.0.1 shellingham-1.5.4 six-1.17.0 sniffio-1.3.1 tokenizers-0.23.1 tqdm-4.67.3 typer-0.25.1 typing-extensions-4.15.0 urllib3-2.7.0
+==== [planning_bot] DONE rc=0 ====
+==== [finance_bot] create venv (.venv) ====
+==== [finance_bot] pip install -r requirements.txt ====
+
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details.
