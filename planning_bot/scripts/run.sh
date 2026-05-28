@@ -48,8 +48,8 @@ export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 # config.py поднимается от planning_bot вверх и получает неверный путь (например /),
 # из-за чего «Выполнено за неделю» и логи читаются не из 300_Дашборды и дают 0.
 if [ -z "$VAULT_PATH" ]; then
-    if [ -d "/root/obsidian-vault" ]; then
-        export VAULT_PATH="/root/obsidian-vault"
+    if [ -n "${SERVER_VAULT:-}" ] && [ -d "${SERVER_VAULT}" ]; then
+        export VAULT_PATH="$SERVER_VAULT"
     fi
 fi
 

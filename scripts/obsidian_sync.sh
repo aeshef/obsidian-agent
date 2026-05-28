@@ -5,7 +5,7 @@ echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || 
 
 # Защита от устаревшего агента -v2 (зомби): он вызывает /tmp/obsidian_sync.sh без FDA.
 # Если нет доступа к vault (Documents) — сразу выходим, не трогая rsync.
-VAULT_TEST="${AGENT_ROOT:-${LOCAL_VAULT:-/Users/example/Documents/Obsidian Vault}/800_Автоматизация/Agent}/obsidian_sync.sh"
+VAULT_TEST="${AGENT_ROOT:-${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}/800_Автоматизация/Agent}/obsidian_sync.sh"
 if ! test -r "$VAULT_TEST" 2>/dev/null || ! head -c1 "$VAULT_TEST" >/dev/null 2>/dev/null; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP: нет доступа к vault (запуск без FDA), выхожу" >> "$DEBUG_LOG" 2>/dev/null || true
   exit 0
@@ -42,7 +42,11 @@ if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   fi
   [[ -n "$P" && -d "$P/800_Автоматизация" ]] && LOCAL_VAULT="$P"
 fi
-LOCAL_VAULT="${LOCAL_VAULT:-/Users/example/Documents/Obsidian Vault}"
+LOCAL_VAULT="${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}"
+# Fallback если Documents/Obsidian Vault не существует
+if [[ ! -d "$LOCAL_VAULT" && -d "${HOME}/Obsidian Vault" ]]; then
+  LOCAL_VAULT="${HOME}/Obsidian Vault"
+fi
 AGENT_ROOT="${AGENT_ROOT:-${AGENT_ROOT}}"
 # Когда LaunchAgent не может писать в vault (Documents), маркеры и логи пишем в домашнюю папку
 SYNC_DIR="${SYNC_STATE_DIR:-$LOCAL_VAULT/.sync}"
@@ -63,17 +67,16 @@ fi
 # Каждый запуск (cron или вручную) — одна строка в лог; по нему видно, срабатывает ли cron каждые 5 мин (см. plist StartInterval)
 echo "$(date '+%Y-%m-%dT%H:%M:%S')" >> "$SYNC_DIR/cron_runs.log" 2>/dev/null || true
 
-# Изоляция от pyenv: knowledge_bot/venv/bin/python — симлинк на /Users/example/.pyenv/versions/3.12.7/bin/python3,
+# Изоляция от pyenv: venv/bin/python может быть симлинком на $HOME/.pyenv/versions/.../bin/python3,
 # а у pyenv-питона нет TCC FDA на ~/Documents → site.py падает на чтении venv/pyvenv.cfg и засоряет system_audit.log.
-# Из LaunchAgent PATH чистый (см. plist), но при ручном запуске из терминала с активным pyenv shim в PATH
-# любые subprocess (включая run_daily_maintenance через sys.executable) попадают на pyenv. Стрипаем pyenv везде:
 unset PYENV_VERSION PYENV_VIRTUAL_ENV PYENV_SHELL
-if [[ ":$PATH:" == *":/Users/example/.pyenv/"* ]]; then
+if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
   PATH="$(printf '%s' "$PATH" | awk -v RS=':' -v ORS=':' 'NF && $0 !~ /\.pyenv\/(shims|versions)/' | sed 's/:$//')"
   export PATH
 fi
 SERVER="${SERVER:-example-server}"
 SERVER_VAULT="${SERVER_VAULT:-/root/obsidian-vault}"
+SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
 RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
@@ -126,7 +129,7 @@ PUSH_EXCLUDE_300=(
 # 3. Обслуживание vault на сервере (VAULT_PATH=/root/obsidian-vault — тот же путь, откуда забирает rsync)
 # Плюс: сразу после обслуживания запускаем kanban_monitor, чтобы новые задачи/перемещения из Obsidian попали в action-логи в этом же цикле синка.
 echo "obsidian_sync: шаг 3 — SSH: vault_maintenance + kanban на сервере (без вывода; лог на сервере: planning_bot/logs/maintenance.log)…" >&2
-ssh "${SSH_OPTS[@]}" "$SERVER" "cd /root/bots/planning_bot && ( ./scripts/run_maintenance_from_sync.sh 2>/dev/null || ( source venv/bin/activate && export \$(cat .env | grep -v '^#' | xargs) && export PYTHONPATH='/root/bots'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && FROM_SYNC=1 python -m planning_bot.tools.vault_maintenance ) ) >> logs/maintenance.log 2>&1 && ( source venv/bin/activate && export PYTHONPATH='/root/bots'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && python -m planning_bot.services.kanban_monitor ) >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh example-server 'tail -50 /root/bots/planning_bot/logs/maintenance.log')" >&2; }
+ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ( ./scripts/run_maintenance_from_sync.sh 2>/dev/null || ( source venv/bin/activate && export \$(cat .env | grep -v '^#' | xargs) && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && FROM_SYNC=1 python -m planning_bot.tools.vault_maintenance ) ) >> logs/maintenance.log 2>&1 && ( source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && python -m planning_bot.services.kanban_monitor ) >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh $SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance (--ignore-times: всегда перезаписать локаль отсортированной доской)
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2
@@ -273,12 +276,13 @@ if [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
         if [ "${SKIP_SERVER_DUPLICATE_APPLY:-0}" != "1" ]; then
           echo "obsidian_sync: шаг 5b.2b — apply_duplicates на сервере ($SERVER $SERVER_VAULT)…" >&2
           # shellcheck disable=SC2090
-          ssh "${SSH_OPTS[@]}" "$SERVER" env VAULT_PATH="$SERVER_VAULT" REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" bash -s \
+          ssh "${SSH_OPTS[@]}" "$SERVER" env VAULT_PATH="$SERVER_VAULT" SERVER_BOTS="$SERVER_BOTS" REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" bash -s \
             >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || echo "⚠️ obsidian_sync: 5b.2b завершился с ошибкой — см. vault_write_maintenance.log" >&2
 set -euo pipefail
 export VAULT_PATH
+export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
 KB=""
-for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot" "/root/bots/knowledge_bot"; do
+for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot" "${SERVER_BOTS}/knowledge_bot"; do
   [ -z "${d}" ] && continue
   [ -f "${d}/tools/apply_duplicates_resolution.py" ] || continue
   KB="${d}"
@@ -291,7 +295,7 @@ fi
 cd "${KB}"
 # На VPS у knowledge_bot часто нет своего venv; системный python3 может быть без PyYAML.
 # Fallback: venv planning_bot (тот же хост, те же зависимости для YAML/агента).
-_PLANNING_PY="${PLANNING_BOT_REMOTE_PYTHON:-/root/bots/planning_bot/venv/bin/python}"
+_PLANNING_PY="${PLANNING_BOT_REMOTE_PYTHON:-${SERVER_BOTS}/planning_bot/venv/bin/python}"
 if [ -x .venv/bin/python ]; then PY=".venv/bin/python"
 elif [ -x venv/bin/python ]; then PY="venv/bin/python"
 elif [ -x "${_PLANNING_PY}" ]; then PY="${_PLANNING_PY}"

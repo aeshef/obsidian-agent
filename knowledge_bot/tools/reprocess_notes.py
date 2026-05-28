@@ -156,7 +156,7 @@ def main() -> None:
     vault = vault_override or cfg.vault_path
     db_root = vault / "700_База_Данных"
     if apply:
-        from knowledge_bot.services.llm_reachable import deepseek_api_reachable
+        from shared.llm_reachable import deepseek_api_reachable
 
         if not deepseek_api_reachable():
             print(
@@ -331,7 +331,7 @@ def main() -> None:
             "filenames": all_files or fm.get("attachments", {}).get("files", []) or [],
             "hint_title": routed.get("title")
         }, ensure_ascii=False)
-        from knowledge_bot.services.llm_reachable import is_garbage_fallback_title
+        from shared.llm_reachable import is_garbage_fallback_title
 
         named = llm.chat_json(naming_system, naming_input).content or {}
         if isinstance(named, dict) and isinstance(named.get("title"), str) and named["title"].strip():

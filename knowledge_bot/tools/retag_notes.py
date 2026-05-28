@@ -157,7 +157,7 @@ def retag_notes(
     strip_obsolete_singleton_topics: bool = False,
 ) -> dict:
     if apply:
-        from knowledge_bot.services.llm_reachable import deepseek_api_reachable
+        from shared.llm_reachable import deepseek_api_reachable
 
         if not deepseek_api_reachable():
             print(
