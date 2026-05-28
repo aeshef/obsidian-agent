@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+"""
+Разовый импорт истории бейджа из YAML (без хардкода в коде).
+
+  python scripts/import_badge_history.py --file config/badge_import_may_2026.yaml
+  python scripts/import_badge_history.py --file config/badge_import_may_2026.yaml --db /path/finance.db
+  python scripts/import_badge_history.py --clear --file config/badge_import_may_2026.yaml
+
+После успешного импорта на сервер и локаль файл импорта можно удалить.
+Дальше — только новые траты через бота (🍽 Бейдж).
+"""
+
+from __future__ import annotations
+
+import argparse
+import calendar
+import sqlite3
+import sys
+from datetime import date, datetime
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from bot.config_loader import get_badge_config  # noqa: E402
+from bot.vault_paths import VaultPaths  # noqa: E402
+
+
+def load_import_file(path: Path) -> tuple[str, list[dict]]:
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"Ожидался объект YAML в {path}")
+    ym = str(data.get("year_month", "")).strip()
+    if len(ym) < 7:
+        raise ValueError("В файле нужно поле year_month: YYYY-MM")
+    txns = data.get("transactions") or []
+    if not isinstance(txns, list) or not txns:
+        raise ValueError("В файле нужен непустой список transactions")
+    return ym, txns
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Разовый импорт трат бейджа из YAML")
+    parser.add_argument(
+        "--file",
+        type=Path,
+        required=True,
+        help="YAML с year_month и transactions (day, amount, description)",
+    )
+    parser.add_argument("--vault", type=Path, default=None)
+    parser.add_argument("--db", type=Path, default=None)
+    parser.add_argument("--user-id", type=int, default=1)
+    parser.add_argument("--clear", action="store_true", help="Удалить траты бейджа за month из файла")
+    args = parser.parse_args()
+
+    import_path = args.file if args.file.is_absolute() else ROOT / args.file
+    if not import_path.exists():
+        print(f"❌ Файл не найден: {import_path}")
+        sys.exit(1)
+
+    year_month, raw_txns = load_import_file(import_path)
+    y, m = map(int, year_month.split("-")[:2])
+    _, last_day = calendar.monthrange(y, m)
+
+    cfg = get_badge_config()
+    account_name = cfg.get("account_name", "Yandex Badge")
+    category = cfg.get("category", "Еда/Бейдж")
+
+    if args.db:
+        db_path = args.db
+    else:
+        vault = args.vault or (ROOT.parent.parent.parent)
+        db_path = VaultPaths(vault).finance_db()
+
+    if not db_path.exists():
+        print(f"❌ БД не найдена: {db_path}")
+        sys.exit(1)
+
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+
+    acc = cur.execute(
+        "SELECT id FROM accounts WHERE user_id=? AND name=?",
+        (args.user_id, account_name),
+    ).fetchone()
+    if not acc:
+        cur.execute(
+            """INSERT INTO accounts (user_id, name, type, currency, is_external_balance, external_balance, created_at)
+               VALUES (?, ?, 'badge', 'RUB', 0, 0, datetime('now'))""",
+            (args.user_id, account_name),
+        )
+        acc_id = cur.lastrowid
+        print(f"✅ Создан счёт {account_name} id={acc_id}")
+    else:
+        acc_id = acc[0]
+
+    start = f"{y:04d}-{m:02d}-01"
+    end = f"{y + 1:04d}-01-01" if m == 12 else f"{y:04d}-{m + 1:02d}-01"
+
+    if args.clear:
+        cur.execute(
+            """DELETE FROM transactions
+               WHERE user_id=? AND account_id=? AND category=?
+                 AND occurred_at >= ? AND occurred_at < ?""",
+            (args.user_id, acc_id, category, start, end),
+        )
+        conn.commit()
+        print(f"🗑 Удалено за {year_month}: {cur.rowcount} строк")
+        conn.close()
+        return
+
+    cur.execute(
+        """DELETE FROM transactions
+           WHERE user_id=? AND account_id=? AND category=?
+             AND occurred_at >= ? AND occurred_at < ?""",
+        (args.user_id, acc_id, category, start, end),
+    )
+    cleared = cur.rowcount
+
+    inserted = 0
+    total = 0
+    for row in raw_txns:
+        day = int(row["day"])
+        amount = int(row["amount"])
+        desc = str(row.get("description") or "").strip() or None
+        if day < 1 or day > last_day or amount <= 0:
+            continue
+        d = date(y, m, day)
+        hour = int(row.get("hour", 12))
+        minute = int(row.get("minute", 0))
+        occ = datetime(d.year, d.month, d.day, hour, minute, 0).isoformat(sep=" ")
+        cur.execute(
+            """INSERT INTO transactions
+               (user_id, account_id, type, amount, currency, category, description, occurred_at, created_at)
+               VALUES (?, ?, 'expense', ?, 'RUB', ?, ?, ?, datetime('now'))""",
+            (args.user_id, acc_id, amount, category, desc, occ),
+        )
+        inserted += 1
+        total += amount
+
+    conn.commit()
+    conn.close()
+    print(f"✅ Импорт {import_path.name} → {db_path}")
+    print(f"   Период: {year_month}, заменено старых строк: {cleared}")
+    print(f"   Добавлено: {inserted} операций на {_fmt(total)} ₽")
+
+
+def _fmt(n: int) -> str:
+    return f"{n:,}".replace(",", " ")
+
+
+if __name__ == "__main__":
+    main()
