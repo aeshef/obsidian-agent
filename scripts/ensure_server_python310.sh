@@ -24,15 +24,21 @@ _has_py310() {
 
 _install_debian() {
   export DEBIAN_FRONTEND=noninteractive
+  # bullseye-backports убран с deb.debian.org (EOL) → archive.debian.org
+  local backports_file="/etc/apt/sources.list.d/bullseye-backports.list"
+  if [ -f /etc/apt/sources.list.d/backports.list ]; then
+    rm -f /etc/apt/sources.list.d/backports.list
+  fi
+  if ! grep -q 'archive.debian.org.*bullseye-backports' "$backports_file" 2>/dev/null; then
+    echo "📦 enable archive.debian.org bullseye-backports"
+    cat > "$backports_file" <<'EOF'
+deb [check-valid-until=no] http://archive.debian.org/debian bullseye-backports main
+EOF
+  fi
   apt-get update -qq
   if apt-cache show -t bullseye-backports python3.10 >/dev/null 2>&1; then
     echo "📦 bullseye-backports: python3.10 python3.10-venv"
     apt-get install -y -t bullseye-backports python3.10 python3.10-venv python3.10-dev
-    return 0
-  fi
-  if apt-cache show python3.10 >/dev/null 2>&1 && apt-cache show python3.10 | grep -q '^Package: python3.10$'; then
-    echo "📦 apt install python3.10 python3.10-venv"
-    apt-get install -y python3.10 python3.10-venv python3.10-dev
     return 0
   fi
   return 1
@@ -50,8 +56,9 @@ _check_install() {
       return 0
     fi
   fi
-  echo "❌ Установите Python 3.10+ (Debian: bullseye-backports) и пересоздайте venv:" >&2
-  echo "   scripts/ensure_bot_venv.sh all --recreate" >&2
+  echo "❌ Python 3.10+ недоступен через apt на Debian Bullseye." >&2
+  echo "   Варианты: (1) оставить 3.9 — боты работают; (2) pyenv/uv: uv python install 3.11" >&2
+  echo "   Затем: scripts/ensure_bot_venv.sh all --recreate" >&2
   return 1
 }
 
