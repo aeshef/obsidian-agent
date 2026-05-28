@@ -1,8 +1,11 @@
 # Пример crontab для planning_bot на VPS.
-# Установка: PLANNING_BOT_ROOT=/opt/obsidian-bots/planning_bot bash scripts/install_planning_crontab.sh
+# Установка: PLANNING_BOT_ROOT=/root/bots/planning_bot bash scripts/install_planning_crontab.sh
+#
+# @reboot watchdog всех ботов:
+#   ./scripts/install_server_reboot_crontab.sh
 #
 # Или вручную (подставьте BOT_ROOT):
-# BOT_ROOT=/opt/obsidian-bots/planning_bot
+# BOT_ROOT=/root/bots/planning_bot
 #
 # */2 * * * * cd $BOT_ROOT && ./scripts/cron_kanban_monitor.sh >> logs/kanban_monitor.log 2>&1
 # 0 1 * * * cd $BOT_ROOT && ./scripts/cron_routines.sh >> logs/routines.log 2>&1

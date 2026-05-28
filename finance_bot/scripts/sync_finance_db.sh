@@ -19,7 +19,7 @@ DATA_DIR="$VAULT_PATH/300_Дашборды/Данные"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 [[ -f "$ROOT/.env" ]] && set -a && source "$ROOT/.env" && set +a
 SERVER="${SERVER:?Set SERVER in .env}"
-REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/opt/obsidian-bots}/finance_bot}"
+REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/root/bots}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"
 
 mkdir -p "$DATA_DIR"
@@ -55,7 +55,7 @@ import os
 from pathlib import Path
 
 remote_db = os.environ.get('REMOTE_DB', '').strip()
-bot_dir = Path(os.environ.get('REMOTE_BOT_DIR', os.environ.get('SERVER_BOTS', '/opt/obsidian-bots') + '/finance_bot')).expanduser()
+bot_dir = Path(os.environ.get('REMOTE_BOT_DIR', os.environ.get('SERVER_BOTS', '/root/bots') + '/finance_bot')).expanduser()
 candidates = []
 
 def add_candidate(path_str: str) -> None:
@@ -82,7 +82,7 @@ if env_path.exists():
                 add_candidate(url[len('sqlite:///'):])
             break
 
-_bots = os.environ.get('SERVER_BOTS', '/opt/obsidian-bots')
+_bots = os.environ.get('SERVER_BOTS', '/root/bots')
 _default_bot = Path(os.environ.get('REMOTE_BOT_DIR', f"{_bots}/finance_bot"))
 fallbacks = [
     bot_dir / 'finance.db',

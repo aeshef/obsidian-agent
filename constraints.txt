@@ -1,4 +1,5 @@
 # ── Единый потолок версий монорепо obsidian-agent ──
+# Python >= 3.10 (см. pyproject.toml). На prod: scripts/ensure_bot_venv.sh all --recreate
 # Общие зависимости всех ботов фиксируются здесь, чтобы версии не разъезжались
 # между ботами и между прод/локалью. Базис — реальный прод knowledge_bot venv.
 #

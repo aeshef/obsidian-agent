@@ -70,8 +70,8 @@ if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
   export PATH
 fi
 SERVER="${SERVER:-}"
-SERVER_VAULT="${SERVER_VAULT:-/opt/obsidian-vault}"
-SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+SERVER_VAULT="${SERVER_VAULT:-/root/obsidian-vault}"
+SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
 if [ -z "$SERVER" ]; then
   echo "obsidian_sync: задайте SERVER в .env (SSH host)" >&2
   exit 1
@@ -278,7 +278,7 @@ if [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
             >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || echo "⚠️ obsidian_sync: 5b.2b завершился с ошибкой — см. vault_write_maintenance.log" >&2
 set -euo pipefail
 export VAULT_PATH
-export SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
 KB=""
 for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot" "${SERVER_BOTS}/knowledge_bot"; do
   [ -z "${d}" ] && continue

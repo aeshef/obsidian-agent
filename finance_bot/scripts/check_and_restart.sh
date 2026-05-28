@@ -6,7 +6,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/scripts/lib/common.sh"
 common_load_env "$ROOT"
 common_require_server
-SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+SERVER_BOTS="$(common_server_bots)"
 
 echo "=== Процессы ==="
 common_ssh "pgrep -af 'bot.main|watchdog' | head -5 || echo 'нет процессов'"

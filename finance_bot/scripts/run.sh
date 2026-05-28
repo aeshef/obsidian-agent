@@ -2,19 +2,11 @@
 # Скрипт для запуска finance_bot
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+MONOREPO="$(cd "$ROOT/.." && pwd)"
+# shellcheck source=../../scripts/lib/bootstrap_python.sh
+source "$MONOREPO/scripts/lib/bootstrap_python.sh"
+bootstrap_python finance_bot
 
-# Загружаем переменные окружения: общий монорепо ../.env, затем локальный .env (оверрайд)
-if [ -f "$ROOT/../.env" ]; then
-    set -a; source "$ROOT/../.env"; set +a
-fi
-if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
-fi
-
-# Проверяем наличие обязательных переменных (поддержка единого .env: FINANCE-токен или общий)
 if [ -z "$TELEGRAM_FINANCE_BOT_TOKEN" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
     echo "❌ Ошибка: TELEGRAM_FINANCE_BOT_TOKEN или TELEGRAM_BOT_TOKEN не установлен"
     exit 1
@@ -28,18 +20,5 @@ fi
 echo "🚀 Запуск finance_bot..."
 echo ""
 
-# Активируем venv если есть
-if [ -d ".venv" ]; then
-    PYTHON_CMD=".venv/bin/python"
-else
-    PYTHON_CMD="python3"
-fi
-
-# PYTHONPATH: finance_bot + родитель (shared/ в $SERVER_BOTS)
-export PYTHONPATH="$(cd "$(dirname "$0")/.." && pwd):$(cd "$(dirname "$0")/../.." && pwd)${PYTHONPATH:+:$PYTHONPATH}"
-
-# Создаем директорию для логов если нужно
 mkdir -p logs
-
-# Запускаем бота
-exec $PYTHON_CMD -m bot.main
+exec "$PYTHON_CMD" -m bot.main

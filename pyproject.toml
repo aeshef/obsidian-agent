@@ -1,0 +1,10 @@
+[project]
+name = "obsidian-agent"
+version = "0.1.0"
+description = "Telegram bots + shared tooling for Obsidian vault automation"
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

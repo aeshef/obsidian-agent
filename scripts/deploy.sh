@@ -15,19 +15,19 @@
 set -uo pipefail
 
 MONOREPO="${MONOREPO:-$(cd "$(dirname "$0")/.." && pwd)}"
-if [ -f "$MONOREPO/.env" ]; then
-  set -a
-  # shellcheck disable=SC1091
-  source "$MONOREPO/.env"
-  set +a
-fi
+# shellcheck source=scripts/lib/common.sh
+source "$MONOREPO/scripts/lib/common.sh"
+common_load_env "$MONOREPO"
 
 SERVER="${SERVER:?Set SERVER in .env (SSH host for deploy)}"
-SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+SERVER_BOTS="$(common_server_bots)"
 COMPONENT="all"
 NO_RESTART=0
 INSTALL_DEPS=0
 DRYRUN=0
+DEPLOY_VERIFY_WAIT="${DEPLOY_VERIFY_WAIT:-15}"
+RESTARTED=()
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --component) COMPONENT="$2"; shift 2;;
@@ -38,7 +38,6 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Личные/серверные данные — никогда не трогаем через rsync
 EXCLUDES=(
   --exclude='.git' --exclude='.DS_Store' --exclude='__pycache__/' --exclude='*.pyc'
   --exclude='venv/' --exclude='.venv/' --exclude='.cache/'
@@ -65,12 +64,17 @@ rsync_comp() {
 }
 
 install_deps() {
-  local name="$1" vdir="$2"
+  local name="$1"
   [ "$INSTALL_DEPS" = 1 ] || return 0
-  echo "📦 pip install ($name) под общим constraints.txt"
-  # доставляем единый потолок версий в корень bots
+  echo "📦 ensure Python 3.10+ + .venv + pip install ($name)"
+  ssh "$SERVER" "INSTALL_REBOOT_LOCAL=1 bash -s" < "$MONOREPO/scripts/ensure_server_python310.sh" || true
   [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
-  ssh "$SERVER" "cd $SERVER_BOTS/$name && { [ -d $vdir ] || python3 -m venv $vdir; }; $vdir/bin/pip install -q --upgrade pip; CONS=''; [ -f ../constraints.txt ] && CONS='-c ../constraints.txt'; $vdir/bin/pip install -q -r requirements.txt \$CONS"
+  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
+}
+
+ensure_venv_link() {
+  local name="$1"
+  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name" 2>/dev/null || true
 }
 
 _restart_bot_remote() {
@@ -81,6 +85,7 @@ _restart_bot_remote() {
     sleep 2
     bash $SERVER_BOTS/scripts/start_watchdog_detached.sh $SERVER_BOTS/$name
     echo restarted $name"
+  RESTARTED+=("$name")
 }
 
 restart_comp() {
@@ -105,41 +110,66 @@ rsync_server_scripts() {
     --exclude='export_mobile_vault.sh' \
     --exclude='install_launchagent.sh' \
     "$MONOREPO/scripts/" "$SERVER:$SERVER_BOTS/scripts/"
-  ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh 2>/dev/null || true"
+  rsync -az "$MONOREPO/scripts/lib/" "$SERVER:$SERVER_BOTS/scripts/lib/"
+  ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
 }
 
 deploy_one() {
-  local name="$1" vdir="$2"
+  local name="$1"
   echo "──────── deploy: $name ────────"
   rsync_comp "$name"
-  install_deps "$name" "$vdir"
+  ensure_venv_link "$name"
+  install_deps "$name"
   restart_comp "$name"
+}
+
+verify_bots() {
+  [ "$NO_RESTART" = 1 ] && return 0
+  [ "$DRYRUN" = 1 ] && return 0
+  [ "${#RESTARTED[@]}" -eq 0 ] && return 0
+
+  echo "⏳ verify bots (wait ${DEPLOY_VERIFY_WAIT}s)..."
+  sleep "$DEPLOY_VERIFY_WAIT"
+
+  local failed=0 out
+  local restarted_list="${RESTARTED[*]}"
+  out="$(ssh "$SERVER" "set +e
+    failed=0
+    for b in $restarted_list; do
+      wd=\$(cat $SERVER_BOTS/\$b/logs/watchdog.pid 2>/dev/null || echo '-')
+      case \$b in
+        finance_bot)   pat='bot.main';;
+        knowledge_bot) pat='start_bot.py';;
+        planning_bot)  pat='planning_bot.app.bot';;
+      esac
+      bot=\$(pgrep -f \"\$pat\" 2>/dev/null | head -1 || true)
+      if [ -z \"\$bot\" ]; then status=DOWN; failed=1; else status=\$bot; fi
+      echo \"  \$b: watchdog=\$wd bot=\$status\"
+    done
+    exit \$failed")" || failed=1
+  echo "$out"
+  if [ "$failed" -ne 0 ]; then
+    echo "❌ post-deploy verify FAILED — бот(ы) не поднялись" >&2
+    exit 1
+  fi
+  echo "✅ post-deploy verify OK"
 }
 
 ssh_check
 rsync_server_scripts
 case "$COMPONENT" in
-  shared)        deploy_one shared "";;
-  finance_bot)   deploy_one finance_bot .venv;;
-  knowledge_bot) deploy_one knowledge_bot venv;;
-  planning_bot)  deploy_one planning_bot venv;;
+  shared)        deploy_one shared;;
+  finance_bot)   deploy_one finance_bot;;
+  knowledge_bot) deploy_one knowledge_bot;;
+  planning_bot)  deploy_one planning_bot;;
   all)
-    deploy_one shared ""
-    deploy_one finance_bot .venv
-    deploy_one knowledge_bot venv
-    deploy_one planning_bot venv;;
+    deploy_one shared
+    deploy_one finance_bot
+    deploy_one knowledge_bot
+    deploy_one planning_bot
+    ;;
   *) echo "Неизвестный компонент: $COMPONENT"; exit 2;;
 esac
 
 echo "✅ deploy завершён (component=$COMPONENT, restart=$([ $NO_RESTART = 1 ] && echo no || echo yes))"
-echo "📋 живы ли боты (watchdog + процесс):"
-ssh "$SERVER" "for b in finance_bot knowledge_bot planning_bot; do
-  wd=\$(cat $SERVER_BOTS/\$b/logs/watchdog.pid 2>/dev/null || echo '-')
-  case \$b in
-    finance_bot)   pat='bot.main';;
-    knowledge_bot) pat='start_bot.py';;
-    planning_bot)  pat='planning_bot.app.bot';;
-  esac
-  bot=\$(pgrep -f \"\$pat\" | head -1 || true)
-  echo \"  \$b: watchdog=\$wd bot=\${bot:-DOWN}\"
-done"
+verify_bots

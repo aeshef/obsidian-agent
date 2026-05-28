@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 source "$ROOT/scripts/lib/common.sh"
 common_load_env "$ROOT"
 common_require_server
-SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+SERVER_BOTS="$(common_server_bots)"
 
 echo "🛑 Остановка knowledge_bot..."
 ssh "$SERVER" "set -e

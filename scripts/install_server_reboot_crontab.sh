@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# @reboot cron: поднять watchdog всех ботов после перезагрузки VPS.
+#
+# Локально (через SSH):
+#   ./scripts/install_server_reboot_crontab.sh
+# На сервере:
+#   SERVER_BOTS=/root/bots bash /root/bots/scripts/install_server_reboot_crontab.sh
+set -euo pipefail
+
+if [ -n "${SERVER_BOTS:-}" ] && [ -f "${SERVER_BOTS}/scripts/lib/common.sh" ]; then
+  ROOT="${SERVER_BOTS}"
+  # shellcheck source=/dev/null
+  source "${SERVER_BOTS}/scripts/lib/common.sh"
+else
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  # shellcheck source=scripts/lib/common.sh
+  source "$ROOT/scripts/lib/common.sh"
+  common_load_env "$ROOT"
+fi
+
+MARKER="# obsidian-agent bots @reboot"
+BOTS_ROOT="$(common_server_bots)"
+
+_install_crontab() {
+  local tmp
+  tmp="$(mktemp)"
+  mkdir -p "$BOTS_ROOT/logs"
+  (
+    crontab -l 2>/dev/null | grep -vF "$MARKER" \
+      | grep -v 'start_watchdog_detached.sh' || true
+    echo "$MARKER"
+    echo "@reboot sleep 30 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/finance_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
+    echo "@reboot sleep 35 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/knowledge_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
+    echo "@reboot sleep 40 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/planning_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
+  ) > "$tmp"
+  crontab "$tmp"
+  rm -f "$tmp"
+  echo "✅ @reboot crontab ($BOTS_ROOT):"
+  crontab -l | grep -A4 "$MARKER"
+}
+
+if [ -n "${SERVER:-}" ] && [ "${INSTALL_REBOOT_LOCAL:-0}" != 1 ]; then
+  common_require_server
+  echo "📡 Установка @reboot cron на $SERVER ..."
+  ssh "$SERVER" "INSTALL_REBOOT_LOCAL=1 SERVER_BOTS='$BOTS_ROOT' bash -s" < "$(dirname "${BASH_SOURCE[0]}")/install_server_reboot_crontab.sh"
+else
+  _install_crontab
+fi

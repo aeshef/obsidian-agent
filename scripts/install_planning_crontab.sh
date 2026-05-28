@@ -4,7 +4,12 @@
 #   или:  ssh "$SERVER" 'bash -s' < scripts/install_planning_crontab.sh
 set -euo pipefail
 
-BOT_ROOT="${PLANNING_BOT_ROOT:-${SERVER_BOTS:-/opt/obsidian-bots}/planning_bot}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$ROOT/scripts/lib/common.sh"
+common_load_env "$ROOT"
+
+BOT_ROOT="${PLANNING_BOT_ROOT:-$(common_server_bots)/planning_bot}"
 
 MARKER="# obsidian-agent planning_bot cron"
 TMP="$(mktemp)"

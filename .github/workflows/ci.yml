@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: py_compile all modules
+        run: |
+          find shared finance_bot/bot knowledge_bot planning_bot -name '*.py' \
+            ! -path '*/__pycache__/*' -print0 \
+            | xargs -0 python -m py_compile
+
+      - name: Smoke imports (finance_bot)
+        run: |
+          python -m venv finance_bot/.venv
+          finance_bot/.venv/bin/pip install -q --upgrade pip
+          finance_bot/.venv/bin/pip install -q -r finance_bot/requirements.txt -c constraints.txt
+          SMOKE_INSTALL=0 ./scripts/smoke_imports.sh 2>&1 | grep -E 'finance_bot|shared|compile|OK|FAIL'
+
+      - name: Smoke imports (knowledge_bot)
+        run: |
+          python -m venv knowledge_bot/.venv
+          knowledge_bot/.venv/bin/pip install -q --upgrade pip
+          knowledge_bot/.venv/bin/pip install -q -r knowledge_bot/requirements.txt -c constraints.txt
+          ./scripts/bootstrap_python.sh knowledge_bot -- \
+            python -c "from knowledge_bot.app.bot import main; print('OK')"
+
+      - name: Smoke imports (planning_bot)
+        run: |
+          python -m venv planning_bot/.venv
+          planning_bot/.venv/bin/pip install -q --upgrade pip
+          planning_bot/.venv/bin/pip install -q -r planning_bot/requirements.txt -c constraints.txt
+          ./scripts/bootstrap_python.sh planning_bot -- \
+            python -c "from planning_bot.tools.vault_maintenance import run_all; print('OK')"
