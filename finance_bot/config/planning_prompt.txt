@@ -1,0 +1,6 @@
+# Prompt: planning_prompt
+  # Prod: finance_bot/config/prompts/planning_prompt.txt (gitignore)
+  #
+  # Роль: прогноз / совет по запланированным расходам.
+  # Заполните в prod: формат JSON или текст, тон.
+  

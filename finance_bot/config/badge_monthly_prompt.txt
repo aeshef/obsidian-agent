@@ -1,0 +1,6 @@
+# Prompt: badge_monthly_prompt
+  # Prod: finance_bot/config/prompts/badge_monthly_prompt.txt (gitignore)
+  #
+  # Роль: итог месяца по корпоративному бейджу питания (если включён).
+  # Заполните в prod: правила из badge.yaml rules_context, без Markdown.
+  

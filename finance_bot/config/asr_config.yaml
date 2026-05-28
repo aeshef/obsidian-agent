@@ -1,0 +1,20 @@
+# Конфигурация для ASR (распознавание речи)
+
+# Модель по умолчанию
+default_model: "small"
+
+# Языки для распознавания (порядок важен)
+languages:
+  - ru
+  - en
+
+# Параметры VAD (Voice Activity Detection)
+vad:
+  enabled: true
+  min_silence_duration_ms: 500
+
+# Минимальная длина распознанного текста (символов)
+min_text_length: 10
+
+# Compute type для faster-whisper
+compute_type: "int8"

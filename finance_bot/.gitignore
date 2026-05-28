@@ -1,0 +1,38 @@
+.venv/
+.env
+.env.*
+finance.db
+# Локальные данные пользователя (не в git — в репозитории только *.example)
+config/initial_accounts.yaml
+config/user_context.md
+config/badge.yaml
+config/badge_import_*.yaml
+# Сгенерированные/локальные варианты рядом с примерами (если появятся)
+config/*.local.yaml
+config/*.local.md
+__pycache__/
+*.pyc
+.DS_Store
+bot.log
+logs/
+.cache/
+
+# Secrets / credentials
+*.pem
+*.key
+*.p12
+*.pfx
+secrets*.json
+credentials*.json
+
+# Local DBs / dumps
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+*.dump
+
+# Local private config overrides
+config/*.private.yaml
+config/*.private.md
+config/*.secrets.yaml

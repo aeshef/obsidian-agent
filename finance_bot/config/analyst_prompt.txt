@@ -1,0 +1,9 @@
+# Prompt: analyst_prompt
+  # Prod: finance_bot/config/prompts/analyst_prompt.txt (gitignore)
+  #
+  # Роль: развёрнутый финансовый анализ периода.
+  # Заполните в prod:
+  # - запрет Markdown, тон
+  # - как читать user_context.md и сводки (переводы, брокер, базлайны)
+  # - структура ответа (вывод → инсайты → вопрос → шаги)
+  

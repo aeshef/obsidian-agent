@@ -1,0 +1,6 @@
+# Prompt: summary_prompt
+  # Prod: finance_bot/config/prompts/summary_prompt.txt (gitignore)
+  #
+  # Роль: краткая суммаризация для рефлексии / отчёта.
+  # Заполните в prod: период, метрики, тон, длина.
+  

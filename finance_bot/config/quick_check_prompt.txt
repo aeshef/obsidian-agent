@@ -1,0 +1,6 @@
+# Prompt: quick_check_prompt
+  # Prod: finance_bot/config/prompts/quick_check_prompt.txt (gitignore)
+  #
+  # Роль: короткое push-уведомление / быстрая проверка трат.
+  # Заполните в prod: формат, без Markdown, лимит предложений.
+  
