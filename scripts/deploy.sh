@@ -77,12 +77,9 @@ _restart_bot_remote() {
   local name="$1" bot_pattern="$2"
   ssh "$SERVER" "set -e
     cd $SERVER_BOTS/$name
-    mkdir -p logs
-    if [ -f logs/watchdog.pid ]; then kill \"\$(cat logs/watchdog.pid)\" 2>/dev/null || true; fi
     pkill -f '$bot_pattern' 2>/dev/null || true
     sleep 2
-    nohup ./scripts/watchdog.sh >> logs/watchdog.log 2>&1 &
-    sleep 3
+    bash $SERVER_BOTS/scripts/start_watchdog_detached.sh $SERVER_BOTS/$name
     echo restarted $name"
 }
 
@@ -135,5 +132,14 @@ case "$COMPONENT" in
 esac
 
 echo "✅ deploy завершён (component=$COMPONENT, restart=$([ $NO_RESTART = 1 ] && echo no || echo yes))"
-echo "📋 живы ли боты:"
-ssh "$SERVER" "pgrep -af 'start_bot|planning_bot|bot.main' | grep -v pgrep" || echo "(нет процессов!)"
+echo "📋 живы ли боты (watchdog + процесс):"
+ssh "$SERVER" "for b in finance_bot knowledge_bot planning_bot; do
+  wd=\$(cat $SERVER_BOTS/\$b/logs/watchdog.pid 2>/dev/null || echo '-')
+  case \$b in
+    finance_bot)   pat='bot.main';;
+    knowledge_bot) pat='start_bot.py';;
+    planning_bot)  pat='planning_bot.app.bot';;
+  esac
+  bot=\$(pgrep -f \"\$pat\" | head -1 || true)
+  echo \"  \$b: watchdog=\$wd bot=\${bot:-DOWN}\"
+done"

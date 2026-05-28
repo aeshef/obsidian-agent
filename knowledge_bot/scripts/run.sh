@@ -29,9 +29,13 @@ fi
 echo "🚀 Запуск knowledge_bot..."
 echo ""
 
-# Активируем venv если есть
-if [ -d "venv" ]; then
-    source venv/bin/activate
+# Активируем venv если есть (явный интерпретатор — не полагаемся на activate + python3)
+if [ -x "venv/bin/python" ]; then
+    PYTHON_CMD="venv/bin/python"
+elif [ -x ".venv/bin/python" ]; then
+    PYTHON_CMD=".venv/bin/python"
+else
+    PYTHON_CMD="python3"
 fi
 
 # PYTHONPATH: сам бот + родитель (там лежит shared/ — общий пакет монорепо)
@@ -39,4 +43,4 @@ export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
 # На серверах с ограниченной памятью ASR по умолчанию использует tiny (см. services/extract/asr.py)
 # Для лучшего качества голоса: ASR_MODEL=small (требует больше RAM)
-python3 start_bot.py
+exec $PYTHON_CMD start_bot.py

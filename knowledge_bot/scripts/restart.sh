@@ -16,8 +16,6 @@ ssh "$SERVER" "set -e
   pgrep -af 'start_bot|watchdog' || echo 'Процессов нет'"
 
 echo "🚀 Запуск knowledge_bot..."
-ssh "$SERVER" "cd ${SERVER_BOTS}/knowledge_bot && chmod +x scripts/watchdog.sh scripts/run.sh 2>/dev/null
-  mkdir -p logs && nohup ./scripts/watchdog.sh >> logs/watchdog.log 2>&1 &
+ssh "$SERVER" "bash ${SERVER_BOTS}/scripts/start_watchdog_detached.sh ${SERVER_BOTS}/knowledge_bot
   sleep 2
-  echo 'Watchdog PID:' \$(cat logs/watchdog.pid 2>/dev/null || echo '?')
-  pgrep -f 'start_bot.py' | head -1"
+  pgrep -f 'start_bot.py' | head -1 || echo 'бот ещё не поднялся (poll interval ~60s)'"
