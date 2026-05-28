@@ -2,7 +2,7 @@
 # Единый venv-контракт: предпочитаем .venv, legacy venv → symlink .venv → venv.
 #
 #   scripts/ensure_bot_venv.sh finance_bot
-#   scripts/ensure_bot_venv.sh all --recreate   # python3.10+ venv + pip install
+#   scripts/ensure_bot_venv.sh all --recreate   # пересоздать .venv + pip install
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -43,8 +43,8 @@ _ensure_one() {
   local py
   py="$(common_resolve_python "$bot_root")"
   echo "✅ $comp → $py ($("$py" -V 2>&1))"
-  if ! common_require_python_min "$py" 3 10; then
-    echo "⚠️  Python < 3.10 — запустите: $0 $comp --recreate" >&2
+  if ! common_require_python_min "$py" 3 9; then
+    echo "❌ Python < 3.9" >&2
     return 1
   fi
 }

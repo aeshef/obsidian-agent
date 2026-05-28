@@ -35,8 +35,9 @@ bootstrap_python() {
     PYTHON_CMD="$(common_resolve_python "$bot_root")"
     export PYTHONPATH="$bot_root:$monorepo${PYTHONPATH:+:$PYTHONPATH}"
 
-    if ! common_require_python_min "$PYTHON_CMD" 3 10; then
-        echo "⚠️  Python < 3.10 ($("$PYTHON_CMD" -V 2>&1)) — запустите: scripts/ensure_server_python310.sh && scripts/ensure_bot_venv.sh $component --recreate" >&2
+    if ! common_require_python_min "$PYTHON_CMD" 3 9; then
+        echo "❌ Требуется Python >= 3.9 (сейчас: $("$PYTHON_CMD" -V 2>&1))" >&2
+        return 1
     fi
 
     cd "$bot_root"
