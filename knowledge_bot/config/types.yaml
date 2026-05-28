@@ -1,0 +1,62 @@
+# Mapping of domain types to target directories and Jinja2 templates
+# Directories are relative to 700_База_Данных inside VAULT_PATH
+# Templates are filenames inside 800_Автоматизация/Templates/Clones
+
+default_template: "Знание.j2.md"
+default_type: "знание"
+
+types:
+  песня:
+    dir: "Песни"
+    template: "Песня.j2.md"
+  видео:
+    dir: "Видео"
+    template: "Видео.j2.md"
+  фильм:
+    dir: "Фильмы"
+    template: "Фильм.j2.md"
+  книга:
+    dir: "Книги"
+    template: "Книга.j2.md"
+  учебник:
+    dir: "Учебники"
+    template: "Учебник.j2.md"
+  курс:
+    dir: "Курсы"
+    template: "Курс.j2.md"
+  рецепт:
+    dir: "Рецепты"
+    template: "Рецепт.j2.md"
+  место:
+    dir: "Места"
+    template: "Место.j2.md"
+  вишлист:
+    dir: "Вишлист"
+    template: "Вишлист.j2.md"
+  мысль:
+    dir: "Мысли"
+    template: "Мысль.j2.md"
+  идея:
+    dir: "Идеи"
+    template: "Идея.j2.md"
+  знание:
+    dir: "Знания"
+    template: "Знание.j2.md"
+  мем:
+    dir: "Мемы"
+    template: "Мем.j2.md"
+  документ:
+    dir: "Документы"
+    template: "Документ.j2.md"
+  ссылка:
+    dir: "Ссылки"
+    template: "Ссылка.j2.md"
+  личность:
+    dir: "Личности"
+    template: "Личность.j2.md"
+  скрин:
+    dir: "Скрины"
+    template: "Скрин.j2.md"
+  контакт:
+    dir: "Контакты"
+    template: "Контакт.j2.md"

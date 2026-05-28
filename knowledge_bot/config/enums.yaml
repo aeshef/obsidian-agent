@@ -1,0 +1,92 @@
+namespaces:
+  controlled:
+  - category
+  - city
+  - nsfw
+  - source
+  - subtype
+  - cuisine
+  - kind
+  - meme
+# priority, language, vibe — выпилены: неконсистентны (проставлены у 5–10 заметок), не используем
+common: {}
+per_type:
+  рецепт:
+    cuisine:
+    - italian
+    - greek
+    - french
+    - asian
+    - american
+    - mexican
+    - japanese
+    - chinese
+    - indian
+    kind:
+    - appetizer
+    - main
+    - dessert
+    - soup
+    - salad
+  место:
+    category:
+    - культура
+    - еда
+    - природа
+  вишлист:
+    category:
+    - техника
+    - одежда
+  учебник: {}
+  курс: {}
+  мем:
+    subtype:
+    - meme
+    - screenshot
+    nsfw:
+    - nsfw
+  фильм: {}
+  книга: {}
+  песня:
+    source:
+    - reels
+    - tiktok
+    - youtube
+    - другое
+  видео:
+    source:
+    - reels
+    - tiktok
+    - youtube
+    - другое
+
+synonyms:
+  cuisine:
+    итальянская: italian
+    italyanskaya: italian
+    греческая: greek
+    grecheskaya: greek
+    французская: french
+    francuzskaya: french
+    азиатская: asian
+    aziatskaya: asian
+    американская: american
+    amerikanskaya: american
+    мексиканская: mexican
+    meksikanskaya: mexican
+    японская: japanese
+    yaponskaya: japanese
+    китайская: chinese
+    kitayskaya: chinese
+    индийская: indian
+    indiyskaya: indian
+  kind:
+    закуска: appetizer
+    zakuska: appetizer
+    основное: main
+    main: main
+    десерт: dessert
+    desert: dessert
+    суп: soup
+    salad: salad
+    салат: salad

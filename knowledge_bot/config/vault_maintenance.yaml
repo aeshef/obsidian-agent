@@ -1,0 +1,45 @@
+# Ежедневное обслуживание 700_ (запуск: tools/vault_daily_maintenance.py из obsidian_sync, маркер в .sync)
+# Без жёсткого кода: лимиты и флаги здесь.
+
+daily:
+  enabled: true
+  marker_basename: daily_vault_write_maintenance_date.txt
+
+# Хабы: wikilinks-страницы по hubs_registry.yaml (лёгко, без API)
+sync_hubs:
+  enabled: true
+  write: true
+
+# Пакетные [[wikilinks]] в телах заметок (нужен DEEPSEEK_API_KEY)
+apply_wikilinks:
+  enabled: true
+  apply: true
+  limit: 30
+
+# Перетегирование заметок с редкими тегами (count≤threshold), дёшево
+# Сортировка: сначала заметки с наибольшим числом плохих тегов
+retag_notes:
+  enabled: true
+  apply: true
+  limit: 35          # пачка в сутки; для единоразового прогона: tools/retag_notes.py --all --apply
+  threshold: 1       # только синглтоны (count=1); ставь 2 для более агрессивной чистки
+  # Если LLM добавил устоявшийся topic/* — убрать старые topic/* с count≤threshold (шум в графе)
+  strip_obsolete_singleton_topics: true
+
+# Переобработка «плохих» имён (ASR/Vision, дорого): поставь 0 — отключить шаг, или 8+ если готов(а) к длинным sync
+# Заметки с title="Без_названия"/"Субтитры"/"IMG*" обрабатываются первыми
+reprocess_notes:
+  enabled: true
+  apply: true
+  limit: 8
+
+# Дедупликация: content dups (keep_base/keep_fullest) + generic-серии (Без_названия_N) + сиротские Export.
+# Сначала dry-run → подсчёт; если count > max_delete_per_run — отмена + Telegram-алерт; иначе apply.
+apply_duplicates:
+  enabled: true
+  max_delete_per_run: 100   # безопасный потолок; при превышении — алерт вместо применения
+
+# Синглтон-теги (count=1): только dry-run-отчёт → Telegram-подсказка с командой для ручного применения.
+# Автоприменение намеренно отключено — решение остаётся за пользователем.
+singleton_tags_report:
+  enabled: true
