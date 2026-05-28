@@ -73,20 +73,42 @@ install_deps() {
   ssh "$SERVER" "cd $SERVER_BOTS/$name && { [ -d $vdir ] || python3 -m venv $vdir; }; $vdir/bin/pip install -q --upgrade pip; CONS=''; [ -f ../constraints.txt ] && CONS='-c ../constraints.txt'; $vdir/bin/pip install -q -r requirements.txt \$CONS"
 }
 
+_restart_bot_remote() {
+  local name="$1" bot_pattern="$2"
+  ssh "$SERVER" "set -e
+    cd $SERVER_BOTS/$name
+    mkdir -p logs
+    if [ -f logs/watchdog.pid ]; then kill \"\$(cat logs/watchdog.pid)\" 2>/dev/null || true; fi
+    pkill -f '$bot_pattern' 2>/dev/null || true
+    sleep 2
+    nohup ./scripts/watchdog.sh >> logs/watchdog.log 2>&1 &
+    sleep 3
+    echo restarted $name"
+}
+
 restart_comp() {
   local name="$1"
   [ "$NO_RESTART" = 0 ] || { echo "⏭  $name: --no-restart"; return 0; }
   [ "$DRYRUN" = 0 ] || { echo "⏭  $name: --dry-run (без рестарта)"; return 0; }
   echo "🔁 restart $name"
   case "$name" in
-    finance_bot)
-      ssh "$SERVER" "cd $SERVER_BOTS/finance_bot && pkill -9 -f 'bot.main' 2>/dev/null; pkill -f 'scripts/watchdog.sh' 2>/dev/null; sleep 2; nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3; echo restarted";;
-    knowledge_bot)
-      ssh "$SERVER" "cd $SERVER_BOTS/knowledge_bot && pkill -f 'start_bot.py' 2>/dev/null; pkill -f 'scripts/watchdog.sh' 2>/dev/null; sleep 2; nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3; echo restarted";;
-    planning_bot)
-      ssh "$SERVER" "cd $SERVER_BOTS/planning_bot && pkill -f 'planning_bot.app.bot' 2>/dev/null; pkill -f 'scripts/watchdog.sh' 2>/dev/null; sleep 2; nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3; echo restarted";;
+    finance_bot)   _restart_bot_remote finance_bot 'bot.main';;
+    knowledge_bot) _restart_bot_remote knowledge_bot 'start_bot.py';;
+    planning_bot)  _restart_bot_remote planning_bot 'planning_bot.app.bot';;
     shared) echo "  shared не требует рестарта";;
   esac
+}
+
+rsync_server_scripts() {
+  local flags="-avz"
+  [ "$DRYRUN" = 1 ] && flags="-navz"
+  echo "🔄 rsync server scripts → $SERVER:$SERVER_BOTS/scripts/"
+  rsync $flags \
+    --exclude='obsidian_sync.sh' \
+    --exclude='export_mobile_vault.sh' \
+    --exclude='install_launchagent.sh' \
+    "$MONOREPO/scripts/" "$SERVER:$SERVER_BOTS/scripts/"
+  ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh 2>/dev/null || true"
 }
 
 deploy_one() {
