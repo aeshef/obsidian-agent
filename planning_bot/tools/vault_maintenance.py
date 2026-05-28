@@ -1017,7 +1017,7 @@ def run_all() -> bool:
             print(f"⚠️ Ошибка при iPhone mail sync: {e}")
             results.append(("iPhone mail sync", False))
     else:
-        print("   iphone_mail_sync: пропуск (GMAIL_IMAP_USER не задан)", flush=True)
+        print("   iphone_mail_sync: пропуск (GMAIL_IMAP_* не заданы в корневом .env)", flush=True)
     print()
 
     # 7. JSON по iPhone-снапшотам (iphone_today.json / iphone_week.json)

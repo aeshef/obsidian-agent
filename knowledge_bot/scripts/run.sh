@@ -37,6 +37,6 @@ fi
 # PYTHONPATH: сам бот + родитель (там лежит shared/ — общий пакет монорепо)
 export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
-# На серверах с ограниченной памятью ASR по умолчанию использует tiny (см. extract.py)
+# На серверах с ограниченной памятью ASR по умолчанию использует tiny (см. services/extract/asr.py)
 # Для лучшего качества голоса: ASR_MODEL=small (требует больше RAM)
 python3 start_bot.py

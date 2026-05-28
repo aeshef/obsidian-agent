@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Одноразовая проверка пайплайна видео: ASR + OCR кадра + Vision (OpenRouter).
-Загружает knowledge_bot/.env из каталога скрипта.
+Загружает корневой .env монорепо (Agent/.env).
 
 Пример:
   python scripts/test_video_context.py "/path/to/video.mp4"
@@ -44,7 +44,8 @@ def main() -> int:
     logging.getLogger("urllib3").setLevel(logging.WARNING)
 
     kb_dir = Path(__file__).resolve().parent.parent
-    _load_dotenv(kb_dir / ".env")
+    _load_dotenv(_AGENT_ROOT / ".env")
+    _load_dotenv(kb_dir / ".env")  # legacy fallback
 
     if len(sys.argv) > 1:
         video = Path(sys.argv[1]).expanduser()

@@ -395,7 +395,7 @@ fi
 unset _kn_skip_today
 
 # 5b.4 iPhone-контекст из Gmail IMAP (iphone_mail_sync)
-# Требует GMAIL_IMAP_USER и GMAIL_IMAP_APP_PASSWORD в .env planning_bot.
+# Требует GMAIL_IMAP_USER и GMAIL_IMAP_APP_PASSWORD в корневом .env (уже загружен в начале скрипта).
 # ВАЖНО: после source .env VAULT_PATH может быть /root/... (сервер) — принудительно подставляем LOCAL_VAULT (Mac).
 # Throttle: не чаще IPHONE_IMAP_MIN_INTERVAL сек (по умолч. 300), кроме FORCE_IPHONE_SYNC=1. Раньше был «раз в сутки»
 # по дате — из-за этого письмо, пришедшее в 23:45, не забирали, если первый прогон был утром.
@@ -417,10 +417,6 @@ else
 fi
 if [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/tools/iphone_mail_sync.py" ]; then
   echo "obsidian_sync: шаг 5b.4 — iPhone mail sync (Gmail IMAP → IPhone/*.txt)…" >&2
-  _PB_ENV="$PLANNING_BOT/.env"
-  if [ -f "$_PB_ENV" ]; then
-    set -a; source "$_PB_ENV" 2>/dev/null || true; set +a
-  fi
   # Локальный vault, не путь с сервера из .env
   export VAULT_PATH="$LOCAL_VAULT"
   if [ -n "${GMAIL_IMAP_USER:-}" ] && [ -n "${GMAIL_IMAP_APP_PASSWORD:-}" ]; then
@@ -457,7 +453,7 @@ if [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/to
       echo "$(date '+%Y-%m-%dT%H:%M:%S') iphone_mail_sync failed/timeout rc=${_imap_rc}" >> "$PLANNING_BOT/logs/iphone_mail_sync.log" 2>/dev/null || true
     fi
   else
-    echo "obsidian_sync: шаг 5b.4 — пропуск, GMAIL_IMAP_USER не задан (добавь в planning_bot/.env)" >&2
+    echo "obsidian_sync: шаг 5b.4 — пропуск, GMAIL_IMAP_USER/GMAIL_IMAP_APP_PASSWORD не заданы (добавь в $AGENT_ROOT/.env; см. scripts/check_env.sh mac-sync)" >&2
   fi
 fi
 
@@ -508,6 +504,7 @@ FINANCE_BOT="$AGENT_ROOT/finance_bot"
 if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(cat "$FINANCE_MARKER" 2>/dev/null)" != "$TODAY" ]; then
   if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/run_finance_dashboard_daily.sh" ]; then
     if [ -n "$SYNC_STATE_DIR" ]; then FIN_LOG="$SYNC_DIR/finance_dashboard_daily.log"; else FIN_LOG="$FINANCE_BOT/logs/finance_dashboard_daily.log"; fi
+    mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
     echo "obsidian_sync: шаг 6 — finance.db + фин. дашборд (лог: $FIN_LOG)…" >&2
     export VAULT_PATH="$LOCAL_VAULT"
     # Не наследовать PYTHONPATH от шагов knowledge_bot — ломает numpy/matplotlib у finance build.

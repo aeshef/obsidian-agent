@@ -146,7 +146,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                         ytdlp_url = u
                         break
             if ytdlp_url:
-                from .extract import download_via_ytdlp
+                from knowledge_bot.services.extract import download_via_ytdlp
                 saved_path = download_via_ytdlp(ytdlp_url, cfg.export_root)
                 if saved_path:
                     try:
@@ -219,7 +219,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         t = (routed.get("title") or "").strip()
         if t and ("youtube terms" in t.lower() or (len(t) < 25 and "privacy" in t.lower())):
             try:
-                from .extract import get_youtube_video_title
+                from knowledge_bot.services.extract import get_youtube_video_title
                 fallback = await asyncio.to_thread(get_youtube_video_title, yt_url)
                 if fallback:
                     routed["title"] = fallback
@@ -277,7 +277,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                         ytdlp_url = u
                         break
             if ytdlp_url:
-                from .extract import download_via_ytdlp
+                from knowledge_bot.services.extract import download_via_ytdlp
                 saved_path = download_via_ytdlp(ytdlp_url, cfg.export_root)
                 if saved_path:
                     try:
