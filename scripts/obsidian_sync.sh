@@ -1,30 +1,17 @@
 #!/bin/zsh
+AGENT_ROOT="${0:A:h}/.."
+export AGENT_ROOT
+if [[ -f "$AGENT_ROOT/.env" ]]; then
+  set -a
+  source "$AGENT_ROOT/.env"
+  set +a
+fi
+
 # Лог каждого запуска в /tmp (доступно и из launchd) — смотреть: tail -f /tmp/obsidian_sync_debug.log
 DEBUG_LOG="/tmp/obsidian_sync_debug.log"
 echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || true
 
-# Защита от устаревшего агента -v2 (зомби): он вызывает /tmp/obsidian_sync.sh без FDA.
-# Если нет доступа к vault (Documents) — сразу выходим, не трогая rsync.
-VAULT_TEST="${AGENT_ROOT:-${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}/800_Автоматизация/Agent}/obsidian_sync.sh"
-if ! test -r "$VAULT_TEST" 2>/dev/null || ! head -c1 "$VAULT_TEST" >/dev/null 2>/dev/null; then
-  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP: нет доступа к vault (запуск без FDA), выхожу" >> "$DEBUG_LOG" 2>/dev/null || true
-  exit 0
-fi
-
-# Синхронизация Obsidian Vault с сервером: 100_Задачи, 200_Цели, 300_Дашборды, 400_Рутины, 600_Рукописное, 700_База_Данных.
-# После обновления локального vault — зеркало в iCloud для Obsidian на iPhone (шаг 5e, export_mobile_vault.sh).
-# Общий скрипт для planning_bot и knowledge_bot. LaunchAgent вызывает копию скрипта из /tmp/obsidian_sync.sh каждые 2 мин (scripts/install_launchagent.sh кладёт копию в /tmp).
-#
-# Восстановление LaunchAgent: ./800_Автоматизация/Agent/scripts/install_launchagent.sh (plist в LaunchAgents, симлинк ~/bin → скрипт в vault для ручного запуска).
-#
-# Исключения для 300_Дашборды: Графики/, weekly_sprints.json, Completions_By_Category_Chart.md
-# не подтягиваются с сервера, чтобы не возвращались после удаления (см. docs/300_Дашборды_исключения_синка.md).
-#
-# Если заметки не уезжают на сервер / не приходят с сервера — смотреть ошибки: /tmp/obsidian-sync.err (при запуске из LaunchAgent)
-#
-# Принудительно: FORCE_CHARTS=1 — пересобрать графики канбана (шаг 5). FORCE_FINANCE_DASHBOARD=1 — скачать finance.db и пересобрать фин. дашборд/PNG (шаг 6), даже если сегодня уже запускали (иначе шаг 6 — раз в сутки по маркеру .sync/finance_dashboard_date.txt).
-
-# Без set -e: ошибка одной папки (например 400_Рутины на сервере) не останавливает синк остальных, в т.ч. 700_База_Данных
+# Без set -e: ошибка одной папки не останавливает синк остальных
 # Путь к vault: из env или по расположению скрипта (чтобы LaunchAgent работал и для ~/Obsidian Vault после миграции без правки plist)
 if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   # Если скрипт запущен из /tmp (устаревшая схема с копией), не трогаем vault и выходим.
@@ -48,6 +35,14 @@ if [[ ! -d "$LOCAL_VAULT" && -d "${HOME}/Obsidian Vault" ]]; then
   LOCAL_VAULT="${HOME}/Obsidian Vault"
 fi
 AGENT_ROOT="${AGENT_ROOT:-${AGENT_ROOT}}"
+export AGENT_ROOT LOCAL_VAULT
+
+VAULT_TEST="${AGENT_ROOT}/scripts/obsidian_sync.sh"
+if ! test -r "$VAULT_TEST" 2>/dev/null || ! head -c1 "$VAULT_TEST" >/dev/null 2>/dev/null; then
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP: нет доступа к vault (запуск без FDA), выхожу" >> "$DEBUG_LOG" 2>/dev/null || true
+  exit 0
+fi
+
 # Когда LaunchAgent не может писать в vault (Documents), маркеры и логи пишем в домашнюю папку
 SYNC_DIR="${SYNC_STATE_DIR:-$LOCAL_VAULT/.sync}"
 mkdir -p "$SYNC_DIR" 2>/dev/null || true
@@ -130,10 +125,9 @@ PUSH_EXCLUDE_300=(
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/700_База_Данных/" "$SERVER:$SERVER_VAULT/700_База_Данных/"
 
-# 3. Обслуживание vault на сервере (VAULT_PATH=/root/obsidian-vault — тот же путь, откуда забирает rsync)
-# Плюс: сразу после обслуживания запускаем kanban_monitor, чтобы новые задачи/перемещения из Obsidian попали в action-логи в этом же цикле синка.
-echo "obsidian_sync: шаг 3 — SSH: vault_maintenance + kanban на сервере (без вывода; лог на сервере: planning_bot/logs/maintenance.log)…" >&2
-ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ( ./scripts/run_maintenance_from_sync.sh 2>/dev/null || ( set -a && [ -f ../.env ] && . ../.env; [ -f .env ] && . .env; set +a && source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && FROM_SYNC=1 python -m planning_bot.tools.vault_maintenance ) ) >> logs/maintenance.log 2>&1 && ( set -a && [ -f ../.env ] && . ../.env; set +a && source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && python -m planning_bot.services.kanban_monitor ) >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
+# 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
+echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2
+ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance (--ignore-times: всегда перезаписать локаль отсортированной доской)
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2

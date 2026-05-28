@@ -9,6 +9,7 @@ PLIST_DST="$HOME/Library/LaunchAgents/com.example.obsidian-sync.plist"
 SYNC_LINK="$HOME/bin/obsidian_sync.sh"
 LAUNCH_WRAPPER="$HOME/bin/obsidian_sync_launchagent.sh"
 LABEL="com.example.obsidian-sync"
+OLD_LABEL="com.example.obsidian-sync"
 
 if [ ! -f "$PLIST_EXAMPLE" ]; then
   echo "❌ Не найден шаблон: $PLIST_EXAMPLE" >&2
@@ -18,7 +19,7 @@ fi
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/bin"
 chmod +x "$AGENT_DIR/scripts/obsidian_sync.sh"
 
-ln -sf "$AGENT_DIR/obsidian_sync.sh" "$SYNC_LINK"
+ln -sf "$AGENT_DIR/scripts/obsidian_sync.sh" "$SYNC_LINK"
 cat > "$LAUNCH_WRAPPER" <<EOF
 #!/bin/zsh
 export LANG=en_US.UTF-8
@@ -31,6 +32,7 @@ chmod +x "$LAUNCH_WRAPPER"
 
 sed -e "s|__HOME__|$HOME|g" -e "s|__VAULT_PATH__|$VAULT_PATH|g" "$PLIST_EXAMPLE" > "$PLIST_DST"
 
+launchctl bootout "gui/$(id -u)/$OLD_LABEL" 2>/dev/null || true
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_DST"
 launchctl enable "gui/$(id -u)/$LABEL" 2>/dev/null || true
