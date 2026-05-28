@@ -14,10 +14,16 @@
 # НИКОГДА не перезаписывает на сервере: .env, *.db, logs/, data/, личные config (см. EXCLUDES).
 set -uo pipefail
 
-SERVER="${SERVER:-example-server}"
-SERVER_BOTS="${SERVER_BOTS:-~/bots}"
 MONOREPO="${MONOREPO:-$(cd "$(dirname "$0")/.." && pwd)}"
+if [ -f "$MONOREPO/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$MONOREPO/.env"
+  set +a
+fi
 
+SERVER="${SERVER:?Set SERVER in .env (SSH host for deploy)}"
+SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
 COMPONENT="all"
 NO_RESTART=0
 INSTALL_DEPS=0
@@ -92,6 +98,7 @@ deploy_one() {
 }
 
 ssh_check
+rsync_server_scripts
 case "$COMPONENT" in
   shared)        deploy_one shared "";;
   finance_bot)   deploy_one finance_bot .venv;;

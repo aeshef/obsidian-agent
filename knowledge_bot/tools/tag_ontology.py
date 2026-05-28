@@ -65,6 +65,10 @@ def _tags_by_namespace(
 def run_propose(cfg) -> int:
     inv = scan_all_notes(cfg.vault_path)
     pcfg_path = cfg.agent_config_path / "tag_ontology.yaml"
+    if not pcfg_path.exists():
+        ex = cfg.agent_config_path / "tag_ontology.yaml.example"
+        if ex.exists():
+            pcfg_path = ex
     pcfg: dict = {}
     if pcfg_path.exists():
         pcfg = yaml.safe_load(pcfg_path.read_text(encoding="utf-8")) or {}
@@ -117,9 +121,11 @@ def run_propose(cfg) -> int:
 
 
 def run_apply(cfg, do_write: bool) -> int:
-    m = extract_mapping_from_ontology_file(
-        cfg.agent_config_path / "tag_ontology.yaml"
-    )
+    ont = cfg.agent_config_path / "tag_ontology.yaml"
+    if not ont.exists():
+        ex = cfg.agent_config_path / "tag_ontology.yaml.example"
+        ont = ex if ex.exists() else ont
+    m = extract_mapping_from_ontology_file(ont)
     if not m:
         print("Нет mappings в config/tag_ontology.yaml", file=sys.stderr)
         return 1

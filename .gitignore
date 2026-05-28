@@ -14,15 +14,31 @@
 *.db
 *.db-shm
 *.db-wal
+
+# Промпты и личный контекст (в git только *.example*)
 **/config/prompts/*.txt
+!**/config/prompts/*.example.txt
 **/config/author_context.txt
 **/config/initial_accounts.yaml
 **/config/user_context.md
 **/config/badge.yaml
 **/config/badge_import_*.yaml
+**/config/subscriptions.yaml
+**/config/tags_inventory.yaml
+**/config/tag_ontology.yaml
+
+# LaunchAgent (генерируется локально из *.example.plist)
+launchd/*.plist
+!launchd/*.example.plist
+
 planning_bot/CHAT_ID.txt
 planning_bot/goals_context.md
 knowledge_bot/CHAT_ID.txt
 .sync/
 venv_build.log
 venv_logs/
+
+# Служебные / локальные (не в публичном репо)
+migration/
+MONOREPO.md
+test_fetch_iphone_mail.py

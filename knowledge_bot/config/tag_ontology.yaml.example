@@ -1,0 +1,4 @@
+# Маппинги слияния/нормализации тегов. Скопируйте в tag_ontology.yaml.
+# cp tag_ontology.yaml.example tag_ontology.yaml
+mappings: {}
+aliases: {}

@@ -3,12 +3,17 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-VAULT_PATH="$(cd "$AGENT_DIR/../.." && pwd)"
-PLIST_SRC="$AGENT_DIR/launchd/com.example.obsidian-sync.plist"
+VAULT_PATH="${VAULT_PATH:-${LOCAL_VAULT:-$(cd "$AGENT_DIR/../.." 2>/dev/null && pwd || echo "$HOME/Documents/Obsidian Vault")}}"
+PLIST_EXAMPLE="$AGENT_DIR/launchd/com.example.obsidian-sync.plist.example"
 PLIST_DST="$HOME/Library/LaunchAgents/com.example.obsidian-sync.plist"
 SYNC_LINK="$HOME/bin/obsidian_sync.sh"
 LAUNCH_WRAPPER="$HOME/bin/obsidian_sync_launchagent.sh"
 LABEL="com.example.obsidian-sync"
+
+if [ ! -f "$PLIST_EXAMPLE" ]; then
+  echo "❌ Не найден шаблон: $PLIST_EXAMPLE" >&2
+  exit 1
+fi
 
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/bin"
 chmod +x "$AGENT_DIR/scripts/obsidian_sync.sh"
@@ -23,7 +28,8 @@ echo "\$(date '+%Y-%m-%dT%H:%M:%S') pid=\$\$ wrapper START" >> "\$DEBUG_LOG" 2>/
 exec "$SYNC_LINK"
 EOF
 chmod +x "$LAUNCH_WRAPPER"
-cp "$PLIST_SRC" "$PLIST_DST"
+
+sed -e "s|__HOME__|$HOME|g" -e "s|__VAULT_PATH__|$VAULT_PATH|g" "$PLIST_EXAMPLE" > "$PLIST_DST"
 
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_DST"
@@ -35,4 +41,3 @@ echo "Vault:     $VAULT_PATH"
 echo "Symlink:   $SYNC_LINK"
 echo "Wrapper:   $LAUNCH_WRAPPER"
 echo "Label:     $LABEL"
-echo "Logs:      /tmp/obsidian-sync.out /tmp/obsidian-sync.err /tmp/obsidian_sync_debug.log /tmp/obsidian_sync_launchagent_wrapper.log"

@@ -1,0 +1,9 @@
+# Инвентарь тегов vault (генерируется tools; пример для OSS).
+# cp tags_inventory.yaml.example tags_inventory.yaml
+tags:
+  domain/study:
+    count: 0
+    examples: []
+  topic/sample:
+    count: 0
+    examples: []

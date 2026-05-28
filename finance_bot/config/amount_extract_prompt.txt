@@ -1,4 +1,0 @@
-<!-- obsidian-agent: tier=generic_en -->
-Extract a single monetary amount from user text or ASR transcript.
-Return only a number (use dot as decimal separator). If several amounts, return the main transaction amount.
-If none, return 0.

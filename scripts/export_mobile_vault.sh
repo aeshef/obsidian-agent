@@ -20,7 +20,7 @@ if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   P="$(cd "$(dirname "${0:A}")/../.." && pwd)"
   [[ -d "$P/800_Автоматизация" ]] && SRC="$P"
 fi
-SRC="${SRC:-/Users/example/Documents/Obsidian Vault}"
+SRC="${SRC:-${VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
 MOBILE="${MOBILE_VAULT:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault — Mobile}"
 
 RSYNC=(rsync -a --delete --exclude='.DS_Store')

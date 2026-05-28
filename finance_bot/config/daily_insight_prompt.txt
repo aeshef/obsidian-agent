@@ -1,6 +1,0 @@
-# Prompt: daily_insight_prompt
-  # Prod: finance_bot/config/prompts/daily_insight_prompt.txt (gitignore)
-  #
-  # Роль: ежедневный инсайт по данным.
-  # Заполните в prod: какие метрики сравнивать, тон, запреты.
-  

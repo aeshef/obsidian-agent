@@ -7,7 +7,7 @@
 
 	<key>ProgramArguments</key>
 	<array>
-		<string>/Users/example/bin/obsidian_sync_launchagent.sh</string>
+		<string>__HOME__/bin/obsidian_sync_launchagent.sh</string>
 	</array>
 
 	<key>RunAtLoad</key>
@@ -17,7 +17,7 @@
 	<integer>300</integer>
 
 	<key>WorkingDirectory</key>
-	<string>/Users/example/Documents/Obsidian Vault</string>
+	<string>__VAULT_PATH__</string>
 
 	<key>StandardOutPath</key>
 	<string>/tmp/obsidian-sync.out</string>
@@ -28,7 +28,7 @@
 	<key>EnvironmentVariables</key>
 	<dict>
 		<key>LOCAL_VAULT</key>
-		<string>/Users/example/Documents/Obsidian Vault</string>
+		<string>__VAULT_PATH__</string>
 		<key>PATH</key>
 		<string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
 		<key>LANG</key>

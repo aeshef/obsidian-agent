@@ -33,6 +33,7 @@ MAX_BACKOFF="${WATCHDOG_MAX_BACKOFF:-60}"
 
 cd "$BOT_ROOT"
 mkdir -p logs
+echo $$ > logs/watchdog.pid
 
 # Обёртки ботов редиректят stdout в logs/watchdog.log, поэтому пишем только в stdout
 # (иначе tee + редирект дублируют каждую строку). count_recent_restarts грепает тот же файл.

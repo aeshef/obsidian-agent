@@ -1,0 +1,14 @@
+# Скопируйте в subscriptions.yaml и заполните своими подписками.
+# cp subscriptions.yaml.example subscriptions.yaml
+
+- name: Example Streaming
+  [REDACTED]
+  currency: RUB
+  period: monthly
+  next_charge: 2026-06-01
+
+- name: Example VPS
+  amount: 500.00
+  currency: RUB
+  period: monthly
+  next_charge: 2026-06-15

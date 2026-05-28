@@ -1,6 +1,0 @@
-# Prompt: query_prompt
-  # Prod: finance_bot/config/prompts/query_prompt.txt (gitignore)
-  #
-  # Роль: ответ на вопрос пользователя по финансам (чат/аналитика).
-  # Заполните в prod: факты только из контекста, без Markdown.
-  

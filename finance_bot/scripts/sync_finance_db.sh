@@ -16,8 +16,10 @@ if [[ -z "${VAULT_PATH:-}" ]]; then
   fi
 fi
 DATA_DIR="$VAULT_PATH/300_Дашборды/Данные"
-SERVER="${SERVER:-example-server}"
-REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-/root/bots/finance_bot}"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+[[ -f "$ROOT/.env" ]] && set -a && source "$ROOT/.env" && set +a
+SERVER="${SERVER:?Set SERVER in .env}"
+REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/opt/obsidian-bots}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"
 
 mkdir -p "$DATA_DIR"

@@ -74,9 +74,13 @@ if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
   PATH="$(printf '%s' "$PATH" | awk -v RS=':' -v ORS=':' 'NF && $0 !~ /\.pyenv\/(shims|versions)/' | sed 's/:$//')"
   export PATH
 fi
-SERVER="${SERVER:-example-server}"
-SERVER_VAULT="${SERVER_VAULT:-/root/obsidian-vault}"
-SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
+SERVER="${SERVER:-}"
+SERVER_VAULT="${SERVER_VAULT:-/opt/obsidian-vault}"
+SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
+if [ -z "$SERVER" ]; then
+  echo "obsidian_sync: задайте SERVER в .env (SSH host)" >&2
+  exit 1
+fi
 RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
@@ -129,7 +133,7 @@ PUSH_EXCLUDE_300=(
 # 3. Обслуживание vault на сервере (VAULT_PATH=/root/obsidian-vault — тот же путь, откуда забирает rsync)
 # Плюс: сразу после обслуживания запускаем kanban_monitor, чтобы новые задачи/перемещения из Obsidian попали в action-логи в этом же цикле синка.
 echo "obsidian_sync: шаг 3 — SSH: vault_maintenance + kanban на сервере (без вывода; лог на сервере: planning_bot/logs/maintenance.log)…" >&2
-ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ( ./scripts/run_maintenance_from_sync.sh 2>/dev/null || ( source venv/bin/activate && export \$(cat .env | grep -v '^#' | xargs) && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && FROM_SYNC=1 python -m planning_bot.tools.vault_maintenance ) ) >> logs/maintenance.log 2>&1 && ( source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && python -m planning_bot.services.kanban_monitor ) >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh $SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
+ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ( ./scripts/run_maintenance_from_sync.sh 2>/dev/null || ( set -a && [ -f ../.env ] && . ../.env; [ -f .env ] && . .env; set +a && source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && FROM_SYNC=1 python -m planning_bot.tools.vault_maintenance ) ) >> logs/maintenance.log 2>&1 && ( set -a && [ -f ../.env ] && . ../.env; set +a && source venv/bin/activate && export PYTHONPATH='${SERVER_BOTS}'\${PYTHONPATH:+':'}\"\$PYTHONPATH\" && export VAULT_PATH='$SERVER_VAULT' && python -m planning_bot.services.kanban_monitor ) >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance (--ignore-times: всегда перезаписать локаль отсортированной доской)
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2

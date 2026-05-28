@@ -1,31 +1,20 @@
-#!/bin/zsh
-# Проверка и перезапуск finance_bot (запускай вручную)
+#!/usr/bin/env bash
+# Интерактивная проверка finance_bot на сервере
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/lib/common.sh"
+common_load_env "$ROOT"
+common_require_server
+SERVER_BOTS="${SERVER_BOTS:-/opt/obsidian-bots}"
 
-echo "🔍 Проверка статуса finance_bot..."
-echo ""
+echo "=== Процессы ==="
+common_ssh "pgrep -af 'bot.main|watchdog' | head -5 || echo 'нет процессов'"
 
-# Проверяем процессы на сервере
-echo "📊 Процессы на сервере:"
-ssh example-server "ps aux | grep -E '[b]ot.main|[w]atchdog' | head -5" || echo "❌ Не удалось подключиться"
+echo "=== Лог (хвост) ==="
+common_ssh "cd ${SERVER_BOTS}/finance_bot && tail -30 logs/bot.log 2>/dev/null || echo 'лог пуст'"
 
-echo ""
-echo "📋 Последние 30 строк лога:"
-ssh example-server "cd ~/bots/finance_bot && tail -30 logs/bot.log 2>/dev/null || echo 'Логи не найдены'"
-
-echo ""
-read -q "REPLY? Перезапустить бота? (y/n): "
-echo ""
-
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🛑 Остановка..."
-    ssh example-server "cd ~/bots/finance_bot && pkill -9 -f 'bot.main' 2>/dev/null; pkill -9 -f 'watchdog.sh' 2>/dev/null; sleep 2; true"
-    sleep 2
-
-    echo "🚀 Запуск через watchdog..."
-    ssh example-server "cd ~/bots/finance_bot && chmod +x scripts/run.sh scripts/watchdog.sh scripts/check_bot.sh 2>/dev/null; mkdir -p logs && nohup ./scripts/watchdog.sh > logs/watchdog.log 2>&1 & sleep 3 && pgrep -f 'bot.main|watchdog' | head -2"
-
-    echo ""
-    echo "📋 Новые логи:"
-    sleep 2
-    ssh example-server "cd ~/bots/finance_bot && tail -20 logs/bot.log 2>/dev/null || tail -20 logs/watchdog.log"
+read -r -p "Перезапустить? [y/N] " ans
+if [[ "$ans" =~ ^[Yy]$ ]]; then
+  exec "$ROOT/scripts/deploy.sh" --component finance_bot
 fi

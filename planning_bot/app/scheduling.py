@@ -1,0 +1,111 @@
+"""APScheduler setup and startup maintenance for planning_bot."""
+from __future__ import annotations
+from planning_bot.core.pdmsg import pdmsg
+import logging
+import os
+import subprocess
+import sys
+from pathlib import Path
+from typing import Optional
+import pytz
+from aiogram import Bot
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
+TIMEZONE = os.environ.get('TIMEZONE') or os.environ.get('CALENDAR_TZ') or 'Europe/Moscow'
+logger = logging.getLogger(__name__)
+_scheduler: Optional[AsyncIOScheduler] = None
+
+def start_scheduler(planning, bot: Bot) -> None:
+    """Register daily jobs (mirrors former PTB job_queue schedule)."""
+    from shared.capabilities.planning_gates import (
+        planning_deadlines_alerts_enabled,
+        planning_goals_alerts_enabled,
+        planning_routines_enabled,
+        planning_stuck_alerts_enabled,
+        planning_task_id_maintenance_enabled,
+        planning_weekly_review_enabled,
+    )
+
+    global _scheduler
+    tz = pytz.timezone(TIMEZONE)
+    _scheduler = AsyncIOScheduler(timezone=tz)
+    if planning_weekly_review_enabled():
+        _scheduler.add_job(
+            planning.schedule_weekly_review,
+            CronTrigger(day_of_week='sun', hour=6, minute=0, timezone=tz),
+            args=[bot],
+            id='weekly_review',
+        )
+    if planning_routines_enabled():
+        for hour in (8, 9, 10):
+            _scheduler.add_job(
+                planning.send_morning_routine_reminder,
+                CronTrigger(hour=hour, minute=0, timezone=tz),
+                args=[bot],
+                id=f'morning_routine_{hour}',
+            )
+        for hour in (21, 22, 23):
+            _scheduler.add_job(
+                planning.send_evening_routine_reminder,
+                CronTrigger(hour=hour, minute=0, timezone=tz),
+                args=[bot],
+                id=f'evening_routine_{hour}',
+            )
+
+    async def daily_add_ids_to_tasks():
+        try:
+            logger.info(pdmsg("auto_5b5ba648c9"))  # log
+            from planning_bot.tools.vault_maintenance import add_ids_to_tasks
+            result = add_ids_to_tasks()
+            if result:
+                logger.info(pdmsg("auto_217da0a1be"))  # log
+            else:
+                logger.warning(pdmsg("auto_7bd2faab56"))  # log
+        except Exception as e:
+            logger.error(pdmsg("auto_5bae9513a0"), e, exc_info=True)  # log
+    if planning_task_id_maintenance_enabled():
+        _scheduler.add_job(
+            daily_add_ids_to_tasks,
+            CronTrigger(hour=0, minute=30, timezone=tz),
+            id='daily_add_ids_to_tasks',
+        )
+    if planning_goals_alerts_enabled():
+        _scheduler.add_job(
+            planning.send_goals_alerts,
+            CronTrigger(hour=7, minute=0, timezone=tz),
+            args=[bot],
+            id='daily_goals_alerts',
+        )
+    if planning_deadlines_alerts_enabled():
+        _scheduler.add_job(
+            planning.send_deadlines_alerts,
+            CronTrigger(hour=6, minute=0, timezone=tz),
+            args=[bot],
+            id='daily_deadlines_alerts',
+        )
+    if planning_stuck_alerts_enabled():
+        _scheduler.add_job(
+            planning.send_stuck_alerts,
+            CronTrigger(hour=8, minute=0, timezone=tz),
+            args=[bot],
+            id='daily_stuck_alerts',
+        )
+    _scheduler.start()
+    logger.info('APScheduler started (%s)', TIMEZONE)
+
+def run_startup_tasks(planning) -> None:
+    from shared.capabilities.planning_gates import planning_routines_enabled
+
+    if not planning_routines_enabled():
+        logger.info("planning_routines feature off — skip routines_manager startup")
+        return
+    try:
+        logger.info(pdmsg("auto_a60b6ad52e"))  # log
+        routines_script = Path(__file__).resolve().parent.parent / 'services' / 'routines_manager.py'
+        result = subprocess.run([sys.executable, str(routines_script)], capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            logger.info(pdmsg("auto_55500c9703"))  # log
+        else:
+            logger.warning(pdmsg("auto_de473a4dde"), result.stderr)  # log
+    except Exception as e:
+        logger.warning(pdmsg("auto_a671ee6acb"), e)  # log

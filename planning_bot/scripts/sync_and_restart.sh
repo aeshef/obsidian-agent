@@ -1,25 +1,4 @@
-#!/bin/bash
-# Скрипт для синхронизации и перезапуска бота на сервере (с мака).
-# Задай корень vault: export LOCAL_VAULT=/path/to/Obsidian\ Vault
-# или VAULT_PATH — иначе по умолчанию ~/Documents/Obsidian Vault (подставь свой путь).
-
-set -u
-: "${LOCAL_VAULT:=${VAULT_PATH:-$HOME/Documents/Obsidian Vault}}"
-VAULT_PATH="$LOCAL_VAULT"
-BOT_DIR="$VAULT_PATH/800_Автоматизация/Agent/planning_bot"
-
-cd "$VAULT_PATH"
-
-echo "🔄 Синхронизация файлов..."
-rsync -avz --delete --exclude='.git' --exclude='node_modules' --exclude='.DS_Store' \
-  --exclude='venv/' --exclude='__pycache__/' --exclude='*.pyc' \
-  --exclude='logs/' --exclude='CHAT_ID.txt' \
-  --exclude='.env' --exclude='.env.local' \
-  --exclude='goals_context.md' \
-  --exclude='📊 Рутины_2026-*.md' --exclude='📋 Шаблон_Рутин.md' \
-  --exclude='📊 Прогресс_2026.md' \
-  "$BOT_DIR/" example-server:~/bots/planning_bot/
-
-echo ""
-echo "🔄 Перезапуск бота на сервере..."
-ssh example-server "cd ~/bots/planning_bot && chmod +x scripts/run.sh scripts/restart_bot.sh scripts/watchdog.sh 2>/dev/null; ./scripts/restart_bot.sh 2>/dev/null || (pkill -9 -f 'planning_bot.app.bot' || true; sleep 2; mkdir -p logs; nohup ./scripts/run.sh > logs/bot.log 2>&1 & echo \$! > logs/bot.pid; echo '✅ Бот запущен, PID:' \$(cat logs/bot.pid); sleep 2; tail -20 logs/bot.log)"
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+exec "$ROOT/scripts/deploy.sh" --component planning_bot "$@"
