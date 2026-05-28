@@ -24,3 +24,5 @@ planning_bot/CHAT_ID.txt
 planning_bot/goals_context.md
 knowledge_bot/CHAT_ID.txt
 .sync/
+venv_build.log
+venv_logs/
