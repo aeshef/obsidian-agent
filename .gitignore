@@ -40,5 +40,4 @@ venv_logs/
 
 # Служебные / локальные (не в публичном репо)
 migration/
-MONOREPO.md
 test_fetch_iphone_mail.py

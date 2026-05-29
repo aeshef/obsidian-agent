@@ -2,9 +2,9 @@
 # Smoke: py_compile + import ключевых модулей (локально или в CI с SMOKE_INSTALL=1).
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MONOREPO="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/lib/bootstrap_python.sh
-source "$ROOT/scripts/lib/bootstrap_python.sh"
+source "$MONOREPO/scripts/lib/bootstrap_python.sh"
 
 INSTALL="${SMOKE_INSTALL:-0}"
 FAILED=0
@@ -17,7 +17,7 @@ while IFS= read -r f; do
     FAILED=1
   fi
 done <<EOF
-$(find "$ROOT"/shared "$ROOT"/finance_bot/bot "$ROOT"/knowledge_bot "$ROOT"/planning_bot \
+$(find "$MONOREPO"/shared "$MONOREPO"/finance_bot/bot "$MONOREPO"/knowledge_bot "$MONOREPO"/planning_bot \
   -name '*.py' ! -path '*/venv/*' ! -path '*/.venv/*' ! -path '*/__pycache__/*' 2>/dev/null)
 EOF
 [ "$FAILED" -eq 0 ] && echo "  compile OK"
@@ -27,7 +27,7 @@ _smoke_import() {
   echo -n "  import $comp: "
   local venv_py=""
   for v in .venv venv; do
-    [ -x "$ROOT/$comp/$v/bin/python" ] && venv_py="$ROOT/$comp/$v/bin/python"
+    [ -x "$MONOREPO/$comp/$v/bin/python" ] && venv_py="$MONOREPO/$comp/$v/bin/python"
   done
   if [ -n "$venv_py" ] && [ "$INSTALL" != 1 ]; then
     if ! "$venv_py" -m pip show -q requests 2>/dev/null; then
@@ -46,10 +46,10 @@ _smoke_import() {
   fi
   if [ "$INSTALL" = 1 ]; then
     "$PYTHON_CMD" -m pip install -q --upgrade pip
-    if [ -f "$ROOT/constraints.txt" ]; then
-      "$PYTHON_CMD" -m pip install -q -r "$ROOT/$comp/requirements.txt" -c "$ROOT/constraints.txt"
+    if [ -f "$MONOREPO/constraints.txt" ]; then
+      "$PYTHON_CMD" -m pip install -q -r "$MONOREPO/$comp/requirements.txt" -c "$MONOREPO/constraints.txt"
     else
-      "$PYTHON_CMD" -m pip install -q -r "$ROOT/$comp/requirements.txt"
+      "$PYTHON_CMD" -m pip install -q -r "$MONOREPO/$comp/requirements.txt"
     fi
   fi
   if "$PYTHON_CMD" -c "$code" 2>/dev/null; then
