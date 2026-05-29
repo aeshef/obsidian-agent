@@ -1,15 +1,30 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Устанавливает cron-задачи planning_bot на сервере (идемпотентно).
-# Запуск: ./scripts/install_planning_crontab.sh
-#   или:  ssh "$SERVER" 'bash -s' < scripts/install_planning_crontab.sh
+#
+#   ./scripts/install_planning_crontab.sh
+#   ssh "$SERVER" "bash ${SERVER_BOTS}/scripts/install_planning_crontab.sh"
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# shellcheck source=scripts/lib/common.sh
-source "$ROOT/scripts/lib/common.sh"
-common_load_env "$ROOT"
+if [ -n "${SERVER_BOTS:-}" ] && [ -f "${SERVER_BOTS}/scripts/lib/common.sh" ]; then
+  ROOT="${SERVER_BOTS}"
+  # shellcheck source=/dev/null
+  source "${SERVER_BOTS}/scripts/lib/common.sh"
+else
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  # shellcheck source=scripts/lib/common.sh
+  source "$ROOT/scripts/lib/common.sh"
+  common_load_env "$ROOT"
+fi
 
 BOT_ROOT="${PLANNING_BOT_ROOT:-$(common_server_bots)/planning_bot}"
+
+if [ -n "${SERVER:-}" ] && [ "${INSTALL_CRON_LOCAL:-0}" != 1 ]; then
+  common_require_server
+  BOTS="$(common_server_bots)"
+  echo "📡 install planning crontab on $SERVER ..."
+  ssh "$SERVER" "INSTALL_CRON_LOCAL=1 PLANNING_BOT_ROOT='$BOTS/planning_bot' bash $BOTS/scripts/install_planning_crontab.sh"
+  exit 0
+fi
 
 MARKER="# obsidian-agent planning_bot cron"
 TMP="$(mktemp)"

@@ -42,7 +42,7 @@ _install_crontab() {
 if [ -n "${SERVER:-}" ] && [ "${INSTALL_REBOOT_LOCAL:-0}" != 1 ]; then
   common_require_server
   echo "📡 Установка @reboot cron на $SERVER ..."
-  ssh "$SERVER" "INSTALL_REBOOT_LOCAL=1 SERVER_BOTS='$BOTS_ROOT' bash -s" < "$(dirname "${BASH_SOURCE[0]}")/install_server_reboot_crontab.sh"
+  ssh "$SERVER" "INSTALL_REBOOT_LOCAL=1 SERVER_BOTS='$BOTS_ROOT' bash $BOTS_ROOT/scripts/install_server_reboot_crontab.sh"
 else
   _install_crontab
 fi

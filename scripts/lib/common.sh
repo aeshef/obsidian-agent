@@ -63,8 +63,8 @@ common_resolve_python() {
 
 common_python_for_venv() {
     local py
-    for py in python3.12 python3.11 python3.10 python3; do
-        if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+    for py in python3.12 python3.11 python3.10 python3.9 python3; do
+        if command -v "$py" >/dev/null 2>&1 && "$py" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 9) else 1)' 2>/dev/null; then
             echo "$py"
             return 0
         fi

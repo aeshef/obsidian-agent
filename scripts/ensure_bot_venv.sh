@@ -32,9 +32,11 @@ _ensure_one() {
     rm -rf "$bot_root/.venv"
     "$py" -m venv "$bot_root/.venv"
     "$bot_root/.venv/bin/pip" install -q --upgrade pip
-    local cons=()
-    [ -f "$ROOT/constraints.txt" ] && cons=(-c "$ROOT/constraints.txt")
-    "$bot_root/.venv/bin/pip" install -q -r "$bot_root/requirements.txt" "${cons[@]}"
+    if [ -f "$ROOT/constraints.txt" ]; then
+      "$bot_root/.venv/bin/pip" install -q -r "$bot_root/requirements.txt" -c "$ROOT/constraints.txt"
+    else
+      "$bot_root/.venv/bin/pip" install -q -r "$bot_root/requirements.txt"
+    fi
     echo "✅ $comp .venv готов ($("$bot_root/.venv/bin/python" -V))"
     return 0
   fi

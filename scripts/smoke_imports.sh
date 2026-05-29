@@ -46,9 +46,11 @@ _smoke_import() {
   fi
   if [ "$INSTALL" = 1 ]; then
     "$PYTHON_CMD" -m pip install -q --upgrade pip
-    local cons=()
-    [ -f "$ROOT/constraints.txt" ] && cons=(-c "$ROOT/constraints.txt")
-    "$PYTHON_CMD" -m pip install -q -r "$ROOT/$comp/requirements.txt" "${cons[@]}"
+    if [ -f "$ROOT/constraints.txt" ]; then
+      "$PYTHON_CMD" -m pip install -q -r "$ROOT/$comp/requirements.txt" -c "$ROOT/constraints.txt"
+    else
+      "$PYTHON_CMD" -m pip install -q -r "$ROOT/$comp/requirements.txt"
+    fi
   fi
   if "$PYTHON_CMD" -c "$code" 2>/dev/null; then
     echo OK

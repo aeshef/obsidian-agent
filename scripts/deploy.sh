@@ -66,8 +66,7 @@ rsync_comp() {
 install_deps() {
   local name="$1"
   [ "$INSTALL_DEPS" = 1 ] || return 0
-  echo "📦 ensure Python 3.10+ + .venv + pip install ($name)"
-  ssh "$SERVER" "INSTALL_REBOOT_LOCAL=1 bash -s" < "$MONOREPO/scripts/ensure_server_python310.sh" || true
+  echo "📦 ensure .venv + pip install ($name)"
   [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
   ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
 }
@@ -109,6 +108,7 @@ rsync_server_scripts() {
     --exclude='obsidian_sync.sh' \
     --exclude='export_mobile_vault.sh' \
     --exclude='install_launchagent.sh' \
+    --exclude='merge_env_from_server.sh' \
     "$MONOREPO/scripts/" "$SERVER:$SERVER_BOTS/scripts/"
   rsync -az "$MONOREPO/scripts/lib/" "$SERVER:$SERVER_BOTS/scripts/lib/"
   ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
@@ -157,6 +157,7 @@ verify_bots() {
 
 ssh_check
 rsync_server_scripts
+[ "$DRYRUN" = 0 ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
 case "$COMPONENT" in
   shared)        deploy_one shared;;
   finance_bot)   deploy_one finance_bot;;
