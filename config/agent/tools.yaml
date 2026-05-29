@@ -1,0 +1,15 @@
+fallback_threshold: 4
+
+categories:
+  balance:
+    keywords: ["баланс", "счет", "счёт", "карта", "кошелек", "кошелёк", "остаток"]
+    tools: [get_balance]
+  transactions:
+    keywords: ["транзак", "операц", "расход", "доход", "потрат", "купил", "заплат", "перевод"]
+    tools: [get_transactions, get_recent]
+  summary:
+    keywords: ["сводк", "итог", "сколько", "сумм", "март", "апрел", "месяц", "недел", "динамик", "тренд"]
+    tools: [compute_summary, get_transactions]
+  analytics:
+    keywords: ["анализ", "сравн", "категор", "норм", "сбереж", "базлайн"]
+    tools: [compute_summary, get_transactions, get_balance]

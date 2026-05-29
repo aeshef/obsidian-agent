@@ -1,0 +1,35 @@
+default_intents:
+  finance: add_transaction
+  planning: add_task
+  knowledge: new_note
+  general: chitchat
+
+domain_rules:
+  finance:
+    keywords: ["руб", "₽", "трат", "потрат", "баланс", "счет", "счёт", "тинек", "брокер", "доход"]
+    patterns: ["\\d+\\s*(руб|₽)", "потратил", "заработал"]
+  planning:
+    keywords: ["задач", "канбан", "рутин", "цел", "рефлекс", "календар"]
+  knowledge:
+    keywords: ["заметк", "база знан", "тег", "найди в замет", "что писал"]
+
+intent_rules:
+  finance:
+    finance_query:
+      keywords: ["сколько", "покажи", "динамик", "анализ", "сводк", "итог", "баланс", "тратил ли"]
+    chitchat:
+      keywords: ["привет", "спасибо", "как дела"]
+  planning:
+    planning_query:
+      keywords: ["что делать", "приоритет", "загрузк", "календар", "встреч", "прогресс", "застрял", "обзор"]
+    add_task:
+      keywords: ["добав", "создай задач", "напомни сделать", "нужно сделать"]
+    chitchat:
+      keywords: ["привет", "спасибо"]
+  knowledge:
+    knowledge_query:
+      keywords: ["найди", "что писал", "в заметк", "по тег", "база знан", "напомни про"]
+    new_note:
+      keywords: ["сохрани", "запиши замет", "добавь в базу"]
+    chitchat:
+      keywords: ["привет", "спасибо"]

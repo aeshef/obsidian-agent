@@ -40,7 +40,7 @@ done
 
 EXCLUDES=(
   --exclude='.git' --exclude='.DS_Store' --exclude='__pycache__/' --exclude='*.pyc'
-  --exclude='venv/' --exclude='.venv/' --exclude='.cache/'
+  --exclude='venv/' --exclude='.venv/' --exclude='.venv' --exclude='venv' --exclude='.cache/'
   --exclude='logs/' --exclude='data/' --exclude='.env'
   --exclude='*.db' --exclude='*.db-shm' --exclude='*.db-wal'
   --exclude='config/prompts/*.txt' --exclude='config/author_context.txt'

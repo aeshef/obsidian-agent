@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#8b949e"/>
+    </marker>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#58a6ff"/>
+    </marker>
+    <style>
+      .panel { fill:#161b22; stroke:#30363d; stroke-width:1.5; rx:12; }
+      .title { fill:#e6edf3; font-weight:700; }
+      .sub   { fill:#8b949e; }
+      .lbl   { fill:#c9d1d9; }
+      .tag   { fill:#8b949e; font-size:12px; }
+      .edge  { stroke:#8b949e; stroke-width:1.6; fill:none; }
+      .edgeb { stroke:#58a6ff; stroke-width:1.8; fill:none; stroke-dasharray:6 4; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="780" fill="#0d1117"/>
+
+  <text x="48" y="52" class="title" font-size="26">obsidian-agent</text>
+  <text x="48" y="76" class="sub" font-size="15"><>=>@5?>: B@8 Telegram-1>B0, >1I89 A;>9 shared/, A8=E@>=870F8O Mac ” VPS</text>
+
+  <!-- Clients -->
+  <g>
+    <rect x="430" y="104" width="200" height="62" rx="12" class="panel"/>
+    <text x="530" y="132" text-anchor="middle" class="title" font-size="17">Telegram</text>
+    <text x="530" y="152" text-anchor="middle" class="tag">B5:AB · 3>;>A · D>B> · D09;K</text>
+
+    <rect x="680" y="104" width="220" height="62" rx="12" class="panel"/>
+    <text x="790" y="132" text-anchor="middle" class="title" font-size="17">Obsidian.app</text>
+    <text x="790" y="152" text-anchor="middle" class="tag">GB5=85/?@02:0 vault (Mac)</text>
+  </g>
+
+  <!-- Bots row -->
+  <!-- planning -->
+  <g>
+    <rect x="60" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#3fb950" stroke-width="1.8"/>
+    <text x="80" y="250" class="title" font-size="18">planning_bot</text>
+    <text x="80" y="274" class="tag">entry: planning_bot.app.main · aiogram 3</text>
+    <text x="80" y="300" class="lbl" font-size="14">Kanban · F5;8 · @CB8=K</text>
+    <text x="80" y="322" class="lbl" font-size="14">@5D;5:A8O · :0;5=40@L</text>
+    <text x="80" y="350" class="tag">’ 100_040G8 · 200_&5;8 · 400_ CB8=K</text>
+  </g>
+  <!-- knowledge -->
+  <g>
+    <rect x="430" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#58a6ff" stroke-width="1.8"/>
+    <text x="450" y="250" class="title" font-size="18">knowledge_bot</text>
+    <text x="450" y="274" class="tag">entry: start_bot.py · aiogram 3</text>
+    <text x="450" y="300" class="lbl" font-size="14">extract: web · youtube · OCR</text>
+    <text x="450" y="322" class="lbl" font-size="14">B538 · RAG-70?@>AK ?> 70<5B:0<</text>
+    <text x="450" y="350" class="tag">’ 700_070_0==KE</text>
+  </g>
+  <!-- finance -->
+  <g>
+    <rect x="800" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#d29922" stroke-width="1.8"/>
+    <text x="820" y="250" class="title" font-size="18">finance_bot</text>
+    <text x="820" y="274" class="tag">entry: bot.main · aiogram 3</text>
+    <text x="820" y="300" class="lbl" font-size="14">NLU-B@0=70:F88 · 3>;>A</text>
+    <text x="820" y="322" class="lbl" font-size="14">Tinkoff sync · 40H1>@4</text>
+    <text x="820" y="350" class="tag">’ finance.db · @0D8:8</text>
+  </g>
+
+  <!-- shared -->
+  <g>
+    <rect x="60" y="430" width="1080" height="96" rx="12" fill="#1a1430" stroke="#bc8cff" stroke-width="1.8"/>
+    <text x="80" y="460" class="title" font-size="18" fill="#d2b8ff">shared/</text>
+    <text x="80" y="482" class="tag">>1I0O 8=D@0AB@C:BC@0 157 4><5==>9 ;>38:8</text>
+    <g font-size="13" fill="#c9d1d9">
+      <rect x="80"  y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="155" y="510" text-anchor="middle">llm.py · DeepSeek</text>
+      <rect x="246" y="494" width="110" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="301" y="510" text-anchor="middle">paths.py</text>
+      <rect x="372" y="494" width="90" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="417" y="510" text-anchor="middle">asr.py</text>
+      <rect x="478" y="494" width="160" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="558" y="510" text-anchor="middle">telegram/ (voice, mw)</text>
+      <rect x="654" y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="729" y="510" text-anchor="middle">logging · tz · config</text>
+      <rect x="820" y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
+      <text x="895" y="510" text-anchor="middle">constants · prompts</text>
+    </g>
+  </g>
+
+  <!-- ops / sync -->
+  <g>
+    <rect x="60" y="566" width="520" height="86" rx="12" class="panel"/>
+    <text x="80" y="594" class="title" font-size="16">scripts/  ops</text>
+    <text x="80" y="616" class="tag">deploy.sh · watchdog · bootstrap_python · setup.sh</text>
+    <text x="80" y="638" class="tag">CI smoke · ensure_bot_venv · cleanup_server_stale</text>
+
+    <rect x="620" y="566" width="520" height="86" rx="12" class="panel"/>
+    <text x="640" y="594" class="title" font-size="16">obsidian_sync.sh  Mac ” VPS</text>
+    <text x="640" y="616" class="tag">rsync 100/200/300/400/700 · maintenance =0 A5@25@5</text>
+    <text x="640" y="638" class="tag">3@0D8:8 build_*.py AB@>OBAO ;>:0;L=> (matplotlib)</text>
+  </g>
+
+  <!-- storage -->
+  <g>
+    <rect x="60" y="692" width="1080" height="64" rx="12" fill="#10261a" stroke="#3fb950" stroke-width="1.5"/>
+    <text x="80" y="720" class="title" font-size="16" fill="#7ee2a8">Obsidian vault (8AB>G=8: ?@024K)</text>
+    <g font-size="13" fill="#c9d1d9">
+      <text x="430" y="720">100_040G8</text>
+      <text x="540" y="720">200_&5;8</text>
+      <text x="630" y="720">300_0H1>@4K</text>
+      <text x="770" y="720">400_ CB8=K</text>
+      <text x="880" y="720">700_070_0==KE</text>
+      <text x="1030" y="720" fill="#d29922">finance.db</text>
+    </g>
+    <text x="80" y="742" class="tag">VPS ?8H5B 40==K5 · Mac 45@68B .app 8 3@0D8:8 · sync 45@68B :>?88 2 A>3;0A88</text>
+  </g>
+
+  <!-- Edges: Telegram -> bots -->
+  <path class="edge" d="M500,166 C420,190 360,196 300,218" marker-end="url(#arrow)"/>
+  <path class="edge" d="M540,168 L575,218" marker-end="url(#arrow)"/>
+  <path class="edge" d="M560,166 C700,190 820,196 920,218" marker-end="url(#arrow)"/>
+
+  <!-- bots -> shared -->
+  <path class="edge" d="M230,370 L230,428" marker-end="url(#arrow)"/>
+  <path class="edge" d="M600,370 L600,428" marker-end="url(#arrow)"/>
+  <path class="edge" d="M970,370 L970,428" marker-end="url(#arrow)"/>
+
+  <!-- bots -> storage (down the side) -->
+  <path class="edge" d="M120,370 C40,470 40,640 300,692" marker-end="url(#arrow)"/>
+  <path class="edge" d="M1110,370 C1180,470 1180,640 1020,692" marker-end="url(#arrow)"/>
+
+  <!-- Obsidian.app <-> sync <-> vault (dashed blue) -->
+  <path class="edgeb" d="M790,166 C880,300 980,440 880,564" marker-end="url(#arrowblue)"/>
+  <path class="edgeb" d="M880,652 L880,690" marker-end="url(#arrowblue)"/>
+
+  <!-- legend -->
+  <g font-size="12">
+    <rect x="900" y="40" width="14" height="14" rx="3" fill="#161b22" stroke="#bc8cff"/>
+    <text x="922" y="51" class="tag">shared</text>
+    <rect x="980" y="40" width="14" height="14" rx="3" fill="#161b22" stroke="#3fb950"/>
+    <text x="1002" y="51" class="tag">vault / planning</text>
+    <line x1="1110" y1="47" x2="1140" y2="47" class="edgeb"/>
+    <text x="1148" y="51" class="tag">sync</text>
+  </g>
+</svg>

@@ -1,0 +1,11 @@
+# Роль → модель (расширение на другого провайдера — только правка YAML + .env)
+roles:
+  parse:
+    model: deepseek-chat
+    temperature: 0.1
+  analyze:
+    model: deepseek-chat
+    temperature: 0.2
+  chat:
+    model: deepseek-chat
+    temperature: 0.7
