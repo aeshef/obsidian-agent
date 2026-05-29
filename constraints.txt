@@ -9,7 +9,7 @@
 # НЕ включены намеренно (каждый бот пинит под себя в своём requirements.txt):
 #   pydantic / pydantic-core  — finance 2.5.3 (pydantic-settings 2.1.0), knowledge 2.9.2
 #   httpx                     — finance[http2] 0.27.2, knowledge 0.28.1, planning 0.25.2
-#   python-telegram-bot       — только planning (20.7)
+#   python-telegram-bot       — removed (planning uses aiogram)
 
 aiofiles==24.1.0
 aiogram==3.13.1

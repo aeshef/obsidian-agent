@@ -48,4 +48,18 @@ jobs:
           planning_bot/.venv/bin/pip install -q --upgrade pip
           planning_bot/.venv/bin/pip install -q -r planning_bot/requirements.txt -c constraints.txt
           ./scripts/bootstrap_python.sh planning_bot -- \
-            python -c "from planning_bot.tools.vault_maintenance import run_all; print('OK')"
+            python -c "from planning_bot.app.bot import PlanningBot; from shared.telegram.messaging import send_long_message; print('OK')"
+
+      - name: Integration tests
+        run: |
+          python -m pip install -q pytest
+          python -m venv finance_bot/.venv
+          finance_bot/.venv/bin/pip install -q --upgrade pip
+          finance_bot/.venv/bin/pip install -q -r finance_bot/requirements.txt -c constraints.txt
+          python -m venv planning_bot/.venv
+          planning_bot/.venv/bin/pip install -q --upgrade pip
+          planning_bot/.venv/bin/pip install -q -r planning_bot/requirements.txt -c constraints.txt
+          python -m venv knowledge_bot/.venv
+          knowledge_bot/.venv/bin/pip install -q --upgrade pip
+          knowledge_bot/.venv/bin/pip install -q -r knowledge_bot/requirements.txt -c constraints.txt
+          PYTHONPATH="$PWD:$PWD/finance_bot" pytest tests/ -q

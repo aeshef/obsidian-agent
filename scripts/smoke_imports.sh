@@ -62,7 +62,7 @@ _smoke_import() {
 echo "=== import smoke ==="
 _smoke_import finance_bot 'import bot.main'
 _smoke_import knowledge_bot 'from knowledge_bot.app.bot import main'
-_smoke_import planning_bot 'from planning_bot.tools.vault_maintenance import run_all'
+_smoke_import planning_bot 'from planning_bot.app.bot import PlanningBot; from shared.telegram import send_long_message'
 
 if bootstrap_python finance_bot 2>/dev/null; then
   if "$PYTHON_CMD" -c 'import shared.bootstrap, shared.charts.mermaid' 2>/dev/null; then
