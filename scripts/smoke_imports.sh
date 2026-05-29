@@ -29,6 +29,13 @@ _smoke_import() {
   for v in .venv venv; do
     [ -x "$MONOREPO/$comp/$v/bin/python" ] && venv_py="$MONOREPO/$comp/$v/bin/python"
   done
+  if [ -z "$venv_py" ] && [ "$INSTALL" = 1 ]; then
+    local py
+    py="$(common_python_for_venv)"
+    echo "  creating $comp/.venv via $py"
+    "$py" -m venv "$MONOREPO/$comp/.venv"
+    venv_py="$MONOREPO/$comp/.venv/bin/python"
+  fi
   if [ -n "$venv_py" ] && [ "$INSTALL" != 1 ]; then
     if ! "$venv_py" -m pip show -q requests 2>/dev/null; then
       echo "SKIP (venv without deps, set SMOKE_INSTALL=1)"

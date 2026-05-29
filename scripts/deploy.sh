@@ -173,4 +173,10 @@ case "$COMPONENT" in
 esac
 
 echo "✅ deploy завершён (component=$COMPONENT, restart=$([ $NO_RESTART = 1 ] && echo no || echo yes))"
+if [ "$DRYRUN" = 0 ] && { [ "$COMPONENT" = knowledge_bot ] || [ "$COMPONENT" = all ]; }; then
+  echo "🏷 ensure tags.txt JSON prompt on server..."
+  ssh "$SERVER" "python3 $SERVER_BOTS/scripts/ensure_tags_prompt.py \
+    --tags $SERVER_BOTS/knowledge_bot/config/prompts/tags.txt \
+    --example $SERVER_BOTS/knowledge_bot/config/prompts/tags.example.txt" 2>/dev/null || true
+fi
 verify_bots

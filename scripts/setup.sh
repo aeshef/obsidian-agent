@@ -32,6 +32,10 @@ export SMOKE_INSTALL=1
 bash "$ROOT/scripts/smoke_imports.sh"
 
 echo ""
+echo "=== tags prompt (knowledge) ==="
+bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
+
+echo ""
 echo "✅ Готово. Дальше:"
 echo "  Mac sync:  ./scripts/install_launchagent.sh"
 echo "  Deploy:    ./scripts/deploy.sh --component all --install-deps"

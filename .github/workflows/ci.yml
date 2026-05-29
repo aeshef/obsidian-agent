@@ -36,5 +36,6 @@ jobs:
         run: |
           finance_bot/.venv/bin/pip install -q pytest
           knowledge_bot/.venv/bin/pip install -q pytest
-          finance_bot/.venv/bin/python -m pytest tests/test_transaction_parse.py tests/test_llm_json.py tests/test_kanban_sort.py -q
+          finance_bot/.venv/bin/python -m pytest \
+            tests/test_transaction_parse.py tests/test_llm_json.py tests/test_kanban_sort.py tests/test_finance_llm.py -q
           knowledge_bot/.venv/bin/python -m pytest tests/test_note_complete.py -q
