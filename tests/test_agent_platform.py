@@ -147,3 +147,53 @@ def test_build_system_prompt_layers():
     ctx = AgentContext(user_id=1, domain="finance", question="q", system_prompt="")
     out = asyncio.run(build_system_prompt("BASE", ctx, [_Layer("## A\nx"), _Layer("")]))
     assert out == "BASE\n\n## A\nx"
+
+
+def test_finance_reply_menu_covers_nlu_config():
+    from bot.config_loader import get_nlu_config, nlu_menu_buttons
+    from bot.reply_menu import reply_menu_handlers
+
+    cfg = get_nlu_config()
+    handlers = reply_menu_handlers()
+    assert nlu_menu_buttons(cfg) <= set(handlers)
+
+
+def test_pick_host_domain_from_config(monkeypatch):
+    from shared.telegram.host.agent import pick_host_domain
+
+    class _App:
+        def has_domain(self, name: str) -> bool:
+            return name in ("finance", "planning")
+
+        def domains(self) -> list[str]:
+            return ["finance", "planning"]
+
+    monkeypatch.setenv("DEPLOY_MODE", "single")
+    assert pick_host_domain("привет", "auto", None, _App()) == "planning"
+
+
+def test_reply_keyboard_extras():
+    from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+
+    from planning_bot.app import keyboards as pk
+    from shared.telegram.keyboards import ReplyKeyboardExtras
+
+    base = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="A")]],
+        resize_keyboard=True,
+    )
+    extras = ReplyKeyboardExtras()
+    assert extras.apply(base) is base
+
+    extras.set([[KeyboardButton(text="🏠 Главное")]])
+    merged = extras.apply(base)
+    assert any(b.text == "🏠 Главное" for row in merged.keyboard for b in row)
+
+    pk.clear_keyboard_extras()
+    kb = pk.get_main_keyboard()
+    assert all(b.text != "🏠 Главное" for row in kb.keyboard for b in row)
+
+    pk.set_keyboard_extras([[KeyboardButton(text="🏠 Главное")]])
+    kb2 = pk.get_main_keyboard()
+    assert any(b.text == "🏠 Главное" for row in kb2.keyboard for b in row)
+    pk.clear_keyboard_extras()

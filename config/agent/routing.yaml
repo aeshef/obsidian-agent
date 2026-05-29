@@ -4,6 +4,11 @@ default_intents:
   knowledge: new_note
   general: chitchat
 
+# single-bot host (shared/telegram/host)
+host:
+  general_domain: planning
+  domain_fallback: [planning, finance, knowledge]
+
 domain_rules:
   finance:
     keywords: ["руб", "₽", "трат", "потрат", "баланс", "счет", "счёт", "тинек", "брокер", "доход"]
