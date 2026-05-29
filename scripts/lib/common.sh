@@ -99,7 +99,7 @@ common_bot_pgrep_pattern() {
     case "$1" in
         finance_bot)   echo 'python.*bot.main|bot.main' ;;
         knowledge_bot) echo 'venv/bin/python start_bot|start_bot.py' ;;
-        planning_bot)  echo 'planning_bot.app.bot' ;;
+        planning_bot)  echo 'planning_bot.app.main' ;;
         *) echo '' ;;
     esac
 }

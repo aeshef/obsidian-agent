@@ -27,4 +27,4 @@ if [ -z "$VAULT_PATH" ]; then
 fi
 
 mkdir -p logs
-exec "$PYTHON_CMD" -m planning_bot.app.bot
+exec "$PYTHON_CMD" -m planning_bot.app.main

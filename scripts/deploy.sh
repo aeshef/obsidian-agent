@@ -95,7 +95,7 @@ restart_comp() {
   case "$name" in
     finance_bot)   _restart_bot_remote finance_bot 'bot.main';;
     knowledge_bot) _restart_bot_remote knowledge_bot 'start_bot.py';;
-    planning_bot)  _restart_bot_remote planning_bot 'planning_bot.app.bot';;
+    planning_bot)  _restart_bot_remote planning_bot 'planning_bot.app.main';;
     shared) echo "  shared не требует рестарта";;
   esac
 }
@@ -140,7 +140,7 @@ verify_bots() {
       case \$b in
         finance_bot)   pat='bot.main';;
         knowledge_bot) pat='start_bot.py';;
-        planning_bot)  pat='planning_bot.app.bot';;
+        planning_bot)  pat='planning_bot.app.main';;
       esac
       bot=\$(pgrep -f \"\$pat\" 2>/dev/null | head -1 || true)
       if [ -z \"\$bot\" ]; then status=DOWN; failed=1; else status=\$bot; fi

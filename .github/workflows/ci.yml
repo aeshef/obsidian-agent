@@ -48,7 +48,7 @@ jobs:
           planning_bot/.venv/bin/pip install -q --upgrade pip
           planning_bot/.venv/bin/pip install -q -r planning_bot/requirements.txt -c constraints.txt
           ./scripts/bootstrap_python.sh planning_bot -- \
-            python -c "from planning_bot.app.bot import PlanningBot; from shared.telegram.messaging import send_long_message; print('OK')"
+            python -c "from planning_bot.app.main import main; from planning_bot.app.bot import PlanningBot; print('OK')"
 
       - name: Integration tests
         run: |

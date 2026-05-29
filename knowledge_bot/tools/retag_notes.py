@@ -181,7 +181,7 @@ def retag_notes(
         if (info.get("count") or 0) > threshold
     }
 
-    touched, skipped = 0, 0
+    touched, skipped, llm_fallbacks = 0, 0, 0
     changed_tags: dict[str, list[str]] = {}
 
     for path, bad_tags in candidates:
@@ -211,7 +211,14 @@ def retag_notes(
 
         try:
             resp = llm.chat_json(tags_system, json.dumps(tags_user, ensure_ascii=False), timeout=60.0)
-            raw = (resp.content or []) if resp else []
+            content = (resp.content if resp else None) or []
+            if isinstance(content, dict) and content.get("error") == "llm_unavailable":
+                llm_fallbacks += 1
+                if verbose:
+                    print(f"  ⚠ LLM fallback for {path.name}")
+                skipped += 1
+                continue
+            raw = content
             if isinstance(raw, dict) and "tags" in raw:
                 raw = raw["tags"]
             if not isinstance(raw, list):
@@ -284,8 +291,14 @@ def retag_notes(
 
         touched += 1
 
-    print(f"\nИтого: затронуто={touched}, пропущено={skipped}")
-    return {"ok": True, "touched": touched, "skipped": skipped, "changed": changed_tags}
+    print(f"\nИтого: затронуто={touched}, пропущено={skipped}, llm_fallback={llm_fallbacks}")
+    return {
+        "ok": True,
+        "touched": touched,
+        "skipped": skipped,
+        "llm_fallback": llm_fallbacks,
+        "changed": changed_tags,
+    }
 
 
 def main() -> int:
