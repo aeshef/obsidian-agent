@@ -3,4 +3,4 @@
 domain_hints:
   finance: "денежные операции и сводки"
   planning: "задачи, цели, календарь, события по задачам"
-  knowledge: "поиск по vault Obsidian"
+  knowledge: "именованная заметка — read_knowledge_note; обзор темы — search_knowledge_base"

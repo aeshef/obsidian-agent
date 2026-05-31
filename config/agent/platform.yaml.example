@@ -15,6 +15,7 @@ llm_classify:
 
 knowledge_query:
   compact_catalog_max_chars: 220000
+  catalog_snippet_chars: 120
   preselect_max: 40
   select_candidates_max: 40
   preselect_max_tokens: 2048
@@ -24,7 +25,6 @@ knowledge_query:
   answer_timeout_sec: 300
   preselect_timeout_sec: 120
   select_timeout_sec: 60
-  fallback_recent_entries: 80
 
 planning_action_log:
   chain_hours: 48
