@@ -28,11 +28,19 @@ jobs:
             | xargs -0 python -m py_compile
 
       - name: Smoke imports (all bots)
+        env:
+          TELEGRAM_BOT_TOKEN: ci-smoke-test-token
+          TELEGRAM_FINANCE_BOT_TOKEN: ci-smoke-test-token
+          TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
+          DEEPSEEK_API_KEY: ci-smoke-test-key
         run: SMOKE_INSTALL=1 ./scripts/smoke_imports.sh
 
       - name: Integration tests
         env:
           PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/finance_bot:${{ github.workspace }}/knowledge_bot
+          TELEGRAM_BOT_TOKEN: ci-smoke-test-token
+          TELEGRAM_FINANCE_BOT_TOKEN: ci-smoke-test-token
+          DEEPSEEK_API_KEY: ci-smoke-test-key
         run: |
           finance_bot/.venv/bin/pip install -q pytest
           knowledge_bot/.venv/bin/pip install -q pytest

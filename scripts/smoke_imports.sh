@@ -9,6 +9,12 @@ source "$MONOREPO/scripts/lib/bootstrap_python.sh"
 INSTALL="${SMOKE_INSTALL:-0}"
 FAILED=0
 
+# finance_bot Settings валится без токенов при import bot.main (см. tests/conftest.py)
+export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-ci-smoke-test-token}"
+export TELEGRAM_FINANCE_BOT_TOKEN="${TELEGRAM_FINANCE_BOT_TOKEN:-ci-smoke-test-token}"
+export TELEGRAM_UNIFIED_BOT_TOKEN="${TELEGRAM_UNIFIED_BOT_TOKEN:-ci-smoke-test-token}"
+export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-ci-smoke-test-key}"
+
 echo "=== py_compile (без зависимостей) ==="
 while IFS= read -r f; do
   [ -n "$f" ] || continue
