@@ -13,3 +13,12 @@ categories:
   analytics:
     keywords: ["анализ", "сравн", "категор", "норм", "сбереж", "базлайн"]
     tools: [compute_summary, get_transactions, get_balance]
+  memory:
+    keywords: ["память", "профиль", "наблюден", "инсайт", "история диалог", "раньше говорил", "контекст"]
+    tools: [get_user_profile, get_user_insights, get_dialogue_history]
+  planning:
+    keywords: ["задач", "канбан", "цель", "календар", "рутин", "план", "делать дальше", "прогресс"]
+    tools: [get_kanban, get_goals, get_calendar, get_daily_context, get_action_log]
+  notes:
+    keywords: ["заметк", "база знан", "obsidian", "wiki", "найди в", "что у меня написано"]
+    tools: [search_knowledge_base]

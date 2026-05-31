@@ -1,0 +1,12 @@
+# Многослойная память (shared/memory). Пути относительно config/agent/, если не абсолютные.
+global_profile: user_profile.md
+
+headers:
+  global_profile: "## Общий профиль"
+  domain_profile:
+    finance: "## Профиль (финансы)"
+    planning: "## Контекст целей"
+
+insights:
+  global_limit: 8
+  domain_limit: 10

@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
 # Единый деплой монорепо obsidian-agent (серверная структура: $SERVER_BOTS/<component>).
 #
-#   ./deploy.sh --component shared --no-restart        # только shared/, без рестартов (безопасно)
-#   ./deploy.sh --component finance_bot --install-deps # finance + pip install + рестарт
-#   ./deploy.sh --component all                        # все компоненты
+#   ./scripts/deploy.sh --component all
+#   ./scripts/deploy.sh --prod                    # patch .env + config/agent + unified_bot + all + unified restart
+#   ./scripts/deploy.sh --prod --install-deps
+#   ./scripts/deploy.sh --patch-agent-env         # только ключи agent platform на VPS
+#   ./scripts/deploy.sh --restart-unified         # только unified_bot (nohup)
 #
 # Флаги:
 #   --component <name>   shared | finance_bot | knowledge_bot | planning_bot | all  (default all)
-#   --no-restart         только rsync, без перезапуска бота
-#   --install-deps       pip install -r requirements.txt на сервере в venv компонента
-#   --dry-run            rsync -n (показать что будет синкнуто, ничего не менять)
+#   --prod               полный prod-выкат (см. выше)
+#   --patch-agent-env    дописать TELEGRAM_UNIFIED_BOT_TOKEN, SYNTH_*, MEMORY_*, AGENT_* в server .env
+#   --restart-unified    перезапуск unified_bot после деплоя (или отдельно)
+#   --no-restart         без перезапуска ботов / unified
+#   --install-deps       pip install -r requirements.txt на сервере
+#   --dry-run            rsync -n
 #
 # НИКОГДА не перезаписывает на сервере: .env, *.db, logs/, data/, личные config (см. EXCLUDES).
 set -uo pipefail
@@ -17,6 +22,8 @@ set -uo pipefail
 MONOREPO="${MONOREPO:-$(cd "$(dirname "$0")/.." && pwd)}"
 # shellcheck source=scripts/lib/common.sh
 source "$MONOREPO/scripts/lib/common.sh"
+# shellcheck source=scripts/lib/deploy_agent.sh
+source "$MONOREPO/scripts/lib/deploy_agent.sh"
 common_load_env "$MONOREPO"
 
 SERVER="${SERVER:?Set SERVER in .env (SSH host for deploy)}"
@@ -25,6 +32,9 @@ COMPONENT="all"
 NO_RESTART=0
 INSTALL_DEPS=0
 DRYRUN=0
+PROD=0
+PATCH_AGENT_ENV=0
+RESTART_UNIFIED=0
 DEPLOY_VERIFY_WAIT="${DEPLOY_VERIFY_WAIT:-15}"
 RESTARTED=()
 
@@ -34,6 +44,9 @@ while [ $# -gt 0 ]; do
     --no-restart) NO_RESTART=1; shift;;
     --install-deps) INSTALL_DEPS=1; shift;;
     --dry-run) DRYRUN=1; shift;;
+    --prod) PROD=1; PATCH_AGENT_ENV=1; RESTART_UNIFIED=1; shift;;
+    --patch-agent-env) PATCH_AGENT_ENV=1; shift;;
+    --restart-unified) RESTART_UNIFIED=1; shift;;
     *) echo "Неизвестный флаг: $1"; exit 2;;
   esac
 done
@@ -49,6 +62,11 @@ EXCLUDES=(
   --exclude='CHAT_ID.txt' --exclude='goals_context.md'
 )
 
+AGENT_EXCLUDES=(
+  "${EXCLUDES[@]}"
+  --exclude='user_profile.md'
+)
+
 ssh_check() {
   ssh -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "❌ SSH $SERVER не отвечает"; exit 1; }
 }
@@ -61,6 +79,19 @@ rsync_comp() {
   [ "$DRYRUN" = 1 ] && flags="-navz"
   echo "🔄 rsync $name → $dst"
   rsync $flags "${EXCLUDES[@]}" "$src" "$dst"
+}
+
+rsync_agent_paths() {
+  local name="$1"
+  local src="$MONOREPO/$name/"
+  local dst="$SERVER:$SERVER_BOTS/$name/"
+  local flags="-avz"
+  [ "$DRYRUN" = 1 ] && flags="-navz"
+  if [ "$DRYRUN" = 0 ]; then
+    ssh "$SERVER" "mkdir -p '$SERVER_BOTS/$name'"
+  fi
+  echo "🔄 rsync $name → $dst"
+  rsync $flags "${AGENT_EXCLUDES[@]}" "$src" "$dst"
 }
 
 install_deps() {
@@ -155,9 +186,40 @@ verify_bots() {
   echo "✅ post-deploy verify OK"
 }
 
+# ── Режимы только patch / только unified ─────────────────────────
+if [ "$PATCH_AGENT_ENV" = 1 ] && [ "$PROD" = 0 ] && [ "$RESTART_UNIFIED" = 0 ]; then
+  ssh_check
+  patch_agent_env_remote "$DRYRUN"
+  exit $?
+fi
+
+if [ "$RESTART_UNIFIED" = 1 ] && [ "$PROD" = 0 ] && [ "$PATCH_AGENT_ENV" = 0 ]; then
+  ssh_check
+  [ "$DRYRUN" = 1 ] && { echo "dry-run: restart unified_bot"; exit 0; }
+  [ "$NO_RESTART" = 1 ] && { echo "⏭ --no-restart: unified не перезапускаем"; exit 0; }
+  restart_unified_bot_remote
+  exit $?
+fi
+
+# ── Основной deploy ───────────────────────────────────────────────
+if [ "$PROD" = 1 ]; then
+  echo "════════════════ deploy --prod ════════════════"
+fi
+
 ssh_check
+
+if [ "$PATCH_AGENT_ENV" = 1 ]; then
+  patch_agent_env_remote "$DRYRUN" || exit 1
+fi
+
+if [ "$PROD" = 1 ]; then
+  rsync_agent_paths "config/agent"
+  rsync_agent_paths "unified_bot"
+fi
+
 rsync_server_scripts
 [ "$DRYRUN" = 0 ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
+
 case "$COMPONENT" in
   shared)        deploy_one shared;;
   finance_bot)   deploy_one finance_bot;;
@@ -180,3 +242,7 @@ if [ "$DRYRUN" = 0 ] && { [ "$COMPONENT" = knowledge_bot ] || [ "$COMPONENT" = a
     --example $SERVER_BOTS/knowledge_bot/config/prompts/tags.example.txt" 2>/dev/null || true
 fi
 verify_bots
+
+if [ "$RESTART_UNIFIED" = 1 ] && [ "$NO_RESTART" = 0 ] && [ "$DRYRUN" = 0 ]; then
+  restart_unified_bot_remote
+fi

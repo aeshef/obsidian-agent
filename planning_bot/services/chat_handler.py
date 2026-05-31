@@ -112,66 +112,37 @@ class ChatHandler:
     # ------------------------------------------------------------------ #
 
     def load_history(self, chat_id: int) -> List[Dict[str, str]]:
-        """Загружает историю переписки для данного chat_id.
+        """История из shared session (домен planning), с тем же rolling window."""
+        from shared.memory import get_history
 
-        Всегда обрезаем до HISTORY_WINDOW последних сообщений. Иначе после смены лимита
-        в коде старый chat_history.json на диске (например 20 пар) целиком уходил в LLM.
-        """
-        try:
-            if CHAT_HISTORY_FILE.exists():
-                with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                raw = data.get(str(chat_id), [])
-                if isinstance(raw, list) and len(raw) > HISTORY_WINDOW:
-                    return raw[-HISTORY_WINDOW:]
-                return raw if isinstance(raw, list) else []
-        except Exception as e:
-            logger.warning("Не удалось загрузить историю чата: %s", e)
-        return []
+        msgs = get_history(chat_id, "planning")
+        raw = [{"role": m.role, "content": m.content} for m in msgs]
+        if len(raw) > HISTORY_WINDOW:
+            return raw[-HISTORY_WINDOW:]
+        return raw
 
     def save_history(self, chat_id: int, messages: List[Dict[str, str]]) -> None:
-        """Сохраняет историю (rolling window HISTORY_WINDOW сообщений)."""
-        try:
-            CHAT_HISTORY_FILE.parent.mkdir(parents=True, exist_ok=True)
-            data: Dict = {}
-            if CHAT_HISTORY_FILE.exists():
-                with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-            # Храним только последние HISTORY_WINDOW сообщений
-            data[str(chat_id)] = messages[-HISTORY_WINDOW:]
-            with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.warning("Не удалось сохранить историю чата: %s", e)
+        """Перезапись истории (legacy API для рефлексии)."""
+        from shared.memory import append_turn, clear_history
+
+        clear_history(chat_id, "planning")
+        for m in messages[-HISTORY_WINDOW:]:
+            append_turn(chat_id, "planning", m.get("role", "user"), m.get("content", ""))
 
     def append_to_history(
         self, chat_id: int, role: str, content: str
     ) -> List[Dict[str, str]]:
-        """Добавляет одно сообщение в историю и возвращает обновлённый список."""
-        history = self.load_history(chat_id)
-        history.append({"role": role, "content": content})
-        self.save_history(chat_id, history)
-        return history
+        from shared.memory import append_turn
+
+        append_turn(chat_id, "planning", role, content)
+        return self.load_history(chat_id)
 
     def clear_history(self, chat_id: int) -> bool:
-        """Удаляет сохранённую переписку для chat_id (сброс контекста LLM в чате)."""
-        try:
-            if not CHAT_HISTORY_FILE.exists():
-                return True
-            with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, dict):
-                return False
-            key = str(chat_id)
-            if key in data:
-                del data[key]
-            with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            logger.info("chat history cleared for chat_id=%s", chat_id)
-            return True
-        except Exception as e:
-            logger.warning("clear_history failed: %s", e)
-            return False
+        from shared.memory import clear_history
+
+        clear_history(chat_id, "planning")
+        logger.info("chat history cleared for chat_id=%s (shared session)", chat_id)
+        return True
 
     # ------------------------------------------------------------------ #
     # Сборка контекста                                                     #
@@ -416,11 +387,9 @@ class ChatHandler:
             logger.warning("chat: reply still bad after retry, log digest fallback")
             reply = self._fallback_reply_from_log()
 
-        # Сохраняем диалог в историю (уже без markdown-артефактов)
-        new_history = history + [
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": reply},
-        ]
-        self.save_history(chat_id, new_history)
+        from shared.memory import append_turn
+
+        append_turn(chat_id, "planning", "user", user_message)
+        append_turn(chat_id, "planning", "assistant", reply)
 
         return reply

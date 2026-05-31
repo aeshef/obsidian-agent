@@ -21,6 +21,7 @@
 **/config/author_context.txt
 **/config/initial_accounts.yaml
 **/config/user_context.md
+config/agent/user_profile.md
 **/config/badge.yaml
 **/config/badge_import_*.yaml
 **/config/subscriptions.yaml

@@ -172,6 +172,90 @@ def test_pick_host_domain_from_config(monkeypatch):
     assert pick_host_domain("привет", "auto", None, _App()) == "planning"
 
 
+def test_global_insights_in_all_domains(tmp_path, monkeypatch):
+    from shared.memory.constants import GLOBAL_DOMAIN
+    from shared.memory.insights import InsightsStore
+
+    db = tmp_path / "memory.db"
+    monkeypatch.setenv("AGENT_MEMORY_DB", str(db))
+    store = InsightsStore(db)
+    store.record_candidates(1, GLOBAL_DOMAIN, ["сплю мало → прокрастинация"])
+    pending = store.list_pending(1, GLOBAL_DOMAIN)
+    assert store.confirm(pending[0]["id"])
+    assert store.read_confirmed(1, GLOBAL_DOMAIN) == ["сплю мало → прокрастинация"]
+    assert store.read_confirmed(1, "finance") == []
+
+
+def test_build_memory_layers_order(tmp_path, monkeypatch):
+    from shared.agent.types import AgentContext
+    from shared.memory.base import build_system_prompt
+    from shared.memory.layers import build_memory_layers
+    from shared.memory.constants import GLOBAL_DOMAIN
+    from shared.memory.insights import InsightsStore
+
+    agent_dir = tmp_path / "config" / "agent"
+    agent_dir.mkdir(parents=True)
+    (agent_dir / "memory.yaml").write_text(
+        "global_profile: user_profile.md\ninsights: {global_limit: 5, domain_limit: 3}\n",
+        encoding="utf-8",
+    )
+    (agent_dir / "user_profile.md").write_text("Я — тест", encoding="utf-8")
+    monkeypatch.setenv("AGENT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENT_MEMORY_DB", str(tmp_path / "mem.db"))
+    from shared.memory import config as mem_cfg
+
+    mem_cfg.load_memory_config.cache_clear()
+    mem_cfg.load_memory_config()
+
+    store = InsightsStore(tmp_path / "mem.db")
+    store.record_candidates(9, GLOBAL_DOMAIN, ["глобальный паттерн"])
+    pid = store.list_pending(9, GLOBAL_DOMAIN)[0]["id"]
+    store.confirm(pid)
+
+    ctx = AgentContext(user_id=9, domain="knowledge", question="q", system_prompt="")
+    layers = build_memory_layers("knowledge")
+    out = asyncio.run(build_system_prompt("BASE", ctx, layers))
+    assert "BASE" in out
+    assert "Я — тест" in out
+    assert "глобальный паттерн" in out
+
+
+def test_memory_tools_cross_domain_dialogue(tmp_path, monkeypatch):
+    from shared.memory import session as sess
+    from shared.agent.memory_tools import get_dialogue_history
+    from shared.agent.types import AgentContext
+
+    sess._store.clear()
+    monkeypatch.setenv("MEMORY_SESSION_PERSIST", "0")
+    sess.append_turn(5, "finance", "user", "баланс?")
+    sess.append_turn(5, "planning", "user", "задачи?")
+
+    ctx = AgentContext(user_id=5, domain="finance", question="q", system_prompt="")
+    out = asyncio.run(get_dialogue_history(ctx=ctx, domain="planning", limit=4))
+    assert "planning" in out
+    assert "задачи" in out
+
+
+def test_attach_memory_tools_on_finance_registry():
+    from bot.agent_tools import build_finance_registry
+
+    reg = build_finance_registry()
+    for name in ("get_user_profile", "get_user_insights", "get_dialogue_history"):
+        assert name in reg.names()
+
+
+def test_clear_all_history(tmp_path, monkeypatch):
+    from shared.memory import session as sess
+
+    monkeypatch.setenv("MEMORY_SESSION_PERSIST", "0")
+    sess._store.clear()
+    sess.append_turn(1, "finance", "user", "a")
+    sess.append_turn(1, "planning", "user", "b")
+    sess.clear_all_history(1)
+    assert sess.get_history(1, "finance") == []
+    assert sess.get_history(1, "planning") == []
+
+
 def test_reply_keyboard_extras():
     from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
