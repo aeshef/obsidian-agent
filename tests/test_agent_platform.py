@@ -8,7 +8,6 @@ import pytest
 
 from shared.agent.tools import ToolRegistry, select_tools, tool
 from shared.agent.types import AgentContext
-from shared.agent.config import load_tools_config
 
 
 @tool(category="balance", always=True)
@@ -31,33 +30,53 @@ def test_tool_schema_required_param():
     assert "days" not in schema["required"]
 
 
-def test_tool_always_in_select():
+def test_select_tools_llm_merges_always(monkeypatch, tmp_path):
+    from shared.agent.llm_classify import select_tools_llm
+
+    agent_dir = tmp_path / "config" / "agent"
+    (agent_dir / "prompts").mkdir(parents=True)
+    (agent_dir / "prompts" / "tool_select_router.txt").write_text("pick tools", encoding="utf-8")
+    (agent_dir / "tools.yaml").write_text("domain_hints: {}\n", encoding="utf-8")
+    monkeypatch.setenv("AGENT_ROOT", str(tmp_path))
+    from shared.agent import config as agent_cfg
+
+    agent_cfg.load_tools_config.cache_clear()
+
     reg = ToolRegistry()
     reg.register(sample_balance)
     reg.register(sample_txn)
-    cfg = load_tools_config()
-    selected = select_tools("привет", reg, categories=cfg["categories"], fallback_threshold=4)
-    assert "sample_balance" in selected
+
+    async def _fake(system, payload, *, label):
+        return {"tools": ["sample_txn"], "reason": "test"}
+
+    monkeypatch.setattr(
+        "shared.agent.llm_classify._chat_json_classify",
+        _fake,
+    )
+    selected = asyncio.run(select_tools_llm("баланс", reg, domain="finance"))
+    assert selected == ["sample_balance", "sample_txn"]
 
 
-def test_select_tools_keyword_match():
+def test_select_tools_llm_rejects_unknown(monkeypatch, tmp_path):
+    from shared.agent.llm_classify import LLMClassificationError, select_tools_llm
+
+    agent_dir = tmp_path / "config" / "agent"
+    (agent_dir / "prompts").mkdir(parents=True)
+    (agent_dir / "prompts" / "tool_select_router.txt").write_text("pick tools", encoding="utf-8")
+    monkeypatch.setenv("AGENT_ROOT", str(tmp_path))
+    from shared.agent import config as agent_cfg
+
+    agent_cfg.load_tools_config.cache_clear()
+
     reg = ToolRegistry()
     reg.register(sample_balance)
-    reg.register(sample_txn)
-    cats = {
-        "transactions": {"keywords": ["потратил"], "tools": ["sample_txn"]},
-    }
-    selected = select_tools("потратил 500 на кофе", reg, categories=cats, fallback_threshold=4)
-    assert "sample_txn" in selected
-    assert "sample_balance" in selected
 
+    async def _fake(system, payload, *, label):
+        return {"tools": ["ghost_tool"]}
 
-def test_select_tools_fallback_all():
-    reg = ToolRegistry()
-    reg.register(sample_balance)
-    reg.register(sample_txn)
-    selected = select_tools("абракадабра без ключей", reg, categories={}, fallback_threshold=4)
-    assert set(selected) == {"sample_balance", "sample_txn"}
+    monkeypatch.setattr("shared.agent.llm_classify._chat_json_classify", _fake)
+    with pytest.raises(LLMClassificationError, match="unknown tools"):
+        asyncio.run(select_tools_llm("вопрос", reg, domain="finance"))
 
 
 def test_tool_handler_runs():

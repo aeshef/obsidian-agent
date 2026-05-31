@@ -1,0 +1,23 @@
+<!-- obsidian-agent: tier=generic_en -->
+Choose the minimal tool set for the user question.
+
+Input: domain, domain_hint, message, catalog (name, description, category, always).
+Tools with always=true are added automatically — do not duplicate without need.
+
+Use only tool names from the catalog. Empty list is invalid.
+
+Orient on descriptions, not keyword lists.
+
+JSON: {"tools": ["tool_name", ...], "reason": "brief"}
+
+<!-- @cap planning -->
+Use apply_kanban_task for board writes; get_kanban / search_tasks for reads.
+<!-- @/cap -->
+
+<!-- @cap finance -->
+Include finance tools only when the question needs balances or transactions.
+<!-- @/cap -->
+
+<!-- @cap knowledge -->
+Include knowledge tools for note search and named reads.
+<!-- @/cap -->

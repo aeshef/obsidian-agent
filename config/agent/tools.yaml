@@ -1,24 +1,7 @@
-fallback_threshold: 4
+# Выбор инструментов — только LLM (prompts/tool_select_router.txt + shared/agent/llm_classify.select_tools_llm).
+# Регистрация @tool — в коде доменных адаптеров. Keyword-matching удалён.
 
-categories:
-  balance:
-    keywords: ["баланс", "счет", "счёт", "карта", "кошелек", "кошелёк", "остаток"]
-    tools: [get_balance]
-  transactions:
-    keywords: ["транзак", "операц", "расход", "доход", "потрат", "купил", "заплат", "перевод", "последн", "операци"]
-    tools: [get_transactions, get_recent]
-  summary:
-    keywords: ["сводк", "итог", "сколько", "сумм", "март", "апрел", "месяц", "недел", "динамик", "тренд"]
-    tools: [compute_summary, get_transactions]
-  analytics:
-    keywords: ["анализ", "сравн", "категор", "норм", "сбереж", "базлайн"]
-    tools: [compute_summary, get_transactions, get_balance]
-  memory:
-    keywords: ["память", "профиль", "наблюден", "инсайт", "история диалог", "раньше говорил", "контекст"]
-    tools: [get_user_profile, get_user_insights, get_dialogue_history]
-  planning:
-    keywords: ["задач", "канбан", "цель", "календар", "рутин", "план", "делать дальше", "прогресс"]
-    tools: [get_kanban, get_goals, get_calendar, get_daily_context, get_action_log]
-  notes:
-    keywords: ["заметк", "база знан", "obsidian", "wiki", "найди в", "что у меня написано"]
-    tools: [search_knowledge_base]
+domain_hints:
+  finance: "балансы, операции, сводки расходов, категории, сравнение периодов"
+  planning: "канбан, цели, календарь, контекст дня, лог действий по задачам"
+  knowledge: "полнотекстовый поиск по Obsidian vault"
