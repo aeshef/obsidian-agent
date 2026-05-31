@@ -1,0 +1,35 @@
+# Скопируйте: cp config/agent/platform.yaml.example config/agent/platform.yaml
+# Переопределение: env (см. docs/ENV_REFERENCE.md) имеет приоритет над YAML.
+
+vault:
+  # Подкаталог базы знаний внутри VAULT_PATH (rel_path в индексе).
+  knowledge_subdir: Knowledge
+
+agent:
+  max_iters: 6
+
+llm_classify:
+  timeout_sec: 25
+  temperature: 0.0
+  dialogue_hint_per_domain: 2
+
+knowledge_query:
+  compact_catalog_max_chars: 220000
+  preselect_max: 40
+  select_candidates_max: 40
+  preselect_max_tokens: 2048
+  select_max_tokens: 1024
+  max_selected_notes: 14
+  max_media_per_query: 6
+  answer_timeout_sec: 300
+  preselect_timeout_sec: 120
+  select_timeout_sec: 60
+  fallback_recent_entries: 80
+
+planning_action_log:
+  chain_hours: 48
+  chain_max_events: 0
+  safety_max_events: 10000
+
+json_parse:
+  error_preview_chars: 400

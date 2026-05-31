@@ -1,7 +1,0 @@
-# Выбор инструментов — только LLM (prompts/tool_select_router.txt + shared/agent/llm_classify.select_tools_llm).
-# Регистрация @tool — в коде доменных адаптеров. Keyword-matching удалён.
-
-domain_hints:
-  finance: "балансы, операции, сводки расходов, категории, сравнение периодов"
-  planning: "канбан, цели, календарь, контекст дня, лог действий по задачам"
-  knowledge: "полнотекстовый поиск по Obsidian vault"

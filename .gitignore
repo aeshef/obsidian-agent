@@ -22,6 +22,14 @@
 **/config/initial_accounts.yaml
 **/config/user_context.md
 config/agent/user_profile.md
+config/agent/platform.yaml
+config/agent/memory.yaml
+config/agent/models.yaml
+config/agent/routing.yaml
+config/agent/tools.yaml
+config/agent/prompts/*.txt
+!config/agent/prompts/*.example.txt
+!config/agent/*.example.yaml
 **/config/badge.yaml
 **/config/badge_import_*.yaml
 **/config/subscriptions.yaml

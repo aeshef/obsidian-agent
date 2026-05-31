@@ -215,6 +215,10 @@ fi
 if [ "$PROD" = 1 ]; then
   rsync_agent_paths "config/agent"
   rsync_agent_paths "unified_bot"
+  if [ "$DRYRUN" = 0 ]; then
+    echo "📋 ensure config/agent from *.example on server..."
+    common_ssh "cd '${SERVER_BOTS}' && bash scripts/setup_agent_config.sh" || true
+  fi
 fi
 
 rsync_server_scripts

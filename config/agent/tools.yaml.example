@@ -1,0 +1,6 @@
+# domain_hints — одна строка контекста для LLM tool-select (без привязки к фразам/сценариям).
+
+domain_hints:
+  finance: "денежные операции и сводки"
+  planning: "задачи, цели, календарь, события по задачам"
+  knowledge: "поиск по vault Obsidian"
