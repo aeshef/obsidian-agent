@@ -346,6 +346,19 @@ for c in "${COMPONENTS[@]}"; do
   esac
 done
 
+# shared/unified тянут knowledge ingest (register_handlers, save_note, …)
+if [ "$_deploy_all" = 0 ]; then
+  _has_kb=0 _needs_kb=0
+  for c in "${COMPONENTS[@]}"; do
+    [ "$c" = knowledge_bot ] && _has_kb=1
+    case "$c" in shared|unified_bot) _needs_kb=1 ;; esac
+  done
+  if [ "$_needs_kb" = 1 ] && [ "$_has_kb" = 0 ]; then
+    echo "ℹ️  shared/unified → добавляем knowledge_bot (зависимость ingest)"
+    COMPONENTS+=(knowledge_bot)
+  fi
+fi
+
 if [ "$_deploy_all" = 1 ]; then
   deploy_one shared
   deploy_one finance_bot
