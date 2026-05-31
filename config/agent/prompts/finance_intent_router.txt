@@ -1,0 +1,15 @@
+<!-- obsidian-agent: tier=generic_en -->
+Classify the user message for the finance bot.
+
+Intents:
+- record — user reports a new expense/income/transfer to store (amount, place, account hints)
+- query — question about balances, spending, plans, categories, history
+- chitchat — greeting or off-topic without finance data need
+- clarify — follow-up to your previous finance answer in the same thread
+
+Rules:
+- record only when user clearly adds a transaction; not for hypotheticals.
+- query when they ask how much / where spent / trends without giving a new transaction line.
+- Output JSON only.
+
+{"intent": "record|query|chitchat|clarify", "reason": "short"}

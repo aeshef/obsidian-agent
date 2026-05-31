@@ -103,13 +103,13 @@ def test_resolve_domain_multi_fixed(monkeypatch):
     assert resolve_domain("сколько потратил на еду") == Domain.FINANCE
 
 
-def test_resolve_domain_single_classifies(monkeypatch):
+def test_resolve_domain_single_raises(monkeypatch):
     from shared.agent.routing import resolve_domain
 
     monkeypatch.setenv("DEPLOY_MODE", "single")
     monkeypatch.delenv("AGENT_DOMAIN", raising=False)
-    # не падает и возвращает валидный домен
-    assert resolve_domain("привет").value
+    with pytest.raises(RuntimeError, match="classify_host_domain_llm"):
+        resolve_domain("привет")
 
 
 def test_session_sqlite_persist(tmp_path, monkeypatch):
@@ -158,8 +158,8 @@ def test_finance_reply_menu_covers_nlu_config():
     assert nlu_menu_buttons(cfg) <= set(handlers)
 
 
-def test_pick_host_domain_from_config(monkeypatch):
-    from shared.telegram.host.agent import pick_host_domain
+def test_pick_host_domain_uses_llm(monkeypatch):
+    from shared.telegram.host import agent as host_agent
 
     class _App:
         def has_domain(self, name: str) -> bool:
@@ -168,8 +168,15 @@ def test_pick_host_domain_from_config(monkeypatch):
         def domains(self) -> list[str]:
             return ["finance", "planning"]
 
+    async def _fake(text, **kwargs):
+        return "planning"
+
     monkeypatch.setenv("DEPLOY_MODE", "single")
-    assert pick_host_domain("привет", "auto", None, _App()) == "planning"
+    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
+    out = asyncio.run(
+        host_agent.pick_host_domain("привет", "auto", None, _App(), chat_id=1)
+    )
+    assert out == "planning"
 
 
 def test_global_insights_in_all_domains(tmp_path, monkeypatch):
@@ -234,6 +241,20 @@ def test_memory_tools_cross_domain_dialogue(tmp_path, monkeypatch):
     out = asyncio.run(get_dialogue_history(ctx=ctx, domain="planning", limit=4))
     assert "planning" in out
     assert "задачи" in out
+
+
+def test_format_insights_lists_pending(tmp_path, monkeypatch):
+    from shared.memory.insights import InsightsStore, get_store
+    from shared.memory.layers import format_insights_text
+
+    db = tmp_path / "memory.db"
+    monkeypatch.setenv("AGENT_MEMORY_DB", str(db))
+    get_store.cache_clear()
+    store = InsightsStore(db)
+    store.record_candidates(3, "finance", ["кандидат тест"])
+    out = format_insights_text(3, scope="current", current_domain="finance")
+    assert "кандидат" in out
+    assert "/memory" in out
 
 
 def test_attach_memory_tools_on_finance_registry():
