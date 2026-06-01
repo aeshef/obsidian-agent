@@ -177,51 +177,8 @@ class ChatHandler:
         except Exception as e:
             logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
 
-        # 2b. Контекст Mac (батарея, фокус, приложение, погода)
-        # Сначала context_today.json (после rsync с мака на сервер — канон без txt);
-        # иначе парсинг Mac/Контекст_*.txt (окно 10:00–02:00).
-        try:
-            from planning_bot.core.config import CONTEXT_MAC_DIR, CONTEXT_TODAY_JSON
-            from planning_bot.services.context_parser import (
-                format_for_llm,
-                get_today_snapshot,
-                load_chat_snapshot_from_json,
-            )
-
-            snap = load_chat_snapshot_from_json(CONTEXT_TODAY_JSON)
-            if not snap:
-                snap = get_today_snapshot(CONTEXT_MAC_DIR, logging_window_only=True)
-            ctx_str = format_for_llm(snap)
-            if ctx_str:
-                parts.append(ctx_str)
-        except Exception as e:
-            logger.debug("Не удалось загрузить контекст Mac: %s", e)
-
-        # 2c. Последний iPhone-снапшот (здоровье, шаги, вес)
-        try:
-            from planning_bot.core.config import IPHONE_CONTEXT_DIR
-            from planning_bot.services.iphone_context_parser import (
-                format_for_llm as iphone_format_for_llm,
-                get_latest_snapshot,
-            )
-
-            iphone_snap = get_latest_snapshot(IPHONE_CONTEXT_DIR)
-            iphone_str = iphone_format_for_llm(iphone_snap)
-            if iphone_str:
-                parts.append(iphone_str)
-        except Exception as e:
-            logger.debug("Не удалось загрузить iPhone-контекст: %s", e)
-
-        # 2d. Календарь (встречи) — для вопросов про время, загрузку, «когда лучше»
-        try:
-            from planning_bot.core.config import CALENDAR_JSON_FILE
-            from planning_bot.services.calendar_service import get_chat_calendar_context
-
-            cal = get_chat_calendar_context(CALENDAR_JSON_FILE)
-            if cal:
-                parts.append(cal)
-        except Exception as e:
-            logger.debug("Не удалось загрузить календарь для чата: %s", e)
+        # Mac / Health / календарь — через agent tools (get_mac_context, get_health_*, get_calendar).
+        # Legacy-чат не дублирует их в system prompt.
 
         # 3. Только блоки «Что нужно сделать:» из goals_context.md
         try:
