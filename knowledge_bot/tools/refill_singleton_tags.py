@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Чистка singleton-тегов (count=1): для каждой заметки передаём текущие теги и сколько
-раз каждый тег встречается в базе. LLM решает по каждому тегу — оставить или убрать:
-общие/важные (например genetics) оставить, специфичные/шумные (gt40, hot-wheels) убрать.
-Новые теги не добавляются, только keep/remove из текущего набора.
+Чистка редких topic/* и прочих синглтонов: LLM решает ОСТАВИТЬ vs УБРАТЬ по смыслу.
+Новые теги не добавляются (для добавления устоявшихся — retag_notes.py).
 
-Требует DEEPSEEK_API_KEY в окружении (или .env).
   python refill_singleton_tags.py              # dry-run
-  python refill_singleton_tags.py --apply       # записать теги
-  python refill_singleton_tags.py --apply --limit 10   # только первые 10 заметок
+  python refill_singleton_tags.py --apply
+  python refill_singleton_tags.py --apply --limit 10
+  python refill_singleton_tags.py --all --apply   # весь backlog
+  python refill_singleton_tags.py --topic-max-count 2
 """
 from __future__ import annotations
 
@@ -21,10 +20,8 @@ from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-# Подгрузка .env (как в reprocess_notes / apply_wikilinks_batch)
-for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().parent.parent / ".env"]:
+_pkg = Path(__file__).resolve().parent.parent
+for _p in (_pkg / ".env", _pkg.parent / ".env"):
     if _p.exists():
         for _line in _p.read_text(encoding="utf-8", errors="ignore").splitlines():
             _line = _line.strip()
@@ -33,129 +30,238 @@ for _p in [Path(__file__).resolve().parent / ".env", Path(__file__).resolve().pa
                 if _k.strip():
                     os.environ.setdefault(_k.strip(), _v.strip().strip("'\""))
 
+sys.path.insert(0, str(_pkg.parent))
+
 from knowledge_bot.core.config import load_config
-from knowledge_bot.services.tags_inventory import scan_all_notes
-from knowledge_bot.core.settings import load_enums_config
 from knowledge_bot.core.llm import LLMClient
-
-REFILL_SYSTEM = """Задача: у заметки есть список тегов. Для каждого тега указано, сколько заметок в базе знаний его используют (count).
-
-Правила:
-- Теги с count=1 (синглтоны) — редко встречаются. Реши по смыслу: ОСТАВИТЬ или УБРАТЬ.
-- ОСТАВИТЬ: тег важный и общий (например topic/genetics, topic/archaeology — одна заметка, но тема значимая для навигации).
-- УБРАТЬ: тег специфичный/шумный (например topic/gt40, topic/hot-wheels, topic/subtitles — слишком узкий или мусорный).
-
-Теги с count>=2 не трогай — оставляй. Не добавляй новых тегов, только выбери подмножество текущих (какие оставить).
-
-Вход: type заметки, краткий контекст (body), current_tags_with_counts — список {"tag": "topic/...", "count": N}.
-Выход: JSON с одним полем "tags" — массив строк, только те теги, которые должны остаться у заметки. Без комментариев."""
-
-
+from knowledge_bot.core.settings import load_enums_config, load_prompt
 from knowledge_bot.services.tag_normalize import normalize_tags
+from knowledge_bot.services.tags_inventory import rebuild_inventory, scan_all_notes
+
+_FM_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n(.*)$", re.DOTALL)
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description="Оставить/убрать singleton-теги по решению LLM (count в промпте, без добавления новых)")
-    ap.add_argument("--apply", action="store_true", help="Записать новые теги в заметки")
-    ap.add_argument("--limit", type=int, default=0, help="Максимум заметок обработать (0 = все)")
-    args = ap.parse_args()
+def _parse_note(path: Path) -> tuple[dict, str] | None:
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    m = _FM_RE.match(text)
+    if not m:
+        return None
+    try:
+        fm = yaml.safe_load(m.group(1)) or {}
+    except Exception:
+        return None
+    return fm, m.group(2)
 
-    cfg = load_config()
-    db_root = cfg.vault_path / "700_База_Данных"
+
+def _is_rare_tag(tag: str, count: int, *, topic_max_count: int) -> bool:
+    if not isinstance(tag, str) or not tag.strip():
+        return False
+    t = tag.strip()
+    if t.startswith("topic/"):
+        return count <= topic_max_count
+    return count <= 1
+
+
+def _find_candidates(
+    vault: Path,
+    inv: dict,
+    *,
+    topic_max_count: int,
+) -> list[tuple[Path, dict, str, list[str], list[str]]]:
+    """(path, fm, body, all_tags, rare_tags) — заметки с ≥1 редким тегом."""
+    tags_data: dict = inv.get("tags", {})
+    db_root = vault / "700_База_Данных"
     if not db_root.exists():
-        print("700_База_Данных не найден", file=sys.stderr)
-        sys.exit(1)
+        return []
 
-    if not cfg.deepseek_api_key:
-        print("Нужен DEEPSEEK_API_KEY в окружении (или задай в .env и загрузи вручную).", file=sys.stderr)
-        sys.exit(1)
-
-    inv = scan_all_notes(cfg.vault_path)
-    tags_data = inv.get("tags", {})
-    singleton_tags = {tag for tag, info in tags_data.items() if info.get("count", 0) == 1}
-    if not singleton_tags:
-        print("Нет тегов с 1 заметкой. Нечего перезаполнять.")
-        return
-
-    # Собираем заметки, у которых есть хотя бы один singleton-тег
-    notes_to_refill: list[tuple[Path, dict, str, list[str]]] = []  # path, fm, body, current_tags
+    out: list[tuple[Path, dict, str, list[str], list[str], int]] = []
     for path in sorted(db_root.rglob("*.md")):
-        if "Export" in path.parts:
+        if "Export" in path.parts or path.name.startswith("🗺️"):
             continue
-        try:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-        except Exception:
+        parsed = _parse_note(path)
+        if not parsed:
             continue
-        m = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, re.DOTALL)
-        if not m:
-            continue
-        fm_str, body = m.group(1), m.group(2)
-        try:
-            data = yaml.safe_load(fm_str) or {}
-        except Exception:
-            continue
-        tags = data.get("tags", [])
+        fm, body = parsed
+        tags = fm.get("tags", [])
         if not isinstance(tags, list):
             continue
-        tags_set = {str(t).strip() for t in tags if t}
-        has_singleton = bool(tags_set & singleton_tags)
-        if not has_singleton:
-            continue
-        notes_to_refill.append((path, data, body, list(tags_set)))
+        all_tags = [str(t).strip() for t in tags if t]
+        rare: list[str] = []
+        for t in all_tags:
+            c = int(tags_data.get(t, {}).get("count") or 0)
+            if _is_rare_tag(t, c, topic_max_count=topic_max_count):
+                rare.append(t)
+        if rare:
+            out.append((path, fm, body, all_tags, rare, len(rare)))
 
-    if not notes_to_refill:
-        print("Нет заметок с singleton-тегами.")
-        return
+    out.sort(key=lambda x: (-x[5], -len(x[4]), str(x[0])))
+    return [(p, fm, body, at, rt) for p, fm, body, at, rt, _ in out]
 
-    if args.limit:
-        notes_to_refill = notes_to_refill[: args.limit]
-    print(f"Заметок к перезаполнению тегов: {len(notes_to_refill)}")
-    if not args.apply:
-        print("=== DRY-RUN (запустите с --apply для записи) ===\n")
+
+def refill_singleton_tags(
+    *,
+    vault: Path,
+    cfg,
+    limit: int | None,
+    apply: bool,
+    topic_max_count: int = 2,
+    verbose: bool = False,
+) -> dict:
+    if apply:
+        from shared.llm_reachable import deepseek_api_reachable
+
+        if not deepseek_api_reachable():
+            print(
+                "⚠️ api.deepseek.com недоступен — refill_singleton пропущен.\n"
+                "   Повтори: FORCE_VAULT_MAINTENANCE=1 obsidian_sync.sh"
+            )
+            return {"ok": False, "touched": 0, "skipped": 0, "network_skip": True}
+
+    inv = scan_all_notes(vault)
+    tags_data = inv.get("tags", {})
+    candidates = _find_candidates(vault, inv, topic_max_count=topic_max_count)
+
+    if limit is not None:
+        candidates = candidates[:limit]
+
+    print(
+        f"Заметок с редкими тегами (topic/* count≤{topic_max_count}, прочие count≤1): "
+        f"{len(candidates)}"
+    )
+    if not candidates:
+        return {"ok": True, "touched": 0, "skipped": 0}
+
+    if not cfg.deepseek_api_key:
+        print("Нужен DEEPSEEK_API_KEY", file=sys.stderr)
+        return {"ok": False, "touched": 0, "skipped": 0}
+
+    system_prompt = load_prompt(cfg.agent_config_path, "refill_singleton_tags", required=True)
+    if not system_prompt.strip():
+        print(
+            "Промпт config/prompts/refill_singleton_tags.txt пуст. "
+            "Скопируйте из refill_singleton_tags.example.txt",
+            file=sys.stderr,
+        )
+        return {"ok": False, "touched": 0, "skipped": 0}
 
     enums_cfg = load_enums_config(cfg.agent_config_path)
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
-    modified = 0
-    for path, data, body, current_tags in notes_to_refill:
-        rel = path.relative_to(cfg.vault_path)
-        note_type = data.get("type") or "Знания"
+    touched, skipped, llm_errors = 0, 0, 0
+
+    for path, fm, body, current_tags, rare_tags in candidates:
+        rel = path.relative_to(vault)
+        note_type = fm.get("type") or "Знания"
         body_preview = (body.strip() or "")[:1500]
         tags_with_counts = [
-            {"tag": t, "count": tags_data.get(t, {}).get("count", 0)}
+            {"tag": t, "count": int(tags_data.get(t, {}).get("count") or 0)}
             for t in current_tags
         ]
         tags_user = {
             "type": note_type,
             "body_preview": body_preview,
             "current_tags_with_counts": tags_with_counts,
+            "rare_tags_on_note": rare_tags,
         }
         try:
-            tag_resp = llm.chat_json(REFILL_SYSTEM, json.dumps(tags_user, ensure_ascii=False)).content
+            tag_resp = llm.chat_json(
+                system_prompt,
+                json.dumps(tags_user, ensure_ascii=False),
+                timeout=60.0,
+            ).content
         except Exception as e:
-            print(f"  {rel}: LLM error — {e}", file=sys.stderr)
+            print(f"  ⚠ {rel}: LLM error — {e}", file=sys.stderr)
+            llm_errors += 1
             continue
+
+        if isinstance(tag_resp, dict) and tag_resp.get("error") == "llm_unavailable":
+            llm_errors += 1
+            skipped += 1
+            continue
+
         if isinstance(tag_resp, dict) and "tags" in tag_resp:
             tag_candidates = tag_resp.get("tags") or []
         else:
             tag_candidates = tag_resp if isinstance(tag_resp, list) else []
-        new_tags = normalize_tags(tag_candidates, enums_cfg, note_type, allowed_tags=set(current_tags))
+
+        new_tags = normalize_tags(
+            tag_candidates,
+            enums_cfg,
+            note_type,
+            allowed_tags=set(current_tags),
+        )
         if not new_tags:
             new_tags = list(current_tags)
-        print(f"  {rel}: было {current_tags} → стало {new_tags}")
-        if args.apply and set(new_tags) != set(current_tags):
-            data["tags"] = new_tags
-            buf = __import__("io").StringIO()
-            yaml.dump(data, buf, allow_unicode=True, default_flow_style=False, sort_keys=False)
-            new_fm = buf.getvalue().strip()
-            new_text = "---\n" + new_fm + "\n---\n" + body
-            path.write_text(new_text, encoding="utf-8")
-            modified += 1
 
-    if args.apply and modified:
-        print(f"\nОбновлено заметок: {modified}. Пересобери инвентарь: python tags_inventory.py")
-    elif not args.apply:
-        print("\nDry-run завершён. Запустите с --apply для записи.")
+        removed = sorted(set(current_tags) - set(new_tags))
+        if set(new_tags) == set(current_tags):
+            if verbose:
+                print(f"  = {rel}: без изменений")
+            skipped += 1
+            continue
+
+        print(f"  {'✏' if apply else '~'} {rel}")
+        print(f"    было:  {current_tags}")
+        print(f"    стало: {new_tags}")
+        if removed:
+            print(f"    убрано: {removed}")
+
+        if apply:
+            fm["tags"] = new_tags
+            buf = __import__("io").StringIO()
+            yaml.dump(fm, buf, allow_unicode=True, default_flow_style=False, sort_keys=False)
+            path.write_text("---\n" + buf.getvalue().strip() + "\n---\n" + body, encoding="utf-8")
+            touched += 1
+        else:
+            touched += 1  # dry-run: считаем как «затронуто» для отчёта
+
+    if apply and touched:
+        try:
+            rebuild_inventory()
+        except Exception as exc:
+            print(f"  ⚠ rebuild_inventory: {exc}")
+
+    print(f"\nИтого refill: затронуто={touched}, пропущено={skipped}, llm_errors={llm_errors}")
+    return {
+        "ok": True,
+        "touched": touched,
+        "skipped": skipped,
+        "llm_errors": llm_errors,
+    }
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(
+        description="Оставить/убрать редкие topic/* и синглтоны по решению LLM",
+    )
+    ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--all", dest="all_notes", action="store_true")
+    ap.add_argument("--limit", type=int, default=20)
+    ap.add_argument("--topic-max-count", type=int, default=2)
+    ap.add_argument("--vault", type=str, default="")
+    ap.add_argument("--verbose", action="store_true")
+    args = ap.parse_args()
+
+    if args.vault:
+        os.environ["VAULT_PATH"] = args.vault
+
+    cfg = load_config()
+    limit = None if args.all_notes else args.limit
+
+    result = refill_singleton_tags(
+        vault=cfg.vault_path,
+        cfg=cfg,
+        limit=limit,
+        apply=args.apply,
+        topic_max_count=args.topic_max_count,
+        verbose=args.verbose,
+    )
+    if result.get("network_skip"):
+        return 3
+    return 0 if result.get("ok", True) else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

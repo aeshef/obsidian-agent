@@ -16,6 +16,14 @@ apply_wikilinks:
   apply: true
   limit: 30
 
+# Убрать узкие topic/* (фильмы, фестивали, ielts-writing…) и прочий шум-синглтон.
+# Идёт ДО retag_notes: сначала чистка, потом добавление устоявшихся domain/topic.
+refill_singleton_tags:
+  enabled: true
+  apply: true
+  limit: 30
+  topic_max_count: 2   # topic/* с count≤2 — кандидат на удаление; прочие неймспейсы — только count=1
+
 # Перетегирование заметок с редкими тегами (count≤threshold), дёшево
 # Сортировка: сначала заметки с наибольшим числом плохих тегов
 retag_notes:
@@ -39,7 +47,6 @@ apply_duplicates:
   enabled: true
   max_delete_per_run: 100   # безопасный потолок; при превышении — алерт вместо применения
 
-# Синглтон-теги (count=1): только dry-run-отчёт → Telegram-подсказка с командой для ручного применения.
-# Автоприменение намеренно отключено — решение остаётся за пользователем.
+# Устарело: слепое удаление всех count=1 (убивает и «хорошие» синглтоны). Оставлено выключенным.
 singleton_tags_report:
-  enabled: true
+  enabled: false
