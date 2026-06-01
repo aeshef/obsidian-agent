@@ -26,6 +26,11 @@ knowledge_query:
   preselect_timeout_sec: 120
   select_timeout_sec: 60
 
+planning:
+  # Meta-only («заведи задачку») уйдёт в chat, не в create task
+  task_min_alnum_chars: 12
+  task_min_words: 4
+
 planning_action_log:
   chain_hours: 48
   chain_max_events: 0
