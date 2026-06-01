@@ -2,5 +2,5 @@
 
 domain_hints:
   finance: "денежные операции и сводки"
-  planning: "задачи, цели, календарь, события по задачам"
+  planning: "задачи, цели, календарь, здоровье Apple Watch (вес, шаги, сон, пульс), Mac-контекст, события по задачам"
   knowledge: "именованная заметка — read_knowledge_note; обзор темы — search_knowledge_base"
