@@ -23,16 +23,21 @@ REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/root/bots}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"
 
 mkdir -p "$DATA_DIR"
-SSH_OPTS=(-o UseKeychain=yes -o AddKeysToAgent=yes -o ConnectTimeout=10)
+SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 
 # Обновить брокера на сервере, затем уже качать БД (иначе дашборд видит вчерашний снимок до 7:00).
 _refresh_broker_on_server() {
   [[ "${FINANCE_REFRESH_BROKER_BEFORE_PULL:-1}" == "0" ]] && return 0
   echo "ℹ️ Брокер на сервере: синх перед скачиванием БД…" >&2
-  if ssh "${SSH_OPTS[@]}" "$SERVER" "REMOTE_BOT_DIR='$REMOTE_BOT_DIR'" bash -s <<'REMOTE'
+  if ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" bash -s <<'REMOTE'
 set -euo pipefail
 cd "${REMOTE_BOT_DIR:?}"
 export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
+# monorepo shared/ (родитель finance_bot на VPS)
+if [ -d ../shared ]; then
+  export PYTHONPATH="$(cd .. && pwd):${PYTHONPATH}"
+fi
 set -a
 [[ -f .env ]] && . ./.env
 set +a
@@ -50,7 +55,8 @@ REMOTE
 }
 
 resolve_remote_db() {
-  ssh "${SSH_OPTS[@]}" "$SERVER" "REMOTE_DB='$REMOTE_DB' REMOTE_BOT_DIR='$REMOTE_BOT_DIR' python3 - <<'PY'
+  ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "REMOTE_DB='${REMOTE_DB}' REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}' python3" <<'PY'
 import os
 from pathlib import Path
 
@@ -74,7 +80,7 @@ env_path = bot_dir / '.env'
 if env_path.exists():
     for line in env_path.read_text(encoding='utf-8').splitlines():
         if line.startswith('DATABASE_URL='):
-            url = line.split('=', 1)[1].strip().strip('\"').strip(\"'\")
+            url = line.split('=', 1)[1].strip().strip('"').strip("'")
             prefix = 'sqlite+aiosqlite:///'
             if url.startswith(prefix):
                 add_candidate(url[len(prefix):])
@@ -110,7 +116,7 @@ if not unique:
 
 best = max(unique, key=lambda p: p.stat().st_mtime)
 print(best)
-PY" 2>/dev/null
+PY
 }
 
 REMOTE_DB_RESOLVED="$REMOTE_DB"

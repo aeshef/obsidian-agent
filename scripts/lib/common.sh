@@ -61,6 +61,68 @@ common_resolve_python() {
     command -v python3
 }
 
+# site-packages venv (matplotlib/sqlalchemy и т.д.) без активации venv
+common_bot_site_packages() {
+    local bot_root="$1" v sp
+    for v in .venv venv; do
+        sp="$(ls -d "$bot_root/$v/lib/python"*/site-packages 2>/dev/null | head -1)"
+        if [ -n "$sp" ] && [ -d "$sp" ]; then
+            echo "$sp"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Версия Python из venv (3.12) — для подбора системного интерпретатора той же minor
+common_venv_python_tag() {
+    local bot_root="$1" py
+    for py in "$bot_root/.venv/bin/python" "$bot_root/venv/bin/python"; do
+        if [ -x "$py" ]; then
+            "$py" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null && return 0
+        fi
+    done
+    echo "3.12"
+}
+
+# LaunchAgent без FDA не читает Documents/.../.venv/pyvenv.cfg — venv падает на import site.
+# Fallback: Homebrew python той же minor + site-packages venv на PYTHONPATH.
+common_resolve_python_usable() {
+    local bot_root="$1" py ver candidate
+    for py in "$bot_root/.venv/bin/python" "$bot_root/venv/bin/python"; do
+        if [ -x "$py" ] && "$py" -c "import site" 2>/dev/null; then
+            echo "$py"
+            return 0
+        fi
+    done
+    ver="$(common_venv_python_tag "$bot_root")"
+    for candidate in \
+        "/opt/homebrew/bin/python${ver}" \
+        "/usr/local/bin/python${ver}" \
+        "python${ver}"; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            py="$(command -v "$candidate")"
+            if "$py" -c "import site" 2>/dev/null; then
+                echo "$py"
+                return 0
+            fi
+        fi
+    done
+    if [ -x "/opt/homebrew/bin/python3" ] && /opt/homebrew/bin/python3 -c "import site" 2>/dev/null; then
+        echo "/opt/homebrew/bin/python3"
+        return 0
+    fi
+    command -v python3
+}
+
+common_export_bot_pythonpath() {
+    local bot_root="$1"
+    local monorepo="${2:-$(dirname "$bot_root")}"
+    local sp
+    sp="$(common_bot_site_packages "$bot_root" 2>/dev/null || true)"
+    export PYTHONPATH="$bot_root:$monorepo${sp:+:$sp}${PYTHONPATH:+:$PYTHONPATH}"
+}
+
 common_python_for_venv() {
     local py
     for py in python3.12 python3.11 python3.10 python3.9 python3; do

@@ -106,6 +106,16 @@ EXCLUDE_300=(
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
+# 1b. Mac-контекст локально: TTL cleanup + context_*.json ДО push (не слать на VPS снапшоты старше TTL)
+_PLANNING_BOT="${AGENT_ROOT}/planning_bot"
+if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
+  touch "$_PLANNING_BOT/logs/context_sync.log" 2>/dev/null || true
+  export VAULT_PATH="$LOCAL_VAULT"
+  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/context_sync.py) >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
+fi
+unset _PLANNING_BOT
+
 # 2. Локальный → Сервер (отправить изменения, не затирать более новые на сервере)
 # При push 300_Дашборды не отправляем сервер-авторитетные файлы (бот/cron/maintenance пишут их на сервере).
 # Плюс не пушим корневой 📊 Логи_Действий_*.md — канон только 300_Дашборды/Логи/; иначе файл из корня (устаревшая структура) снова уезжает на сервер и «возвращается».
@@ -210,6 +220,7 @@ touch \
   "$PLANNING_BOT/logs/vault_write_maintenance.log" \
   "$PLANNING_BOT/logs/iphone_mail_sync.log" \
   "$PLANNING_BOT/logs/iphone_context_sync.log" \
+  "$PLANNING_BOT/logs/context_sync.log" \
   2>/dev/null || true
 # Ротация логов: обрезаем если выросли слишком большими (бывает при циклических сбоях).
 _trim_log() {
@@ -507,8 +518,8 @@ if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(c
     mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
     echo "obsidian_sync: шаг 6 — finance.db + фин. дашборд (лог: $FIN_LOG)…" >&2
     export VAULT_PATH="$LOCAL_VAULT"
-    # Не наследовать PYTHONPATH от шагов knowledge_bot — ломает numpy/matplotlib у finance build.
-    if (cd "$FINANCE_BOT" && env -u PYTHONPATH ./scripts/run_finance_dashboard_daily.sh >> "$FIN_LOG" 2>&1); then
+    # PYTHONPATH выставляет run_finance_dashboard_daily.sh (shared + site-packages без TCC-venv).
+    if (cd "$FINANCE_BOT" && ./scripts/run_finance_dashboard_daily.sh >> "$FIN_LOG" 2>&1); then
       echo "$TODAY" > "$FINANCE_MARKER"
       echo "$NOW_ISO" > "$SYNC_DIR/finance_dashboard_last_ok.txt"
     fi
