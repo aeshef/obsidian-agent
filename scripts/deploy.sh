@@ -264,10 +264,19 @@ rsync_server_scripts() {
   ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
 }
 
+sync_badge_yaml_optional() {
+  local local_badge="$MONOREPO/finance_bot/config/badge.yaml"
+  [ "$DRYRUN" = 1 ] && return 0
+  [ -f "$local_badge" ] || return 0
+  echo "🍽 rsync badge.yaml → $SERVER (локальный конфиг)"
+  rsync -az "$local_badge" "$SERVER:$SERVER_BOTS/finance_bot/config/badge.yaml"
+}
+
 deploy_one() {
   local name="$1"
   echo "──────── deploy: $name ────────"
   rsync_comp "$name"
+  [ "$name" = finance_bot ] && sync_badge_yaml_optional
   ensure_venv_link "$name"
   install_deps "$name"
   restart_comp "$name"
