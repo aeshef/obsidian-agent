@@ -4,6 +4,13 @@
 **/.env
 **/venv/
 **/.venv/
+# Симлинк knowledge_bot/.venv → venv: glob **/.venv/ не игнорирует (path beyond symlink)
+finance_bot/venv/
+finance_bot/.venv
+knowledge_bot/venv/
+knowledge_bot/.venv
+planning_bot/venv/
+planning_bot/.venv
 **/__pycache__/
 **/*.pyc
 **/.cache/
