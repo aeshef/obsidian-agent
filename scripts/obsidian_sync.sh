@@ -108,6 +108,44 @@ EXCLUDE_300=(
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
+# 1a. IPhone/Mac: DD.MM.YYYY → YYYY-MM-DD (сортировка); манифест → 1a-remote до push
+_PLANNING_BOT="${AGENT_ROOT}/planning_bot"
+if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/rename_action_snapshots.py" ]; then
+  touch "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>/dev/null || true
+  export VAULT_PATH="$LOCAL_VAULT" SYNC_STATE_DIR="$SYNC_DIR"
+  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/rename_action_snapshots.py --target both --apply --vault "$LOCAL_VAULT" --sync-dir "$SYNC_DIR") \
+    >> "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>&1 || true
+  _ACTION_RENAME_MANIFEST="$SYNC_DIR/action_snapshot_renames.json"
+  if [ ! -f "$_ACTION_RENAME_MANIFEST" ]; then
+    _ACTION_RENAME_MANIFEST="$SYNC_DIR/iphone_snapshot_renames.json"
+  fi
+  if [ -f "$_ACTION_RENAME_MANIFEST" ]; then
+    _action_unlink=$(
+      python3 - "$_ACTION_RENAME_MANIFEST" 2>/dev/null <<'PY_ACTION_UNLINK'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))
+for p in data.get("unlink_on_server") or []:
+    if p and ".." not in p:
+        print(p)
+PY_ACTION_UNLINK
+    )
+    if [ -n "$_action_unlink" ]; then
+      echo "obsidian_sync: шаг 1a-remote — удаление старых имён IPhone/Mac на VPS…" >&2
+      printf '%s\n' "$_action_unlink" | ssh "${SSH_OPTS[@]}" "$SERVER" \
+        "SVAULT='$SERVER_VAULT'
+         while IFS= read -r rel; do
+           target=\"\$SVAULT/\$rel\"
+           if [ -f \"\$target\" ]; then
+             rm -f \"\$target\" && echo \"[1a-remote] deleted: \$rel\" || true
+           fi
+         done" >> "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>&1 \
+        || echo "⚠️ obsidian_sync: 1a-remote завершился с ошибкой" >&2
+    fi
+  fi
+fi
+unset _PLANNING_BOT _ACTION_RENAME_MANIFEST _action_unlink
+
 # 1b. Mac-контекст локально: TTL cleanup + context_*.json ДО push (не слать на VPS снапшоты старше TTL)
 _PLANNING_BOT="${AGENT_ROOT}/planning_bot"
 if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
