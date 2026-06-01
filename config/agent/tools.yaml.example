@@ -4,4 +4,4 @@ domain_hints:
   finance: "денежные операции и сводки"
   planning: "задачи, цели, календарь, здоровье Apple Watch (вес, шаги, сон, пульс), Mac-контекст, события по задачам"
   knowledge: "именованная заметка — read_knowledge_note; обзор темы — search_knowledge_base"
-  unified: "любые домены: finance + planning + knowledge tools по смыслу вопроса; интервалы from_date/to_date"
+  unified: "любые домены: finance + planning + knowledge; канбан create/move/complete — apply_kanban_task (не только get_kanban); интервалы from_date/to_date"
