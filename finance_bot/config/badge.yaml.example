@@ -1,6 +1,7 @@
 # Трекинг корпоративного бейджа питания. Скопируйте в badge.yaml и настройте под себя.
 #   cp config/badge.yaml.example config/badge.yaml
-# Боевой badge.yaml в git не хранится (личный контекст).
+# В git только этот example. Боевой config/badge.yaml — локально и на VPS
+# (deploy.sh rsync-ит badge.yaml на сервер, если файл есть у вас в finance_bot/config/).
 
 enabled: false
 
