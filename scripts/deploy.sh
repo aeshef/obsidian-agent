@@ -59,7 +59,7 @@ EXCLUDES_BASE=(
   --exclude='*.db' --exclude='*.db-shm' --exclude='*.db-wal'
   --exclude='config/author_context.txt'
   --exclude='config/initial_accounts.yaml' --exclude='config/user_context.md'
-  --exclude='config/badge.yaml' --exclude='config/badge_import_*.yaml'
+  --exclude='config/badge.yaml' --exclude='config/badge_import_*.yaml' --exclude='config/badge_append_*.yaml' --exclude='config/recover_session_*.yaml'
   --exclude='CHAT_ID.txt' --exclude='goals_context.md'
 )
 

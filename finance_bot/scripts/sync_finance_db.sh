@@ -1,10 +1,12 @@
 #!/bin/zsh
-# Скачивает актуальную finance.db с сервера в локаль для дашборда.
-# Запускается из finance_bot. VAULT_PATH можно задать снаружи.
+# Скачивает каноническую finance.db с сервера в vault-реплику на Mac для дашборда.
 #
-# По умолчанию ПЕРЕД scp дергается синк брокера на сервере (тот же код, что cron в 7:00),
-# чтобы балансы Т-Инвест и снимки на «сегодня» в БД были свежие. Отключить:
-#   FINANCE_REFRESH_BROKER_BEFORE_PULL=0
+# Канон (запись бота): FINANCE_DB_PATH или {REMOTE_BOT_DIR}/finance.db на сервере.
+# Реплика (Obsidian):  $VAULT_PATH/300_Дашборды/Данные/finance.db — только pull, не rsync.
+#
+# По умолчанию ПЕРЕД scp: mirror canonical→vault на сервере + опционально broker sync.
+# FINANCE_REFRESH_BROKER_BEFORE_PULL=0 — без broker (каждый obsidian_sync).
+# FINANCE_MIRROR_VAULT_ON_SERVER=0 — не трогать vault-копию на VPS.
 
 set -u
 
@@ -21,11 +23,11 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SERVER="${SERVER:?Set SERVER in .env}"
 REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/root/bots}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"
+SERVER_VAULT="${SERVER_VAULT:-${SYNC_SERVER_VAULT_PATH:-/root/obsidian-vault}}"
 
 mkdir -p "$DATA_DIR"
 SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 
-# Обновить брокера на сервере, затем уже качать БД (иначе дашборд видит вчерашний снимок до 7:00).
 _refresh_broker_on_server() {
   [[ "${FINANCE_REFRESH_BROKER_BEFORE_PULL:-1}" == "0" ]] && return 0
   echo "ℹ️ Брокер на сервере: синх перед скачиванием БД…" >&2
@@ -34,12 +36,12 @@ _refresh_broker_on_server() {
 set -euo pipefail
 cd "${REMOTE_BOT_DIR:?}"
 export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
-# monorepo shared/ (родитель finance_bot на VPS)
 if [ -d ../shared ]; then
   export PYTHONPATH="$(cd .. && pwd):${PYTHONPATH}"
 fi
 set -a
 [[ -f .env ]] && . ./.env
+[[ -f ../.env ]] && . ../.env
 set +a
 if [[ -x .venv/bin/python ]]; then PY=".venv/bin/python"
 elif [[ -x venv/bin/python ]]; then PY="venv/bin/python"
@@ -50,72 +52,84 @@ REMOTE
   then
     echo "✅ Брокер на сервере обновлён" >&2
   else
-    echo "⚠️ Не удалось обновить брокер по SSH — качаю finance.db как есть (возможны вчерашние снимки)." >&2
+    echo "⚠️ Не удалось обновить брокер по SSH — качаю finance.db как есть." >&2
   fi
+}
+
+_mirror_on_server() {
+  [[ "${FINANCE_MIRROR_VAULT_ON_SERVER:-1}" == "0" ]] && return 0
+  ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_VAULT='${SERVER_VAULT}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" bash -s <<'REMOTE'
+set -euo pipefail
+cd "${REMOTE_BOT_DIR:?}"
+export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
+if [ -d ../shared ]; then
+  export PYTHONPATH="$(cd .. && pwd):${PYTHONPATH}"
+fi
+export VAULT_PATH="${SERVER_VAULT}"
+set -a
+[[ -f .env ]] && . ./.env
+[[ -f ../.env ]] && . ../.env
+set +a
+if [[ -x .venv/bin/python ]]; then PY=".venv/bin/python"
+elif [[ -x venv/bin/python ]]; then PY="venv/bin/python"
+else PY="python3"
+fi
+"$PY" -c "from bot.finance_db_paths import mirror_canonical_to_vault_replica; mirror_canonical_to_vault_replica()"
+REMOTE
 }
 
 resolve_remote_db() {
   ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "REMOTE_DB='${REMOTE_DB}' REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}' python3" <<'PY'
+    "REMOTE_DB='${REMOTE_DB}' REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" python3 <<'PY'
 import os
 from pathlib import Path
 
-remote_db = os.environ.get('REMOTE_DB', '').strip()
-bot_dir = Path(os.environ.get('REMOTE_BOT_DIR', os.environ.get('SERVER_BOTS', '/root/bots') + '/finance_bot')).expanduser()
-candidates = []
+remote_db = os.environ.get("REMOTE_DB", "").strip()
+bot_dir = Path(os.environ.get("REMOTE_BOT_DIR", os.environ.get("SERVER_BOTS", "/root/bots") + "/finance_bot")).expanduser()
 
-def add_candidate(path_str: str) -> None:
-    if not path_str:
-        return
-    p = Path(path_str).expanduser()
+def read_env(path: Path) -> dict:
+    out = {}
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+env = {}
+for p in (bot_dir / ".env", bot_dir.parent / ".env"):
+    env.update(read_env(p))
+
+finance_db_path = (env.get("FINANCE_DB_PATH") or remote_db or "").strip()
+if finance_db_path:
+    p = Path(finance_db_path).expanduser()
     if not p.is_absolute():
         p = (bot_dir / p).resolve()
-    if p.exists() and p.is_file():
-        candidates.append(p)
+    if p.is_file():
+        print(p)
+        raise SystemExit(0)
 
-if remote_db:
-    add_candidate(remote_db)
+url = env.get("DATABASE_URL", "sqlite+aiosqlite:///./finance.db")
+for prefix in ("sqlite+aiosqlite:///", "sqlite:///"):
+    if url.startswith(prefix):
+        raw = url[len(prefix):].split("?", 1)[0]
+        p = Path(raw)
+        if not p.is_absolute():
+            p = (bot_dir / p).resolve()
+        if p.is_file():
+            print(p)
+            raise SystemExit(0)
+        break
 
-env_path = bot_dir / '.env'
-if env_path.exists():
-    for line in env_path.read_text(encoding='utf-8').splitlines():
-        if line.startswith('DATABASE_URL='):
-            url = line.split('=', 1)[1].strip().strip('"').strip("'")
-            prefix = 'sqlite+aiosqlite:///'
-            if url.startswith(prefix):
-                add_candidate(url[len(prefix):])
-            elif url.startswith('sqlite:///'):
-                add_candidate(url[len('sqlite:///'):])
-            break
-
-_bots = os.environ.get('SERVER_BOTS', '/root/bots')
-_default_bot = Path(os.environ.get('REMOTE_BOT_DIR', f"{_bots}/finance_bot"))
-fallbacks = [
-    bot_dir / 'finance.db',
-    _default_bot / 'finance.db',
-    Path(os.environ.get('REMOTE_DB', '/opt/finance.db')),
-]
-for p in fallbacks:
-    add_candidate(str(p))
-
-for root in [bot_dir, bot_dir.parent]:
-    if root.exists():
-        for p in root.rglob('finance.db'):
-            add_candidate(str(p))
-
-unique = []
-seen = set()
-for p in candidates:
-    s = str(p.resolve())
-    if s not in seen:
-        seen.add(s)
-        unique.append(p.resolve())
-
-if not unique:
-    raise SystemExit(1)
-
-best = max(unique, key=lambda p: p.stat().st_mtime)
-print(best)
+fallback = bot_dir / "finance.db"
+if fallback.is_file():
+    print(fallback.resolve())
+    raise SystemExit(0)
+raise SystemExit(1)
 PY
 }
 
@@ -126,28 +140,28 @@ fi
 
 if [ -z "$REMOTE_DB_RESOLVED" ]; then
   if [ -f "$DATA_DIR/finance.db" ]; then
-    echo "⚠️ Не удалось определить путь к БД на сервере. Использую локальную копию: $DATA_DIR/finance.db" >&2
+    echo "⚠️ Не удалось определить каноническую БД на сервере. Локальная реплика: $DATA_DIR/finance.db" >&2
     exit 0
   fi
-  echo "❌ Не удалось определить путь к БД на сервере и локальной копии нет: $DATA_DIR/finance.db" >&2
+  echo "❌ Каноническая БД на сервере не найдена и локальной реплики нет." >&2
   exit 1
 fi
 
 _refresh_broker_on_server
+_mirror_on_server || echo "⚠️ mirror canonical→vault на сервере не удался (продолжаю scp)" >&2
 
-echo "ℹ️ Серверная БД: $REMOTE_DB_RESOLVED"
+echo "ℹ️ Серверная каноническая БД: $REMOTE_DB_RESOLVED"
 if scp "${SSH_OPTS[@]}" "$SERVER:$REMOTE_DB_RESOLVED" "$DATA_DIR/finance.db"; then
-  echo "✅ БД синхронизирована: $DATA_DIR/finance.db"
+  echo "✅ Реплика обновлена: $DATA_DIR/finance.db"
 else
   if [ -f "$DATA_DIR/finance.db" ]; then
-    echo "⚠️ Не удалось скачать БД с сервера ($REMOTE_DB_RESOLVED). Использую локальную копию: $DATA_DIR/finance.db" >&2
+    echo "⚠️ scp не удался ($REMOTE_DB_RESOLVED). Локальная реплика без изменений." >&2
     exit 0
   fi
-  echo "❌ Не удалось скачать БД с сервера ($REMOTE_DB_RESOLVED) и локальной копии нет: $DATA_DIR/finance.db" >&2
+  echo "❌ scp не удался и локальной реплики нет." >&2
   exit 1
 fi
 
-# Графики и markdown не входят в scp — пересобираем дашборд (отключить: FINANCE_BUILD_DASHBOARD_AFTER_PULL=0)
 if [[ "${FINANCE_BUILD_DASHBOARD_AFTER_PULL:-1}" != "0" ]]; then
   echo "ℹ️ Пересборка дашборда (PNG + 📊 Финансы_Дашборд.md)…" >&2
   export VAULT_PATH
@@ -157,6 +171,6 @@ if [[ "${FINANCE_BUILD_DASHBOARD_AFTER_PULL:-1}" != "0" ]]; then
      ( cd "$BOT_ROOT" && ./scripts/run_finance_dashboard.sh ); then
     echo "✅ Дашборд обновлён" >&2
   else
-    echo "⚠️ Дашборд не собран (нужен matplotlib в venv: pip install matplotlib). Запусти вручную: cd \"$BOT_ROOT\" && ./scripts/run_finance_dashboard.sh" >&2
+    echo "⚠️ Дашборд не собран. Запусти: cd \"$BOT_ROOT\" && ./scripts/run_finance_dashboard.sh" >&2
   fi
 fi

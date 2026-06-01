@@ -31,7 +31,7 @@ mkdir -p "$MOBILE"
 
 "${RSYNC[@]}" "$SRC/100_Задачи/" "$MOBILE/100_Задачи/"
 "${RSYNC[@]}" "$SRC/200_Цели/" "$MOBILE/200_Цели/"
-"${RSYNC[@]}" --exclude='Данные/Действия/' "$SRC/300_Дашборды/" "$MOBILE/300_Дашборды/"
+"${RSYNC[@]}" --exclude='Данные/Действия/' --exclude='Данные/finance.db' --exclude='Данные/finance.db-*' "$SRC/300_Дашборды/" "$MOBILE/300_Дашборды/"
 "${RSYNC[@]}" "$SRC/400_Рутины/" "$MOBILE/400_Рутины/"
 
 mkdir -p "$MOBILE/.obsidian/plugins"

@@ -94,6 +94,8 @@ EXCLUDE_300=(
   --exclude='📅 Рутины/'
   --exclude='📊 Рутины_Статистика.md'
   --exclude='/📊 Логи_Действий_*.md'
+  --exclude='Данные/finance.db'
+  --exclude='Данные/finance.db-*'
 )
 # 1. Сервер → Локальный. --update: не перезаписывать локальные, если они новее (сохраняем правки в Obsidian). Если новее сервер (задача через бота / заметки knowledge bot) — подтягиваем.
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/"
@@ -127,6 +129,8 @@ PUSH_EXCLUDE_300=(
   --exclude='goals_task_mapping.json'
   --exclude='/📊 Логи_Действий_*.md'
   --exclude='Графики/Финансы/Доли_по_дням_категории_обычные.png'
+  --exclude='Данные/finance.db'
+  --exclude='Данные/finance.db-*'
 )
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/"
@@ -147,6 +151,10 @@ echo "obsidian_sync: шаг 4 — rsync сервер→локаль после m
 
 TODAY=$(date +%Y-%m-%d)
 NOW_ISO=$(date +%Y-%m-%dT%H:%M:%S)
+# Частая опечатка: FORCE_CHART=1 → FORCE_CHARTS=1
+if [ -n "${FORCE_CHART:-}" ] && [ -z "${FORCE_CHARTS:-}" ]; then
+  export FORCE_CHARTS=1
+fi
 
 # 5. Раз в день пересобрать графики главного дашборда (Активность за день, Завершено по категориям, открытый пайплайн)
 # Графики строятся локально по action-логам (300_Дашборды/Логи); в синк с сервера Графики/ не тянутся.
@@ -508,23 +516,35 @@ if [ "$_SHOULD_NUTR" = "1" ]; then
 fi
 unset _SHOULD_NUTR _IPHONE_CTX_DIR _NUTR_PNG _latest_iph _png_m
 
-# 6. Раз в день: синк БД финансов + сборка финансового дашборда (один LaunchAgent — всё в одном)
-# Повторно в тот же день: только с FORCE_FINANCE_DASHBOARD=1 (иначе графики/БД не обновятся до завтра)
+# 6. Финансы: каждый синк — pull канонической БД с сервера; PNG/markdown — раз в день или FORCE
 FINANCE_MARKER="$SYNC_DIR/finance_dashboard_date.txt"
 FINANCE_BOT="$AGENT_ROOT/finance_bot"
-if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(cat "$FINANCE_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/run_finance_dashboard_daily.sh" ]; then
-    if [ -n "$SYNC_STATE_DIR" ]; then FIN_LOG="$SYNC_DIR/finance_dashboard_daily.log"; else FIN_LOG="$FINANCE_BOT/logs/finance_dashboard_daily.log"; fi
-    mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
-    echo "obsidian_sync: шаг 6 — finance.db + фин. дашборд (лог: $FIN_LOG)…" >&2
-    export VAULT_PATH="$LOCAL_VAULT"
-    # PYTHONPATH выставляет run_finance_dashboard_daily.sh (shared + site-packages без TCC-venv).
+FIN_DB="$LOCAL_VAULT/300_Дашборды/Данные/finance.db"
+FIN_CHART_REF="$LOCAL_VAULT/300_Дашборды/Графики/Финансы/Траты_по_дням_категории.png"
+FIN_DB_NEWER=
+if [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && [ "$FIN_DB" -nt "$FIN_CHART_REF" ]; then
+  FIN_DB_NEWER=1
+fi
+if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; then
+  if [ -n "$SYNC_STATE_DIR" ]; then FIN_LOG="$SYNC_DIR/finance_dashboard_daily.log"; else FIN_LOG="$FINANCE_BOT/logs/finance_dashboard_daily.log"; fi
+  mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
+  _FIN_BUILD=0
+  if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ -n "$FIN_DB_NEWER" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(cat "$FINANCE_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+    _FIN_BUILD=1
+  fi
+  echo "obsidian_sync: шаг 6 — finance.db pull (build=${_FIN_BUILD}; лог: $FIN_LOG)…" >&2
+  export VAULT_PATH="$LOCAL_VAULT"
+  if [ "$_FIN_BUILD" = "1" ]; then
     if (cd "$FINANCE_BOT" && ./scripts/run_finance_dashboard_daily.sh >> "$FIN_LOG" 2>&1); then
       echo "$TODAY" > "$FINANCE_MARKER"
       echo "$NOW_ISO" > "$SYNC_DIR/finance_dashboard_last_ok.txt"
     fi
+  else
+    FINANCE_REFRESH_BROKER_BEFORE_PULL=0 FINANCE_BUILD_DASHBOARD_AFTER_PULL=0 \
+      (cd "$FINANCE_BOT" && ./scripts/sync_finance_db.sh >> "$FIN_LOG" 2>&1) || true
   fi
 fi
+unset _FIN_BUILD
 
 # 5e. Каждый синк: read-only копия vault в iCloud для iPhone (100/200/300 без Данные/Действия/400 + .obsidian).
 # Односторонне Mac→iCloud; тот же цикл, что rsync с сервером (LaunchAgent ~5 мин). SKIP_MOBILE_VAULT=1 — отключить.
