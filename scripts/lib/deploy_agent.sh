@@ -75,10 +75,44 @@ REMOTE2
   echo "✅ server .env patched (agent platform)"
 }
 
+ensure_unified_host_deps_remote() {
+  local bots="${SERVER_BOTS:?}"
+  local pip="${bots}/finance_bot/.venv/bin/pip"
+  local py="${bots}/finance_bot/.venv/bin/python"
+
+  echo "📦 unified host: knowledge deps → finance_bot .venv"
+  common_ssh "bash -s" <<REMOTE
+set -euo pipefail
+BOTS="${bots}"
+PIP="${pip}"
+PY="${py}"
+REQ="\$BOTS/knowledge_bot/requirements.txt"
+CON="\$BOTS/constraints.txt"
+if [ ! -x "\$PIP" ]; then
+  echo "❌ нет \$PIP — сначала ensure_bot_venv.sh finance_bot" >&2
+  exit 1
+fi
+if [ ! -f "\$REQ" ]; then
+  echo "❌ нет \$REQ" >&2
+  exit 1
+fi
+if [ -f "\$CON" ]; then
+  "\$PIP" install -q -r "\$REQ" -c "\$CON"
+else
+  "\$PIP" install -q -r "\$REQ"
+fi
+export PYTHONPATH="\$BOTS:\$BOTS/finance_bot:\$BOTS/knowledge_bot:\$BOTS/planning_bot"
+"\$PY" -c "from knowledge_bot.app.register_handlers import register_knowledge_callbacks; import jinja2"
+echo "✅ unified host deps OK (jinja2 + knowledge ingest)"
+REMOTE
+}
+
 restart_unified_bot_remote() {
   local bots="${SERVER_BOTS:?}"
   local py="${bots}/finance_bot/.venv/bin/python"
   local log="${bots}/logs/unified_bot.log"
+
+  ensure_unified_host_deps_remote
 
   echo "🔄 restart unified_bot on $SERVER"
   common_ssh "bash -s" <<REMOTE
