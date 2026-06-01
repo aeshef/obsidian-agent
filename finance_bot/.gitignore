@@ -7,6 +7,8 @@ config/initial_accounts.yaml
 config/user_context.md
 config/badge.yaml
 config/badge_import_*.yaml
+config/badge_append_*.yaml
+config/recover_session_*.yaml
 # Сгенерированные/локальные варианты рядом с примерами (если появятся)
 config/*.local.yaml
 config/*.local.md
