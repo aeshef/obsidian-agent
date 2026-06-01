@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from bot.config_loader import get_badge_config  # noqa: E402
-from bot.vault_paths import VaultPaths  # noqa: E402
+from bot.finance_db_paths import mirror_canonical_to_vault_replica, resolve_canonical_write_db  # noqa: E402
 
 
 def load_import_file(path: Path) -> tuple[str, list[dict]]:
@@ -52,7 +52,14 @@ def main() -> None:
     parser.add_argument("--vault", type=Path, default=None)
     parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--user-id", type=int, default=1)
+    parser.add_argument("--account-name", default=None, help="Имя счёта бейджа (override badge.yaml)")
+    parser.add_argument("--category", default=None, help="Категория (override badge.yaml)")
     parser.add_argument("--clear", action="store_true", help="Удалить траты бейджа за month из файла")
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Только добавить строки (не удалять существующие; пропуск дубликатов по дате+сумме+описанию)",
+    )
     args = parser.parse_args()
 
     import_path = args.file if args.file.is_absolute() else ROOT / args.file
@@ -65,14 +72,16 @@ def main() -> None:
     _, last_day = calendar.monthrange(y, m)
 
     cfg = get_badge_config()
-    account_name = cfg.get("account_name", "Yandex Badge")
-    category = cfg.get("category", "Еда/Бейдж")
+    account_name = args.account_name or cfg.get("account_name", "Yandex Badge")
+    category = args.category or cfg.get("category", "Еда/Бейдж")
 
     if args.db:
-        db_path = args.db
+        db_path = Path(args.db)
     else:
-        vault = args.vault or (ROOT.parent.parent.parent)
-        db_path = VaultPaths(vault).finance_db()
+        if args.vault:
+            import os
+            os.environ["VAULT_PATH"] = str(args.vault.expanduser().resolve())
+        db_path = resolve_canonical_write_db()
 
     if not db_path.exists():
         print(f"❌ БД не найдена: {db_path}")
@@ -111,15 +120,18 @@ def main() -> None:
         conn.close()
         return
 
-    cur.execute(
-        """DELETE FROM transactions
-           WHERE user_id=? AND account_id=? AND category=?
-             AND occurred_at >= ? AND occurred_at < ?""",
-        (args.user_id, acc_id, category, start, end),
-    )
-    cleared = cur.rowcount
+    cleared = 0
+    if not args.append:
+        cur.execute(
+            """DELETE FROM transactions
+               WHERE user_id=? AND account_id=? AND category=?
+                 AND occurred_at >= ? AND occurred_at < ?""",
+            (args.user_id, acc_id, category, start, end),
+        )
+        cleared = cur.rowcount
 
     inserted = 0
+    skipped = 0
     total = 0
     for row in raw_txns:
         day = int(row["day"])
@@ -131,6 +143,16 @@ def main() -> None:
         hour = int(row.get("hour", 12))
         minute = int(row.get("minute", 0))
         occ = datetime(d.year, d.month, d.day, hour, minute, 0).isoformat(sep=" ")
+        if args.append:
+            dup = cur.execute(
+                """SELECT 1 FROM transactions
+                   WHERE user_id=? AND account_id=? AND category=?
+                     AND amount=? AND description IS ? AND occurred_at=?""",
+                (args.user_id, acc_id, category, amount, desc, occ),
+            ).fetchone()
+            if dup:
+                skipped += 1
+                continue
         cur.execute(
             """INSERT INTO transactions
                (user_id, account_id, type, amount, currency, category, description, occurred_at, created_at)
@@ -142,8 +164,13 @@ def main() -> None:
 
     conn.commit()
     conn.close()
-    print(f"✅ Импорт {import_path.name} → {db_path}")
-    print(f"   Период: {year_month}, заменено старых строк: {cleared}")
+    mirror_canonical_to_vault_replica(canonical=Path(db_path))
+    mode = "append" if args.append else "replace"
+    print(f"✅ Импорт ({mode}) {import_path.name} → {db_path}")
+    if not args.append:
+        print(f"   Период: {year_month}, заменено старых строк: {cleared}")
+    if skipped:
+        print(f"   Пропущено дубликатов: {skipped}")
     print(f"   Добавлено: {inserted} операций на {_fmt(total)} ₽")
 
 
