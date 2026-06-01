@@ -1,0 +1,17 @@
+# Расширения файлов → подпись в ревью заметки (media_kind.py)
+image:
+  - .jpg
+  - .jpeg
+  - .png
+  - .gif
+  - .webp
+video:
+  - .mp4
+  - .mov
+  - .avi
+  - .mkv
+document:
+  - .pdf
+  - .doc
+  - .docx
+  - .txt
