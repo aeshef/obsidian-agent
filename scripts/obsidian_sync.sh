@@ -578,8 +578,11 @@ if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; th
       echo "$NOW_ISO" > "$SYNC_DIR/finance_dashboard_last_ok.txt"
     fi
   else
-    FINANCE_REFRESH_BROKER_BEFORE_PULL=0 FINANCE_BUILD_DASHBOARD_AFTER_PULL=0 \
-      (cd "$FINANCE_BOT" && ./scripts/sync_finance_db.sh >> "$FIN_LOG" 2>&1) || true
+    (
+      FINANCE_REFRESH_BROKER_BEFORE_PULL=0
+      FINANCE_BUILD_DASHBOARD_AFTER_PULL=0
+      cd "$FINANCE_BOT" && ./scripts/sync_finance_db.sh >> "$FIN_LOG" 2>&1
+    ) || true
   fi
 fi
 unset _FIN_BUILD
