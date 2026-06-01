@@ -310,6 +310,24 @@ def test_attach_memory_tools_on_finance_registry():
         assert name in reg.names()
 
 
+def test_merged_registry_deduplicates_shared_memory_tools():
+    from shared.agent.app import AgentApp, DomainAdapter
+    from shared.memory.episodic import MEMORY_TOOL_NAMES, attach_memory_tools
+
+    class _MemOnly(DomainAdapter):
+        def __init__(self, name: str) -> None:
+            self.domain = name
+
+        def build_registry(self) -> ToolRegistry:
+            reg = ToolRegistry()
+            attach_memory_tools(reg)
+            return reg
+
+    app = AgentApp(llm=None, adapters=[_MemOnly("finance"), _MemOnly("planning")])
+    merged = app.merged_registry()
+    assert merged.names() == list(MEMORY_TOOL_NAMES)
+
+
 def test_clear_all_history(tmp_path, monkeypatch):
     from shared.memory import session as sess
 
