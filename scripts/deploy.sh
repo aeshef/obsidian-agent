@@ -264,6 +264,20 @@ rsync_server_scripts() {
   ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
 }
 
+sync_knowledge_prompts_optional() {
+  local dir="$MONOREPO/knowledge_bot/config/prompts"
+  [ "$DRYRUN" = 1 ] && return 0
+  [ -d "$dir" ] || return 0
+  local n=0
+  for f in "$dir"/*.txt; do
+    [ -f "$f" ] || continue
+    case "$f" in *.example.txt) continue ;; esac
+    rsync -az "$f" "$SERVER:$SERVER_BOTS/knowledge_bot/config/prompts/"
+    n=$((n + 1))
+  done
+  [ "$n" -gt 0 ] && echo "📝 rsync knowledge prompts ($n файлов) → server"
+}
+
 sync_badge_yaml_optional() {
   local local_badge="$MONOREPO/finance_bot/config/badge.yaml"
   [ "$DRYRUN" = 1 ] && return 0
@@ -277,6 +291,7 @@ deploy_one() {
   echo "──────── deploy: $name ────────"
   rsync_comp "$name"
   [ "$name" = finance_bot ] && sync_badge_yaml_optional
+  [ "$name" = knowledge_bot ] && sync_knowledge_prompts_optional
   ensure_venv_link "$name"
   install_deps "$name"
   restart_comp "$name"
