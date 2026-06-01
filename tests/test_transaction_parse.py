@@ -19,5 +19,11 @@ def test_nlu_config_has_required_keys():
     from bot.config_loader import get_nlu_config
 
     cfg = get_nlu_config()
-    for key in ("broker_categories", "exact_commands", "menu_buttons", "min_text_length"):
+    for key in (
+        "broker_categories",
+        "exact_commands",
+        "menu_buttons",
+        "min_text_length",
+        "account_type_card_hints",
+    ):
         assert key in cfg
