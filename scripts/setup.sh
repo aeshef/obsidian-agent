@@ -32,6 +32,19 @@ export SMOKE_INSTALL=1
 bash "$ROOT/scripts/smoke_imports.sh"
 
 echo ""
+echo "=== bot configs from *.example ==="
+for pair in \
+  "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
+  "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example"; do
+  target="${pair%%:*}"
+  example="${pair##*:}"
+  if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
+    cp "$ROOT/$example" "$ROOT/$target"
+    echo "  created $target from example"
+  fi
+done
+
+echo ""
 echo "=== tags prompt (knowledge) ==="
 bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 

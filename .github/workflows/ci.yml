@@ -42,6 +42,8 @@ jobs:
           TELEGRAM_FINANCE_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
         run: |
+          cp finance_bot/config/nlu_config.yaml.example finance_bot/config/nlu_config.yaml
+          cp knowledge_bot/config/media_extensions.yaml.example knowledge_bot/config/media_extensions.yaml
           finance_bot/.venv/bin/pip install -q pytest
           knowledge_bot/.venv/bin/pip install -q pytest
           finance_bot/.venv/bin/python -m pytest \

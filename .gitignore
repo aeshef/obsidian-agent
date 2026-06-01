@@ -36,6 +36,8 @@ config/agent/prompts/*.txt
 **/config/subscriptions.yaml
 **/config/tags_inventory.yaml
 **/config/tag_ontology.yaml
+finance_bot/config/nlu_config.yaml
+knowledge_bot/config/media_extensions.yaml
 
 # LaunchAgent (генерируется локально из *.example.plist)
 launchd/*.plist
