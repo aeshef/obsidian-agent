@@ -27,6 +27,7 @@ config/agent/memory.yaml
 config/agent/models.yaml
 config/agent/routing.yaml
 config/agent/tools.yaml
+config/agent/health_parse.yaml
 config/agent/prompts/*.txt
 !config/agent/prompts/*.example.txt
 !config/agent/*.example.yaml
