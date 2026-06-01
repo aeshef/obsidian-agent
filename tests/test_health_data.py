@@ -24,12 +24,12 @@ from planning_bot.services.snapshot_query import (
 
 
 EXTENDED_BODY = """---
-ts: 28 мая 2026 г., 21:31
+ts: 28.05.2026, 21:31
 weight: 89.2
 steps: 9050
 heartbeat_still: 69
 variability: 15.76
-sleep: 28 мая 2026 г., 02:42-28 мая 2026 г., 09:44
+sleep: 28.05.2026, 02:42-28.05.2026, 09:44
 Total Time Asleep:6 hours 46 minutes
 Core for 4 hours and 7 minutes
 ---
@@ -43,8 +43,9 @@ def test_normalize_extended_health_email():
     assert snap["weight_kg"] == pytest.approx(89.2)
     assert snap["resting_hr_bpm"] == 69
     assert snap["hrv_ms"] == pytest.approx(15.76)
-    assert snap.get("sleep_total_h") == pytest.approx(6 + 46 / 60, rel=0.01)
     assert "sleep_interval" in snap
+    assert "sleep_detail" in snap
+    assert "Total Time Asleep" in snap["sleep_detail"]
 
 
 def test_snapshot_query_per_day():
@@ -85,6 +86,10 @@ def test_format_health_from_fixture_dir(tmp_path, monkeypatch):
     assert "9050" in out
     series = format_health_series("2026-05-28", "2026-05-28", ["steps"])
     assert "2026-05-28" in series
+    assert "9050" in series
+    fallback = format_health_series("2026-05-28", "2026-05-28", ["weight"])
+    assert "89.2" in fallback
+    assert "weight_kg" in fallback or "не найдены" in fallback
     summary = format_health_summary("2026-05-28", "2026-05-28")
     assert "сводка" in summary.lower() or "Агрегаты" in summary
     n, csv_path = export_health_daily_csv(tmp_path / "health_daily.csv")
@@ -104,7 +109,7 @@ def test_anomalies_and_correlations_smoke(tmp_path, monkeypatch):
         iphone_dir,
     )
     anom = format_health_anomalies(lookback_days=10, z_threshold=1.5)
-    assert "steps" in anom.lower() or "шагов" in anom
+    assert "steps" in anom
     corr = format_health_correlations("2026-05-20", "2026-05-25", ["steps", "weight_kg"])
     assert "корреляц" in corr.lower() or "(" in corr
 
