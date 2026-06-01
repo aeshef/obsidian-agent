@@ -1,24 +1,23 @@
-"""Integration: transaction keyword detection from nlu_config.yaml."""
+"""NLU config и looks_like_transaction (без keyword-gate)."""
 from __future__ import annotations
 
-from bot.config_loader import _config_cache, get_nlu_config
-from bot.services.transactions.core import looks_like_transaction
+from bot.services.transactions.core import looks_like_transaction, infer_account_type
 
 
-def test_looks_like_transaction_positive():
-    _config_cache.pop("nlu", None)
-    cfg = get_nlu_config()
-    sample_kw = cfg["transaction_keywords"][0]
-    assert looks_like_transaction(f"сегодня {sample_kw} 500 на кофе") is True
-
-
-def test_looks_like_transaction_negative():
-    assert looks_like_transaction("привет как дела") is False
+def test_looks_like_transaction_min_length():
+    assert looks_like_transaction("привет как дела") is True
     assert looks_like_transaction("  ") is False
+    assert looks_like_transaction("ab") is False
+
+
+def test_infer_account_type_from_config_hints():
+    assert infer_account_type("Тинькофф карта") == "card"
+    assert infer_account_type("Наличные") == "wallet"
 
 
 def test_nlu_config_has_required_keys():
-    _config_cache.pop("nlu", None)
+    from bot.config_loader import get_nlu_config
+
     cfg = get_nlu_config()
-    for key in ("transaction_keywords", "exact_commands", "broker_categories", "menu_buttons"):
-        assert key in cfg and cfg[key], f"missing or empty: {key}"
+    for key in ("broker_categories", "exact_commands", "menu_buttons", "min_text_length"):
+        assert key in cfg
