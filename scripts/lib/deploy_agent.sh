@@ -16,6 +16,7 @@ patch_agent_env_remote() {
   local synth="${SYNTH_ENABLED:-1}"
   local synth_domains="${SYNTH_DOMAINS:-finance,planning}"
   local session_persist="${MEMORY_SESSION_PERSIST:-1}"
+  local kanban_writes="${KANBAN_AGENT_WRITES:-}"
 
   if [ -z "$token" ]; then
     echo "❌ TELEGRAM_UNIFIED_BOT_TOKEN пустой в $root/.env" >&2
@@ -54,8 +55,24 @@ upsert SYNTH_DOMAINS "${synth_domains}"
 upsert MEMORY_SESSION_PERSIST "${session_persist}"
 upsert AGENT_MEMORY_DB "${bots}/memory.db"
 upsert AGENT_ROOT "${bots}"
-echo "✅ server .env patched (agent platform)"
 REMOTE
+  if [ -n "$kanban_writes" ]; then
+    common_ssh "bash -s" <<REMOTE2
+set -euo pipefail
+REMOTE_ENV="${remote_env}"
+upsert() {
+  local k="\$1" v="\$2"
+  if grep -qE "^\${k}=" "\$REMOTE_ENV" 2>/dev/null; then
+    sed -i "s|^\${k}=.*|\${k}=\${v}|" "\$REMOTE_ENV"
+  else
+    echo "\${k}=\${v}" >> "\$REMOTE_ENV"
+  fi
+}
+upsert KANBAN_AGENT_WRITES "${kanban_writes}"
+REMOTE2
+    echo "✅ KANBAN_AGENT_WRITES=${kanban_writes} on server"
+  fi
+  echo "✅ server .env patched (agent platform)"
 }
 
 restart_unified_bot_remote() {

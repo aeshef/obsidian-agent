@@ -103,9 +103,18 @@ DEPLOY_VERIFY_PATHS=(
   finance_bot/bot/handlers/transactions/nlu.py
 )
 
+# config/agent: prompts/*.txt — локальный prod (gitignore); prompts/*.example.txt — шаблон в git.
+# Локальные *.yaml — prod; *.example.yaml — шаблон.
+AGENT_PROMPT_RULES=(
+  --include='prompts/'
+  --include='prompts/*.txt'
+  --include='prompts/*.example.txt'
+  --exclude='prompts/*'
+)
+
 AGENT_EXCLUDES=(
   "${EXCLUDES_BASE[@]}"
-  "${PROMPT_TXT_EXCLUDE[@]}"
+  "${AGENT_PROMPT_RULES[@]}"
   --exclude='user_profile.md'
 )
 
