@@ -61,7 +61,7 @@ class TestBadgeTracker(unittest.TestCase):
             user = User(telegram_id=999, chat_id=999)
             session.add(user)
             session.flush()
-            acc = Account(user_id=user.id, name="Yandex Badge", type="badge", currency="RUB")
+            acc = Account(user_id=user.id, name="Meal Badge", type="badge", currency="RUB")
             session.add(acc)
             session.flush()
             from bot.models import Transaction

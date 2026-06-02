@@ -72,7 +72,7 @@ def main() -> None:
     _, last_day = calendar.monthrange(y, m)
 
     cfg = get_badge_config()
-    account_name = args.account_name or cfg.get("account_name", "Yandex Badge")
+    account_name = args.account_name or cfg.get("account_name", "Meal Badge")
     category = args.category or cfg.get("category", "Еда/Бейдж")
 
     if args.db:

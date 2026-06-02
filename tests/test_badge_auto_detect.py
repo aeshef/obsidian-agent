@@ -9,8 +9,8 @@ from bot.handlers.badge import infer_badge_spend_text, parsed_expenses_are_badge
 def test_infer_badge_spend_text_from_kr_lines():
     text = "\n".join(
         [
-            "вчера бейдж КР: Морозов Го!Поедим 4 этаж (вендомат) 142 ₽",
-            "вчера бейдж КР: Деловой квартал: Сырный ХАЙП (фудкорт) 290 ₽",
+            "вчера бейдж КР: Кафе Альфа 4 этаж (вендомат) 142 ₽",
+            "вчера бейдж КР: БЦ Пример: Столовая Бета (фудкорт) 290 ₽",
         ]
     )
     assert infer_badge_spend_text(text) is True
