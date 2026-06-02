@@ -1,6 +1,6 @@
 from planning_bot.core.config import ACTION_LOG_PREFIX, DONE_COLUMN, GRAPHICS_DIR
 from planning_bot.core.pdmsg import pdmsg
-from planning_bot.scripts._vault import discover_vault, vault_layout
+from planning_bot.scripts.vault_discover import discover_vault
 from shared.vault_paths_config import vault_file
 
 #!/usr/bin/env python3

@@ -202,41 +202,95 @@ if [ -n "${FORCE_CHART:-}" ] && [ -z "${FORCE_CHARTS:-}" ]; then
   export FORCE_CHARTS=1
 fi
 
-# 5. Раз в день пересобрать графики главного дашборда (Активность за день, Завершено по категориям, открытый пайплайн)
-# Графики строятся локально по action-логам (300_Дашборды/Логи); в синк с сервера Графики/ не тянутся.
-# При ручном запуске можно принудительно пересобрать: FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
+# Python для графиков planning: venv (PyYAML/matplotlib). LaunchAgent без этого падает с No module named 'yaml'.
+_pb_venv="$AGENT_ROOT/planning_bot/venv"
+_pb_sp="$(ls -d "$_pb_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+if [ -x "$_pb_venv/bin/python" ]; then
+  CHART_PYTHON="$_pb_venv/bin/python"
+elif [ -x "/opt/homebrew/bin/python3" ]; then
+  CHART_PYTHON="/opt/homebrew/bin/python3"
+elif command -v python3 >/dev/null 2>&1; then
+  CHART_PYTHON=python3
+else
+  CHART_PYTHON=""
+fi
+if [ -n "$_pb_sp" ]; then
+  CHART_PYTHONPATH="${AGENT_ROOT}:${_pb_sp}"
+else
+  CHART_PYTHONPATH="${AGENT_ROOT}"
+fi
+unset _pb_venv _pb_sp
+
+# 5. Графики дашборда по action-логам: раз в день + повтор, если лог месяца новее PNG (конец дня).
+# Иначе прогон в 00:03 ставит маркер «сегодня», а события дня в графики не попадают до следующей полуночи.
+# FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
 MARKER="$SYNC_DIR/daily_charts_date.txt"
 LOGS_DIR="$LOCAL_VAULT/300_Дашборды/Логи"
+ACTION_LOG_PREFIX="📊 Логи_Действий_"
+_CHART_REF="$LOCAL_VAULT/300_Дашборды/Графики/Активность_за_день.png"
+_CUR_LOG="$LOGS_DIR/${ACTION_LOG_PREFIX}$(date +%Y-%m).md"
 HAS_LOGS=
 [ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name '*Логи_Действий_*.md' 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
-if [ -n "${FORCE_CHARTS:-}" ] || [ ! -f "$MARKER" ] || [ "$(cat "$MARKER" 2>/dev/null)" != "$TODAY" ]; then
+_SHOULD_CHARTS=0
+if [ -n "${FORCE_CHARTS:-}" ]; then
+  _SHOULD_CHARTS=1
+elif [ ! -f "$MARKER" ] || [ "$(cat "$MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_CHARTS=1
+elif [ -f "$_CUR_LOG" ] && [ ! -f "$_CHART_REF" ]; then
+  _SHOULD_CHARTS=1
+elif [ -f "$_CUR_LOG" ] && [ -f "$_CHART_REF" ]; then
+  _log_m=$(stat -f '%m' "$_CUR_LOG" 2>/dev/null || echo 0)
+  _png_m=$(stat -f '%m' "$_CHART_REF" 2>/dev/null || echo 0)
+  [ "$_log_m" -gt "$_png_m" ] && _SHOULD_CHARTS=1
+fi
+if [ "$_SHOULD_CHARTS" = "1" ]; then
   PLANNING_BOT="$AGENT_ROOT/planning_bot"
-  if [ -n "$HAS_LOGS" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" ]; then
-    echo "obsidian_sync: шаг 5 — графики дашборда (python×3, лог: $PLANNING_BOT/logs/charts.log; из planning_bot: tail -f logs/charts.log)…" >&2
+  if [ -n "$HAS_LOGS" ] && [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" ]; then
+    echo "obsidian_sync: шаг 5 — графики дашборда ($CHART_PYTHON ×4, лог: $PLANNING_BOT/logs/charts.log)…" >&2
     export LOCAL_VAULT
-    if cd "$PLANNING_BOT" && python3 scripts/build_daily_task_activity_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && python3 scripts/build_daily_completions_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && python3 scripts/build_open_pipeline_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && python3 scripts/build_deadline_horizon_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    if cd "$PLANNING_BOT" && "$CHART_PYTHON" scripts/build_daily_task_activity_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && "$CHART_PYTHON" scripts/build_daily_completions_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && "$CHART_PYTHON" scripts/build_open_pipeline_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && "$CHART_PYTHON" scripts/build_deadline_horizon_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$MARKER"
+    else
+      echo "⚠️ obsidian_sync: шаг 5 — сборка графиков не удалась (см. planning_bot/logs/charts.log)" >&2
+      SYNC_OK=0
     fi
   fi
 fi
+unset _SHOULD_CHARTS _CHART_REF _CUR_LOG _log_m _png_m ACTION_LOG_PREFIX
 
-# 5c. Пересобрать PNG графиков встреч локально — server не имеет matplotlib, Графики/ не тянутся с сервера.
-# Запускается при каждом синке (быстро: только если Календарь.json свежее PNG или раз в день).
+# 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
+_CAL_JSON="$LOCAL_VAULT/300_Дашборды/Данные/Календарь.json"
+_CAL_PNG="$LOCAL_VAULT/300_Дашборды/Графики/Встречи_нагрузка_недели.png"
 PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
-if [ -n "${FORCE_CHARTS:-}" ] || [ ! -f "$CAL_MARKER" ] || [ "$(cat "$CAL_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  if [ -d "$PLANNING_BOT" ]; then
-    echo "obsidian_sync: шаг 5c — calendar_sync (PNG встреч, тот же лог: logs/charts.log)…" >&2
+_SHOULD_CAL=0
+if [ -n "${FORCE_CHARTS:-}" ]; then
+  _SHOULD_CAL=1
+elif [ ! -f "$CAL_MARKER" ] || [ "$(cat "$CAL_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_CAL=1
+elif [ -f "$_CAL_JSON" ] && [ -f "$_CAL_PNG" ]; then
+  _cal_j=$(stat -f '%m' "$_CAL_JSON" 2>/dev/null || echo 0)
+  _cal_p=$(stat -f '%m' "$_CAL_PNG" 2>/dev/null || echo 0)
+  [ "$_cal_j" -gt "$_cal_p" ] && _SHOULD_CAL=1
+fi
+if [ "$_SHOULD_CAL" = "1" ]; then
+  if [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ]; then
+    echo "obsidian_sync: шаг 5c — calendar_sync ($CHART_PYTHON, лог: logs/charts.log)…" >&2
     export LOCAL_VAULT
-    export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && python3 -m planning_bot.tools.calendar_sync >> logs/charts.log 2>&1; then
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    if cd "$PLANNING_BOT" && "$CHART_PYTHON" -m planning_bot.tools.calendar_sync >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$CAL_MARKER"
+    else
+      echo "⚠️ obsidian_sync: шаг 5c — calendar_sync failed (см. charts.log)" >&2
+      SYNC_OK=0
     fi
   fi
 fi
+unset _SHOULD_CAL _CAL_JSON _CAL_PNG _cal_j _cal_p
 
 # 5d. График КБЖУ: перенесён сразу после 5b.4b (iphone_context_sync) — иначе PNG строится по
 # вчерашнему iphone_week.json и день с ручным .txt в IPhone/ даёт пустой/битый столбец.
@@ -568,8 +622,9 @@ if [ "$_SHOULD_NUTR" = "1" ]; then
   if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_iphone_nutrition_chart.py" ]; then
     echo "obsidian_sync: шаг 5d — Питание КБЖУ (PNG, после iphone_context_sync; лог: $PLANNING_BOT/logs/charts.log)…" >&2
     export VAULT_PATH="$LOCAL_VAULT"
-    export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && env -u PYTHONPATH python3 scripts/build_iphone_nutrition_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _nutr_py="${CHART_PYTHON:-python3}"
+    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_iphone_nutrition_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$NUTR_MARKER"
     fi
   fi

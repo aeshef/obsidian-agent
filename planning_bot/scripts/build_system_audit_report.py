@@ -70,6 +70,8 @@ def main() -> None:
         "",
         pdmsg("auto_7c6ed2eb98"),
         "",
+        pdmsg("auto_audit_dates_legend"),
+        "",
         "---",
         "",
         pdmsg("auto_5d68ea6ce6"),
@@ -184,9 +186,11 @@ def main() -> None:
     lines.append("")
     lines.append(pdmsg("auto_dd0051d65d"))
     lines.append("")
+    _env_set = pdmsg("auto_95f57d852f")
+    _env_unset = pdmsg("auto_d07c3c68b2")
     for key in ("VAULT_PATH", "LOCAL_VAULT", "SYNC_STATE_DIR", "PYTHONPATH"):
         v = os.environ.get(key)
-        lines.append(f"- `{key}` — {pdmsg("auto_95f57d852f") if v else pdmsg("auto_d07c3c68b2")}")
+        lines.append(f"- `{key}` — {_env_set if v else _env_unset}")
     lines.append("")
     lines.append(pdmsg("auto_abbea6bcae"))
 

@@ -16,6 +16,15 @@ _read() {
 
 last_sync="$(_read "$SYNC_DIR/last_sync_ok.txt")"
 charts="$(_read "$SYNC_DIR/daily_charts_date.txt")"
+_charts_stale=""
+_ref="$VAULT/300_Дашборды/Графики/Активность_за_день.png"
+_log="$VAULT/300_Дашборды/Логи/📊 Логи_Действий_$(date +%Y-%m).md"
+if [ -f "$_log" ] && [ -f "$_ref" ]; then
+  _lm=$(stat -f '%m' "$_log" 2>/dev/null || echo 0)
+  _pm=$(stat -f '%m' "$_ref" 2>/dev/null || echo 0)
+  [ "$_lm" -gt "$_pm" ] && _charts_stale=" (лог новее PNG — нужен шаг 5)"
+fi
+unset _ref _log _lm _pm
 finance="$(_read "$SYNC_DIR/finance_dashboard_last_ok.txt")"
 mobile="$(_read "$SYNC_DIR/mobile_vault_last_ok.txt")"
 maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
@@ -26,7 +35,7 @@ maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
   echo "| Маркер | Значение |"
   echo "|--------|----------|"
   echo "| last_sync_ok | $last_sync |"
-  echo "| daily_charts | $charts |"
+  echo "| daily_charts | $charts$_charts_stale |"
   echo "| finance_dashboard | $finance |"
   echo "| mobile_vault | $mobile |"
   echo "| vault_maintenance | $maint |"

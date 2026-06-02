@@ -1,5 +1,13 @@
 # cp planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml
 
+columns:
+  - "📋 Бэклог"
+  - "📅 Ждёт даты"
+  - "⏸ Отложено"
+  - "🔄 В работе"
+  - "🚫 Заблокировано"
+  - "✅ Сделано"
+
 categories:
   - карьера
   - учеба
