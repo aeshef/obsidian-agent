@@ -2,8 +2,9 @@
 # Единый деплой монорепо obsidian-agent (серверная структура: $SERVER_BOTS/<component>).
 #
 #   ./scripts/deploy.sh --component all
-#   ./scripts/deploy.sh --prod                    # patch .env + config/agent + unified_bot + all + unified restart
+#   ./scripts/deploy.sh --prod                    # patch .env + deploy all + unified restart (legacy bots без рестарта)
 #   ./scripts/deploy.sh --prod --install-deps
+#   ./scripts/deploy.sh --prod --legacy-bots      # legacy режим: рестартовать finance/knowledge/planning тоже
 #   ./scripts/deploy.sh --patch-agent-env         # только ключи agent platform на VPS
 #   ./scripts/deploy.sh --restart-unified         # только unified_bot (nohup)
 #
@@ -12,6 +13,7 @@
 #   --prod               полный prod-выкат (см. выше)
 #   --patch-agent-env    дописать TELEGRAM_UNIFIED_BOT_TOKEN, SYNTH_*, MEMORY_*, AGENT_* в server .env
 #   --restart-unified    перезапуск unified_bot после деплоя (или отдельно)
+#   --legacy-bots        при --prod перезапускать legacy polling ботов вместе с unified
 #   --no-restart         без перезапуска ботов / unified
 #   --install-deps       pip install -r requirements.txt на сервере
 #   --dry-run            rsync -n
@@ -35,6 +37,7 @@ DRYRUN=0
 PROD=0
 PATCH_AGENT_ENV=0
 RESTART_UNIFIED=0
+LEGACY_BOTS=0
 DEPLOY_VERIFY_WAIT="${DEPLOY_VERIFY_WAIT:-15}"
 RESTARTED=()
 DEPLOYED_COMPONENTS=()
@@ -48,6 +51,7 @@ while [ $# -gt 0 ]; do
     --prod) PROD=1; PATCH_AGENT_ENV=1; RESTART_UNIFIED=1; shift;;
     --patch-agent-env) PATCH_AGENT_ENV=1; shift;;
     --restart-unified) RESTART_UNIFIED=1; shift;;
+    --legacy-bots) LEGACY_BOTS=1; shift;;
     *) echo "Неизвестный флаг: $1"; exit 2;;
   esac
 done
@@ -287,13 +291,18 @@ sync_badge_yaml_optional() {
 
 deploy_one() {
   local name="$1"
+  local restart_mode="${2:-auto}"
   echo "──────── deploy: $name ────────"
   rsync_comp "$name"
   [ "$name" = finance_bot ] && sync_badge_yaml_optional
   [ "$name" = knowledge_bot ] && sync_knowledge_prompts_optional
   ensure_venv_link "$name"
   install_deps "$name"
-  restart_comp "$name"
+  if [ "$restart_mode" = "skip" ]; then
+    echo "⏭  $name: restart skipped by mode"
+  else
+    restart_comp "$name"
+  fi
   DEPLOYED_COMPONENTS+=("$name")
 }
 
@@ -392,10 +401,15 @@ if [ "$_deploy_all" = 0 ]; then
 fi
 
 if [ "$_deploy_all" = 1 ]; then
+  _legacy_restart_mode="auto"
+  if [ "$PROD" = 1 ] && [ "$LEGACY_BOTS" = 0 ]; then
+    _legacy_restart_mode="skip"
+    echo "ℹ️ --prod: legacy bot restarts disabled (use --legacy-bots to enable)"
+  fi
   deploy_one shared
-  deploy_one finance_bot
-  deploy_one knowledge_bot
-  deploy_one planning_bot
+  deploy_one finance_bot "$_legacy_restart_mode"
+  deploy_one knowledge_bot "$_legacy_restart_mode"
+  deploy_one planning_bot "$_legacy_restart_mode"
   deploy_agent_platform_paths
   _want_verify=1
 else
