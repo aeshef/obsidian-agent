@@ -34,7 +34,9 @@ if [[ ${#ARGS[@]} -eq 0 ]]; then
     tests/test_finance_llm.py tests/test_transactions_core.py tests/test_agent_platform.py
     tests/test_calendar_sync.py tests/test_tag_normalize.py tests/test_entity_names.py
     tests/test_note_lookup.py tests/test_kanban_parse_substantive.py
-    tests/test_agent_progress.py
+    tests/test_agent_progress.py tests/test_date_range.py tests/test_reference_date.py
+    tests/test_host_knowledge_keyboard.py tests/test_finance_txn_query.py
+    tests/test_brain_query_helpers.py
   )
   echo "=== finance/planning/shared tests ==="
   "$FIN_PY" -m pytest "${FIN_TESTS[@]}" -q
