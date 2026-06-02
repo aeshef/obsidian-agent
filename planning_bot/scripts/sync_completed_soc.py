@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""
-Source of Truth по выполненным задачам: JSON-лог, который строится по доске задач.
-
-- Читает колонку «✅ Сделано» с доски.
-- Добавляет в SoC только задачи, которых ещё не было (completed_at = дата запуска).
-- При первом запуске (файл пустой) все текущие в «Сделано» записываются с completed_at = null,
-  чтобы не создавать всплеск на графике — в график попадают только новые завершения после этого.
-- Запускать с адекватным интервалом (раз в день или при vault_maintenance).
-
-Файл: 300_Дашборды/Графики/completed_tasks_soc.json
-"""
-
+from planning_bot.core.pdmsg import pdmsg
 import hashlib
 import json
 import re
@@ -23,13 +12,13 @@ def _get_task_id_from_text(task_text: str) -> Optional[str]:
     id_match = re.search(r'🆔 ID: ([a-f0-9-]+)', task_text)
     if id_match:
         return id_match.group(1)
-    date_match = re.search(r'📅 Создано: (\d{4}-\d{2}-\d{2})', task_text)
-    category_match = re.search(r'#цель/([^\s#]+)', task_text)
-    priority_match = re.search(r'#приоритет/(высокий|средний|низкий)', task_text)
-    task_name = re.sub(r'\s*#цель/[^\s#]+.*', '', task_text).strip()
-    task_name = re.sub(r'\s*#приоритет/[^\s#]+.*', '', task_name).strip()
-    task_name = re.sub(r'\s*#дедлайн/[^\s#]+.*', '', task_name).strip()
-    task_name = re.sub(r'\s*📅 Создано:.*', '', task_name).strip()
+    date_match = re.search(pdmsg("auto_a84ca0473b"), task_text)
+    category_match = re.search(pdmsg("auto_8d7e383ebe"), task_text)
+    priority_match = re.search(pdmsg("auto_a1fb4d656a"), task_text)
+    task_name = re.sub(pdmsg("auto_8f87b9acbe"), '', task_text).strip()
+    task_name = re.sub(pdmsg("auto_3a199272bb"), '', task_name).strip()
+    task_name = re.sub(pdmsg("auto_259951b2bb"), '', task_name).strip()
+    task_name = re.sub(pdmsg("auto_9943c12ad5"), '', task_name).strip()
     task_name = re.sub(r'\s*🆔 ID:.*', '', task_name).strip()
     task_name = task_name.replace('\\$', '$').replace('\\\\', '\\')
     hash_parts = []
@@ -46,18 +35,18 @@ def _get_task_id_from_text(task_text: str) -> Optional[str]:
 
 
 def _get_category_from_text(task_text: str) -> Optional[str]:
-    """Категория из тега #цель/...; если тега нет — None (на графике такие задачи не показываются)."""
-    m = re.search(r'#цель/([^\s#]+)', task_text)
+    'Operation implementation.'
+    m = re.search(pdmsg("auto_8d7e383ebe"), task_text)
     return m.group(1) if m else None
 
 
 def _read_done_tasks_from_board(kanban_path: Path) -> list[dict]:
-    """Список { task_id, category } для задач в колонке «✅ Сделано»."""
+    'Operation implementation.'
     if not kanban_path.exists():
         return []
     content = kanban_path.read_text(encoding="utf-8")
     done_match = re.search(
-        r'##\s*✅\s*Сделано\s*\n\n(.+?)(?=\n##\s|\n%%|$)',
+        pdmsg("auto_4ac560a242"),
         content,
         re.DOTALL,
     )
@@ -71,7 +60,7 @@ def _read_done_tasks_from_board(kanban_path: Path) -> list[dict]:
         if not task_id:
             continue
         category = _get_category_from_text(task_text)
-        tasks.append({"task_id": task_id, "category": category})  # category None = нет #цель/
+        tasks.append({"task_id": task_id, "category": category})  # (comment)
     return tasks
 
 
@@ -80,10 +69,7 @@ def sync_completed_soc(
     soc_path: Path,
     today: Optional[str] = None,
 ) -> int:
-    """
-    Синхронизирует SoC с доской. Возвращает число добавленных записей с ненулевой датой.
-    today — YYYY-MM-DD (по умолчанию сегодня).
-    """
+    'Operation implementation.'
     if today is None:
         today = datetime.now().strftime("%Y-%m-%d")
     done_tasks = _read_done_tasks_from_board(kanban_path)
@@ -104,7 +90,7 @@ def sync_completed_soc(
     for t in done_tasks:
         if t["task_id"] in existing_ids:
             continue
-        # Первый запуск: все текущие «Сделано» — без даты, чтобы не всплеск на графике
+        # (comment)
         data["entries"].append({
             "task_id": t["task_id"],
             "category": t["category"],
@@ -124,15 +110,15 @@ def main():
     import argparse
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
-    p = argparse.ArgumentParser(description="Синк SoC по выполненным задачам с доски")
+    p = argparse.ArgumentParser(description=pdmsg("auto_ef984a86d2"))
     p.add_argument("--vault", type=Path, default=None)
     p.add_argument("--soc", type=Path, default=None)
     args = p.parse_args()
 
     if args.vault is not None:
         vault = args.vault.resolve()
-        kanban_path = vault / "100_Задачи/📋 Доска_Задач.md"
-        soc_path = args.soc or (vault / "300_Дашборды/Графики/completed_tasks_soc.json")
+        kanban_path = vault / pdmsg("auto_f4fa42bf13")
+        soc_path = args.soc or (vault / pdmsg("auto_f8b2271a3b"))
     else:
         try:
             from planning_bot.core.config import KANBAN_FILE, COMPLETED_SOC_FILE
@@ -140,11 +126,11 @@ def main():
             soc_path = args.soc or Path(COMPLETED_SOC_FILE)
         except Exception:
             vault = Path(__file__).resolve().parent.parent.parent.parent
-            kanban_path = vault / "100_Задачи/📋 Доска_Задач.md"
-            soc_path = args.soc or (vault / "300_Дашборды/Графики/completed_tasks_soc.json")
+            kanban_path = vault / pdmsg("auto_f4fa42bf13")
+            soc_path = args.soc or (vault / pdmsg("auto_f8b2271a3b"))
 
     n = sync_completed_soc(kanban_path, soc_path)
-    print(f"SoC: {soc_path} (добавлено с датой: {n})")
+    print(pdmsg("auto_cecea1f4cb", _p1=soc_path, _p3=n))
 
 
 if __name__ == "__main__":

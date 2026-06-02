@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Одноразовая утилита: убрать точные дубликаты блоков в файле лога. Путь к файлу обязателен."""
+from planning_bot.core.pdmsg import pdmsg
 import argparse
 import json
 import re
 from pathlib import Path
 
 PAT = re.compile(
-    r"## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n\n\*\*Тип:\*\* (.+?)\n\n\*\*Данные:\*\*\n```json\n(.+?)\n```\n\n---\n\n",
+    pdmsg("auto_4aabd73fb8"),
     re.DOTALL,
 )
 
@@ -16,7 +16,7 @@ def main() -> int:
     p.add_argument(
         "log_file",
         type=Path,
-        help="Путь к 📊 Логи_Действий_YYYY-MM.md",
+        help=pdmsg("auto_d3919865a6"),
     )
     args = p.parse_args()
     log_path = args.log_file.resolve()

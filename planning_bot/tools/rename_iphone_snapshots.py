@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
-"""
-Переименование IPhone/*.txt: DD.MM.YYYY, HH:MM.txt → YYYY-MM-DD, HH-MM.txt (сортировка по имени).
-
-  python tools/rename_iphone_snapshots.py              # dry-run
-  python tools/rename_iphone_snapshots.py --apply
-  python tools/rename_iphone_snapshots.py --apply --vault /path
-
-Пишет манифест .sync/iphone_snapshot_renames.json (unlink_on_server — старые имена для SSH cleanup).
-"""
 from __future__ import annotations
 
+from planning_bot.core.pdmsg import pdmsg
 import argparse
 import hashlib
 import json
@@ -36,7 +28,7 @@ _COPY_SUFFIX = re.compile(r"\s+copy\.txt$", re.IGNORECASE)
 
 
 def vault_root_from_iphone_dir(iphone_dir: Path) -> Path:
-    """300_Дашборды/Данные/Действия/IPhone → корень vault."""
+    'Operation implementation.'
     return iphone_dir.resolve().parents[3]
 
 
@@ -169,8 +161,7 @@ def rename_iphone_snapshots(
         )
 
     print(
-        f"\nИтого: rename={renamed}, dup_removed={removed}, "
-        f"errors={len(errors)}, manifest={'written' if apply else 'dry-run'}"
+        pdmsg("auto_72a8adc6af", _p1=renamed, _p3=removed, _p5=len(errors), _p7='written' if apply else 'dry-run')
     )
     return {
         "ok": len(errors) == 0 or renamed + removed > 0,

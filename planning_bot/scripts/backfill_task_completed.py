@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from planning_bot.core.pdmsg import pdmsg
 from pathlib import Path
 import sys
 
@@ -6,21 +7,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT.parent) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT.parent))
 
-"""
-Бэкфилл: для записей task_moved с to='✅ Сделано', у которых в логе нет task_completed,
-добавляем запись task_completed с тем же timestamp и данными (title, task_id, category).
-Графики «Завершено по категориям» и «Активность за день» учитывают оба типа; после бэкфилла
-старые дни перестанут показывать 0.
-
-Запуск из корня vault:
-  python3 800_Автоматизация/Agent/planning_bot/scripts/backfill_task_completed.py [--vault PATH] [--month 2026-03] [--dry-run]
-"""
+pdmsg("auto_05876aac49")
 import argparse
 import json
 import sys
 from pathlib import Path
 
-LOG_PREFIX = "📊 Логи_Действий_"
+LOG_PREFIX = pdmsg("auto_ee3219e98d")
 MONTH_NAMES = ("", "January", "February", "March", "April", "May", "June",
                "July", "August", "September", "October", "November", "December")
 
@@ -29,20 +22,20 @@ from planning_bot.core.config import DONE_COLUMN
 
 
 def write_log_file(path: Path, events: list, year_month: str) -> None:
-    """Записать файл в формате action_logger."""
+    'Operation implementation.'
     if not events:
         return
     y, m = year_month.split("-")
     month_title = f"{MONTH_NAMES[int(m)]} {y}"
-    lines = [f"# Логи действий {month_title}\n\n"]
+    lines = [pdmsg("auto_31eabb5043", _p1=month_title)]
     for e in events:
         ts = e["timestamp"]
         typ = e.get("type", "")
         data = e.get("data") or {}
         data_json = json.dumps(data, ensure_ascii=False, indent=2)
         lines.append(f"## {ts}\n\n")
-        lines.append(f"**Тип:** {typ}\n\n")
-        lines.append("**Данные:**\n```json\n")
+        lines.append(pdmsg("auto_f68669948a", _p1=typ))
+        lines.append(pdmsg("auto_6553160aec"))
         lines.append(data_json)
         lines.append("\n```\n\n---\n\n")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -50,20 +43,20 @@ def write_log_file(path: Path, events: list, year_month: str) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Добавить task_completed для task_moved→Сделано без пары")
+    ap = argparse.ArgumentParser(description=pdmsg("auto_11d24a3ae3"))
     ap.add_argument("--vault", type=Path, default=None)
-    ap.add_argument("--month", type=str, default=None, help="Например 2026-03; иначе все файлы в Логи/")
-    ap.add_argument("--dry-run", action="store_true", help="Только показать, что будет добавлено")
+    ap.add_argument("--month", type=str, default=None, help=pdmsg("auto_3bba8862bb"))
+    ap.add_argument("--dry-run", action="store_true", help=pdmsg("auto_17bf3030a3"))
     args = ap.parse_args()
 
     if args.vault:
-        logs_dir = Path(args.vault).resolve() / "300_Дашборды" / "Логи"
+        logs_dir = Path(args.vault).resolve() / pdmsg("auto_1c7277d3a5") / pdmsg("auto_bcc4709278")
     else:
         from planning_bot.core.config import ACTION_LOGS_DIR
         logs_dir = Path(ACTION_LOGS_DIR)
 
     if not logs_dir.is_dir():
-        print(f"Каталог не найден: {logs_dir}", flush=True)
+        print(pdmsg("auto_a9cfe5780b", _p1=logs_dir), flush=True)
         return 1
 
     if args.month:
@@ -73,7 +66,7 @@ def main() -> int:
         log_files = sorted(logs_dir.glob(f"{LOG_PREFIX}*.md"))
 
     if not log_files:
-        print("Файлов логов не найдено.", flush=True)
+        print(pdmsg("auto_eb3c99a9ef"), flush=True)
         return 0
 
     total_added = 0
@@ -83,7 +76,7 @@ def main() -> int:
         if not events:
             continue
 
-        # task_id, для которых уже есть task_completed в этом файле
+        # (comment)
         has_completed = set()
         for e in events:
             if e.get("type") == "task_completed":
@@ -91,7 +84,7 @@ def main() -> int:
                 if tid:
                     has_completed.add(tid)
 
-        # Добавляем task_completed для task_moved→Сделано без пары
+        # (comment)
         to_append = []
         for e in events:
             if e.get("type") != "task_moved":
@@ -116,7 +109,7 @@ def main() -> int:
 
         year_month = path.stem.replace(LOG_PREFIX, "")
         if args.dry_run:
-            print(f"{path.name}: добавлено бы записей task_completed: {len(to_append)}", flush=True)
+            print(pdmsg("auto_2a09b23885", _p0=path.name, _p2=len(to_append)), flush=True)
             for ev in to_append:
                 print(f"  {ev['timestamp']} {ev['data'].get('title', '')[:50]}", flush=True)
             total_added += len(to_append)
@@ -126,11 +119,11 @@ def main() -> int:
         new_events.sort(key=lambda x: (x["timestamp"], (0 if x.get("type") == "task_moved" else 1), x.get("type", "")))
 
         write_log_file(path, new_events, year_month)
-        print(f"{path.name}: добавлено записей task_completed: {len(to_append)}", flush=True)
+        print(pdmsg("auto_4414441f2a", _p0=path.name, _p2=len(to_append)), flush=True)
         total_added += len(to_append)
 
     if total_added:
-        print(f"Всего добавлено: {total_added}", flush=True)
+        print(pdmsg("auto_a5e97b8a01", _p1=total_added), flush=True)
     return 0
 
 
