@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Однократная чистка дублей broker_portfolio (старые «Тинькофф Брокер 4985» и т.п.).
+One-time cleanup of duplicate broker_portfolio accounts (legacy suffixed names).
 
-Запуск на сервере после деплоя и broker sync:
+Run on server after deploy and broker sync:
   cd ~/bots/finance_bot && venv/bin/python tools/cleanup_broker_portfolio_accounts.py
 """
 from __future__ import annotations

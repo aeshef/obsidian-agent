@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Скрипт для инициализации счетов из конфига initial_accounts.yaml"""
+"""Initialize accounts from config/initial_accounts.yaml."""
 
 import asyncio
 import os
@@ -19,14 +19,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-# Устанавливаем DATABASE_URL до импорта моделей
 [REDACTED]
 
-# Создаем Base напрямую, чтобы не импортировать из bot.db
 Base = declarative_base()
 
 
-# Определяем модели напрямую (копия из bot/models.py)
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -49,84 +46,89 @@ class Account(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+from shared.domain_messages import dmsg
+
+
 async def init_accounts_from_config():
-    """Инициализирует счета из конфига"""
+    """Load accounts from initial_accounts.yaml into the database."""
     os.chdir(PROJECT_ROOT)
 
     config_path = PROJECT_ROOT / "config" / "initial_accounts.yaml"
-    
+
     if not config_path.exists():
-        print(f"❌ Конфиг не найден: {config_path}")
-        print("💡 cp config/initial_accounts.yaml.example config/initial_accounts.yaml и заполни")
+        print(dmsg("finance_scripts", "init_config_missing", path=config_path))
+        print(dmsg("finance_scripts", "init_config_hint"))
         return
-    
-    # Загружаем конфиг
+
     with open(config_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
-    
+
     telegram_id = config.get("telegram_id")
     if not telegram_id:
-        print("❌ В конфиге не указан telegram_id")
+        print(dmsg("finance_scripts", "init_no_telegram_id"))
         return
-    
+
     accounts_config = config.get("accounts", [])
     if not accounts_config:
-        print("❌ В конфиге нет счетов (accounts)")
+        print(dmsg("finance_scripts", "init_no_accounts"))
         return
-    
-    print(f"📋 Найдено счетов в конфиге: {len(accounts_config)}")
-    print(f"👤 Telegram ID: {telegram_id}\n")
-    
-    # Создаем движок и сессию напрямую
+
+    print(dmsg("finance_scripts", "init_accounts_found", count=len(accounts_config)))
+    print(f"Telegram ID: {telegram_id}\n")
+
     database_url = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./finance.db")
     engine = create_async_engine(database_url, echo=False)
     async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    
+
     async with async_session() as session:
-        # Получаем пользователя
-        user = (await session.execute(
-            select(User).where(User.telegram_id == telegram_id)
-        )).scalar_one_or_none()
-        
+        user = (
+            await session.execute(select(User).where(User.telegram_id == telegram_id))
+        ).scalar_one_or_none()
+
         if not user:
-            print(f"❌ Пользователь с telegram_id={telegram_id} не найден")
-            print("💡 Сначала отправь /start боту, чтобы создать пользователя")
+            print(dmsg("finance_scripts", "init_user_missing", telegram_id=telegram_id))
+            print(dmsg("finance_scripts", "init_user_hint"))
             return
-        
+
         created_count = 0
         updated_count = 0
-        
+
         for acc_config in accounts_config:
             name = acc_config.get("name", "").strip()
             balance = acc_config.get("balance", 0)
             currency = acc_config.get("currency", "RUB").upper()
             acc_type = acc_config.get("type", "wallet")
-            
+
             if not name:
-                print(f"⚠️ Пропущен счет без названия")
+                print(dmsg("finance_scripts", "init_skip_no_name"))
                 continue
-            
-            # Проверяем, существует ли счет
-            existing = (await session.execute(
-                select(Account).where(Account.user_id == user.id, Account.name == name)
-            )).scalar_one_or_none()
-            
+
+            existing = (
+                await session.execute(
+                    select(Account).where(Account.user_id == user.id, Account.name == name)
+                )
+            ).scalar_one_or_none()
+
             balance_decimal = Decimal(str(balance))
-            
-            # Брокер — balance из API, is_external_balance=True
-            # Карты и кошельки — is_external_balance=False, участвуют в переводах
             is_ext = acc_type in ("broker",)
             resolved_type = "broker_portfolio" if acc_type in ("broker",) else acc_type
             if existing:
-                # Обновляем существующий счет
                 existing.external_balance = balance_decimal
                 existing.currency = currency
                 existing.type = resolved_type
                 existing.is_external_balance = is_ext
                 updated_count += 1
-                print(f"✅ Обновлен: {name} = {balance_decimal:,.2f} {currency} (external={is_ext})")
+                print(
+                    dmsg(
+                        "finance_scripts",
+                        "init_updated",
+                        name=name,
+                        balance=balance_decimal,
+                        currency=currency,
+                        external=is_ext,
+                    )
+                )
             else:
-                # Создаем новый счет
                 account = Account(
                     user_id=user.id,
                     name=name,
@@ -137,15 +139,23 @@ async def init_accounts_from_config():
                 )
                 session.add(account)
                 created_count += 1
-                print(f"✅ Создан: {name} = {balance_decimal:,.2f} {currency}")
-        
+                print(
+                    dmsg(
+                        "finance_scripts",
+                        "init_created",
+                        name=name,
+                        balance=balance_decimal,
+                        currency=currency,
+                    )
+                )
+
         await session.commit()
-        
-        print(f"\n✅ Готово!")
-        print(f"   Создано счетов: {created_count}")
-        print(f"   Обновлено счетов: {updated_count}")
-        print(f"   Всего обработано: {created_count + updated_count}")
-    
+
+        print(dmsg("finance_scripts", "init_done"))
+        print(dmsg("finance_scripts", "init_created_count", count=created_count))
+        print(dmsg("finance_scripts", "init_updated_count", count=updated_count))
+        print(dmsg("finance_scripts", "init_total", count=created_count + updated_count))
+
     await engine.dispose()
 
 

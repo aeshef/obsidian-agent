@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """
-Разовый импорт истории бейджа из YAML (без хардкода в коде).
+One-off badge spend history import from YAML (no hardcoded strings in code).
 
   python scripts/import_badge_history.py --file config/badge_import_may_2026.yaml
   python scripts/import_badge_history.py --file config/badge_import_may_2026.yaml --db /path/finance.db
   python scripts/import_badge_history.py --clear --file config/badge_import_may_2026.yaml
-
-После успешного импорта на сервер и локаль файл импорта можно удалить.
-Дальше — только новые траты через бота (🍽 Бейдж).
 """
 
 from __future__ import annotations
@@ -26,45 +23,46 @@ sys.path.insert(0, str(ROOT))
 
 from bot.config_loader import get_badge_config  # noqa: E402
 from bot.finance_db_paths import mirror_canonical_to_vault_replica, resolve_canonical_write_db  # noqa: E402
+from shared.domain_messages import dmsg  # noqa: E402
 
 
 def load_import_file(path: Path) -> tuple[str, list[dict]]:
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError(f"Ожидался объект YAML в {path}")
+        raise ValueError(dmsg("finance_scripts", "import_badge_yaml_object", path=path))
     ym = str(data.get("year_month", "")).strip()
     if len(ym) < 7:
-        raise ValueError("В файле нужно поле year_month: YYYY-MM")
+        raise ValueError(dmsg("finance_scripts", "import_badge_year_month"))
     txns = data.get("transactions") or []
     if not isinstance(txns, list) or not txns:
-        raise ValueError("В файле нужен непустой список transactions")
+        raise ValueError(dmsg("finance_scripts", "import_badge_transactions"))
     return ym, txns
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Разовый импорт трат бейджа из YAML")
+    parser = argparse.ArgumentParser(description="One-off badge spend import from YAML")
     parser.add_argument(
         "--file",
         type=Path,
         required=True,
-        help="YAML с year_month и transactions (day, amount, description)",
+        help="YAML with year_month and transactions (day, amount, description)",
     )
     parser.add_argument("--vault", type=Path, default=None)
     parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--user-id", type=int, default=1)
-    parser.add_argument("--account-name", default=None, help="Имя счёта бейджа (override badge.yaml)")
-    parser.add_argument("--category", default=None, help="Категория (override badge.yaml)")
-    parser.add_argument("--clear", action="store_true", help="Удалить траты бейджа за month из файла")
+    parser.add_argument("--account-name", default=None, help="Badge account name (override badge.yaml)")
+    parser.add_argument("--category", default=None, help="Category (override badge.yaml)")
+    parser.add_argument("--clear", action="store_true", help="Delete badge spends for month from file")
     parser.add_argument(
         "--append",
         action="store_true",
-        help="Только добавить строки (не удалять существующие; пропуск дубликатов по дате+сумме+описанию)",
+        help="Append only (keep existing; skip duplicates by date+amount+description)",
     )
     args = parser.parse_args()
 
     import_path = args.file if args.file.is_absolute() else ROOT / args.file
     if not import_path.exists():
-        print(f"❌ Файл не найден: {import_path}")
+        print(dmsg("finance_scripts", "import_badge_file_missing", path=import_path))
         sys.exit(1)
 
     year_month, raw_txns = load_import_file(import_path)
@@ -73,18 +71,21 @@ def main() -> None:
 
     cfg = get_badge_config()
     account_name = args.account_name or cfg.get("account_name", "Meal Badge")
-    category = args.category or cfg.get("category", "Еда/Бейдж")
+    category = args.category or cfg.get("category")
+    if not category:
+        raise ValueError("badge category not set in badge.yaml and --category not passed")
 
     if args.db:
         db_path = Path(args.db)
     else:
         if args.vault:
             import os
+
             os.environ["VAULT_PATH"] = str(args.vault.expanduser().resolve())
         db_path = resolve_canonical_write_db()
 
     if not db_path.exists():
-        print(f"❌ БД не найдена: {db_path}")
+        print(dmsg("finance_scripts", "import_badge_db_missing", path=db_path))
         sys.exit(1)
 
     conn = sqlite3.connect(db_path)
@@ -101,7 +102,7 @@ def main() -> None:
             (args.user_id, account_name),
         )
         acc_id = cur.lastrowid
-        print(f"✅ Создан счёт {account_name} id={acc_id}")
+        print(dmsg("finance_scripts", "import_badge_account_created", name=account_name, id=acc_id))
     else:
         acc_id = acc[0]
 
@@ -116,7 +117,7 @@ def main() -> None:
             (args.user_id, acc_id, category, start, end),
         )
         conn.commit()
-        print(f"🗑 Удалено за {year_month}: {cur.rowcount} строк")
+        print(dmsg("finance_scripts", "import_badge_cleared", year_month=year_month, count=cur.rowcount))
         conn.close()
         return
 
@@ -166,12 +167,12 @@ def main() -> None:
     conn.close()
     mirror_canonical_to_vault_replica(canonical=Path(db_path))
     mode = "append" if args.append else "replace"
-    print(f"✅ Импорт ({mode}) {import_path.name} → {db_path}")
+    print(dmsg("finance_scripts", "import_badge_done", mode=mode, file=import_path.name, db=db_path))
     if not args.append:
-        print(f"   Период: {year_month}, заменено старых строк: {cleared}")
+        print(dmsg("finance_scripts", "import_badge_replaced", year_month=year_month, count=cleared))
     if skipped:
-        print(f"   Пропущено дубликатов: {skipped}")
-    print(f"   Добавлено: {inserted} операций на {_fmt(total)} ₽")
+        print(dmsg("finance_scripts", "import_badge_skipped", count=skipped))
+    print(dmsg("finance_scripts", "import_badge_inserted", count=inserted, total=_fmt(total)))
 
 
 def _fmt(n: int) -> str:

@@ -1,0 +1,16 @@
+# cp broker_sync.yaml.example broker_sync.yaml
+# Broker account labels and legacy name patterns (Cyrillic allowed here, not in .py).
+
+labels:
+  regular: "Тинькофф Брокер"
+  iis: "Тинькофф ИИС"
+  invest_box: "Тинькофф Invest Box"
+
+legacy:
+  orphan_names:
+    - "Тинькофф ИИС"
+    - "Тинькофф Брокер"
+  suffixed_prefixes:
+    - "Тинькофф Брокер "
+    - "Тинькофф ИИС "
+    - "Тинькофф Invest Box "
