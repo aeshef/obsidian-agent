@@ -66,6 +66,18 @@ venv_logs/
 scripts/.git-filter-repo
 scripts/.scrub_prompts_callback_body.py
 scripts/.scrub_prompts_callback.py
+# Одноразовые refactor/migrate (только у автора, не для клонов репо)
+scripts/audit_*.py
+scripts/fix_*.py
+scripts/migrate_*.py
+scripts/repair_*.py
+scripts/strip_*.py
+planning_bot/scripts/_*.py
+planning_bot/scripts/fix_*.py
+planning_bot/scripts/patch_*.py
+planning_bot/scripts/strip_*.py
+planning_bot/scripts/run_safe_migrate.py
+planning_bot/scripts/_cyrillic_strip.py
 migration/
 test_fetch_iphone_mail.py
 docs/PROJECT_QUALITY_AUDIT.md
