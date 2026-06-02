@@ -1,0 +1,18 @@
+# cp wikilink_noise.yaml.example wikilink_noise.yaml
+# Tokens ignored when building wikilink keyword index.
+
+tokens:
+  - редактор
+  - корректор
+  - субтитры
+  - закомолдина
+  - егорова
+  - названия
+  - упоминается
+  - заметки
+  - youtu
+  - класса
+  - просмотрено
+  - предварительный
+  - preliminary
+  - буинь

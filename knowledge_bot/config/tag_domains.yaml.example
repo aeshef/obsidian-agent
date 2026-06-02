@@ -35,4 +35,5 @@ known_sources: [reels, tiktok, youtube, telegram]
 media_types_with_topic_anchor: [видео, фильм, книга, курс, учебник, песня]
 
 default_type: знание
+video_type: видео
 default_domain: life
