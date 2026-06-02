@@ -28,6 +28,9 @@ $BOTS/knowledge_bot/scripts/check_and_restart.sh
 $BOTS/knowledge_bot/scripts/restart.sh
 $BOTS/planning_bot/scripts/sync_and_restart.sh
 $BOTS/planning_bot/scripts/restart_bot.sh
+$BOTS/finance_bot/config/prompts/router_prompt.example.txt
+$BOTS/config/agent/prompts/log_source_router.example.txt
+$BOTS/config/agent/prompts/log_source_router.txt
 EOF
 }
 
@@ -74,6 +77,9 @@ $BOTS/knowledge_bot/scripts/check_and_restart.sh
 $BOTS/knowledge_bot/scripts/restart.sh
 $BOTS/planning_bot/scripts/sync_and_restart.sh
 $BOTS/planning_bot/scripts/restart_bot.sh
+$BOTS/finance_bot/config/prompts/router_prompt.example.txt
+$BOTS/config/agent/prompts/log_source_router.example.txt
+$BOTS/config/agent/prompts/log_source_router.txt
 EOP
 }
 removed=0

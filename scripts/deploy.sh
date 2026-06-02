@@ -59,6 +59,7 @@ done
 EXCLUDES_BASE=(
   --exclude='.git' --exclude='.DS_Store' --exclude='__pycache__/' --exclude='*.pyc'
   --exclude='venv/' --exclude='.venv/' --exclude='.venv' --exclude='venv' --exclude='.cache/'
+  --exclude='docs/' --exclude='README.md'
   --exclude='logs/' --exclude='data/' --exclude='.env'
   --exclude='*.db' --exclude='*.db-shm' --exclude='*.db-wal'
   --exclude='config/author_context.txt'
@@ -80,8 +81,9 @@ FINANCE_PROMPT_RULES=(
   --exclude='config/prompts/*.txt'
 )
 
-# knowledge_bot: только query_*.txt из prompts (tags.txt и пр. — отдельно ensure_tags)
+# knowledge_bot: prod query_*.txt с локали; *.example.txt — comment-stubs из git
 KNOWLEDGE_PROMPT_RULES=(
+  --include='config/prompts/*.example.txt'
   --include='config/prompts/query_preselect.txt'
   --include='config/prompts/query_select.txt'
   --include='config/prompts/query_answer.txt'
