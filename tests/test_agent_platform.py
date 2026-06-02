@@ -198,30 +198,43 @@ def test_pick_host_domain_uses_llm(monkeypatch):
     assert out == "planning"
 
 
-def test_pick_host_domain_overrides_knowledge_to_planning_for_activity_log(monkeypatch):
+def test_pick_host_domain_unified(monkeypatch):
     from shared.telegram.host import agent as host_agent
 
     class _App:
         def has_domain(self, name: str) -> bool:
-            return name in ("planning", "knowledge")
+            return name in ("finance", "planning", "knowledge")
 
         def domains(self) -> list[str]:
-            return ["planning", "knowledge"]
+            return ["finance", "planning", "knowledge"]
 
-    async def _host(text, **kwargs):
-        return "knowledge"
+    async def _fake(text, **kwargs):
+        return "unified"
 
-    async def _log_src(text, **kwargs):
-        return "activity_log"
-
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _host)
-    monkeypatch.setattr(host_agent, "classify_log_source_llm", _log_src)
+    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
     out = asyncio.run(
         host_agent.pick_host_domain(
-            "что я делал по логам вчера?", "auto", None, _App(), chat_id=1
+            "расходы и шаги за две недели", "auto", None, _App(), chat_id=1
         )
     )
-    assert out == "planning"
+    assert out == "unified"
+
+
+def test_classify_host_domain_unified_in_allowed(monkeypatch):
+    from shared.agent import llm_classify
+
+    async def _fake(system, payload, *, label):
+        assert payload.get("allow_unified") is True
+        return {"domain": "unified", "confidence": 0.9}
+
+    monkeypatch.setattr(llm_classify, "_chat_json_classify", _fake)
+    monkeypatch.setattr(llm_classify, "_load_prompt_file", lambda _n: "sys")
+    out = asyncio.run(
+        llm_classify.classify_host_domain_llm(
+            "расходы и health", enabled=["finance", "planning", "knowledge"]
+        )
+    )
+    assert out == "unified"
 
 
 def test_global_insights_in_all_domains(tmp_path, monkeypatch):
