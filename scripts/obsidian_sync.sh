@@ -337,7 +337,7 @@ if [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
           echo "obsidian_sync: шаг 5b.2b — apply_duplicates на сервере ($SERVER $SERVER_VAULT)…" >&2
           # shellcheck disable=SC2090
           ssh "${SSH_OPTS[@]}" "$SERVER" env VAULT_PATH="$SERVER_VAULT" SERVER_BOTS="$SERVER_BOTS" REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" bash -s \
-            >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || echo "⚠️ obsidian_sync: 5b.2b завершился с ошибкой — см. vault_write_maintenance.log" >&2
+            >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || { echo "⚠️ obsidian_sync: 5b.2b завершился с ошибкой — см. vault_write_maintenance.log" >&2; SYNC_OK=0; }
 set -euo pipefail
 export VAULT_PATH
 export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
@@ -349,8 +349,8 @@ for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизаци
   break
 done
 if [ -z "${KB}" ]; then
-  echo "⚠️ 5b.2b: нет knowledge_bot с tools/apply_duplicates_resolution.py — задай REMOTE_KNOWLEDGE_BOT или разверни ${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot на сервере"
-  exit 0
+  echo "⚠️ 5b.2b: нет knowledge_bot с tools/apply_duplicates_resolution.py — задай REMOTE_KNOWLEDGE_BOT или разверни knowledge_bot на сервере" >&2
+  exit 1
 fi
 cd "${KB}"
 # На VPS у knowledge_bot часто нет своего venv; системный python3 может быть без PyYAML.
