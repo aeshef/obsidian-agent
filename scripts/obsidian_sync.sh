@@ -86,6 +86,7 @@ export RSYNC_RSH="${RSYNC_RSH:-ssh -o UseKeychain=yes -o BatchMode=yes -o Connec
 SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 
 # Исключения при подтягивании 300_Дашборды. Логи только в Логи/; корневой 📊 Логи_Действий_*.md не тянуть и не пушить (устаревшая структура).
+# Аудит_*.md — только Mac (obsidian_sync 5b.1/5b.3); на VPS не генерируются, pull затирал свежий локальный отчёт.
 EXCLUDE_300=(
   --exclude='Графики/'
   --exclude='weekly_sprints.json'
@@ -94,6 +95,8 @@ EXCLUDE_300=(
   --exclude='📅 Рутины/'
   --exclude='📊 Рутины_Статистика.md'
   --exclude='/📊 Логи_Действий_*.md'
+  --exclude='Аудит_системы_отчет.md'
+  --exclude='Аудит_хранилища_отчет.md'
   --exclude='Данные/finance.db'
   --exclude='Данные/finance.db-*'
 )
@@ -181,10 +184,11 @@ PUSH_EXCLUDE_300=(
 echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2
 ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; }
 
-# 4. Подтянуть обновлённые файлы с сервера после maintenance (--ignore-times: всегда перезаписать локаль отсортированной доской)
+# 4. Подтянуть обновлённые файлы с сервера после maintenance.
+# 100_: ignore-times — канон сортировки с VPS. 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/"
+"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/"
 # 700 уже подтянут в шаге 1; при необходимости можно добавить сюда с --ignore-times
 
 TODAY=$(date +%Y-%m-%d)
@@ -450,6 +454,20 @@ if { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] \
   fi
 fi
 unset _kn_skip_today
+
+# 5b.post Mac → VPS: аудит-отчёты (после 5b; шаг 2 был до генерации). Pull их не берём (EXCLUDE_300).
+_audit_sys="$LOCAL_VAULT/300_Дашборды/Аудит_системы_отчет.md"
+_audit_kb="$LOCAL_VAULT/300_Дашборды/Аудит_хранилища_отчет.md"
+for _audit_push in "$_audit_sys" "$_audit_kb"; do
+  if [ -f "$_audit_push" ]; then
+    "$RSYNC_BIN" "${FLAGS[@]}" --update "$_audit_push" \
+      "$SERVER:$SERVER_VAULT/300_Дашборды/$(basename "$_audit_push")" 2>/dev/null || true
+  fi
+done
+if [ -f "$_audit_sys" ] || [ -f "$_audit_kb" ]; then
+  echo "obsidian_sync: шаг 5b.post — аудит-отчёты на сервер (если есть локально)" >&2
+fi
+unset _audit_sys _audit_kb _audit_push
 
 # 5b.4 iPhone-контекст из Gmail IMAP (iphone_mail_sync)
 # Требует GMAIL_IMAP_USER и GMAIL_IMAP_APP_PASSWORD в корневом .env (уже загружен в начале скрипта).
