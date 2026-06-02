@@ -15,6 +15,10 @@ agent_progress:
   status_max_chars: 380
   # sendMessageDraft — нужен aiogram ~3.24+; в prod пока 3.13 → оставить 0
   draft_stream: 0
+  # Потоковый финальный ответ (SSE от LLM → edit_message в чате)
+  answer_stream: 1
+  answer_stream_min_chars: 80
+  answer_stream_edit_ms: 900
 
 llm_classify:
   timeout_sec: 25
