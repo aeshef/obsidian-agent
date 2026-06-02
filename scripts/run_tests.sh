@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Локальный прогон тестов (тот же PYTHONPATH, что в CI).
+# Локальный прогон тестов (как CI: finance .venv + knowledge .venv).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,21 +13,36 @@ export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-ci-smoke-test-token}"
 export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-ci-smoke-test-key}"
 
 cp finance_bot/config/nlu_config.yaml.example finance_bot/config/nlu_config.yaml 2>/dev/null || true
-cp -n knowledge_bot/config/media_extensions.yaml.example knowledge_bot/config/media_extensions.yaml 2>/dev/null || true
-cp -n knowledge_bot/config/tag_domains.yaml.example knowledge_bot/config/tag_domains.yaml 2>/dev/null || true
-cp -n planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml 2>/dev/null || true
+cp knowledge_bot/config/media_extensions.yaml.example knowledge_bot/config/media_extensions.yaml 2>/dev/null || true
+cp knowledge_bot/config/tag_domains.yaml.example knowledge_bot/config/tag_domains.yaml 2>/dev/null || true
+cp planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml 2>/dev/null || true
+cp finance_bot/config/analytics_categories.yaml.example finance_bot/config/analytics_categories.yaml 2>/dev/null || true
 
-PY="${ROOT}/finance_bot/.venv/bin/python"
-if [[ ! -x "$PY" ]]; then
+FIN_PY="${ROOT}/finance_bot/.venv/bin/python"
+KB_PY="${ROOT}/knowledge_bot/.venv/bin/python"
+if [[ ! -x "$FIN_PY" ]]; then
   echo "Run scripts/ensure_bot_venv.sh first" >&2
   exit 1
 fi
 
-"$PY" -m pip install -q pytest pytest-asyncio
+"$FIN_PY" -m pip install -q pytest pytest-asyncio
 
 ARGS=("$@")
 if [[ ${#ARGS[@]} -eq 0 ]]; then
-  ARGS=(tests/)
+  FIN_TESTS=(
+    tests/test_transaction_parse.py tests/test_llm_json.py tests/test_kanban_sort.py
+    tests/test_finance_llm.py tests/test_transactions_core.py tests/test_agent_platform.py
+    tests/test_calendar_sync.py tests/test_tag_normalize.py tests/test_entity_names.py
+    tests/test_note_lookup.py tests/test_kanban_parse_substantive.py
+  )
+  echo "=== finance/planning/shared tests ==="
+  "$FIN_PY" -m pytest "${FIN_TESTS[@]}" -q
+  if [[ -x "$KB_PY" ]]; then
+  "$KB_PY" -m pip install -q pytest 2>/dev/null || true
+  echo "=== knowledge tests ==="
+  "$KB_PY" -m pytest tests/test_note_complete.py -q
+  fi
+  exit 0
 fi
 
-exec "$PY" -m pytest "${ARGS[@]}" -q
+exec "$FIN_PY" -m pytest "${ARGS[@]}" -q
