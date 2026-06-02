@@ -66,3 +66,14 @@ venv_logs/
 migration/
 test_fetch_iphone_mail.py
 docs/PROJECT_QUALITY_AUDIT.md
+docs/agent-heuristics-audit.md
+docs/AGENT_CHAT_EXAMPLES.md
+docs/AGENT_TOOLS.md
+docs/SHARED_LAYOUT.md
+docs/VAULT_STRUCTURE.md
+docs/SCHEDULING.md
+docs/SCRIPTS.md
+docs/OPS.md
+docs/archive/
+config/messages.ru.yaml
+!config/messages.ru.yaml.example

@@ -77,9 +77,5 @@ planning_llm:
   recommendations: 0.7
   goals_mapping: 0.3
 
-tool_log:
-  # 0 = только имя tool и размер ответа в логах (без тела — PII)
-  preview_chars: 0
-
 json_parse:
   error_preview_chars: 400

@@ -1,0 +1,6 @@
+# Минимальный набор для unified_bot на VPS (без OCR/ML тяжести knowledge ingest).
+# Полный стек: finance_bot/requirements.txt + knowledge_bot/requirements.txt -c constraints.txt
+#
+#   pip install -r requirements-min.txt -c constraints.txt
+
+-r finance_bot/requirements.txt
