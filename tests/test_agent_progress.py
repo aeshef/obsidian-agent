@@ -48,3 +48,20 @@ async def test_answer_delta_concurrent_single_message():
             )
     assert bot.send_message.await_count == 1
     assert bot.edit_message_text.await_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_finalize_answer_edit_omits_reply_keyboard_markup():
+    from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+
+    bot = MagicMock()
+    sent = MagicMock(message_id=42)
+    bot.send_message = AsyncMock(return_value=sent)
+    bot.edit_message_text = AsyncMock()
+    progress = TelegramAgentProgress(bot, chat_id=1)
+    progress._answer_message_id = 42
+    progress._last_pushed_answer_text = "old"
+    kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="🏠")]])
+    await progress.finalize_answer("new final text", reply_markup=kb)
+    bot.edit_message_text.assert_awaited_once()
+    assert "reply_markup" not in (bot.edit_message_text.await_args.kwargs or {})
