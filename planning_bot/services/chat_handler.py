@@ -5,7 +5,7 @@ import os
 import re
 from typing import TYPE_CHECKING, List, Dict, Optional
 
-from planning_bot.core.config import LOG_DIR, KANBAN_COLUMNS
+from planning_bot.core.config import LOG_DIR
 from planning_bot.core.settings import load_prompt, get_config_path
 from planning_bot.services.action_logger import ActionLogger
 
@@ -137,83 +137,14 @@ class ChatHandler:
     # ------------------------------------------------------------------ #
 
     def assemble_context(self, user_message: str = "") -> str:
-        """Собирает контекст: сначала цепочка логов (факты), затем цели, затем канбан."""
-        parts: List[str] = []
+        """Собирает контекст: лог, цели, канбан (Mac/health/calendar — через agent tools)."""
+        from planning_bot.services.planning_snapshot import assemble_planning_snapshot
 
-        # 0. Цепочка событий из action-логов — в начале контекста (чтобы LLM не подменяла факты снимком доски)
-        if self.action_logger is not None:
-            try:
-                chain = self.action_logger.get_recent_events_chain()
-                if chain:
-                    parts.append(chain)
-            except Exception as e:
-                logger.debug("Не удалось собрать цепочку логов: %s", e)
-
-        # 1. Годовые цели
-        try:
-            goals = self.goals_manager.get_goals()
-            if goals:
-                parts.append("Годовые цели:\n" + "\n".join(f"— {g}" for g in goals))
-        except Exception as e:
-            logger.debug("Не удалось загрузить цели: %s", e)
-
-        # 2. Квартальные фокусы
-        try:
-            qf = self.goals_manager.get_quarterly_focus()
-            if qf:
-                parts.append("Квартальные фокусы:\n" + "\n".join(f"— {g}" for g in qf))
-        except Exception as e:
-            logger.debug("Не удалось загрузить квартальные фокусы: %s", e)
-
-        # Mac / Health / календарь — через agent tools (get_mac_context, get_health_*, get_calendar).
-        # Legacy-чат не дублирует их в system prompt.
-
-        # 3. Только блоки «Что нужно сделать:» из goals_context.md
-        try:
-            gc = self.goals_manager.get_goals_context_what_to_do_only()
-            if gc:
-                parts.append(
-                    "Цели — что нужно сделать (выдержка из goals_context.md):\n" + gc
-                )
-        except Exception as e:
-            logger.debug("Не удалось загрузить goals_context what-to-do: %s", e)
-
-        # 4. Вся доска: все колонки, все задачи (без лимитов)
-        try:
-            all_tasks = self.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-
-            def fmt(t: Dict) -> str:
-                pri = t.get("priority") or "—"
-                cat = t.get("category") or "—"
-                dl = f" | дедлайн {t['deadline']}" if t.get("deadline") else ""
-                done = " | выполнено" if t.get("completed") else ""
-                return f"  [{pri}] {t['title']} | {cat}{dl}{done}"
-
-            by_col: Dict[str, List[Dict]] = {col: [] for col in KANBAN_COLUMNS}
-            unknown_col: List[Dict] = []
-            for t in all_tasks:
-                col = t.get("column")
-                if col in by_col:
-                    by_col[col].append(t)
-                else:
-                    unknown_col.append(t)
-
-            kanban_lines = ["Доска задач (полный снимок, все колонки):"]
-            for col in KANBAN_COLUMNS:
-                tasks = by_col[col]
-                kanban_lines.append(f"{col} ({len(tasks)}):")
-                if tasks:
-                    kanban_lines.extend(fmt(t) for t in tasks)
-                else:
-                    kanban_lines.append("  (пусто)")
-            if unknown_col:
-                kanban_lines.append(f"Колонка не из списка ({len(unknown_col)}):")
-                kanban_lines.extend(fmt(t) for t in unknown_col)
-            parts.append("\n".join(kanban_lines))
-        except Exception as e:
-            logger.debug("Не удалось загрузить канбан: %s", e)
-
-        return "\n\n".join(parts)
+        return assemble_planning_snapshot(
+            kanban=self.kanban,
+            goals_manager=self.goals_manager,
+            action_logger=self.action_logger,
+        )
 
     def _fallback_reply_from_log(self) -> str:
         """Если LLM дважды вернула мусор — показываем сырые строки лога (всё ещё лучше, чем тишина)."""
