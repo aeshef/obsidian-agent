@@ -63,6 +63,9 @@ venv_build.log
 venv_logs/
 
 # Служебные / локальные (не в публичном репо)
+scripts/.git-filter-repo
+scripts/.scrub_prompts_callback_body.py
+scripts/.scrub_prompts_callback.py
 migration/
 test_fetch_iphone_mail.py
 docs/PROJECT_QUALITY_AUDIT.md
