@@ -33,6 +33,18 @@ planning:
   task_min_alnum_chars: 12
   task_min_words: 4
 
+planning_calendar:
+  tool_max_chars: 4000
+  chat_upcoming_hours: 72
+  week_summary_days_ahead: 7
+  default_hours_ahead: 48
+
+planning_alerts:
+  stuck_task_days: 14
+
+telegram:
+  max_message_chars: 4090
+
 planning_action_log:
   chain_hours: 48
   chain_max_events: 0
