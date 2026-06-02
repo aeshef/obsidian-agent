@@ -24,6 +24,7 @@ knowledge_query:
   max_media_per_query: 6
   read_note_max_chars: 24000
   direct_read_min_score: 80
+  answer_temperature: 0.3
   answer_timeout_sec: 300
   preselect_timeout_sec: 120
   select_timeout_sec: 60
