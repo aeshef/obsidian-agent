@@ -665,10 +665,21 @@ if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; th
     ); then
       echo "⚠️ finance.db pull failed (see $FIN_LOG)" >&2
       SYNC_OK=0
+    elif [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && {
+      [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ "$FIN_DB" -nt "$FIN_CHART_REF" ]
+    }; then
+      # FIN_DB_NEWER выше — до pull; после scp БД часто новее PNG, а build=0 — графики не обновлялись весь день
+      echo "obsidian_sync: finance.db новее PNG после pull — пересборка графиков…" >&2
+      if (cd "$FINANCE_BOT" && ./scripts/run_finance_dashboard.sh >> "$FIN_LOG" 2>&1); then
+        echo "$NOW_ISO" > "$SYNC_DIR/finance_dashboard_last_ok.txt"
+      else
+        echo "⚠️ finance dashboard rebuild after pull failed (see $FIN_LOG)" >&2
+        SYNC_OK=0
+      fi
     fi
   fi
 fi
-unset _FIN_BUILD
+unset _FIN_BUILD FIN_DB_NEWER
 
 # 5e. Каждый синк: read-only копия vault в iCloud для iPhone (100/200/300 без Данные/Действия/400 + .obsidian).
 # Односторонне Mac→iCloud; тот же цикл, что rsync с сервером (LaunchAgent ~5 мин). SKIP_MOBILE_VAULT=1 — отключить.
