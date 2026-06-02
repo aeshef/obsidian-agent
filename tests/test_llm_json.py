@@ -1,4 +1,4 @@
-"""shared.llm / shared.json_parse — JSON-mode и разбор обрезанных ответов."""
+"""User-facing strings live in YAML configs."""
 import json
 
 import pytest

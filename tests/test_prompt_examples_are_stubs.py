@@ -1,4 +1,4 @@
-"""В git только comment-stub в *.example.txt — боевой текст в *.txt (gitignore)."""
+"""User-facing strings live in YAML configs."""
 from __future__ import annotations
 
 import subprocess

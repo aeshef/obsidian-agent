@@ -7,12 +7,14 @@ vault:
 
 agent:
   max_iters: 6
+  tool_denied_hint_max: 12
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:
   enabled: 1
   status_message: 1
   status_max_chars: 380
+  max_tools_in_status: 6
   # sendMessageDraft для статуса tools (шаг N: tool_a, …)
   draft_stream: 0
   # Потоковый финальный ответ (SSE → Telegram)
@@ -59,6 +61,22 @@ planning_alerts:
 
 telegram:
   max_message_chars: 4090
+  voice_preview_chars: 400
+
+knowledge_ingest:
+  pending_limit: 100
+  media_group_cleanup_delay_sec: 60
+
+memory_ui:
+  pending_list_max: 10
+  confirmed_list_max: 12
+  pending_buttons_max: 8
+
+memory_synth:
+  finance_context_days: 28
+  finance_recent_transactions: 15
+  dialogue_excerpt_chars: 200
+  dialogue_history_turns: 6
 
 planning_action_log:
   chain_hours: 48

@@ -1,0 +1,9 @@
+# Expected Russian substrings for tests (not hardcoded in .py).
+kanban:
+  multiple_match_prefix: "Несколько"
+  task_title_test: "Тест"
+  task_title_agent_real: "Тест агента REAL"
+  task_title_agent_edits: "Тест правок агента"
+  personal_category: "личное"
+  tag_priority: "приоритет"
+  tag_deadline: "дедлайн"

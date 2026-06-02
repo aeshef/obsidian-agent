@@ -5,10 +5,12 @@ import re
 import shutil
 from pathlib import Path
 
+from planning_bot.core.config import PRIORITY_ORDER
 from tests.conftest import FIXTURE_VAULT
+from tests.kanban_test_data import kanban_board_fixture_path, kanban_strings
 
-KANBAN_SRC = FIXTURE_VAULT / "100_Задачи" / "📋 Доска_Задач.md"
-PRIORITY_ORDER = {"высокий": 1, "средний": 2, "низкий": 3}
+
+KANBAN_SRC = kanban_board_fixture_path(FIXTURE_VAULT)
 
 
 def _count_tasks(content: str) -> int:
@@ -16,17 +18,16 @@ def _count_tasks(content: str) -> int:
 
 
 def _extract_priority(task_text: str) -> str:
-    if "#приоритет/высокий" in task_text:
-        return "высокий"
-    if "#приоритет/средний" in task_text:
-        return "средний"
-    if "#приоритет/низкий" in task_text:
-        return "низкий"
+    tag = kanban_strings("tag_priority")
+    for name in PRIORITY_ORDER:
+        if f"#{tag}/{name}" in task_text:
+            return name
     return ""
 
 
 def _extract_deadline_ordinal(task_text: str) -> int | None:
-    m = re.search(r"#дедлайн/(\d{4}-\d{2}-\d{2})", task_text)
+    tag = kanban_strings("tag_deadline")
+    m = re.search(rf"#{tag}/(\d{{4}}-\d{{2}}-\d{{2}})", task_text)
     if not m:
         return None
     from datetime import datetime

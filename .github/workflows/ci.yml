@@ -23,7 +23,7 @@ jobs:
 
       - name: py_compile all modules
         run: |
-          find shared finance_bot/bot knowledge_bot planning_bot -name '*.py' \
+          find shared finance_bot/bot knowledge_bot planning_bot unified_bot -name '*.py' \
             ! -path '*/__pycache__/*' -print0 \
             | xargs -0 python -m py_compile
 
