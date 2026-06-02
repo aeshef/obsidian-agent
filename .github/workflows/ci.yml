@@ -37,26 +37,9 @@ jobs:
 
       - name: Integration tests
         env:
-          PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/finance_bot:${{ github.workspace }}/knowledge_bot:${{ github.workspace }}/planning_bot
           TELEGRAM_BOT_TOKEN: ci-smoke-test-token
           TELEGRAM_FINANCE_BOT_TOKEN: ci-smoke-test-token
           TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
-        run: |
-          cp finance_bot/config/nlu_config.yaml.example finance_bot/config/nlu_config.yaml
-          cp knowledge_bot/config/media_extensions.yaml.example knowledge_bot/config/media_extensions.yaml
-          finance_bot/.venv/bin/pip install -q pytest pytest-asyncio
-          knowledge_bot/.venv/bin/pip install -q pytest
-          cp knowledge_bot/config/tag_domains.yaml.example knowledge_bot/config/tag_domains.yaml
-          cp planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml
-          cp finance_bot/config/analytics_categories.yaml.example finance_bot/config/analytics_categories.yaml
-          finance_bot/.venv/bin/python -m pytest \
-            tests/test_transaction_parse.py tests/test_llm_json.py tests/test_kanban_sort.py \
-            tests/test_finance_llm.py tests/test_transactions_core.py tests/test_agent_platform.py \
-            tests/test_calendar_sync.py tests/test_tag_normalize.py tests/test_entity_names.py \
-            tests/test_note_lookup.py tests/test_kanban_parse_substantive.py \
-            tests/test_agent_progress.py tests/test_date_range.py tests/test_reference_date.py \
-            tests/test_host_knowledge_keyboard.py tests/test_finance_txn_query.py \
-            tests/test_brain_query_helpers.py -q
-          knowledge_bot/.venv/bin/python -m pytest tests/test_note_complete.py -q
+        run: bash scripts/run_tests.sh
