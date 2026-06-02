@@ -40,14 +40,48 @@ async def test_answer_delta_concurrent_single_message():
         return default
 
     with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
-        with patch("shared.telegram.agent_progress.platform_int", side_effect=_platform_int):
-            await asyncio.gather(
-                progress.on_answer_delta("hello world one"),
-                progress.on_answer_delta("hello world one two"),
-                progress.on_answer_delta("hello world one two three"),
-            )
+        with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=False):
+            with patch("shared.telegram.agent_progress.platform_int", side_effect=_platform_int):
+                await asyncio.gather(
+                    progress.on_answer_delta("hello world one"),
+                    progress.on_answer_delta("hello world one two"),
+                    progress.on_answer_delta("hello world one two three"),
+                )
     assert bot.send_message.await_count == 1
     assert bot.edit_message_text.await_count >= 1
+
+
+@pytest.mark.asyncio
+async def test_answer_delta_draft_then_finalize_send_message():
+    bot = MagicMock()
+    final_msg = MagicMock(message_id=200)
+    bot.send_message = AsyncMock(return_value=final_msg)
+
+    with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
+        with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=True):
+            with patch(
+                "shared.telegram.agent_progress.send_message_draft",
+                new_callable=AsyncMock,
+                return_value=True,
+            ) as draft_mock:
+                with patch(
+                    "shared.telegram.agent_progress.platform_int",
+                    side_effect=lambda _s, key, default=0: (
+                        10 if key == "answer_stream_min_chars" else 0
+                    ),
+                ):
+                    progress = TelegramAgentProgress(bot, chat_id=1)
+                    await progress.on_answer_delta("draft stream text here")
+                    assert progress._answer_stream_mode == "draft"
+                    assert draft_mock.await_count >= 1
+                    assert bot.send_message.await_count == 0
+
+                    await progress.finalize_answer(
+                        "draft stream text here final",
+                        reply_markup=None,
+                    )
+    assert bot.send_message.await_count == 1
+    assert progress.answer_delivered_in_chat()
 
 
 @pytest.mark.asyncio
