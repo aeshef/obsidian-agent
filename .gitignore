@@ -80,3 +80,9 @@ config/vault_paths.yaml
 !config/vault_paths.yaml.example
 config/domain_messages.yaml
 !config/domain_messages.yaml.example
+knowledge_bot/config/tag_translit.yaml
+!knowledge_bot/config/tag_translit.yaml.example
+knowledge_bot/config/wikilink_noise.yaml
+!knowledge_bot/config/wikilink_noise.yaml.example
+finance_bot/config/broker_sync.yaml
+!finance_bot/config/broker_sync.yaml.example
