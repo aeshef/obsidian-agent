@@ -38,7 +38,6 @@ knowledge_query:
   max_selected_notes: 14
   max_media_per_query: 6
   read_note_max_chars: 24000
-  direct_read_min_score: 80
   answer_temperature: 0.3
   answer_timeout_sec: 300
   preselect_timeout_sec: 120
@@ -81,9 +80,6 @@ planning_llm:
 tool_log:
   # 0 = только имя tool и размер ответа в логах (без тела — PII)
   preview_chars: 0
-
-knowledge_note_lookup:
-  min_token_chars: 3
 
 json_parse:
   error_preview_chars: 400

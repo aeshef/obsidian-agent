@@ -1,41 +1,31 @@
 from pathlib import Path
 
-from knowledge_bot.services.query.note_lookup import (
-    best_note_path_for_message,
-    note_title_candidates,
-    resolve_note_path,
-)
+from knowledge_bot.services.query.note_lookup import resolve_note_path
 from knowledge_bot.services.query.note_media import media_from_note_text
 
 
-def test_note_title_candidates_posmotrim():
-    assert "Курс Anthropic MCP" in note_title_candidates("давай Курс Anthropic MCP посмотрим")
-
-
-def test_best_note_path_for_message():
+def test_resolve_exact_title():
     entries = [
         {
             "rel_path": "700_База_Данных/Курсы/Курс_Anthropic_MCP.md",
             "title": "Курс Anthropic MCP",
         },
     ]
-    path, score = best_note_path_for_message("давай Курс Anthropic MCP посмотрим", entries)
-    assert path and score >= 80
-
-
-def test_resolve_by_title():
-    entries = [
-        {
-            "rel_path": "700_База_Данных/Курсы/Курс_Anthropic_MCP.md",
-            "title": "Курс Anthropic MCP",
-        },
-        {
-            "rel_path": "700_База_Данных/Курсы/Model_Context_Protocol.md",
-            "title": "Model Context Protocol",
-        },
-    ]
-    path, _ = resolve_note_path("Курс Anthropic MCP", entries)
+    path, reason = resolve_note_path("Курс Anthropic MCP", entries)
     assert path and path.endswith("Курс_Anthropic_MCP.md")
+    assert reason == "exact title or stem"
+
+
+def test_greeting_does_not_fuzzy_match_title():
+    entries = [
+        {
+            "rel_path": "700_База_Данных/Мысли/Приветствие.md",
+            "title": "Приветствие",
+        },
+    ]
+    path, reason = resolve_note_path("привет!", entries)
+    assert path is None
+    assert "точного" in reason
 
 
 def test_select_empty_falls_back_to_candidates():
