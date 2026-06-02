@@ -37,9 +37,14 @@ sys.path.insert(0, str(_pkg.parent))
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.llm import LLMClient
 from knowledge_bot.core.settings import load_prompt, load_enums_config, get_author_context
-from knowledge_bot.services.tag_normalize import normalize_tags
+from knowledge_bot.services.tag_normalize import (
+    fallback_tags_for_type,
+    normalize_tags,
+    parse_tag_llm_response,
+)
 from knowledge_bot.services.tags_inventory import (
     scan_all_notes,
+    get_tags_inventory_for_prompt,
     get_tags_inventory_for_prompt_restricted,
     update_inventory_with_new_tags,
 )
@@ -119,6 +124,47 @@ def _find_candidates(
     return [(p, b) for p, b, _, _ in candidates]
 
 
+def _find_untagged(
+    vault: Path,
+    *,
+    created_on: str | None = None,
+    target_dirs: list[str] | None = None,
+) -> list[Path]:
+    """Заметки без тегов (пустой tags или поле отсутствует)."""
+    from shared.vault_layout import knowledge_subdir
+
+    dirs = target_dirs or [knowledge_subdir()]
+    out: list[Path] = []
+    for d in dirs:
+        for md in (vault / d).rglob("*.md"):
+            if md.name.startswith("🗺️"):
+                continue
+            try:
+                text = md.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            fm, _ = _parse_fm(text)
+            tags = fm.get("tags")
+            has_tags = isinstance(tags, list) and any(
+                isinstance(t, str) and t.strip() for t in tags
+            )
+            if has_tags:
+                continue
+            if created_on:
+                created = str(fm.get("created") or "").strip()[:10]
+                if created and created != created_on:
+                    continue
+                if not created:
+                    import datetime as _dt
+
+                    mtime_day = _dt.datetime.fromtimestamp(md.stat().st_mtime).strftime("%Y-%m-%d")
+                    if mtime_day != created_on:
+                        continue
+            out.append(md)
+    out.sort(key=lambda p: p.stat().st_mtime)
+    return out
+
+
 # ── main ─────────────────────────────────────────────────────────────────────
 
 def retag_notes(
@@ -130,6 +176,8 @@ def retag_notes(
     apply: bool,
     verbose: bool = False,
     strip_obsolete_singleton_topics: bool = False,
+    no_tags_only: bool = False,
+    created_on: str | None = None,
 ) -> dict:
     if apply:
         from shared.llm_reachable import deepseek_api_reachable
@@ -143,9 +191,12 @@ def retag_notes(
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
     enums_cfg = load_enums_config(cfg.agent_config_path)
 
-    # Инвентарь: сканируем свежий (чтобы учесть предыдущие прогоны)
     inv = scan_all_notes(vault)
-    candidates = _find_candidates(vault, inv, threshold=threshold)
+    if no_tags_only:
+        untagged = _find_untagged(vault, created_on=created_on)
+        candidates = [(p, []) for p in untagged]
+    else:
+        candidates = _find_candidates(vault, inv, threshold=threshold)
 
     ontology_mappings: dict[str, str] = {}
     ont_path = cfg.agent_config_path / "tag_ontology.yaml"
@@ -161,11 +212,11 @@ def retag_notes(
     if limit is not None:
         candidates = candidates[:limit]
 
-    print(f"Заметок для перетегирования (threshold≤{threshold}): {len(candidates)}")
+    label = "без тегов" if no_tags_only else f"threshold≤{threshold}"
+    print(f"Заметок для перетегирования ({label}): {len(candidates)}")
     if not candidates:
         return {"ok": True, "touched": 0, "skipped": 0}
 
-    # Промпт для тегов + ограниченный инвентарь (только count≥2)
     tags_system = load_prompt(cfg.agent_config_path, "tags")
     ctx = get_author_context(cfg.agent_config_path)
     if ctx:
@@ -173,9 +224,13 @@ def retag_notes(
     else:
         tags_system = tags_system.replace("{{AUTHOR_CONTEXT_LINE}}", "")
 
-    # Используем ТОЛЬКО теги с count≥2 — LLM не должен предлагать новые синглтоны
-    restricted_inv = get_tags_inventory_for_prompt_restricted(cfg.agent_config_path, min_count=2)
-    tags_system = f"{tags_system}\n\n{restricted_inv}"
+    if no_tags_only:
+        tags_system = f"{tags_system}\n\n{get_tags_inventory_for_prompt(cfg.agent_config_path)}"
+    else:
+        tags_system = (
+            f"{tags_system}\n\n"
+            f"{get_tags_inventory_for_prompt_restricted(cfg.agent_config_path, min_count=2)}"
+        )
 
     # Множество "устоявшихся" тегов (count > threshold) для фильтрации LLM-предложений
     established: set[str] = {
@@ -220,18 +275,44 @@ def retag_notes(
                     print(f"  ⚠ LLM fallback for {path.name}")
                 skipped += 1
                 continue
-            raw = content
-            if isinstance(raw, dict) and "tags" in raw:
-                raw = raw["tags"]
-            if not isinstance(raw, list):
-                raw = []
+            tag_candidates = parse_tag_llm_response(content)
         except Exception as e:
             print(f"  ⚠ LLM error for {path.name}: {e}")
             skipped += 1
             continue
 
-        llm_tags = normalize_tags(raw, enums_cfg, fm.get("type", "unknown"))
+        note_type = str(fm.get("type") or "unknown")
+        llm_tags = normalize_tags(tag_candidates, enums_cfg, note_type)
         llm_tags = list(dict.fromkeys(ontology_mappings.get(t, t) for t in llm_tags))
+
+        if no_tags_only:
+            if not llm_tags:
+                llm_tags = normalize_tags(
+                    fallback_tags_for_type(
+                        note_type,
+                        form=fm.get("form"),
+                        source=fm.get("source"),
+                    ),
+                    enums_cfg,
+                    note_type,
+                )
+            new_tags = sorted(dict.fromkeys(llm_tags))
+            if not new_tags:
+                if verbose:
+                    print(f"  = {path.name}: теги не получены, пропускаем")
+                skipped += 1
+                continue
+            rel = str(path.relative_to(vault))
+            print(f"  {'✏' if apply else '~'} {rel}")
+            print(f"    было:  {old_tags}")
+            print(f"    стало: {new_tags}")
+            fm["tags"] = new_tags
+            changed_tags[rel] = new_tags
+            if apply:
+                path.write_text(_dump_fm(fm, body), encoding="utf-8")
+                update_inventory_with_new_tags(cfg.agent_config_path, new_tags)
+            touched += 1
+            continue
 
         # Принимаем LLM-тег только если он уже есть в established инвентаре
         # (иначе создадим новый синглтон, что контрпродуктивно). Переносы из tag_ontology.yaml —
@@ -317,6 +398,17 @@ def main() -> int:
         action="store_true",
         help="После добавления topic/* от LLM убрать старые topic/* с count≤threshold",
     )
+    ap.add_argument(
+        "--no-tags",
+        action="store_true",
+        help="Только заметки без тегов (после сбоя tags generation)",
+    )
+    ap.add_argument(
+        "--created-on",
+        type=str,
+        default="",
+        help="Фильтр по frontmatter created или mtime файла (YYYY-MM-DD)",
+    )
     args = ap.parse_args()
 
     if args.vault:
@@ -333,6 +425,8 @@ def main() -> int:
         apply=args.apply,
         verbose=args.verbose,
         strip_obsolete_singleton_topics=args.strip_singleton_topics,
+        no_tags_only=args.no_tags,
+        created_on=(args.created_on.strip() or None),
     )
     if result.get("network_skip"):
         return 3
