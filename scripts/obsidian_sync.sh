@@ -595,13 +595,19 @@ if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; th
     if (cd "$FINANCE_BOT" && ./scripts/run_finance_dashboard_daily.sh >> "$FIN_LOG" 2>&1); then
       echo "$TODAY" > "$FINANCE_MARKER"
       echo "$NOW_ISO" > "$SYNC_DIR/finance_dashboard_last_ok.txt"
+    else
+      echo "⚠️ finance dashboard build failed (see $FIN_LOG)" >&2
+      SYNC_OK=0
     fi
   else
-    (
+    if ! (
       FINANCE_REFRESH_BROKER_BEFORE_PULL=0
       FINANCE_BUILD_DASHBOARD_AFTER_PULL=0
       cd "$FINANCE_BOT" && ./scripts/sync_finance_db.sh >> "$FIN_LOG" 2>&1
-    ) || true
+    ); then
+      echo "⚠️ finance.db pull failed (see $FIN_LOG)" >&2
+      SYNC_OK=0
+    fi
   fi
 fi
 unset _FIN_BUILD
