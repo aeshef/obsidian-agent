@@ -198,8 +198,9 @@ deploy_agent_platform_paths() {
   rsync_agent_paths "config/agent"
   rsync_agent_paths "unified_bot"
   if [ "$DRYRUN" = 0 ]; then
-    echo "📋 ensure config/agent from *.example on server..."
-    common_ssh "cd '${SERVER_BOTS}' && bash scripts/setup_agent_config.sh" || true
+    echo "📋 ensure config/agent + prompts on server..."
+    common_ssh "cd '${SERVER_BOTS}' && bash scripts/ensure_bot_prompts.sh && bash scripts/setup_agent_config.sh && bash scripts/ensure_hubs_registry.sh" || true
+    common_ssh "cd '${SERVER_BOTS}' && PYTHONPATH='${SERVER_BOTS}' python3 scripts/seed_planning_prompts.py" 2>/dev/null || true
   fi
 }
 
@@ -286,18 +287,19 @@ rsync_server_scripts() {
   ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
 }
 
-sync_knowledge_prompts_optional() {
-  local dir="$MONOREPO/knowledge_bot/config/prompts"
+sync_bot_prompts_optional() {
+  local bot="$1"
+  local dir="$MONOREPO/$bot/config/prompts"
   [ "$DRYRUN" = 1 ] && return 0
   [ -d "$dir" ] || return 0
   local n=0
   for f in "$dir"/*.txt; do
     [ -f "$f" ] || continue
     case "$f" in *.example.txt) continue ;; esac
-    rsync -az "$f" "$SERVER:$SERVER_BOTS/knowledge_bot/config/prompts/"
+    rsync -az "$f" "$SERVER:$SERVER_BOTS/$bot/config/prompts/"
     n=$((n + 1))
   done
-  [ "$n" -gt 0 ] && echo "📝 rsync knowledge prompts ($n файлов) → server"
+  [ "$n" -gt 0 ] && echo "📝 rsync $bot prompts ($n файлов) → server"
 }
 
 sync_badge_yaml_optional() {
@@ -313,8 +315,9 @@ deploy_one() {
   local restart_mode="${2:-auto}"
   echo "──────── deploy: $name ────────"
   rsync_comp "$name"
-  [ "$name" = finance_bot ] && sync_badge_yaml_optional
-  [ "$name" = knowledge_bot ] && sync_knowledge_prompts_optional
+  [ "$name" = finance_bot ] && { sync_badge_yaml_optional; sync_bot_prompts_optional finance_bot; }
+  [ "$name" = knowledge_bot ] && sync_bot_prompts_optional knowledge_bot
+  [ "$name" = planning_bot ] && sync_bot_prompts_optional planning_bot
   ensure_venv_link "$name"
   install_deps "$name"
   if [ "$restart_mode" = "skip" ]; then
@@ -382,6 +385,13 @@ if [ "$PROD" = 1 ]; then
 fi
 
 ssh_check
+if [ "$DRYRUN" = 0 ]; then
+  echo "📥 pull prod prompts from server (keep local non-stub)..."
+  bash "$MONOREPO/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
+  export PYTHONPATH="${MONOREPO}${PYTHONPATH:+:$PYTHONPATH}"
+  python3 "$MONOREPO/scripts/seed_planning_prompts.py" 2>/dev/null || true
+  bash "$MONOREPO/scripts/ensure_hubs_registry.sh" 2>/dev/null || true
+fi
 
 if [ "$PATCH_AGENT_ENV" = 1 ]; then
   patch_agent_env_remote "$DRYRUN" || exit 1
@@ -472,6 +482,10 @@ fi
 
 _comp_list="${COMPONENTS[*]}"
 echo "✅ deploy завершён (components=${_comp_list:-all}, restart=$([ $NO_RESTART = 1 ] && echo no || echo yes))"
+if [ "$DRYRUN" = 0 ]; then
+  echo "📋 ensure bot prompts on server (missing .txt from examples)..."
+  ssh "$SERVER" "cd '$SERVER_BOTS' && bash scripts/ensure_bot_prompts.sh --warn-stubs" 2>/dev/null || true
+fi
 if [ "$DRYRUN" = 0 ] && { [ "$_deploy_all" = 1 ] || printf '%s\n' "${COMPONENTS[@]}" | grep -qx knowledge_bot; }; then
   echo "🏷 ensure tags.txt JSON prompt on server..."
   ssh "$SERVER" "python3 $SERVER_BOTS/scripts/ensure_tags_prompt.py \

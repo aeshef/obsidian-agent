@@ -25,11 +25,7 @@ for ex in "$CFG"/*.example.yaml "$CFG"/*.example.yml; do
   copy_if_missing "$ex" "${base}.yaml"
 done
 
-for ex in "$CFG/prompts"/*.example.txt; do
-  [[ -f "$ex" ]] || continue
-  name="$(basename "$ex" .example.txt)"
-  copy_if_missing "$ex" "$CFG/prompts/${name}.txt"
-done
+bash "$(dirname "$0")/ensure_bot_prompts.sh"
 
 copy_if_missing "$CFG/user_profile.md.example" "$CFG/user_profile.md"
 

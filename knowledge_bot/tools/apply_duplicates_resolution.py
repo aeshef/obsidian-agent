@@ -106,9 +106,12 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config()
-    db_root = cfg.vault_path / "700_База_Данных"
+    from shared.vault_layout import knowledge_subdir
+
+    kd = knowledge_subdir()
+    db_root = cfg.vault_path / kd
     if not db_root.exists():
-        print("700_База_Данных не найден", file=sys.stderr)
+        print(f"{kd} не найден", file=sys.stderr)
         sys.exit(1)
 
     # Получаем рекомендации из анализа дублей

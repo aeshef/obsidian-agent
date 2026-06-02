@@ -77,6 +77,9 @@ if [ -z "$SERVER" ]; then
   echo "obsidian_sync: задайте SERVER в .env (SSH host)" >&2
   exit 1
 fi
+# shellcheck source=scripts/lib/vault_knowledge_dir.sh
+source "${AGENT_ROOT}/scripts/lib/vault_knowledge_dir.sh"
+KNOWLEDGE_SUBDIR="$(vault_knowledge_subdir)"
 RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
@@ -107,8 +110,8 @@ EXCLUDE_300=(
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/400_Рутины/" "$LOCAL_VAULT/400_Рутины/" || SYNC_OK=0
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/600_Рукописное/" "$LOCAL_VAULT/600_Рукописное/" || SYNC_OK=0
-# 700_База_Данных — заметки от knowledge bot (без них граф и локальный vault не видят новые заметки)
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/700_База_Данных/" "$LOCAL_VAULT/700_База_Данных/" || SYNC_OK=0
+# База знаний (knowledge bot) — путь из VAULT_REL_KNOWLEDGE / platform.yaml
+"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
@@ -179,7 +182,7 @@ PUSH_EXCLUDE_300=(
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/700_База_Данных/" "$SERVER:$SERVER_VAULT/700_База_Данных/"
+"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/"
 
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
 echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2

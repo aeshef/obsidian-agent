@@ -73,7 +73,9 @@ def _find_candidates(
 ) -> list[tuple[Path, dict, str, list[str], list[str]]]:
     """(path, fm, body, all_tags, rare_tags) — заметки с ≥1 редким тегом."""
     tags_data: dict = inv.get("tags", {})
-    db_root = vault / "700_База_Данных"
+    from shared.vault_layout import knowledge_subdir
+
+    db_root = vault / knowledge_subdir()
     if not db_root.exists():
         return []
 

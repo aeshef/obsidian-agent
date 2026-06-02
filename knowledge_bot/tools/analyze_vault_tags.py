@@ -25,6 +25,7 @@ if str(_AGENT) not in sys.path:
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.tags_inventory import scan_all_notes
+from shared.vault_layout import knowledge_subdir
 
 # Выпилены из системы — не показываем в отчёте
 LEGACY_NAMESPACES = frozenset({"priority", "language", "vibe"})
@@ -83,7 +84,7 @@ def main() -> None:
 
     # Текстовый отчёт
     print("=" * 60)
-    print("АНАЛИЗ ТЕГОВ ХРАНИЛИЩА (700_База_Данных)")
+    print(f"АНАЛИЗ ТЕГОВ ХРАНИЛИЩА ({knowledge_subdir()})")
     print("=" * 60)
     print(f"Всего заметок: {total}, с тегами: {with_tags}")
     print(f"Уникальных тегов: {len(tags)}")

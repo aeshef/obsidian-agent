@@ -91,7 +91,9 @@ def _find_candidates(
     Сортировка: сначала заметки с наибольшим числом плохих тегов.
     """
     tags_info: dict = inv.get("tags", {})
-    dirs = target_dirs or ["700_База_Данных"]
+    from shared.vault_layout import knowledge_subdir
+
+    dirs = target_dirs or [knowledge_subdir()]
     candidates: list[tuple[Path, list[str], int, bool]] = []
 
     for d in dirs:

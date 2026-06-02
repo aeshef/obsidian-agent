@@ -12,16 +12,16 @@ from pathlib import Path
 # Путь к vault из переменных окружения
 VAULT_PATH = Path(os.getenv("VAULT_PATH", str(Path.home() / "Obsidian Vault")))
 
-# Пути для синхронизации knowledge_bot
-SYNC_PATHS = [
-    "700_База_Данных",  # База знаний
-]
+def _sync_paths() -> list[str]:
+    from shared.vault_layout import knowledge_subdir
+
+    return [knowledge_subdir()]
 
 def sync_from_server(server_host: str, server_vault_path: str, local_vault_path: Path):
     """Синхронизация с сервера на локальную машину (сервер -> локальный)"""
     print(f"🔄 Синхронизация с сервера {server_host}...")
     
-    for sync_path in SYNC_PATHS:
+    for sync_path in _sync_paths():
         server_path = f"{server_host}:{server_vault_path}/{sync_path}/"
         local_path = local_vault_path / sync_path
         
@@ -57,7 +57,7 @@ def sync_to_server(server_host: str, server_vault_path: str, local_vault_path: P
     """Синхронизация с локальной машины на сервер (локальный -> сервер, для бэкапа)"""
     print(f"🔄 Синхронизация на сервер {server_host}...")
     
-    for sync_path in SYNC_PATHS:
+    for sync_path in _sync_paths():
         local_path = local_vault_path / sync_path
         server_path = f"{server_host}:{server_vault_path}/{sync_path}/"
         

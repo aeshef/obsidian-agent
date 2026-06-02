@@ -49,6 +49,14 @@ for pair in \
 done
 
 echo ""
+echo "=== bot prompts (*.example.txt → *.txt, не перезаписываем) ==="
+bash "$ROOT/scripts/ensure_bot_prompts.sh"
+bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
+export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+python3 "$ROOT/scripts/seed_planning_prompts.py" || true
+bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
+
+echo ""
 echo "=== tags prompt (knowledge) ==="
 bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 

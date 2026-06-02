@@ -22,6 +22,23 @@ for p in (str(FINANCE_BOT), str(ROOT)):
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _knowledge_subdir_for_tests(monkeypatch):
+    """Stable rel_path prefix in knowledge tests (matches legacy fixture paths)."""
+    monkeypatch.setenv("VAULT_REL_KNOWLEDGE", "700_База_Данных")
+    from shared.agent.platform_config import load_platform_config
+
+    load_platform_config.cache_clear()
+
+
+def knowledge_rel(*parts: str) -> str:
+    from shared.vault_layout import knowledge_subdir
+
+    base = knowledge_subdir()
+    tail = "/".join(p.strip("/") for p in parts if p)
+    return f"{base}/{tail}" if tail else base
+
+
 @pytest.fixture(scope="session")
 async def finance_db():
     """SQLite schema for finance_bot tests that touch AsyncSessionLocal."""

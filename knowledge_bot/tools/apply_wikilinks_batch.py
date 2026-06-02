@@ -49,7 +49,9 @@ def main() -> None:
         os.environ["VAULT_PATH"] = str(vault_override)
     cfg = load_config()
     vault = vault_override or cfg.vault_path
-    db_root = vault / "700_База_Данных"
+    from shared.vault_layout import knowledge_subdir
+
+    db_root = vault / knowledge_subdir()
     if not db_root.exists():
         print(f"  db_root не найден: {db_root}")
         return

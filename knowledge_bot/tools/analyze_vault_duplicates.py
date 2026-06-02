@@ -34,6 +34,7 @@ if str(_AGENT) not in sys.path:
     sys.path.insert(0, str(_AGENT))
 
 from knowledge_bot.core.config import load_config
+from shared.vault_layout import knowledge_subdir
 
 # «Серии» — generic-названия, когда модель не смогла нормально назвать (нет/плохой контекст).
 # Одинаковые по смыслу варианты (База_Данных / База_данных) считаем одной серией по lower().
@@ -95,9 +96,10 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config()
-    db_root = cfg.vault_path / "700_База_Данных"
+    kd = knowledge_subdir()
+    db_root = cfg.vault_path / kd
     if not db_root.exists():
-        print("700_База_Данных не найден", file=sys.stderr)
+        print(f"{kd} не найден", file=sys.stderr)
         sys.exit(1)
 
     dup_cfg = _load_duplicate_cleanup(cfg.agent_config_path)
@@ -170,7 +172,7 @@ def main() -> None:
         base_note_path = db_root / folder / f"{base_slug}.md"
         base_exists = base_note_path.exists()
         fullest_in_group = max(g, key=lambda x: x["body_len"])
-        base_rel = str(Path("700_База_Данных") / folder / f"{base_slug}.md")
+        base_rel = str(Path(kd) / folder / f"{base_slug}.md")
         if base_exists:
             try:
                 _, base_body = parse_note(base_note_path)
@@ -225,7 +227,7 @@ def main() -> None:
                 )
             continue
         base_note_path = db_root / folder / f"{base_slug}.md"
-        base_rel = str(Path("700_База_Данных") / folder / f"{base_slug}.md")
+        base_rel = str(Path(kd) / folder / f"{base_slug}.md")
         content_duplicates[(folder, base_slug)] = g
         if base_note_path.exists():
             # Уже есть base — лишнюю заметку _1 удалить (оставить base)
@@ -324,7 +326,7 @@ def main() -> None:
     print("=" * 60)
     print("АНАЛИЗ ДУБЛЕЙ (названия с суффиксом _1, _2, _3)")
     print("=" * 60)
-    print(f"Всего заметок в 700_База_Данных (без Export): {len(notes)}")
+    print(f"Всего заметок в {kd} (без Export): {len(notes)}")
     print(f"Из них с суффиксом _N в имени: {notes_with_suffix}")
     print(f"Групп дублей (≥2 заметки): {len(duplicate_groups)}")
     print(f"  — серии (generic): {len(generic_series)} групп")

@@ -133,10 +133,13 @@ def _build_maintenance_section(vault: Path) -> str:
     lines = ["## 3. Ежедневное обслуживание (vault_daily_maintenance)", ""]
 
     # Статус хабов
-    hubs_dir = vault / "700_База_Данных" / "_Хабы"
+    from shared.vault_layout import knowledge_subdir
+
+    kd = knowledge_subdir()
+    hubs_dir = vault / kd / "_Хабы"
     if hubs_dir.exists():
         hubs = sorted(hubs_dir.glob("*.md"))
-        lines.append(f"**Хабы** (`700_База_Данных/_Хабы/`): {len(hubs)} файлов")
+        lines.append(f"**Хабы** (`{kd}/_Хабы/`): {len(hubs)} файлов")
         for h in hubs:
             mtime = datetime.datetime.fromtimestamp(h.stat().st_mtime).strftime("%Y-%m-%d")
             try:
@@ -277,12 +280,13 @@ def main() -> None:
     import datetime
 
     from knowledge_bot.services.maintenance_metrics import build_dynamics_markdown_section
+    from shared.vault_layout import knowledge_subdir
 
     maintenance_section = _build_maintenance_section(vault)
     dynamics_section = build_dynamics_markdown_section(vault)
 
     report_lines = [
-        "# Аудит хранилища 700_База_Данных",
+        f"# Аудит хранилища {knowledge_subdir()}",
         "",
         f"Обновлён: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",

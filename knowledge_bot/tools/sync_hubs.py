@@ -92,9 +92,13 @@ def main() -> None:
     if not isinstance(hubs, list) or not hubs:
         return 0
 
-    db = vault / "700_База_Данных"
+    from shared.vault_layout import knowledge_subdir
+
+    kd = knowledge_subdir()
+    db = vault / kd
     if not db.exists():
         return 0
+    default_hub_dir = f"{kd}/_Хабы"
 
     for hub in hubs:
         if not isinstance(hub, dict) or not hub.get("id"):
@@ -102,7 +106,7 @@ def main() -> None:
         hid = str(hub["id"])
         title = hub.get("title", hid)
         fname = hub.get("filename", f"🗺️_Хаб_{hid}.md")
-        dir_rel = Path(hub.get("directory", "700_База_Данных/_Хабы"))
+        dir_rel = Path(hub.get("directory", default_hub_dir))
         any_of = [str(x) for x in (hub.get("include_tags", []) or []) if x]
         pref = [str(x) for x in (hub.get("include_tag_prefixes", []) or []) if x]
         intro = (hub.get("intro") or "").strip()

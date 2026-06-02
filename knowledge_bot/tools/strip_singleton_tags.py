@@ -22,6 +22,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.tags_inventory import scan_all_notes
+from shared.vault_layout import knowledge_subdir
 
 
 def main() -> None:
@@ -30,9 +31,10 @@ def main() -> None:
     args = ap.parse_args()
 
     cfg = load_config()
-    db_root = cfg.vault_path / "700_База_Данных"
+    kd = knowledge_subdir()
+    db_root = cfg.vault_path / kd
     if not db_root.exists():
-        print("700_База_Данных не найден", file=sys.stderr)
+        print(f"{kd} не найден", file=sys.stderr)
         sys.exit(1)
 
     inv = scan_all_notes(cfg.vault_path)

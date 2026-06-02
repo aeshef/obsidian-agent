@@ -154,7 +154,9 @@ def main() -> None:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(message)s")
     cfg = load_config()
     vault = vault_override or cfg.vault_path
-    db_root = vault / "700_База_Данных"
+    from shared.vault_layout import knowledge_subdir
+
+    db_root = vault / knowledge_subdir()
     if apply:
         from shared.llm_reachable import deepseek_api_reachable
 
