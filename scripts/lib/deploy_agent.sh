@@ -107,6 +107,23 @@ echo "✅ unified host deps OK (jinja2 + knowledge ingest)"
 REMOTE
 }
 
+verify_unified_bot_remote() {
+  local bots="${SERVER_BOTS:?}"
+  local wait="${DEPLOY_VERIFY_WAIT:-15}"
+  echo "⏳ verify unified_bot (wait ${wait}s)..."
+  sleep "$wait"
+  common_ssh "bash -s" <<REMOTE
+set -euo pipefail
+if pgrep -f 'python -m unified_bot.main' >/dev/null; then
+  echo "  unified_bot: UP"
+  exit 0
+fi
+echo "  unified_bot: DOWN" >&2
+tail -20 "${bots}/logs/unified_bot.log" 2>/dev/null || true
+exit 1
+REMOTE
+}
+
 restart_unified_bot_remote() {
   local bots="${SERVER_BOTS:?}"
   local py="${bots}/finance_bot/.venv/bin/python"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# @reboot cron: поднять watchdog всех ботов после перезагрузки VPS.
+# @reboot cron: поднять unified_bot после перезагрузки VPS.
 #
 # Локально (через SSH):
 #   ./scripts/install_server_reboot_crontab.sh
@@ -27,11 +27,10 @@ _install_crontab() {
   mkdir -p "$BOTS_ROOT/logs"
   (
     crontab -l 2>/dev/null | grep -vF "$MARKER" \
-      | grep -v 'start_watchdog_detached.sh' || true
+      | grep -v 'start_watchdog_detached.sh' \
+      | grep -v 'unified_bot.main' || true
     echo "$MARKER"
-    echo "@reboot sleep 30 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/finance_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
-    echo "@reboot sleep 35 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/knowledge_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
-    echo "@reboot sleep 40 && bash $BOTS_ROOT/scripts/start_watchdog_detached.sh $BOTS_ROOT/planning_bot >> $BOTS_ROOT/logs/reboot.log 2>&1"
+    echo "@reboot sleep 30 && cd $BOTS_ROOT && set -a && . ./.env && set +a && DEPLOY_MODE=single PYTHONPATH=$BOTS_ROOT:$BOTS_ROOT/finance_bot:$BOTS_ROOT/knowledge_bot:$BOTS_ROOT/planning_bot AGENT_ROOT=$BOTS_ROOT nohup $BOTS_ROOT/finance_bot/.venv/bin/python -m unified_bot.main >> $BOTS_ROOT/logs/reboot.log 2>&1"
   ) > "$tmp"
   crontab "$tmp"
   rm -f "$tmp"

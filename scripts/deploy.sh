@@ -254,6 +254,25 @@ verify_deploy_checksums() {
   echo "✅ deploy checksum verify OK"
 }
 
+sync_repo_config_remote() {
+  local cfg="$MONOREPO/config"
+  [ -d "$cfg" ] || return 0
+  [ "$DRYRUN" = 1 ] && { echo "dry-run: sync config/*.yaml.example"; return 0; }
+  echo "📋 sync repo config examples → $SERVER:$SERVER_BOTS/config/"
+  ssh "$SERVER" "mkdir -p '$SERVER_BOTS/config'"
+  for f in "$cfg"/*.yaml.example; do
+    [ -f "$f" ] || continue
+    rsync -az "$f" "$SERVER:$SERVER_BOTS/config/"
+  done
+  for prod in vault_paths.yaml domain_messages.yaml messages.ru.yaml; do
+    [ -f "$cfg/$prod" ] || continue
+    rsync -az "$cfg/$prod" "$SERVER:$SERVER_BOTS/config/"
+    echo "  ↑ prod $prod"
+  done
+  ssh "$SERVER" "bash '$SERVER_BOTS/scripts/ensure_repo_config.sh' '$SERVER_BOTS'" \
+    || { echo "⚠️  ensure_repo_config.sh failed (check server config/)" >&2; return 1; }
+}
+
 rsync_server_scripts() {
   local flags="-avz --checksum"
   [ "$DRYRUN" = 1 ] && flags="-navz"
@@ -262,7 +281,6 @@ rsync_server_scripts() {
     --exclude='obsidian_sync.sh' \
     --exclude='export_mobile_vault.sh' \
     --exclude='install_launchagent.sh' \
-    --exclude='merge_env_from_server.sh' \
     "$MONOREPO/scripts/" "$SERVER:$SERVER_BOTS/scripts/"
   rsync -az "$MONOREPO/scripts/lib/" "$SERVER:$SERVER_BOTS/scripts/lib/"
   ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
@@ -349,9 +367,12 @@ fi
 # Только перезапуск, без rsync (если не переданы --component / --prod)
 if [ "$RESTART_UNIFIED" = 1 ] && [ "$PROD" = 0 ] && [ "$PATCH_AGENT_ENV" = 0 ] && [ "${#COMPONENTS[@]}" -eq 0 ]; then
   ssh_check
+  rsync_server_scripts
+  sync_repo_config_remote
   [ "$DRYRUN" = 1 ] && { echo "dry-run: restart unified_bot"; exit 0; }
   [ "$NO_RESTART" = 1 ] && { echo "⏭ --no-restart: unified не перезапускаем"; exit 0; }
   restart_unified_bot_remote
+  verify_unified_bot_remote
   exit $?
 fi
 
@@ -371,6 +392,7 @@ if [ "$PROD" = 1 ]; then
 fi
 
 rsync_server_scripts
+sync_repo_config_remote
 [ "$DRYRUN" = 0 ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
 
 if [ "${#COMPONENTS[@]}" -eq 0 ]; then
@@ -460,4 +482,5 @@ verify_bots
 
 if [ "$RESTART_UNIFIED" = 1 ] && [ "$NO_RESTART" = 0 ] && [ "$DRYRUN" = 0 ]; then
   restart_unified_bot_remote
+  verify_unified_bot_remote
 fi

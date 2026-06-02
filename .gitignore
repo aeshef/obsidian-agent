@@ -73,10 +73,10 @@ docs/agent-heuristics-audit.md
 docs/AGENT_CHAT_EXAMPLES.md
 docs/AGENT_TOOLS.md
 docs/SHARED_LAYOUT.md
-docs/VAULT_STRUCTURE.md
-docs/SCHEDULING.md
-docs/SCRIPTS.md
-docs/OPS.md
 docs/archive/
 config/messages.ru.yaml
 !config/messages.ru.yaml.example
+config/vault_paths.yaml
+!config/vault_paths.yaml.example
+config/domain_messages.yaml
+!config/domain_messages.yaml.example

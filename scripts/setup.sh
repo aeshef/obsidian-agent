@@ -34,6 +34,10 @@ bash "$ROOT/scripts/smoke_imports.sh"
 echo ""
 echo "=== bot configs from *.example ==="
 for pair in \
+  "config/messages.ru.yaml:config/messages.ru.yaml.example" \
+  "config/vault_paths.yaml:config/vault_paths.yaml.example" \
+  "config/domain_messages.yaml:config/domain_messages.yaml.example" \
+  "config/agent/platform.yaml:config/agent/platform.yaml.example" \
   "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
   "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example"; do
   target="${pair%%:*}"
@@ -52,4 +56,4 @@ echo ""
 echo "✅ Готово. Дальше:"
 echo "  Mac sync:  ./scripts/install_launchagent.sh"
 echo "  Deploy:    ./scripts/deploy.sh --component all --install-deps"
-echo "  Запуск:    <bot>/scripts/run.sh"
+echo "  Запуск:    python -m unified_bot.main  (см. docs/SETUP.md)"
