@@ -17,6 +17,7 @@ patch_agent_env_remote() {
   local synth_domains="${SYNTH_DOMAINS:-finance,planning}"
   local session_persist="${MEMORY_SESSION_PERSIST:-1}"
   local kanban_writes="${KANBAN_AGENT_WRITES:-}"
+  local vault_rel_knowledge="${VAULT_REL_KNOWLEDGE:-}"
 
   if [ -z "$token" ]; then
     echo "❌ TELEGRAM_UNIFIED_BOT_TOKEN пустой в $root/.env" >&2
@@ -56,6 +57,22 @@ upsert MEMORY_SESSION_PERSIST "${session_persist}"
 upsert AGENT_MEMORY_DB "${bots}/memory.db"
 upsert AGENT_ROOT "${bots}"
 REMOTE
+  if [ -n "$vault_rel_knowledge" ]; then
+    common_ssh "bash -s" <<REMOTE_KB
+set -euo pipefail
+REMOTE_ENV="${remote_env}"
+upsert() {
+  local k="\$1" v="\$2"
+  if grep -qE "^\${k}=" "\$REMOTE_ENV" 2>/dev/null; then
+    sed -i "s|^\${k}=.*|\${k}=\${v}|" "\$REMOTE_ENV"
+  else
+    echo "\${k}=\${v}" >> "\$REMOTE_ENV"
+  fi
+}
+upsert VAULT_REL_KNOWLEDGE "${vault_rel_knowledge}"
+REMOTE_KB
+    echo "✅ VAULT_REL_KNOWLEDGE=${vault_rel_knowledge} on server"
+  fi
   if [ -n "$kanban_writes" ]; then
     common_ssh "bash -s" <<REMOTE2
 set -euo pipefail

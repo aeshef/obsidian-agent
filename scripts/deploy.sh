@@ -199,8 +199,8 @@ deploy_agent_platform_paths() {
   rsync_agent_paths "unified_bot"
   if [ "$DRYRUN" = 0 ]; then
     echo "📋 ensure config/agent + prompts on server..."
-    common_ssh "cd '${SERVER_BOTS}' && bash scripts/ensure_bot_prompts.sh && bash scripts/setup_agent_config.sh && bash scripts/ensure_hubs_registry.sh" || true
-    common_ssh "cd '${SERVER_BOTS}' && PYTHONPATH='${SERVER_BOTS}' python3 scripts/seed_planning_prompts.py" 2>/dev/null || true
+    common_ssh "cd '${SERVER_BOTS}' && set -a && [ -f .env ] && . ./.env; set +a && bash scripts/ensure_bot_prompts.sh && bash scripts/setup_agent_config.sh && bash scripts/ensure_hubs_registry.sh" || true
+    common_ssh "cd '${SERVER_BOTS}' && set -a && [ -f .env ] && . ./.env; set +a && PYTHONPATH='${SERVER_BOTS}' python3 scripts/seed_planning_prompts.py" 2>/dev/null || true
   fi
 }
 
@@ -393,7 +393,9 @@ if [ "$DRYRUN" = 0 ]; then
   bash "$MONOREPO/scripts/ensure_hubs_registry.sh" 2>/dev/null || true
 fi
 
-if [ "$PATCH_AGENT_ENV" = 1 ]; then
+rsync_server_scripts
+
+if [ "$PATCH_AGENT_ENV" = 1 ] || [ "$PROD" = 1 ]; then
   patch_agent_env_remote "$DRYRUN" || exit 1
 fi
 
@@ -401,7 +403,6 @@ if [ "$PROD" = 1 ]; then
   deploy_agent_platform_paths
 fi
 
-rsync_server_scripts
 sync_repo_config_remote
 [ "$DRYRUN" = 0 ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
 
