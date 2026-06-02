@@ -90,7 +90,6 @@ DEPLOY_VERIFY_PATHS=(
   knowledge_bot/app/agent_tools.py
   knowledge_bot/app/save_note.py
   knowledge_bot/app/handlers/modes.py
-  knowledge_bot/app/direct_read.py
   knowledge_bot/services/query/brain_query.py
   knowledge_bot/services/query/note_lookup.py
   shared/agent/app.py
