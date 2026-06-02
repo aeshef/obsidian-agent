@@ -8,6 +8,14 @@ vault:
 agent:
   max_iters: 6
 
+# Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
+agent_progress:
+  enabled: 1
+  status_message: 1
+  status_max_chars: 380
+  # sendMessageDraft — нужен aiogram ~3.24+; в prod пока 3.13 → оставить 0
+  draft_stream: 0
+
 llm_classify:
   timeout_sec: 25
   temperature: 0.0
@@ -64,7 +72,8 @@ planning_llm:
   goals_mapping: 0.3
 
 tool_log:
-  preview_chars: 200
+  # 0 = только имя tool и размер ответа в логах (без тела — PII)
+  preview_chars: 0
 
 knowledge_note_lookup:
   min_token_chars: 3
