@@ -4,6 +4,10 @@ account_type_card_hints:
   - карт
   - card
 
+account_type_wallet_cash_hints:
+  - нал
+  - cash
+
 broker_categories:
   topup: "Пополнение брокера"
   withdraw: "Вывод с брокера"

@@ -44,7 +44,12 @@ config/agent/prompts/*.txt
 **/config/tags_inventory.yaml
 **/config/tag_ontology.yaml
 finance_bot/config/nlu_config.yaml
+finance_bot/config/analytics_categories.yaml
 knowledge_bot/config/media_extensions.yaml
+knowledge_bot/config/tag_domains.yaml
+knowledge_bot/config/contact_handles.yaml
+planning_bot/config/kanban_schema.yaml
+planning_bot/config/calendar_life_sections.yaml
 
 # LaunchAgent (генерируется локально из *.example.plist)
 launchd/*.plist
@@ -60,3 +65,4 @@ venv_logs/
 # Служебные / локальные (не в публичном репо)
 migration/
 test_fetch_iphone_mail.py
+docs/PROJECT_QUALITY_AUDIT.md

@@ -38,5 +38,23 @@ planning_action_log:
   chain_max_events: 0
   safety_max_events: 10000
 
+planning_reflection:
+  review_days: 7
+  review_excerpt_chars: 1500
+  weekly_logs_limit: 100
+  previous_reflections_limit: 5
+
+planning_llm:
+  task_parsing: 0.3
+  weekly_review: 0.8
+  recommendations: 0.7
+  goals_mapping: 0.3
+
+tool_log:
+  preview_chars: 200
+
+knowledge_note_lookup:
+  min_token_chars: 3
+
 json_parse:
   error_preview_chars: 400

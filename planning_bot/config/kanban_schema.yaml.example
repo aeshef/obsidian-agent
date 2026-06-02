@@ -1,0 +1,31 @@
+# cp planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml
+
+categories:
+  - карьера
+  - учеба
+  - развитие
+  - дом
+  - семья
+  - здоровье
+  - инфраструктура
+  - опыт
+
+priorities:
+  - высокий
+  - средний
+  - низкий
+
+category_order:
+  карьера: 1
+  учеба: 2
+  развитие: 3
+  здоровье: 4
+  инфраструктура: 5
+  дом: 6
+  семья: 7
+  опыт: 8
+
+priority_order:
+  высокий: 1
+  средний: 2
+  низкий: 3

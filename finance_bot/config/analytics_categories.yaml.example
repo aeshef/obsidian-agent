@@ -1,0 +1,14 @@
+# Категории для аналитики / дашборда (переопределение env — см. finance_classification.py)
+# cp analytics_categories.yaml.example analytics_categories.yaml
+
+exclude_spending: "Перевод,Переводы,Пополнение брокера"
+exclude_income: "Перевод,Переводы,Вывод с брокера"
+
+investment_expense:
+  - Пополнение брокера
+  - Инвестиции
+  - Broker
+  - ИИС
+  - Копилка
+  - Накопления
+  - Сбережения

@@ -1,0 +1,38 @@
+# type → domain/* при пустом ответе LLM (см. tags.txt)
+# cp tag_domains.yaml.example tag_domains.yaml
+
+type_domains:
+  рецепт: food
+  место: travel
+  вишлист: life
+  фильм: entertainment
+  сериал: entertainment
+  песня: entertainment
+  видео: entertainment
+  книга: study
+  курс: study
+  учебник: study
+  знание: life
+  идея: creative
+  мысль: life
+  проект: business
+  контакт: life
+  документ: study
+  ссылка: study
+  источник: study
+  мем: entertainment
+
+topic_anchors:
+  видео: video
+  фильм: film
+  книга: book
+  курс: course
+  учебник: textbook
+  песня: song
+
+known_sources: [reels, tiktok, youtube, telegram]
+
+media_types_with_topic_anchor: [видео, фильм, книга, курс, учебник, песня]
+
+default_type: знание
+default_domain: life

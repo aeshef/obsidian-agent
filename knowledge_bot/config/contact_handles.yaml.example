@@ -1,0 +1,9 @@
+# Нормализация handles в шаблоне «контакт»
+# cp contact_handles.yaml.example contact_handles.yaml
+
+contact_type: контакт
+
+aliases:
+  tg: [tg, telegram, телеграм]
+  email: [email, почта]
+  phone: [phone, телефон]
