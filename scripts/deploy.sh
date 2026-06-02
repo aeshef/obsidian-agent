@@ -76,7 +76,6 @@ PROMPT_TXT_EXCLUDE=(
 # finance_bot: те же правила + явный nlu_prompt.txt если есть локально
 FINANCE_PROMPT_RULES=(
   --include='config/prompts/nlu_prompt.txt'
-  --include='config/prompts/router_prompt.txt'
   --include='config/prompts/*.example.txt'
   --exclude='config/prompts/*.txt'
 )
