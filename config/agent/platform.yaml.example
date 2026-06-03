@@ -49,6 +49,8 @@ planning:
   # Meta-only («заведи задачку») уйдёт в chat, не в create task
   task_min_alnum_chars: 12
   task_min_words: 4
+  # get_kanban: сколько последних задач показывать в колонке «✅ Сделано» (по created_date)
+  kanban_done_preview_max: 1000
 
 planning_calendar:
   tool_max_chars: 4000

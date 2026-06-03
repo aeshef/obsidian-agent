@@ -17,3 +17,11 @@ def test_search_tasks_imports_filter_helpers():
     src = inspect.getsource(agent_tools.search_tasks)
     assert "filter_tasks" in src
     assert "format_task_list" in src
+
+
+def test_get_kanban_done_preview_from_platform():
+    from planning_bot.app import agent_tools
+
+    src = inspect.getsource(agent_tools.get_kanban)
+    assert "kanban_done_preview_max" in src
+    assert "default=1000" in src
