@@ -20,7 +20,7 @@ def test_clamp_limit_max_1000():
 def test_summary_includes_type_breakdown():
     logger = ActionLogger(ACTION_LOGS_DIR)
     d = date(2026, 5, 12)
-    entries, n_raw, counts = fetch_activity_events(
+    entries, all_entries, n_raw, counts = fetch_activity_events(
         logger,
         from_date=d,
         to_date=d,
@@ -29,7 +29,9 @@ def test_summary_includes_type_breakdown():
         task_title=None,
         limit=0,
     )
-    out = format_activity_events_block(entries, n_raw=n_raw, type_counts=counts, filtered_type=None)
+    out = format_activity_events_block(
+        entries, all_entries, n_raw=n_raw, type_counts=counts, filtered_type=None
+    )
     assert "completed=7" in out or "completed=7," in out
     assert "moved=104" in out
     assert "task_completed" in out
@@ -38,7 +40,7 @@ def test_summary_includes_type_breakdown():
 def test_filtered_completed_only():
     logger = ActionLogger(ACTION_LOGS_DIR)
     d = date(2026, 5, 12)
-    entries, n_raw, counts = fetch_activity_events(
+    entries, all_entries, n_raw, counts = fetch_activity_events(
         logger,
         from_date=d,
         to_date=d,
@@ -49,3 +51,12 @@ def test_filtered_completed_only():
     )
     assert n_raw == len(entries) == 7
     assert counts == {"task_completed": 7}
+    out = format_activity_events_block(
+        entries,
+        all_entries,
+        n_raw=n_raw,
+        type_counts=counts,
+        filtered_type="task_completed",
+    )
+    assert "hour\tcount" in out
+    assert "16\t" in out or "15\t" in out
