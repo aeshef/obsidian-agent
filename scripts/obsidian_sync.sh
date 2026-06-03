@@ -103,6 +103,13 @@ EXCLUDE_300=(
   --exclude='Аудит_хранилища_отчет.md'
   --exclude='Данные/finance.db'
   --exclude='Данные/finance.db-*'
+  # Mac-authoritative: IMAP/Shortcuts пишут здесь; pull с VPS возвращал мусор после локального cleanup
+  --exclude='Данные/Действия/IPhone/'
+  --exclude='Данные/Действия/Mac/'
+  --exclude='Данные/Действия/iphone_today.json'
+  --exclude='Данные/Действия/iphone_week.json'
+  --exclude='Данные/Действия/context_today.json'
+  --exclude='Данные/Действия/context_week.json'
 )
 # 1. Сервер → Локальный. --update: не перезаписывать локальные, если они новее (сохраняем правки в Obsidian). Если новее сервер (задача через бота / заметки knowledge bot) — подтягиваем.
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
@@ -161,6 +168,14 @@ if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; the
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
   (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/context_sync.py) >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
 fi
+
+# 1c. iPhone: удалить невалидные IPhone/*.txt + пересобрать iphone_*.json ДО push (канон Mac → VPS)
+if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/iphone_context_sync.py" ]; then
+  touch "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
+  export VAULT_PATH="$LOCAL_VAULT"
+  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/iphone_context_sync.py) >> "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
+fi
 unset _PLANNING_BOT
 
 # 2. Локальный → Сервер (отправить изменения, не затирать более новые на сервере)
@@ -183,6 +198,13 @@ PUSH_EXCLUDE_300=(
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
 "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/"
+
+# 2b. На VPS: тот же cleanup/JSON для IPhone (старый мусор мог остаться только на сервере)
+if [ -d "${AGENT_ROOT}/planning_bot" ] && [ -f "${AGENT_ROOT}/planning_bot/tools/iphone_context_sync.py" ]; then
+  echo "obsidian_sync: шаг 2b — iphone_context_sync на сервере…" >&2
+  ssh "${SSH_OPTS[@]}" "$SERVER" "cd '${SERVER_BOTS}/planning_bot' && VAULT_PATH='${SERVER_VAULT}' PYTHONPATH='${SERVER_BOTS}' ./.venv/bin/python -u tools/iphone_context_sync.py" \
+    >> "${AGENT_ROOT}/planning_bot/logs/iphone_context_sync.log" 2>&1 || true
+fi
 
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
 echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2
