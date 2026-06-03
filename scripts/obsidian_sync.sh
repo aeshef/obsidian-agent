@@ -224,24 +224,27 @@ if [ -n "${FORCE_CHART:-}" ] && [ -z "${FORCE_CHARTS:-}" ]; then
   export FORCE_CHARTS=1
 fi
 
-# Python для графиков planning: venv (PyYAML/matplotlib). LaunchAgent без этого падает с No module named 'yaml'.
+# Python для графиков: LaunchAgent часто не читает planning_bot/venv/pyvenv.cfg (TCC/FDA).
+# Сначала homebrew из LaunchAgent; venv — если реально импортирует yaml.
 _pb_venv="$AGENT_ROOT/planning_bot/venv"
 _pb_sp="$(ls -d "$_pb_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
-if [ -x "$_pb_venv/bin/python" ]; then
-  CHART_PYTHON="$_pb_venv/bin/python"
-elif [ -x "/opt/homebrew/bin/python3" ]; then
+_chart_py_ok() { "$1" -c "import yaml" 2>/dev/null; }
+CHART_PYTHON=""
+if ! [ -t 0 ] && [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
   CHART_PYTHON="/opt/homebrew/bin/python3"
-elif command -v python3 >/dev/null 2>&1; then
+elif [ -x "$_pb_venv/bin/python" ] && _chart_py_ok "$_pb_venv/bin/python"; then
+  CHART_PYTHON="$_pb_venv/bin/python"
+elif [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
+  CHART_PYTHON="/opt/homebrew/bin/python3"
+elif command -v python3 >/dev/null 2>&1 && _chart_py_ok python3; then
   CHART_PYTHON=python3
-else
-  CHART_PYTHON=""
 fi
 if [ -n "$_pb_sp" ]; then
   CHART_PYTHONPATH="${AGENT_ROOT}:${_pb_sp}"
 else
   CHART_PYTHONPATH="${AGENT_ROOT}"
 fi
-unset _pb_venv _pb_sp
+unset _pb_venv _pb_sp _chart_py_ok
 
 # 5. Графики дашборда по action-логам: раз в день + повтор, если лог месяца новее PNG (конец дня).
 # Иначе прогон в 00:03 ставит маркер «сегодня», а события дня в графики не попадают до следующей полуночи.
@@ -249,8 +252,21 @@ unset _pb_venv _pb_sp
 MARKER="$SYNC_DIR/daily_charts_date.txt"
 LOGS_DIR="$LOCAL_VAULT/300_Дашборды/Логи"
 ACTION_LOG_PREFIX="📊 Логи_Действий_"
-_CHART_REF="$LOCAL_VAULT/300_Дашборды/Графики/Активность_за_день.png"
+_CHART_DIR="$LOCAL_VAULT/300_Дашборды/Графики"
 _CUR_LOG="$LOGS_DIR/${ACTION_LOG_PREFIX}$(date +%Y-%m).md"
+_chart_png_mtime_max() {
+  local d="$1" max=0 m f
+  for f in \
+    "$d/Активность_за_день.png" \
+    "$d/Завершено_по_категориям_дни.png" \
+    "$d/Открыто_по_категориям_дни.png" \
+    "$d/Дедлайны_горизонт.png"; do
+    [ -f "$f" ] || continue
+    m=$(stat -f '%m' "$f" 2>/dev/null || echo 0)
+    [ "$m" -gt "$max" ] && max=$m
+  done
+  echo "$max"
+}
 HAS_LOGS=
 [ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name '*Логи_Действий_*.md' 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
 _SHOULD_CHARTS=0
@@ -258,11 +274,11 @@ if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_CHARTS=1
 elif [ ! -f "$MARKER" ] || [ "$(cat "$MARKER" 2>/dev/null)" != "$TODAY" ]; then
   _SHOULD_CHARTS=1
-elif [ -f "$_CUR_LOG" ] && [ ! -f "$_CHART_REF" ]; then
+elif [ -f "$_CUR_LOG" ] && [ "$(_chart_png_mtime_max "$_CHART_DIR")" = "0" ]; then
   _SHOULD_CHARTS=1
-elif [ -f "$_CUR_LOG" ] && [ -f "$_CHART_REF" ]; then
+elif [ -f "$_CUR_LOG" ]; then
   _log_m=$(stat -f '%m' "$_CUR_LOG" 2>/dev/null || echo 0)
-  _png_m=$(stat -f '%m' "$_CHART_REF" 2>/dev/null || echo 0)
+  _png_m=$(_chart_png_mtime_max "$_CHART_DIR")
   [ "$_log_m" -gt "$_png_m" ] && _SHOULD_CHARTS=1
 fi
 if [ "$_SHOULD_CHARTS" = "1" ]; then
@@ -282,7 +298,7 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
     fi
   fi
 fi
-unset _SHOULD_CHARTS _CHART_REF _CUR_LOG _log_m _png_m ACTION_LOG_PREFIX
+unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max ACTION_LOG_PREFIX
 
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
