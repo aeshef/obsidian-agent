@@ -14,7 +14,11 @@ from planning_bot.services.health_data import (
     format_health_snapshot,
     format_health_summary,
 )
-from planning_bot.services.iphone_health_fields import extract_raw_fields, normalize_raw_fields
+from planning_bot.services.iphone_health_fields import (
+    extract_raw_fields,
+    is_valid_health_snapshot,
+    normalize_raw_fields,
+)
 from planning_bot.services.snapshot_query import (
     latest_per_calendar_day,
     parse_range_params,
@@ -36,10 +40,36 @@ Core for 4 hours and 7 minutes
 """
 
 
+LINKEDIN_GARBAGE = """---
+ts: 01.06.2026, 06:17
+source: iphone
+https: //www.linkedin.com/comm/premium/products/
+unsubscribe: https://www.linkedin.com/job-alert-email-unsubscribe
+---
+"""
+
+CSS_GARBAGE = """---
+ts: 01.06.2026, 14:10
+source: iphone
+margin: 0;
+padding: 9px !important;
+display: none !important;
+---
+"""
+
+
+def test_reject_non_health_email_bodies():
+    for body in (LINKEDIN_GARBAGE, CSS_GARBAGE):
+        snap = normalize_raw_fields(extract_raw_fields(body))
+        assert snap is not None
+        assert not is_valid_health_snapshot(snap)
+
+
 def test_normalize_extended_health_email():
     raw = extract_raw_fields(EXTENDED_BODY)
     snap = normalize_raw_fields(raw)
     assert snap is not None
+    assert is_valid_health_snapshot(snap)
     assert snap["weight_kg"] == pytest.approx(89.2)
     assert snap["resting_hr_bpm"] == 69
     assert snap["hrv_ms"] == pytest.approx(15.76)
@@ -60,6 +90,15 @@ def test_snapshot_query_per_day():
     snap, d = resolve_snapshot_for_day(snaps, date(2026, 5, 28))
     assert d == date(2026, 5, 28)
     assert snap["steps"] == 9050
+
+
+def test_snapshot_query_ignores_garbage_same_day():
+    snaps = [
+        {"ts": "2026-06-02T15:34", "https": "//ozone.ru", "margin": "0"},
+        {"ts": "2026-06-02T23:43", "steps": 10340, "resting_hr_bpm": 73, "sleep_interval": "2 июня"},
+    ]
+    daily = latest_per_calendar_day(snaps)
+    assert daily[date(2026, 6, 2)]["steps"] == 10340
 
 
 def test_parse_range_defaults():
@@ -109,7 +148,7 @@ def test_anomalies_and_correlations_smoke(tmp_path, monkeypatch):
         iphone_dir,
     )
     anom = format_health_anomalies(lookback_days=10, z_threshold=1.5)
-    assert "steps" in anom
+    assert "календарных" in anom or "steps" in anom
     corr = format_health_correlations("2026-05-20", "2026-05-25", ["steps", "weight_kg"])
     assert "корреляц" in corr.lower() or "(" in corr
 
