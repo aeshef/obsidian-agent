@@ -61,6 +61,7 @@ planning_calendar:
   chat_upcoming_hours: 72
   week_summary_days_ahead: 7
   default_hours_ahead: 48
+  range_max_events: 400
 
 planning_alerts:
   stuck_task_days: 14
