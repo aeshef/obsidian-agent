@@ -84,6 +84,8 @@ planning_action_log:
   chain_hours: 48
   chain_max_events: 0
   safety_max_events: 10000
+  activity_events_limit_default: 40
+  activity_events_limit_max: 1000
 
 planning_reflection:
   review_days: 7
