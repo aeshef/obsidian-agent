@@ -38,6 +38,7 @@ files:
   chart_nutrition_md: "Питание_КБЖУ_по_дням.md"
   nutrition_dashboard_md: "🥗 Питание_КБЖУ.md"
   system_audit_report_md: "Аудит_системы_отчет.md"
+  vault_audit_report_md: "Аудит_хранилища_отчет.md"
   reflection_weekly_file: "Рефлексия_{date}.md"
 
 finance:

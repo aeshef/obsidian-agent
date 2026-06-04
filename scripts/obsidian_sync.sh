@@ -598,7 +598,7 @@ if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ]
     echo "obsidian_sync: шаг 5b.3 — тяжёлый аудит 700_ (часто 1–5+ мин; tail -f logs/system_audit.log)…" >&2
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if (cd "$KNOWLEDGE_BOT" && "$KN_PYTHON" tools/analyze_vault_report.py --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_хранилища_отчет.md") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
+    if (cd "$KNOWLEDGE_BOT" && "$KN_PYTHON" tools/analyze_vault_report.py --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
       echo "$TODAY" > "$KN_AUDIT_MARKER"
     else
       if "$KN_PYTHON" -c "open('$KNOWLEDGE_BOT/config/vault_maintenance.yaml').close()" >/dev/null 2>&1; then
@@ -614,7 +614,7 @@ unset _kn_skip_today
 
 # 5b.post Mac → VPS: аудит-отчёты (после 5b; шаг 2 был до генерации). Pull их не берём (EXCLUDE_300).
 _audit_sys="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_системы_отчет.md"
-_audit_kb="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_хранилища_отчет.md"
+_audit_kb="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}"
 for _audit_push in "$_audit_sys" "$_audit_kb"; do
   if [ -f "$_audit_push" ]; then
     "$RSYNC_BIN" "${FLAGS[@]}" --update "$_audit_push" \
