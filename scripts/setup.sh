@@ -52,7 +52,8 @@ done
 echo ""
 echo "=== bot prompts (*.example.txt → *.txt, не перезаписываем) ==="
 bash "$ROOT/scripts/ensure_bot_prompts.sh"
-bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
+# pull_prompts_from_server.sh — author-only (see docs/_maintainer); optional local file
+[ -x "$ROOT/scripts/pull_prompts_from_server.sh" ] && bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
 export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 python3 "$ROOT/scripts/seed_planning_prompts.py" || true
 bash "$ROOT/scripts/ensure_hubs_registry.sh" || true

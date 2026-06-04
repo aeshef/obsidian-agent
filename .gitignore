@@ -65,6 +65,8 @@ knowledge_bot/CHAT_ID.txt
 .sync/
 venv_build.log
 venv_logs/
+.venv-scrub/
+.DS_Store
 
 # Служебные / локальные (не в публичном репо)
 scripts/.git-filter-repo
@@ -85,6 +87,7 @@ planning_bot/scripts/_cyrillic_strip.py
 migration/
 test_fetch_iphone_mail.py
 # Maintainer / audit / one-off (not for clones)
+docs/_maintainer/
 docs/PROJECT_QUALITY_AUDIT.md
 docs/agent-heuristics-audit.md
 docs/AGENT_CHAT_EXAMPLES.md
@@ -116,7 +119,22 @@ knowledge_bot/tools/tag_ontology.py
 knowledge_bot/tools/unify_domain_topic.py
 !knowledge_bot/tools/vault_daily_maintenance.py
 planning_bot/tools/repair_*.py
+planning_bot/scripts/backfill_*.py
+planning_bot/scripts/normalize_*.py
+planning_bot/scripts/dedup_*.py
+planning_bot/scripts/merge_*.py
+planning_bot/scripts/remove_root_*.py
+planning_bot/scripts/sync_completed_soc.py
+planning_bot/scripts/watch_and_add_ids.py
+planning_bot/scripts/setup_watcher.sh
+planning_bot/scripts/vault_discover.py
 planning_bot/scripts/build_system_audit_report.py
+finance_bot/tools/cleanup_*.py
+finance_bot/tools/init_accounts.py
+finance_bot/tools/reset_data.py
+!finance_bot/tools/tinkoff_sync.py
+tests/fixtures/vault/
+scripts/pull_prompts_from_server.sh
 docker-compose.example.yml
 config/locale/en_by_path.json
 config/messages.ru.yaml
