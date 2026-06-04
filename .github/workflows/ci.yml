@@ -65,9 +65,12 @@ jobs:
           # shellcheck source=scripts/lib/common.sh
           source scripts/lib/common.sh
           FIN_PY="$(common_resolve_python_usable "$PWD/finance_bot")"
-          export PYTHONPATH="$PWD"
+          export PYTHONPATH="$PWD:$PWD/finance_bot:$PWD/knowledge_bot:$PWD/planning_bot"
+          export VAULT_PATH="${RUNNER_TEMP}/ci-vault"
+          mkdir -p "$VAULT_PATH"
           "$FIN_PY" -m pip install -q pytest pytest-asyncio
-          "$FIN_PY" scripts/onboarding_smoke.py --golden-planning --golden-finance --agent-sanity --verify-all
+          # Golden presets + agent registry (no --verify-all: needs local badge/broker yaml)
+          "$FIN_PY" scripts/onboarding_smoke.py --golden-planning --golden-finance --agent-sanity
           "$FIN_PY" -m pytest tests/test_capabilities.py tests/test_profile_matrix.py \
             tests/test_ui_bindings.py tests/test_ui_patterns.py tests/test_agent_sanity.py \
             tests/test_prompt_preamble.py tests/test_onboarding.py tests/test_no_cyrillic_in_py.py \
