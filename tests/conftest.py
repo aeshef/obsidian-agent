@@ -13,6 +13,7 @@ FIXTURE_VAULT = Path(__file__).parent / "fixtures" / "vault"
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token-for-pytest")
 os.environ.setdefault("TELEGRAM_FINANCE_BOT_TOKEN", "test-token-for-pytest")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-key-for-pytest")
+os.environ.setdefault("AGENT_LOCALE", "ru")
 
 for p in (str(FINANCE_BOT), str(ROOT)):
     if p not in sys.path:
@@ -68,8 +69,10 @@ def _domain_messages_merge_example(monkeypatch):
         merged = deep_merge(merged, local)
 
     @lru_cache(maxsize=2)
-    def _merged_domain(_locale: str = "en") -> dict:
-        return merged
+    def _merged_domain(_locale: str) -> dict:
+        if str(_locale).startswith("en"):
+            return deep_merge(ru, en)
+        return ru
 
     monkeypatch.setattr(dm, "_domain", _merged_domain)
     dm.clear_domain_messages_cache()

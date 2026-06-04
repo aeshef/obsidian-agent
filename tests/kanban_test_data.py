@@ -24,8 +24,13 @@ def kanban_fixture(name: str) -> str:
     return (_KANBAN_FIXTURES / name).read_text(encoding="utf-8")
 
 
-def kanban_board_fixture_path(vault_root: Path) -> Path:
-    return vault_root / folder("tasks") / vault_file("kanban_board")
+def kanban_board_fixture_path(vault_root: Path | None = None) -> Path:
+    """Git-tracked kanban markdown (tests/fixtures/vault/ is gitignored)."""
+    if vault_root is not None:
+        legacy = vault_root / folder("tasks") / vault_file("kanban_board")
+        if legacy.is_file():
+            return legacy
+    return _KANBAN_FIXTURES / "board_parse_sections.md"
 
 
 @lru_cache(maxsize=1)

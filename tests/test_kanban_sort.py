@@ -6,7 +6,6 @@ import shutil
 from pathlib import Path
 
 from planning_bot.core.config import PRIORITY_ORDER
-from tests.conftest import FIXTURE_VAULT
 from tests.kanban_test_data import kanban_board_fixture_path, kanban_strings
 
 
@@ -61,7 +60,7 @@ def _is_sorted(tasks: list[str]) -> bool:
 
 
 def test_sort_kanban_on_fixture_copy(tmp_path: Path):
-    kanban_src = kanban_board_fixture_path(FIXTURE_VAULT)
+    kanban_src = kanban_board_fixture_path()
     assert kanban_src.is_file(), f"fixture missing: {kanban_src}"
     copy_path = tmp_path / "kanban.md"
     shutil.copy2(kanban_src, copy_path)

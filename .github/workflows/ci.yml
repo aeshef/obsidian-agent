@@ -61,7 +61,7 @@ jobs:
           DEPLOY_MODE: single
           AGENT_LOCALE: ru
         run: |
-          bash scripts/ensure_bot_venv.sh finance
+          bash scripts/ensure_bot_venv.sh finance_bot
           FIN_PY=finance_bot/.venv/bin/python
           export PYTHONPATH="$PWD"
           "$FIN_PY" -m pip install -q pytest pytest-asyncio
