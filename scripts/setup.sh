@@ -62,6 +62,7 @@ bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 
 echo ""
 echo "✅ Готово. Дальше:"
+echo "  Модули:    docs/ONBOARDING.md  (или skill obsidian-agent-onboarding)"
 echo "  Mac sync:  ./scripts/install_launchagent.sh"
 echo "  Deploy:    ./scripts/deploy.sh --component all --install-deps"
 echo "  Запуск:    python -m unified_bot.main  (см. docs/SETUP.md)"
