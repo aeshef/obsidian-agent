@@ -21,6 +21,9 @@ cap_load_env() {
   done
   if ! eval "$("$py" "$exporter" 2>/dev/null)"; then
     export CAPABILITIES_SYNC_PROFILE="${CAPABILITIES_SYNC_PROFILE:-full}"
+    export CAP_MODULE_FINANCE="${CAP_MODULE_FINANCE:-1}"
+    export CAP_MODULE_PLANNING="${CAP_MODULE_PLANNING:-1}"
+    export CAP_MODULE_KNOWLEDGE="${CAP_MODULE_KNOWLEDGE:-1}"
     export CAP_SYNC_MAC_IPHONE="${CAP_SYNC_MAC_IPHONE:-1}"
     export CAP_SYNC_GMAIL_HEALTH="${CAP_SYNC_GMAIL_HEALTH:-1}"
     export CAP_SYNC_PLANNING_CHARTS="${CAP_SYNC_PLANNING_CHARTS:-1}"
@@ -34,5 +37,10 @@ cap_load_env() {
 
 cap_step_enabled() {
   local var="CAP_${1}"
+  [[ "${!var:-1}" == "1" ]]
+}
+
+cap_module_enabled() {
+  local var="CAP_MODULE_${1}"
   [[ "${!var:-1}" == "1" ]]
 }

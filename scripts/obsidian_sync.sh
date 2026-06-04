@@ -124,19 +124,24 @@ EXCLUDE_300=(
   --exclude='Данные/Действия/context_week.json'
 )
 # 1. Сервер → Локальный. --update: не перезаписывать локальные, если они новее (сохраняем правки в Obsidian). Если новее сервер (задача через бота / заметки knowledge bot) — подтягиваем.
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/200_Цели/" "$LOCAL_VAULT/200_Цели/" || SYNC_OK=0
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/400_Рутины/" "$LOCAL_VAULT/400_Рутины/" || SYNC_OK=0
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/600_Рукописное/" "$LOCAL_VAULT/600_Рукописное/" || SYNC_OK=0
-# База знаний (knowledge bot) — путь из VAULT_REL_KNOWLEDGE / platform.yaml
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
+if cap_module_enabled PLANNING; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/200_Цели/" "$LOCAL_VAULT/200_Цели/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/400_Рутины/" "$LOCAL_VAULT/400_Рутины/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/600_Рукописное/" "$LOCAL_VAULT/600_Рукописное/" || SYNC_OK=0
+fi
+if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
+fi
+if cap_module_enabled KNOWLEDGE; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
+fi
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
 # 1a. IPhone/Mac: DD.MM.YYYY → YYYY-MM-DD (сортировка); манифест → 1a-remote до push
 _PLANNING_BOT="${AGENT_ROOT}/planning_bot"
-if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/rename_action_snapshots.py" ]; then
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/rename_action_snapshots.py" ]; then
   touch "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT" SYNC_STATE_DIR="$SYNC_DIR"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
@@ -174,7 +179,7 @@ unset _PLANNING_BOT _ACTION_RENAME_MANIFEST _action_unlink
 
 # 1b. Mac-контекст локально: TTL cleanup + context_*.json ДО push (не слать на VPS снапшоты старше TTL)
 _PLANNING_BOT="${AGENT_ROOT}/planning_bot"
-if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
   touch "$_PLANNING_BOT/logs/context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
@@ -182,7 +187,7 @@ if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; the
 fi
 
 # 1c. iPhone: удалить невалидные IPhone/*.txt + пересобрать iphone_*.json ДО push (канон Mac → VPS)
-if [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/iphone_context_sync.py" ]; then
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/iphone_context_sync.py" ]; then
   touch "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
@@ -204,29 +209,41 @@ PUSH_EXCLUDE_300=(
   --exclude='Данные/finance.db'
   --exclude='Данные/finance.db-*'
 )
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/"
+if cap_module_enabled PLANNING; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
+fi
+if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/"
+fi
+if cap_module_enabled KNOWLEDGE; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/"
+fi
 
 # 2b. На VPS: тот же cleanup/JSON для IPhone (старый мусор мог остаться только на сервере)
-if [ -d "${AGENT_ROOT}/planning_bot" ] && [ -f "${AGENT_ROOT}/planning_bot/tools/iphone_context_sync.py" ]; then
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "${AGENT_ROOT}/planning_bot" ] && [ -f "${AGENT_ROOT}/planning_bot/tools/iphone_context_sync.py" ]; then
   echo "obsidian_sync: шаг 2b — iphone_context_sync на сервере…" >&2
   ssh "${SSH_OPTS[@]}" "$SERVER" "cd '${SERVER_BOTS}/planning_bot' && VAULT_PATH='${SERVER_VAULT}' PYTHONPATH='${SERVER_BOTS}' ./.venv/bin/python -u tools/iphone_context_sync.py" \
     >> "${AGENT_ROOT}/planning_bot/logs/iphone_context_sync.log" 2>&1 || true
 fi
 
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
-echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2
-ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; SYNC_OK=0; }
+if cap_module_enabled PLANNING; then
+  echo "obsidian_sync: шаг 3 — SSH: vault_maintenance на сервере (лог: planning_bot/logs/maintenance.log)…" >&2
+  ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "⚠️ Maintenance на сервере завершился с ошибкой (см. ssh \$SERVER 'tail -50 ${SERVER_BOTS}/planning_bot/logs/maintenance.log')" >&2; SYNC_OK=0; }
+fi
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance.
 # 100_: ignore-times — канон сортировки с VPS. 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
-"$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
+if cap_module_enabled PLANNING; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
+fi
+if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
+fi
 # 700 уже подтянут в шаге 1; при необходимости можно добавить сюда с --ignore-times
 
 TODAY=$(date +%Y-%m-%d)
@@ -405,7 +422,7 @@ _trim_log "$PLANNING_BOT/logs/iphone_mail_sync.log" 5000 3000
 _trim_log "$PLANNING_BOT/logs/iphone_context_sync.log" 5000 3000
 
 # 5b.1 Аудит planning/sync (лёгкий, секунды)
-if [ -n "${FORCE_SYSTEM_AUDIT:-}" ] || [ ! -f "$SYS_AUDIT_MARKER" ] || [ "$(cat "$SYS_AUDIT_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+if cap_module_enabled PLANNING && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] || [ ! -f "$SYS_AUDIT_MARKER" ] || [ "$(cat "$SYS_AUDIT_MARKER" 2>/dev/null)" != "$TODAY" ]; }; then
   if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_system_audit_report.py" ]; then
     echo "obsidian_sync: шаг 5b.1 — лёгкий системный аудит (tail -f logs/system_audit.log)…" >&2
     export LOCAL_VAULT
@@ -744,7 +761,7 @@ unset _FIN_BUILD FIN_DB_NEWER
 # Односторонне Mac→iCloud; тот же цикл, что rsync с сервером (LaunchAgent ~5 мин). SKIP_MOBILE_VAULT=1 — отключить.
 MOBILE_EXPORT_SCRIPT="$AGENT_ROOT/scripts/export_mobile_vault.sh"
 MOBILE_EXPORT_LOG="$SYNC_DIR/mobile_vault_export.log"
-if [ -z "${SKIP_MOBILE_VAULT:-}" ] && [ -x "$MOBILE_EXPORT_SCRIPT" ]; then
+if cap_module_enabled PLANNING && [ -z "${SKIP_MOBILE_VAULT:-}" ] && [ -x "$MOBILE_EXPORT_SCRIPT" ]; then
   touch "$MOBILE_EXPORT_LOG" 2>/dev/null || true
   _trim_log "$MOBILE_EXPORT_LOG" 200 120
   echo "obsidian_sync: шаг 5e — export_mobile_vault (iCloud, лог: $MOBILE_EXPORT_LOG)…" >&2

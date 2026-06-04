@@ -129,3 +129,36 @@ def test_is_badge_enabled_respects_connector(monkeypatch):
         _config_cache.pop("badge", None)
         monkeypatch.delenv("CAP_CONNECTOR_CORPORATE_BADGE", raising=False)
         clear_capabilities_cache()
+
+
+def test_export_shell_env_includes_modules(monkeypatch, tmp_path: Path):
+    cfg = tmp_path / "capabilities.yaml"
+    cfg.write_text(
+        yaml.dump(
+            {
+                "modules": {"finance": True, "planning": False, "knowledge": False},
+                "sync": {"profile": SYNC_PROFILE_FINANCE_ONLY},
+            }
+        ),
+        encoding="utf-8",
+    )
+    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    clear_capabilities_cache()
+    from shared.capabilities.sync_steps import export_shell_env
+
+    env = export_shell_env()
+    assert "CAP_MODULE_FINANCE=1" in env
+    assert "CAP_MODULE_PLANNING=0" in env
+    assert "CAP_SYNC_PLANNING_CHARTS=0" in env
+
+
+def test_broker_exact_command_filtered(monkeypatch):
+    monkeypatch.setenv("CAP_CONNECTOR_BROKER_SYNC", "0")
+    clear_capabilities_cache()
+    from shared.capabilities.finance_gates import filter_finance_exact_commands
+
+    cmds = filter_finance_exact_commands({"Синк Тинькофф", "Баланс"})
+    assert "Синк Тинькофф" not in cmds
+    assert "Баланс" in cmds
+    monkeypatch.delenv("CAP_CONNECTOR_BROKER_SYNC", raising=False)
+    clear_capabilities_cache()

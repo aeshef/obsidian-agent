@@ -29,3 +29,19 @@ connectors:
 sync:
   # full | finance_only | planning_light | minimal
   profile: full
+
+# --- Стартовый профиль для нового пользователя (скопируйте и раскомментируйте) ---
+# modules:
+#   finance: true
+#   planning: false
+#   knowledge: false
+# connectors:
+#   corporate_badge: false
+#   broker_sync: false
+#   apple_health: false
+#   gmail_health_pipeline: false
+#   apple_calendar: false
+#   mac_context: false
+#   knowledge_serendipity: false
+# sync:
+#   profile: finance_only
