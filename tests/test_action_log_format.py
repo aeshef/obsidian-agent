@@ -39,3 +39,15 @@ def test_load_legacy_corrupt_entries():
         assert len(entries) == 1
         assert entries[0]["type"] == "task_completed"
         assert entries[0]["data"]["task_id"] == "deadbeef"
+
+
+def test_double_append_no_glued_separator():
+    with tempfile.TemporaryDirectory() as tmp:
+        logger = ActionLogger(Path(tmp))
+        logger.log_action("task_moved", {"title": "A", "task_id": "a1b2c3d4", "from": "X", "to": "Y"})
+        logger.log_action("task_completed", {"title": "A", "task_id": "a1b2c3d4"})
+        text = (Path(tmp) / f"{ACTION_LOG_PREFIX}2026-06.md").read_text(encoding="utf-8")
+        assert "---##" not in text
+        assert text.count("## ") >= 2
+        entries = logger._load_task_events(["2026-06"])
+        assert len(entries) == 2

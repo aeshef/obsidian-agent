@@ -119,6 +119,7 @@ knowledge_bot/tools/tag_ontology.py
 knowledge_bot/tools/unify_domain_topic.py
 !knowledge_bot/tools/vault_daily_maintenance.py
 planning_bot/tools/repair_*.py
+!planning_bot/tools/repair_action_log_format.py
 planning_bot/tools/rename_iphone_snapshots.py
 # Legacy per-bot VPS wrappers (monorepo scripts/deploy.sh + unified_bot)
 finance_bot/scripts/deploy.sh
@@ -174,6 +175,7 @@ scripts/setup/translate_domain_messages.py
 scripts/public_release_filter_pass2.txt
 scripts/public_release_filter_replacements.txt
 scripts/public_release_mailmap.txt
+scripts/public_release_flatten_callback.py
 knowledge_bot/config/hubs_registry.yaml
 !knowledge_bot/config/hubs_registry.yaml.example
 knowledge_bot/config/tag_translit.yaml
