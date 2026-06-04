@@ -1,5 +1,14 @@
 # cp broker_sync.yaml.example broker_sync.yaml
-# Broker account labels and legacy name patterns (Cyrillic allowed here, not in .py).
+# provider: tinkoff | none — none disables API sync even if broker_sync connector is on
+# accounts: per-kind toggles (regular / iis / invest_box); also overridable via capabilities features
+
+# Supported today: tinkoff. Extension point: add provider in shared/finance/broker_portfolio_sync.py
+provider: tinkoff
+
+accounts:
+  regular: true
+  iis: true
+  invest_box: true
 
 labels:
   regular: "Тинькофф Брокер"
