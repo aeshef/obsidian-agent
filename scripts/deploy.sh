@@ -176,10 +176,10 @@ _restart_bot_remote() {
     cd $SERVER_BOTS/$name
     pkill -f '$bot_pattern' 2>/dev/null || true
     sleep 2
-    if [ -f "$SERVER_BOTS/scripts/start_watchdog_detached.sh" ]; then
+    if [ -f $SERVER_BOTS/scripts/start_watchdog_detached.sh ]; then
       bash $SERVER_BOTS/scripts/start_watchdog_detached.sh $SERVER_BOTS/$name
     else
-      echo "  (no start_watchdog_detached.sh — use deploy.sh --restart-unified)"
+      echo '  skip: no start_watchdog_detached.sh; use deploy.sh --restart-unified'
     fi
     echo restarted $name"
   RESTARTED+=("$name")
