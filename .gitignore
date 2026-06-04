@@ -87,6 +87,15 @@ planning_bot/scripts/_cyrillic_strip.py
 migration/
 test_fetch_iphone_mail.py
 # Maintainer / audit / one-off (not for clones)
+scripts/maintainer/
+scripts/verify_history_scrub.py
+scripts/deepseek_apply_scrub_from_audit.py
+scripts/deepseek_audit_git_history.py
+scripts/consolidate_deepseek_audit_v2.py
+scripts/run_deepseek_history_audit.sh
+scripts/run_deepseek_history_audit_v2.sh
+scripts/.deepseek_filter_callback_body.py
+scripts/.deepseek_replace_text.txt
 docs/_maintainer/
 docs/PROJECT_QUALITY_AUDIT.md
 docs/agent-heuristics-audit.md
