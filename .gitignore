@@ -132,6 +132,7 @@ planning_bot/scripts/watchdog.sh
 knowledge_bot/scripts/watchdog.sh
 knowledge_bot/scripts/watch_logs.sh
 scripts/cleanup_server_stale.sh
+scripts/cleanup_stale_en_vault_folders.sh
 scripts/restart_component.sh
 scripts/start_watchdog_detached.sh
 scripts/watchdog.sh

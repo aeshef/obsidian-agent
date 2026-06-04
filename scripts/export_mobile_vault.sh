@@ -56,25 +56,13 @@ _rsync_folder() {
   "${RSYNC[@]}" "$src_dir/" "$MOBILE/$name/"
 }
 
-# Remove EN ghost folders from a bad locale run (RU names are canonical here).
-_prune_mobile_stale_en_folders() {
-  local -a stale=(100_Tasks 200_Goals 300_Dashboards 400_Routines 600_Handwritten)
-  local s
-  for s in "${stale[@]}"; do
-    [[ -d "$MOBILE/$s" ]] || continue
-    echo "prune stale mobile folder: $s" >&2
-    rm -rf "$MOBILE/$s"
-  done
-  [[ -d "$MOBILE/Users" ]] && rm -rf "$MOBILE/Users" && echo "prune nested Users/ under mobile vault" >&2
-}
-
 echo "export_mobile_vault: $SRC → $MOBILE"
 
 mkdir -p "$MOBILE"
 
 _rsync_folder "${VAULT_FOLDER_TASKS}"
 _rsync_folder "${VAULT_FOLDER_GOALS}"
-if [[ -d "$SRC/${VAULT_FOLDER_DASHBOARDS}" ]]; then
+if _vault_segment_sane "${VAULT_FOLDER_DASHBOARDS}" && [[ -d "$SRC/${VAULT_FOLDER_DASHBOARDS}" ]]; then
   mkdir -p "$MOBILE/${VAULT_FOLDER_DASHBOARDS}"
   "${RSYNC[@]}" \
     --exclude="${VAULT_DASH_DATA}/${_actions_parent}/" \
@@ -94,7 +82,5 @@ for p in dataview templater-obsidian obsidian-kanban; do
   [[ -d "$SRC/.obsidian/plugins/$p" ]] && rsync -a "$SRC/.obsidian/plugins/$p/" "$MOBILE/.obsidian/plugins/$p/"
 done
 [[ -d "$SRC/.obsidian/snippets" ]] && rsync -a "$SRC/.obsidian/snippets/" "$MOBILE/.obsidian/snippets/"
-
-_prune_mobile_stale_en_folders
 
 echo "OK: $(du -sh "$MOBILE" | awk '{print $1}') → $MOBILE"
