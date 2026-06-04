@@ -5,6 +5,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from planning_bot.core.pdmsg import pdmsg
+from planning_bot.services.action_log_format import content_for_parse
 from typing import Callable, List
 
 # (comment)
@@ -16,6 +17,7 @@ LOG_ENTRY_PATTERN = re.compile(
 
 def parse_log_content(content: str) -> List[dict]:
     'Operation implementation.'
+    content = content_for_parse(content)
     events = []
     for m in LOG_ENTRY_PATTERN.finditer(content):
         ts = m.group(1)

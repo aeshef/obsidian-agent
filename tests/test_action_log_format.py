@@ -6,6 +6,8 @@ import tempfile
 from pathlib import Path
 
 from planning_bot.core.config import ACTION_LOG_PREFIX
+from planning_bot.services.action_log_format import content_for_parse
+from planning_bot.services.action_log_parser import parse_log_content
 from planning_bot.services.action_logger import ActionLogger
 
 
@@ -39,6 +41,16 @@ def test_load_legacy_corrupt_entries():
         assert len(entries) == 1
         assert entries[0]["type"] == "task_completed"
         assert entries[0]["data"]["task_id"] == "deadbeef"
+
+
+def test_parse_glued_separator_in_memory():
+    raw = (
+        "---## 2026-06-04 12:26:02\n\n**Тип:** task_moved\n\n"
+        '**Данные:**\n```json\n{"title": "T", "task_id": "abcd1234"}\n```\n'
+    )
+    events = parse_log_content(content_for_parse(raw))
+    assert len(events) == 1
+    assert events[0]["type"] == "task_moved"
 
 
 def test_double_append_no_glued_separator():

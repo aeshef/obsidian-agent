@@ -8,7 +8,11 @@ from pathlib import Path
 from functools import lru_cache
 from typing import Dict, List, Optional, Set, Tuple
 from planning_bot.core.config import ACTION_LOGS_DIR, ACTION_LOG_PREFIX, DONE_COLUMN
-from planning_bot.services.action_log_format import format_log_entry, gap_before_next_entry
+from planning_bot.services.action_log_format import (
+    content_for_parse,
+    format_log_entry,
+    gap_before_next_entry,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -17,6 +21,11 @@ _LOG_ENTRY_RE = re.compile(
     pdmsg("auto_9158eed63e"),
     re.DOTALL,
 )
+
+
+def _read_log_file(path: Path) -> str:
+    with open(path, "r", encoding="utf-8") as f:
+        return content_for_parse(f.read())
 
 
 @lru_cache(maxsize=1)
@@ -76,8 +85,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in list(_LOG_ENTRY_RE.finditer(content)) + list(
                 _legacy_log_entry_re().finditer(content)
             ):
@@ -275,14 +283,13 @@ class ActionLogger:
         if not log_file.exists():
             return pdmsg("auto_bd48343e5a")
 
-        with open(log_file, 'r', encoding='utf-8') as f:
-            content = f.read()
-        
+        content = _read_log_file(log_file)
+
         # (comment)
         entries = []
         # (comment)
         pattern = pdmsg("auto_9158eed63e")
-        
+
         for match in re.finditer(pattern, content, re.DOTALL):
             timestamp_str = match.group(1)
             entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -342,8 +349,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in re.finditer(pattern, content, re.DOTALL):
                 timestamp_str = match.group(1)
                 entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -585,8 +591,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in re.finditer(pattern, content, re.DOTALL):
                 timestamp_str = match.group(1)
                 entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -650,8 +655,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in re.finditer(pattern, content, re.DOTALL):
                 timestamp_str = match.group(1)
                 entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -708,8 +712,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in re.finditer(pattern, content, re.DOTALL):
                 timestamp_str = match.group(1)
                 entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -752,8 +755,7 @@ class ActionLogger:
             log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_str}.md"
             if not log_file.exists():
                 continue
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
             for match in re.finditer(pattern, content, re.DOTALL):
                 timestamp_str = match.group(1)
                 entry_date = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
@@ -799,8 +801,7 @@ class ActionLogger:
 
         history = []
         for log_file in log_files:
-            with open(log_file, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = _read_log_file(log_file)
 
             pattern = pdmsg("auto_9158eed63e")
 

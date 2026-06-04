@@ -52,6 +52,18 @@ def gap_before_next_entry(log_file: Path) -> str:
     return "\n\n"
 
 
+def needs_repair(content: str) -> bool:
+    return bool(_GLUED_SEP.search(content) or _GLUED_TYPE.search(content) or "---##" in content)
+
+
+def content_for_parse(content: str) -> str:
+    """Normalize legacy glued logs in memory (parse/charts); does not write disk."""
+    if not needs_repair(content):
+        return content
+    fixed, _ = repair_log_text(content)
+    return fixed
+
+
 def repair_log_text(content: str) -> tuple[str, int]:
     """Fix glued ---##, wrong **Тип:** line, and loose json fences."""
     n = 0

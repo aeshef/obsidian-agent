@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Repair action log markdown corrupted by action_type={action_type} set bug."""
+"""Repair action log markdown (---## glue, wrong **Тип:** line).
+
+Run separately on Mac vault and on VPS — logs are not synced via obsidian_sync.
+  Local:  python3 planning_bot/tools/repair_action_log_format.py --month 2026-06
+  VPS:    python3 planning_bot/tools/repair_action_log_format.py --remote --month 2026-06
+"""
 from __future__ import annotations
 
 import argparse
@@ -12,6 +17,26 @@ if str(_AGENT) not in sys.path:
 
 from planning_bot.core.config import ACTION_LOG_PREFIX, ACTION_LOGS_DIR
 from planning_bot.services.action_log_format import repair_log_text as repair_text
+
+
+def repair_remote(month: str, vault: str | None) -> int:
+    """SSH to OBSIDIAN_SERVER and repair logs in place (does not touch local vault)."""
+    import os
+    import shlex
+    import subprocess
+
+    server = os.environ.get("OBSIDIAN_SERVER", "obsidian-server")
+    remote_vault = vault or os.environ.get("SERVER_VAULT", "/root/obsidian-vault")
+    agent = os.environ.get("OBSIDIAN_AGENT_DIR", "/root/obsidian-agent")
+    month_arg = f" --month {shlex.quote(month)}" if month else ""
+    vault_arg = f" --vault {shlex.quote(remote_vault)}"
+    cmd = (
+        f"cd {shlex.quote(agent)} && "
+        f"python3 planning_bot/tools/repair_action_log_format.py{vault_arg}{month_arg}"
+    )
+    ssh = ["ssh", server, cmd]
+    print("remote:", " ".join(ssh))
+    return subprocess.run(ssh, check=False).returncode
 
 
 def push_logs_to_server(logs_dir: Path, month: str) -> int:
@@ -48,9 +73,18 @@ def main() -> int:
     ap.add_argument(
         "--push-server",
         action="store_true",
-        help="After repair, rsync log file(s) to OBSIDIAN_SERVER (bypasses obsidian_sync exclude)",
+        help="After LOCAL repair, rsync file(s) to server (overwrites server copy — use only if Mac is source of truth)",
+    )
+    ap.add_argument(
+        "--remote",
+        action="store_true",
+        help="Repair on VPS via SSH (in-place on SERVER_VAULT; does not read/write local Mac logs)",
     )
     args = ap.parse_args()
+
+    if args.remote:
+        vault = str(args.vault.expanduser()) if args.vault else None
+        return repair_remote(args.month, vault)
 
     logs_dir = ACTION_LOGS_DIR
     if args.vault:
