@@ -33,7 +33,9 @@ def load_memory_config() -> dict:
 
 def global_profile_path() -> Path:
     cfg = load_memory_config()
-    raw = os.environ.get("AGENT_USER_PROFILE", "").strip() or str(cfg.get("global_profile") or "user_profile.md")
+    raw = os.environ.get("AGENT_USER_PROFILE", "").strip() or str(
+        cfg.get("global_profile") or "user_profile.md"
+    )
     p = Path(raw)
     if p.is_absolute():
         return p

@@ -1,5 +1,24 @@
-"""Host UI modes and domain ids (single-bot)."""
+"""Host UI modes, domain ids, and shared env-backed defaults."""
 from __future__ import annotations
+
+import os
+from datetime import datetime
+
+
+def deepseek_chat_completions_url() -> str:
+    return os.environ.get("DEEPSEEK_API_URL", "https://api.deepseek.com/v1/chat/completions")
+
+
+def deepseek_model() -> str:
+    return os.environ.get("DEEPSEEK_MODEL", "deepseek-chat")
+
+
+def goals_year() -> int:
+    raw = (os.environ.get("GOALS_YEAR") or "").strip()
+    if raw.isdigit():
+        return int(raw)
+    return datetime.now().year
+
 
 UI_MODE_AUTO = "auto"
 DOMAIN_FINANCE = "finance"
