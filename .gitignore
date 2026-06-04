@@ -89,6 +89,10 @@ docs/SHARED_LAYOUT.md
 docs/archive/
 config/messages.ru.yaml
 !config/messages.ru.yaml.example
+config/messages.en.yaml
+!config/messages.en.yaml.example
+config/ui_capabilities.yaml
+!config/ui_capabilities.yaml.example
 config/vault_paths.yaml
 !config/vault_paths.yaml.example
 config/domain_messages.yaml
