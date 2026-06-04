@@ -1,0 +1,17 @@
+# Example only — obsidian-agent is designed for Mac vault + optional VPS bot.
+# Copy and adapt; do not commit secrets. Prefer ./scripts/setup.sh on the host.
+#
+# Typical layout:
+#   - Mac: Obsidian vault, obsidian_sync.sh, Shortcuts
+#   - Linux VPS: unified_bot (python -m unified_bot.main)
+#
+# services:
+#   agent:
+#     image: python:3.12-slim
+#     working_dir: /app
+#     volumes:
+#       - ./:/app:ro
+#       - ${VAULT_PATH}:/vault:rw
+#     env_file: .env
+#     command: ["python", "-m", "unified_bot.main"]
+#     restart: unless-stopped

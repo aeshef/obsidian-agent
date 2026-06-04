@@ -37,6 +37,7 @@ for pair in \
   "config/messages.ru.yaml:config/messages.ru.yaml.example" \
   "config/vault_paths.yaml:config/vault_paths.yaml.example" \
   "config/domain_messages.yaml:config/domain_messages.yaml.example" \
+  "config/messages.en.yaml:config/messages.en.yaml.example" \
   "config/agent/platform.yaml:config/agent/platform.yaml.example" \
   "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
   "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example"; do

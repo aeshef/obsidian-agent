@@ -32,3 +32,4 @@ bash "$(dirname "$0")/ensure_bot_prompts.sh"
 copy_if_missing "$CFG/user_profile.md.example" "$CFG/user_profile.md"
 
 echo "Agent config ready under $CFG"
+echo "Personalize (gitignored): config/agent/user_profile.md, config/agent/prompts/*.txt — see skill obsidian-agent-onboarding §6"

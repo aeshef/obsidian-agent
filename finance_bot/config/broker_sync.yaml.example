@@ -1,8 +1,8 @@
 # cp broker_sync.yaml.example broker_sync.yaml
 # provider: tinkoff | none — none disables API sync even if broker_sync connector is on
-# accounts: per-kind toggles (regular / iis / invest_box); also overridable via capabilities features
+# Rename labels.* to match your broker account names in the finance DB.
 
-# Supported today: tinkoff. Extension point: add provider in shared/finance/broker_portfolio_sync.py
+# Supported today: tinkoff. Add providers in shared/finance/broker_providers.py
 provider: tinkoff
 
 accounts:
@@ -11,15 +11,15 @@ accounts:
   invest_box: true
 
 labels:
-  regular: "Тинькофф Брокер"
-  iis: "Тинькофф ИИС"
-  invest_box: "Тинькофф Invest Box"
+  regular: "Broker (regular)"
+  iis: "Broker (ISA)"
+  invest_box: "Broker (invest box)"
 
 legacy:
   orphan_names:
-    - "Тинькофф ИИС"
-    - "Тинькофф Брокер"
+    - "Broker (ISA)"
+    - "Broker (regular)"
   suffixed_prefixes:
-    - "Тинькофф Брокер "
-    - "Тинькофф ИИС "
-    - "Тинькофф Invest Box "
+    - "Broker (regular) "
+    - "Broker (ISA) "
+    - "Broker (invest box) "
