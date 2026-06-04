@@ -1,0 +1,35 @@
+# Life sections for calendar_analytics (tag+title → kanban categories).
+# cp calendar_life_sections.yaml.example calendar_life_sections.yaml
+#
+# Substring match on lowercased "tag title". Keep employer/school-specific
+# needles in the gitignored calendar_life_sections.yaml only (see .gitignore).
+
+default_section: прочее
+
+rules:
+  - section: учеба
+    needles: [лекци, курс, exam, homework, университет, лаборатор, семинар]
+  - section: развитие
+    needles: [конференц, митап, ментор, собес, интервью, воркшоп, грант]
+  - section: здоровье
+    needles: [врач, клиник, спорт, трениров, стоматолог, checkup]
+  - section: семья
+    needles: [семья, родственник, дети]
+  - section: дом
+    needles: [уборк, быт, квартир, коммунал, покупк, ремонт]
+  - section: инфраструктура
+    needles: [сервер, vpn, backup, автоматиз, notes, shortcut]
+  - section: опыт
+    needles: [концерт, театр, путешеств, отпуск, фестиваль]
+  - section: карьера
+    needles:
+      - standup
+      - sync
+      - demo
+      - 1:1
+      - 1-на-1
+      - sprint
+      - oncall
+      - ревью
+      - команд
+      - планирован
