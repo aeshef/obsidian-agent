@@ -115,3 +115,17 @@ def test_planning_health_tools_need_apple_health_connector():
     names = [t.__name__ for t in filtered]
     assert "list_tasks" in names
     assert "get_health_snapshot" not in names
+
+
+def test_is_badge_enabled_respects_connector(monkeypatch):
+    monkeypatch.setenv("CAP_CONNECTOR_CORPORATE_BADGE", "0")
+    clear_capabilities_cache()
+    from bot.config_loader import _config_cache, is_badge_enabled
+
+    _config_cache["badge"] = {"enabled": True}
+    try:
+        assert is_badge_enabled() is False
+    finally:
+        _config_cache.pop("badge", None)
+        monkeypatch.delenv("CAP_CONNECTOR_CORPORATE_BADGE", raising=False)
+        clear_capabilities_cache()

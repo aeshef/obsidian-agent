@@ -20,6 +20,8 @@ copy_if_missing() {
 
 for ex in "$CFG"/*.example.yaml "$CFG"/*.example.yml; do
   [[ -f "$ex" ]] || continue
+  # capabilities.yaml is optional — absent file means full product (see docs/CAPABILITIES.md)
+  [[ "$(basename "$ex")" == "capabilities.yaml.example" ]] && continue
   base="${ex%.example.yaml}"
   base="${base%.example.yml}"
   copy_if_missing "$ex" "${base}.yaml"
