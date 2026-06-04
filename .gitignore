@@ -135,6 +135,7 @@ finance_bot/tools/reset_data.py
 !finance_bot/tools/tinkoff_sync.py
 tests/fixtures/vault/
 scripts/pull_prompts_from_server.sh
+scripts/build_messages_en_from_ru.py
 docker-compose.example.yml
 config/locale/en_by_path.json
 config/messages.ru.yaml

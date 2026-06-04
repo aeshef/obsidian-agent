@@ -1,4 +1,7 @@
-"""messages.en.yaml.example must have the same keys as messages.ru.yaml.example."""
+"""messages.en.yaml.example is the English product file (no build step for clones).
+
+When adding keys to messages.ru.yaml.example, edit messages.en.yaml.example in the same PR.
+"""
 from __future__ import annotations
 
 import re
