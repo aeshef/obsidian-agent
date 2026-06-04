@@ -1,0 +1,6 @@
+# cp planning_bot/config/calendar_retention.yaml.example planning_bot/config/calendar_retention.yaml
+# Older than detail_months → monthly rollup in Календарь.json archive (tools still see totals).
+
+detail_months: 3
+compact_txt_after_sync: true
+txt_min_lines_to_compact: 5000

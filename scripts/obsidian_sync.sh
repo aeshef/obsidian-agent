@@ -96,6 +96,14 @@ RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
 EXCLUDE_BACKUP=( --exclude='.rsync-backup/' )
+# Push Mac→VPS: удалять на сервере файлы, которых нет локально (orphans после удаления в Obsidian).
+# Excludes (PUSH_EXCLUDE_300 и т.д.) защищают server-authoritative файлы от --delete.
+# Отключить: RSYNC_PUSH_DELETE=0 в .env
+RSYNC_PUSH_DELETE="${RSYNC_PUSH_DELETE:-1}"
+PUSH_DELETE_FLAGS=()
+if [ "$RSYNC_PUSH_DELETE" = "1" ]; then
+  PUSH_DELETE_FLAGS=(--delete)
+fi
 
 # LaunchAgent не видит SSH-агент; ключ из Keychain нужен явно. Иначе rsync/ssh падают с Permission denied, маркер last_sync_ok всё равно пишется.
 export RSYNC_RSH="${RSYNC_RSH:-ssh -o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3}"
@@ -210,23 +218,23 @@ PUSH_EXCLUDE_300=(
   --exclude='Данные/finance.db-*'
 )
 if cap_module_enabled PLANNING; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/"
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/"
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/"
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/" || SYNC_OK=0
 fi
 if cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/"
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
 fi
 
 # 2b. На VPS: тот же cleanup/JSON для IPhone (старый мусор мог остаться только на сервере)
 if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "${AGENT_ROOT}/planning_bot" ] && [ -f "${AGENT_ROOT}/planning_bot/tools/iphone_context_sync.py" ]; then
   echo "obsidian_sync: шаг 2b — iphone_context_sync на сервере…" >&2
   ssh "${SSH_OPTS[@]}" "$SERVER" "cd '${SERVER_BOTS}/planning_bot' && VAULT_PATH='${SERVER_VAULT}' PYTHONPATH='${SERVER_BOTS}' ./.venv/bin/python -u tools/iphone_context_sync.py" \
-    >> "${AGENT_ROOT}/planning_bot/logs/iphone_context_sync.log" 2>&1 || true
+    >> "${AGENT_ROOT}/planning_bot/logs/iphone_context_sync.log" 2>&1 || SYNC_OK=0
 fi
 
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
@@ -779,10 +787,12 @@ fi
 echo "obsidian_sync: шаг 7 — last_sync_ok + health…" >&2
 if [ "${SYNC_OK:-0}" = "1" ]; then
   if echo "$NOW_ISO" > "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null; then WROTE=1; else WROTE=0; fi
+  rm -f "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
   READ_BACK="$(head -1 "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null)"
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ OK last_sync_ok=$SYNC_DIR wrote=$WROTE content=$READ_BACK" >> "$DEBUG_LOG" 2>/dev/null || true
 else
   WROTE=0
+  echo "$NOW_ISO critical steps failed (see $DEBUG_LOG)" > "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
   READ_BACK="$(head -1 "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null)"
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ WARN critical sync steps failed; last_sync_ok not updated (prev=$READ_BACK)" >> "$DEBUG_LOG" 2>/dev/null || true
 fi

@@ -15,6 +15,7 @@ _read() {
 }
 
 last_sync="$(_read "$SYNC_DIR/last_sync_ok.txt")"
+last_fail="$(_read "$SYNC_DIR/last_sync_failed.txt")"
 charts="$(_read "$SYNC_DIR/daily_charts_date.txt")"
 _charts_stale=""
 _ref="$VAULT/300_Дашборды/Графики/Активность_за_день.png"
@@ -35,13 +36,14 @@ maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
   echo "| Маркер | Значение |"
   echo "|--------|----------|"
   echo "| last_sync_ok | $last_sync |"
+  echo "| last_sync_failed | $last_fail |"
   echo "| daily_charts | $charts$_charts_stale |"
   echo "| finance_dashboard | $finance |"
   echo "| mobile_vault | $mobile |"
   echo "| vault_maintenance | $maint |"
 } >"$REPORT" 2>/dev/null || true
 
-line="[$NOW] sync=$last_sync charts=$charts finance=$finance mobile=$mobile maint=$maint"
+line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile maint=$maint"
 echo "$line" >>"$SYNC_DIR/health.log" 2>/dev/null || true
 
 # trim health.log (keep last ~300 lines)
