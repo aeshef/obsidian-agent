@@ -49,12 +49,17 @@ cap_load_vault_paths() {
   cap_load_env
 }
 
+_cap_var_is_one() {
+  # Bash ${!name} breaks under zsh (obsidian_sync.sh); eval works in both.
+  local val
+  eval "val=\${${1}:-1}"
+  [[ "$val" == "1" ]]
+}
+
 cap_step_enabled() {
-  local var="CAP_${1}"
-  [[ "${!var:-1}" == "1" ]]
+  _cap_var_is_one "CAP_${1}"
 }
 
 cap_module_enabled() {
-  local var="CAP_MODULE_${1}"
-  [[ "${!var:-1}" == "1" ]]
+  _cap_var_is_one "CAP_MODULE_${1}"
 }
