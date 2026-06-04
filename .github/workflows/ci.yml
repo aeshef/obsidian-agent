@@ -43,3 +43,19 @@ jobs:
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
         run: bash scripts/run_tests.sh
+
+  capabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Capability presets + onboarding smoke
+        run: |
+          pip install -q pyyaml pytest
+          export PYTHONPATH="$PWD"
+          python3 scripts/onboarding_smoke.py --golden-planning --agent-sanity --verify-all
+          python3 -m pytest tests/test_capabilities.py tests/test_profile_matrix.py \
+            tests/test_ui_bindings.py tests/test_ui_patterns.py tests/test_agent_sanity.py \
+            tests/test_prompt_preamble.py tests/test_onboarding.py -q

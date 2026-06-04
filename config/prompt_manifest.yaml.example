@@ -1,0 +1,56 @@
+# Prompt onboarding tiers (copy to prompt_manifest.yaml to override).
+# Used by tests, ensure_bot_prompts.sh --warn-stubs, obsidian-agent-onboarding skill.
+#
+# generic_en   — .example.txt has working English; first copy → .txt is safe
+# personalized — comment stub in git; YOU fill prod .txt during onboarding
+# (any tracked *.example.txt not in generic_en → personalized)
+
+generic_en:
+  - config/agent/prompts/host_query.example.txt
+  - config/agent/prompts/host_domain_router.example.txt
+  - config/agent/prompts/finance_intent_router.example.txt
+  - config/agent/prompts/planning_intent_router.example.txt
+  - config/agent/prompts/tool_select_router.example.txt
+  - config/agent/prompts/context_tools.example.txt
+  - config/agent/prompts/health_tools.example.txt
+  - config/agent/prompts/knowledge_unified_tools.example.txt
+  - config/agent/prompts/memory_synth.example.txt
+  - planning_bot/config/prompts/intent_router.example.txt
+  - finance_bot/config/prompts/amount_extract_prompt.example.txt
+
+personalized:
+  - finance_bot/config/prompts/nlu_prompt.example.txt
+  - finance_bot/config/prompts/query_prompt.example.txt
+  - finance_bot/config/prompts/analyst_prompt.example.txt
+  - finance_bot/config/prompts/planning_prompt.example.txt
+  - finance_bot/config/prompts/summary_prompt.example.txt
+  - finance_bot/config/prompts/plan_parse.example.txt
+  - finance_bot/config/prompts/quick_check_prompt.example.txt
+  - finance_bot/config/prompts/daily_insight_prompt.example.txt
+  - finance_bot/config/prompts/badge_monthly_prompt.example.txt
+  - planning_bot/config/prompts/conversation.example.txt
+  - planning_bot/config/prompts/recommendations.example.txt
+  - planning_bot/config/prompts/routines_recommendations.example.txt
+  - planning_bot/config/prompts/weekly_review.example.txt
+  - planning_bot/config/prompts/task_parsing.example.txt
+  - planning_bot/config/prompts/goals_mapping.example.txt
+  - planning_bot/config/prompts/iphone_health_insights.example.txt
+  - planning_bot/config/prompts/calendar_week_insights.example.txt
+  - knowledge_bot/config/prompts/routing.example.txt
+  - knowledge_bot/config/prompts/naming.example.txt
+  - knowledge_bot/config/prompts/tags.example.txt
+  - knowledge_bot/config/prompts/title.example.txt
+  - knowledge_bot/config/prompts/text_intent.example.txt
+  - knowledge_bot/config/prompts/query_select.example.txt
+  - knowledge_bot/config/prompts/query_preselect.example.txt
+  - knowledge_bot/config/prompts/query_answer.example.txt
+  - knowledge_bot/config/prompts/asr_summary.example.txt
+  - knowledge_bot/config/prompts/asr_skip_vision_gate.example.txt
+  - knowledge_bot/config/prompts/vision.example.txt
+  - knowledge_bot/config/prompts/ocr_clean.example.txt
+  - knowledge_bot/config/prompts/field_fill.example.txt
+  - knowledge_bot/config/prompts/yt_transcript_summary.example.txt
+  - knowledge_bot/config/prompts/wikilinks_select.example.txt
+  - knowledge_bot/config/prompts/serendipity_pick.example.txt
+  - knowledge_bot/config/prompts/tag_ontology_propose.example.txt
+  - knowledge_bot/config/prompts/refill_singleton_tags.example.txt

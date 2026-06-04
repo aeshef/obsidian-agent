@@ -1,0 +1,67 @@
+# UI / domain string → capability spec (shared/capabilities/ui_bindings.py).
+# Optional local override: ui_capabilities.yaml (gitignored). Example is always merged.
+#
+# Spec: module name | connector alias | feature:name | gate:broker | gate:badge | any:a,b
+
+strings:
+  host.mode_finance: finance
+  host.mode_planning: planning
+  host.mode_knowledge: knowledge
+  host.switch_finance: finance
+  host.switch_planning: planning
+  host.switch_knowledge: knowledge
+
+  finance.menu.invest: any:broker,manual_broker
+  finance.menu.badge: gate:badge
+  finance.sync_tinkoff_button: gate:broker
+  finance.sync_tinkoff_progress: gate:broker
+  finance.sync_tinkoff_error: gate:broker
+  finance.exact_command_tinkoff_sync: gate:broker
+  finance.inline_invest_sync: gate:broker
+  finance.inline_invest_topup: any:broker,manual_broker
+  finance.inline_invest_withdraw: any:broker,manual_broker
+  finance.inline_invest_details: any:broker,manual_broker
+  finance.invest_title: any:broker,manual_broker
+  finance.invest_sync_error: gate:broker
+  finance.badge_disabled: gate:badge
+  finance.badge_prompt: gate:badge
+
+  planning.menu.routines: feature:planning_routines
+  planning.menu.reflection: feature:planning_weekly_review
+  planning.menu.routines_stats: feature:planning_routines
+  planning.menu.routines_recommendations: feature:planning_routines
+  planning.menu.routines_today: feature:planning_routines
+  planning.messages.reflection_generating: feature:planning_weekly_review
+  planning.messages.reflection_thoughts_prompt: feature:planning_weekly_review
+  planning.messages.reflection_error: feature:planning_weekly_review
+  planning.messages.reflection_thoughts_saved: feature:planning_weekly_review
+  planning.messages.routines_recommendations_analyzing: feature:planning_routines
+  planning.messages.routines_stats_error: feature:planning_routines
+  planning.messages.pending_routines_header: feature:planning_routines
+  planning.messages.morning_reminder: feature:planning_routines
+  planning.messages.evening_reminder: feature:planning_routines
+
+  planning.auto_f317ab8f35: feature:planning_routines
+  planning.auto_b6b32200b7: feature:planning_routines
+  planning.auto_7a4a4c1791: feature:planning_routines
+  planning.auto_f895d3042c: feature:planning_weekly_review
+
+  knowledge.buttons.bulk_on: knowledge
+  knowledge.buttons.bulk_off: knowledge
+  knowledge.buttons.query: knowledge
+  knowledge.buttons.query_legacy: knowledge
+  knowledge.query_prompt: knowledge
+  knowledge.bulk_enabled: knowledge
+  knowledge.bulk_disabled: knowledge
+
+patterns:
+  "finance.invest_*": "any:broker,manual_broker"
+  "finance.inline_invest_*": "any:broker,manual_broker"
+  "finance.sync_*tinkoff*": "gate:broker"
+  "finance.badge_*": "gate:badge"
+  "planning.messages.reflection*": "feature:planning_weekly_review"
+  "planning.messages.routines*": "feature:planning_routines"
+  "planning.messages.pending_routines*": "feature:planning_routines"
+  "planning.messages.*_reminder": "feature:planning_routines"
+  "knowledge.buttons.*": "knowledge"
+  "knowledge.bulk_*": "knowledge"
