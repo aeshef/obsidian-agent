@@ -1,0 +1,13 @@
+# Copy to config/agent/onboarding_slots.yaml (gitignored) and fill during onboarding.
+# Used by: python3 scripts/scaffold_personalized_prompts.py
+
+USER_LOCALE: en
+USER_TONE: concise, friendly
+USER_CURRENCY: USD
+USER_ACCOUNTS: Wallet, Main card
+USER_CATEGORIES: Food, Transport, Housing, Fun
+USER_PLAN_EXAMPLES: need 500 for repairs by March
+USER_TASK_EXAMPLES: Buy milk; Prepare slides by Friday, high priority
+USER_GOALS: Q2 goals from user_profile.md
+USER_VAULT_FOLDERS: Video, Knowledge, Songs, Links
+AUTHOR_CONTEXT: See config/agent/user_profile.md

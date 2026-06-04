@@ -103,6 +103,11 @@ for rel in "${PROMPT_DIRS[@]}"; do
   done
 done
 
+# English scaffolds for personalized prompts (prod still stub after example copy)
+if command -v python3 >/dev/null 2>&1; then
+  python3 "$ROOT/scripts/scaffold_personalized_prompts.py" 2>/dev/null || true
+fi
+
 if [[ "$WARN_STUBS" = 1 ]]; then
   stubs=()
   for rel in "${PROMPT_DIRS[@]}"; do
