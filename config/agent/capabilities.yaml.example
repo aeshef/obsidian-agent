@@ -13,8 +13,10 @@ modules:
 connectors:
   # Yandex corporate meal badge (also requires finance_bot/config/badge.yaml enabled)
   corporate_badge: true
-  # Broker portfolio sync (also requires TINKOFF_API_TOKEN in .env)
+  # Broker portfolio API sync (provider in finance_bot/config/broker_sync.yaml)
   broker_sync: true
+  # Manual broker/custodian accounts in finance YAML (no API); balances via finance.db
+  manual_broker_accounts: true
   # Apple Health via IPhone/*.txt snapshots
   apple_health: true
   # Gmail IMAP → health shortcuts (requires GMAIL_IMAP_* in .env)
@@ -29,6 +31,20 @@ connectors:
 sync:
   # full | finance_only | planning_light | minimal
   profile: full
+
+# Optional fine-grained flags (omit = inherit from modules/connectors above).
+# features:
+#   health_nutrition_chart: true
+#   health_body_metrics: true
+#   broker_regular: true
+#   broker_iis: false
+#   broker_invest_box: true
+#   planning_weekly_review: true
+#   planning_routines: true
+#   planning_goals_alerts: true
+#   planning_deadlines_alerts: true
+#   planning_stuck_alerts: true
+#   planning_task_id_maintenance: true
 
 # --- Стартовый профиль для нового пользователя (скопируйте и раскомментируйте) ---
 # modules:
