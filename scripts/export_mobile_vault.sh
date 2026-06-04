@@ -19,6 +19,12 @@ if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   [[ -d "$P/800_Автоматизация" ]] && SRC="$P"
 fi
 AGENT_ROOT="${AGENT_ROOT:-$(cd "$(dirname "${0:A}")/.." 2>/dev/null && pwd)}"
+if [[ -f "${AGENT_ROOT}/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${AGENT_ROOT}/.env"
+  set +a
+fi
 SRC="${SRC:-${VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
 MOBILE="${MOBILE_VAULT:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault — Mobile}"
 
@@ -30,18 +36,34 @@ _actions_parent="${VAULT_PATH_ACTIONS_MAC:h}"
 
 RSYNC=(rsync -a --delete --exclude='.DS_Store')
 
+_rsync_folder() {
+  local name="$1"
+  local src_dir="$SRC/$name"
+  if [[ ! -d "$src_dir" ]]; then
+    echo "SKIP missing folder: $src_dir" >&2
+    return 0
+  fi
+  mkdir -p "$MOBILE/$name"
+  "${RSYNC[@]}" "$src_dir/" "$MOBILE/$name/"
+}
+
 echo "export_mobile_vault: $SRC → $MOBILE"
 
 mkdir -p "$MOBILE"
 
-"${RSYNC[@]}" "$SRC/${VAULT_FOLDER_TASKS}/" "$MOBILE/${VAULT_FOLDER_TASKS}/"
-"${RSYNC[@]}" "$SRC/${VAULT_FOLDER_GOALS}/" "$MOBILE/${VAULT_FOLDER_GOALS}/"
-"${RSYNC[@]}" \
-  --exclude="${VAULT_DASH_DATA}/${_actions_parent}/" \
-  --exclude="${VAULT_DASH_DATA}/finance.db" \
-  --exclude="${VAULT_DASH_DATA}/finance.db-*" \
-  "$SRC/${VAULT_FOLDER_DASHBOARDS}/" "$MOBILE/${VAULT_FOLDER_DASHBOARDS}/"
-"${RSYNC[@]}" "$SRC/${VAULT_FOLDER_ROUTINES}/" "$MOBILE/${VAULT_FOLDER_ROUTINES}/"
+_rsync_folder "${VAULT_FOLDER_TASKS}"
+_rsync_folder "${VAULT_FOLDER_GOALS}"
+if [[ -d "$SRC/${VAULT_FOLDER_DASHBOARDS}" ]]; then
+  mkdir -p "$MOBILE/${VAULT_FOLDER_DASHBOARDS}"
+  "${RSYNC[@]}" \
+    --exclude="${VAULT_DASH_DATA}/${_actions_parent}/" \
+    --exclude="${VAULT_DASH_DATA}/finance.db" \
+    --exclude="${VAULT_DASH_DATA}/finance.db-*" \
+    "$SRC/${VAULT_FOLDER_DASHBOARDS}/" "$MOBILE/${VAULT_FOLDER_DASHBOARDS}/"
+else
+  echo "SKIP missing folder: $SRC/${VAULT_FOLDER_DASHBOARDS}" >&2
+fi
+_rsync_folder "${VAULT_FOLDER_ROUTINES}"
 
 mkdir -p "$MOBILE/.obsidian/plugins"
 for f in app.json appearance.json community-plugins.json core-plugins.json templates.json daily-notes.json; do

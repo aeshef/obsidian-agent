@@ -45,6 +45,7 @@ if [[ ${#ARGS[@]} -eq 0 ]]; then
     tests/test_profile_matrix.py tests/test_msg_capability_gate.py
     tests/test_agent_sanity.py tests/test_ui_patterns.py
     tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
+    tests/test_vault_paths_config.py \
     tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py
   )
   echo "=== finance/planning/shared tests ==="

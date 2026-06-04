@@ -791,12 +791,15 @@ if cap_module_enabled PLANNING && [ -z "${SKIP_MOBILE_VAULT:-}" ] && [ -x "$MOBI
   touch "$MOBILE_EXPORT_LOG" 2>/dev/null || true
   _trim_log "$MOBILE_EXPORT_LOG" 200 120
   echo "obsidian_sync: шаг 5e — export_mobile_vault (iCloud, лог: $MOBILE_EXPORT_LOG)…" >&2
-  if SRC="$LOCAL_VAULT" zsh "$MOBILE_EXPORT_SCRIPT" >> "$MOBILE_EXPORT_LOG" 2>&1; then
+  _mobile_rc=0
+  SRC="$LOCAL_VAULT" zsh "$MOBILE_EXPORT_SCRIPT" >> "$MOBILE_EXPORT_LOG" 2>&1 || _mobile_rc=$?
+  if [ "$_mobile_rc" -eq 0 ]; then
     echo "$NOW_ISO" > "$SYNC_DIR/mobile_vault_last_ok.txt" 2>/dev/null || true
   else
-    echo "$(date '+%Y-%m-%dT%H:%M:%S') export_mobile_vault failed rc=$?" >> "$MOBILE_EXPORT_LOG" 2>/dev/null || true
-    echo "⚠️ export_mobile_vault завершился с ошибкой (см. $MOBILE_EXPORT_LOG)" >&2
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') export_mobile_vault failed rc=${_mobile_rc}" >> "$MOBILE_EXPORT_LOG" 2>/dev/null || true
+    echo "⚠️ export_mobile_vault завершился с ошибкой rc=${_mobile_rc} (см. $MOBILE_EXPORT_LOG)" >&2
   fi
+  unset _mobile_rc
 elif [ -n "${SKIP_MOBILE_VAULT:-}" ]; then
   echo "obsidian_sync: шаг 5e — пропуск (SKIP_MOBILE_VAULT=1)" >&2
 fi
