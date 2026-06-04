@@ -1,3 +1,4 @@
+# cp planning_bot/config/asr_config.yaml.example planning_bot/config/asr_config.yaml
 # ASR (голосовые сообщения) — те же идеи, что в finance_bot
 default_model: "small"
 languages:

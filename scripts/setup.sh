@@ -40,7 +40,8 @@ for pair in \
   "config/messages.en.yaml:config/messages.en.yaml.example" \
   "config/agent/platform.yaml:config/agent/platform.yaml.example" \
   "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
-  "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example"; do
+  "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example" \
+  "knowledge_bot/config/hubs_registry.yaml:knowledge_bot/config/hubs_registry.yaml.example"; do
   target="${pair%%:*}"
   example="${pair##*:}"
   if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then

@@ -1,3 +1,4 @@
+# Author-only vault audit tools (analyze_vault_duplicates.py); optional local override.
 # Правила для analyze_vault_duplicates.py / apply_duplicates_resolution.py
 # Расширяют «generic»-серии без хардкода в коде: правь списки здесь.
 

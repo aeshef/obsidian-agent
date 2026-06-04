@@ -1,3 +1,4 @@
+# cp finance_bot/config/summary_config.yaml.example finance_bot/config/summary_config.yaml
 # Конфигурация для генерации суммаризации
 
 # Количество категорий в топе

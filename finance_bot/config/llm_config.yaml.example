@@ -1,3 +1,4 @@
+# cp finance_bot/config/llm_config.yaml.example finance_bot/config/llm_config.yaml
 # Конфигурация для LLM клиента
 
 # Базовый URL API

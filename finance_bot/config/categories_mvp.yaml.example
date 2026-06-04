@@ -1,3 +1,4 @@
+# cp finance_bot/config/categories_mvp.yaml.example finance_bot/config/categories_mvp.yaml
 # Lean, usage-driven MVP categories (marketplaces should be a tag, not a category)
 - Транспорт/Такси
 - Транспорт/Проезд

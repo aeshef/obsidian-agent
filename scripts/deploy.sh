@@ -176,7 +176,11 @@ _restart_bot_remote() {
     cd $SERVER_BOTS/$name
     pkill -f '$bot_pattern' 2>/dev/null || true
     sleep 2
-    bash $SERVER_BOTS/scripts/start_watchdog_detached.sh $SERVER_BOTS/$name
+    if [ -f "$SERVER_BOTS/scripts/start_watchdog_detached.sh" ]; then
+      bash $SERVER_BOTS/scripts/start_watchdog_detached.sh $SERVER_BOTS/$name
+    else
+      echo "  (no start_watchdog_detached.sh — use deploy.sh --restart-unified)"
+    fi
     echo restarted $name"
   RESTARTED+=("$name")
 }
@@ -404,7 +408,7 @@ if [ "$PROD" = 1 ]; then
 fi
 
 sync_repo_config_remote
-[ "$DRYRUN" = 0 ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
+[ "$DRYRUN" = 0 ] && [ -f "$MONOREPO/scripts/cleanup_server_stale.sh" ] && "$MONOREPO/scripts/cleanup_server_stale.sh" 2>/dev/null || true
 
 if [ "${#COMPONENTS[@]}" -eq 0 ]; then
   COMPONENTS=(all)

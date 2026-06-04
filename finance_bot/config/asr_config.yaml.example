@@ -1,3 +1,4 @@
+# cp finance_bot/config/asr_config.yaml.example finance_bot/config/asr_config.yaml
 # Конфигурация для ASR (распознавание речи)
 
 # Модель по умолчанию
