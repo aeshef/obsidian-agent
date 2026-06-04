@@ -18,6 +18,17 @@ else
   common_load_env "$ROOT"
 fi
 
+if [[ -f "$ROOT/scripts/lib/capabilities.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/scripts/lib/capabilities.sh"
+  export AGENT_ROOT="$ROOT"
+  cap_load_env
+  if ! cap_module_enabled FINANCE && ! cap_module_enabled PLANNING && ! cap_module_enabled KNOWLEDGE; then
+    echo "install_server_reboot_crontab: skip — all CAP_MODULE_* are off"
+    exit 0
+  fi
+fi
+
 MARKER="# obsidian-agent bots @reboot"
 BOTS_ROOT="$(common_server_bots)"
 

@@ -11,7 +11,7 @@ def test_msg_broker_button_hidden(monkeypatch):
     clear_capabilities_cache()
     clear_ui_bindings_cache()
     clear_messages_cache()
-    assert msg("finance", "sync_tinkoff_button") == ""
+    assert msg("finance", "sync_broker_button") == ""
     clear_capabilities_cache()
     clear_ui_bindings_cache()
     clear_messages_cache()

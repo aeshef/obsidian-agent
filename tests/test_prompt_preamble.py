@@ -14,6 +14,7 @@ def test_augment_skips_when_cap_blocks_present(monkeypatch):
 
 
 def test_augment_appends_enabled_lines(monkeypatch):
+    monkeypatch.setenv("AGENT_PROMPT_DYNAMIC_SUPPLEMENT", "1")
     monkeypatch.setenv("CAP_CONNECTOR_BROKER_SYNC", "1")
     monkeypatch.setenv("CAP_MODULE_FINANCE", "1")
     clear_capabilities_cache()

@@ -35,5 +35,6 @@ known_sources: [reels, tiktok, youtube, telegram]
 media_types_with_topic_anchor: [видео, фильм, книга, курс, учебник, песня]
 
 default_type: знание
+# Matches types.yaml key for video notes (used only in YAML-driven fallback_tags)
 video_type: видео
 default_domain: life

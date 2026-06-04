@@ -4,6 +4,12 @@
 #   ./scripts/check_sync_health.sh [VAULT_PATH] [SYNC_DIR]
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=scripts/lib/vault_paths_defaults.sh
+source "$AGENT_ROOT/scripts/lib/vault_paths_defaults.sh"
+vault_paths_load_from_agent "$AGENT_ROOT"
+
 VAULT="${1:-${VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
 SYNC_DIR="${2:-${SYNC_STATE_DIR:-$VAULT/.sync}}"
 REPORT="$SYNC_DIR/health_report.md"
@@ -18,8 +24,8 @@ last_sync="$(_read "$SYNC_DIR/last_sync_ok.txt")"
 last_fail="$(_read "$SYNC_DIR/last_sync_failed.txt")"
 charts="$(_read "$SYNC_DIR/daily_charts_date.txt")"
 _charts_stale=""
-_ref="$VAULT/300_Дашборды/Графики/Активность_за_день.png"
-_log="$VAULT/300_Дашборды/Логи/📊 Логи_Действий_$(date +%Y-%m).md"
+_ref="$VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_DAILY_ACTIVITY}"
+_log="$VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_LOGS}/📊 Логи_Действий_$(date +%Y-%m).md"
 if [ -f "$_log" ] && [ -f "$_ref" ]; then
   _lm=$(stat -f '%m' "$_log" 2>/dev/null || echo 0)
   _pm=$(stat -f '%m' "$_ref" 2>/dev/null || echo 0)

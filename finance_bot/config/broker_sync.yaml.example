@@ -1,8 +1,8 @@
 # cp broker_sync.yaml.example broker_sync.yaml
-# provider: tinkoff | none — none disables API sync even if broker_sync connector is on
+# provider: tinkoff | example | none — none disables API sync even if broker_sync connector is on
 # Rename labels.* to match your broker account names in the finance DB.
 
-# Supported today: tinkoff. Add providers in shared/finance/broker_providers.py
+# Implemented: tinkoff. Template stub: example. Extend in shared/finance/broker_providers.py
 provider: tinkoff
 
 accounts:

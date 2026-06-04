@@ -48,13 +48,15 @@ def main() -> int:
     missing_ov: list[str] = []
     cyr_left: list[str] = []
 
+    flat_en = _flatten(en_existing)
     for path, ru_val in sorted(_flatten(ru).items()):
         dotted = ".".join(path)
         if dotted in overrides:
             val = overrides[dotted]
+        elif path in flat_en and flat_en[path] and not CYR.search(flat_en[path]):
+            val = flat_en[path]
         else:
-            flat_en = _flatten(en_existing)
-            val = flat_en.get(path) if path in flat_en else None
+            val = None
         if val is None:
             missing_ov.append(dotted)
             val = ru_val

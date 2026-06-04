@@ -16,6 +16,17 @@ else
   common_load_env "$ROOT"
 fi
 
+if [[ -f "$ROOT/scripts/lib/capabilities.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/scripts/lib/capabilities.sh"
+  export AGENT_ROOT="$ROOT"
+  cap_load_env
+  if ! cap_module_enabled PLANNING; then
+    echo "install_planning_crontab: skip — CAP_MODULE_PLANNING=0"
+    exit 0
+  fi
+fi
+
 BOT_ROOT="${PLANNING_BOT_ROOT:-$(common_server_bots)/planning_bot}"
 
 if [ -n "${SERVER:-}" ] && [ "${INSTALL_CRON_LOCAL:-0}" != 1 ]; then

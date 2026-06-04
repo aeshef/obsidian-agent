@@ -13,10 +13,10 @@ strings:
 
   finance.menu.invest: any:broker,manual_broker
   finance.menu.badge: gate:badge
-  finance.sync_tinkoff_button: gate:broker
-  finance.sync_tinkoff_progress: gate:broker
-  finance.sync_tinkoff_error: gate:broker
-  finance.exact_command_tinkoff_sync: gate:broker
+  finance.sync_broker_button: gate:broker
+  finance.sync_broker_progress: gate:broker
+  finance.sync_broker_error: gate:broker
+  finance.exact_command_broker_sync: gate:broker
   finance.inline_invest_sync: gate:broker
   finance.inline_invest_topup: any:broker,manual_broker
   finance.inline_invest_withdraw: any:broker,manual_broker
@@ -57,7 +57,7 @@ strings:
 patterns:
   "finance.invest_*": "any:broker,manual_broker"
   "finance.inline_invest_*": "any:broker,manual_broker"
-  "finance.sync_*tinkoff*": "gate:broker"
+  "finance.sync_*broker*": "gate:broker"
   "finance.badge_*": "gate:badge"
   "planning.messages.reflection*": "feature:planning_weekly_review"
   "planning.messages.routines*": "feature:planning_routines"

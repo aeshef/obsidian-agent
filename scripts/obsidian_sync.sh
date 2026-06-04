@@ -44,7 +44,25 @@ if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
   # shellcheck disable=SC1091
   source "$AGENT_ROOT/scripts/lib/capabilities.sh"
   cap_load_env
+  cap_load_vault_paths 2>/dev/null || true
 fi
+# Defaults when vault_paths exporter missing (match config/vault_paths.yaml.example)
+: "${VAULT_FOLDER_TASKS:=100_Задачи}"
+: "${VAULT_FOLDER_GOALS:=200_Цели}"
+: "${VAULT_FOLDER_DASHBOARDS:=300_Дашборды}"
+: "${VAULT_FOLDER_ROUTINES:=400_Рутины}"
+: "${VAULT_FOLDER_HANDWRITTEN:=600_Рукописное}"
+: "${VAULT_DASH_LOGS:=Логи}"
+: "${VAULT_DASH_CHARTS:=Графики}"
+: "${VAULT_DASH_DATA:=Данные}"
+: "${VAULT_PATH_ACTIONS_MAC:=Действия/Mac}"
+: "${VAULT_PATH_ACTIONS_IPHONE:=Действия/IPhone}"
+: "${VAULT_PATH_CONTEXT_TODAY:=Действия/context_today.json}"
+: "${VAULT_PATH_CONTEXT_WEEK:=Действия/context_week.json}"
+: "${VAULT_PATH_IPHONE_TODAY:=Действия/iphone_today.json}"
+: "${VAULT_PATH_IPHONE_WEEK:=Действия/iphone_week.json}"
+: "${VAULT_FILE_AUDIT_SYSTEM:=Аудит_системы_отчет.md}"
+: "${VAULT_FILE_AUDIT_VAULT:=Аудит_хранилища_отчет.md}"
 # Fallback: no manifest exporter → run full sync (backward compatible)
 if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
   cap_step_enabled() { return 0; }
@@ -112,34 +130,34 @@ SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliv
 # Исключения при подтягивании 300_Дашборды. Логи только в Логи/; корневой 📊 Логи_Действий_*.md не тянуть и не пушить (устаревшая структура).
 # Аудит_*.md — только Mac (obsidian_sync 5b.1/5b.3); на VPS не генерируются, pull затирал свежий локальный отчёт.
 EXCLUDE_300=(
-  --exclude='Графики/'
+  --exclude="${VAULT_DASH_CHARTS}/"
   --exclude='weekly_sprints.json'
   --exclude='Completions_By_Category_Chart.md'
   --exclude='data/'
   --exclude='📅 Рутины/'
   --exclude='📊 Рутины_Статистика.md'
   --exclude='/📊 Логи_Действий_*.md'
-  --exclude='Аудит_системы_отчет.md'
-  --exclude='Аудит_хранилища_отчет.md'
-  --exclude='Данные/finance.db'
-  --exclude='Данные/finance.db-*'
+  --exclude="${VAULT_FILE_AUDIT_SYSTEM}"
+  --exclude="${VAULT_FILE_AUDIT_VAULT}"
+  --exclude="${VAULT_DASH_DATA}/finance.db"
+  --exclude="${VAULT_DASH_DATA}/finance.db-*"
   # Mac-authoritative: IMAP/Shortcuts пишут здесь; pull с VPS возвращал мусор после локального cleanup
-  --exclude='Данные/Действия/IPhone/'
-  --exclude='Данные/Действия/Mac/'
-  --exclude='Данные/Действия/iphone_today.json'
-  --exclude='Данные/Действия/iphone_week.json'
-  --exclude='Данные/Действия/context_today.json'
-  --exclude='Данные/Действия/context_week.json'
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}/"
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_MAC}/"
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_IPHONE_TODAY}"
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_IPHONE_WEEK}"
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_CONTEXT_TODAY}"
+  --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_CONTEXT_WEEK}"
 )
 # 1. Сервер → Локальный. --update: не перезаписывать локальные, если они новее (сохраняем правки в Obsidian). Если новее сервер (задача через бота / заметки knowledge bot) — подтягиваем.
 if cap_module_enabled PLANNING; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/200_Цели/" "$LOCAL_VAULT/200_Цели/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/400_Рутины/" "$LOCAL_VAULT/400_Рутины/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/600_Рукописное/" "$LOCAL_VAULT/600_Рукописное/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" "$LOCAL_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
 fi
 if cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
@@ -218,13 +236,13 @@ PUSH_EXCLUDE_300=(
   --exclude='Данные/finance.db-*'
 )
 if cap_module_enabled PLANNING; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/100_Задачи/" "$SERVER:$SERVER_VAULT/100_Задачи/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/200_Цели/" "$SERVER:$SERVER_VAULT/200_Цели/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/400_Рутины/" "$SERVER:$SERVER_VAULT/400_Рутины/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/600_Рукописное/" "$SERVER:$SERVER_VAULT/600_Рукописное/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/300_Дашборды/" "$SERVER:$SERVER_VAULT/300_Дашборды/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_300[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
 fi
 if cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
@@ -247,10 +265,10 @@ fi
 # 100_: ignore-times — канон сортировки с VPS. 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "obsidian_sync: шаг 4 — rsync сервер→локаль после maintenance…" >&2
 if cap_module_enabled PLANNING; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/100_Задачи/" "$LOCAL_VAULT/100_Задачи/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/300_Дашборды/" "$LOCAL_VAULT/300_Дашборды/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
 fi
 # 700 уже подтянут в шаге 1; при необходимости можно добавить сюда с --ignore-times
 
@@ -287,9 +305,9 @@ unset _pb_venv _pb_sp _chart_py_ok
 # Иначе прогон в 00:03 ставит маркер «сегодня», а события дня в графики не попадают до следующей полуночи.
 # FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
 MARKER="$SYNC_DIR/daily_charts_date.txt"
-LOGS_DIR="$LOCAL_VAULT/300_Дашборды/Логи"
+LOGS_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_LOGS}"
 ACTION_LOG_PREFIX="📊 Логи_Действий_"
-_CHART_DIR="$LOCAL_VAULT/300_Дашборды/Графики"
+_CHART_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}"
 _CUR_LOG="$LOGS_DIR/${ACTION_LOG_PREFIX}$(date +%Y-%m).md"
 _chart_png_mtime_max() {
   local d="$1" max=0 m f
@@ -342,8 +360,8 @@ unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max ACTI
 
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
-_CAL_JSON="$LOCAL_VAULT/300_Дашборды/Данные/Календарь.json"
-_CAL_PNG="$LOCAL_VAULT/300_Дашборды/Графики/Встречи_нагрузка_недели.png"
+_CAL_JSON="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Календарь.json"
+_CAL_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Встречи_нагрузка_недели.png"
 PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
 _SHOULD_CAL=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
@@ -580,7 +598,7 @@ if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ]
     echo "obsidian_sync: шаг 5b.3 — тяжёлый аудит 700_ (часто 1–5+ мин; tail -f logs/system_audit.log)…" >&2
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if (cd "$KNOWLEDGE_BOT" && "$KN_PYTHON" tools/analyze_vault_report.py --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/300_Дашборды/Аудит_хранилища_отчет.md") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
+    if (cd "$KNOWLEDGE_BOT" && "$KN_PYTHON" tools/analyze_vault_report.py --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_хранилища_отчет.md") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
       echo "$TODAY" > "$KN_AUDIT_MARKER"
     else
       if "$KN_PYTHON" -c "open('$KNOWLEDGE_BOT/config/vault_maintenance.yaml').close()" >/dev/null 2>&1; then
@@ -595,12 +613,12 @@ fi
 unset _kn_skip_today
 
 # 5b.post Mac → VPS: аудит-отчёты (после 5b; шаг 2 был до генерации). Pull их не берём (EXCLUDE_300).
-_audit_sys="$LOCAL_VAULT/300_Дашборды/Аудит_системы_отчет.md"
-_audit_kb="$LOCAL_VAULT/300_Дашборды/Аудит_хранилища_отчет.md"
+_audit_sys="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_системы_отчет.md"
+_audit_kb="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_хранилища_отчет.md"
 for _audit_push in "$_audit_sys" "$_audit_kb"; do
   if [ -f "$_audit_push" ]; then
     "$RSYNC_BIN" "${FLAGS[@]}" --update "$_audit_push" \
-      "$SERVER:$SERVER_VAULT/300_Дашборды/$(basename "$_audit_push")" 2>/dev/null || true
+      "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/$(basename "$_audit_push")" 2>/dev/null || true
   fi
 done
 if [ -f "$_audit_sys" ] || [ -f "$_audit_kb" ]; then
@@ -682,8 +700,8 @@ fi
 # 5d. График КБЖУ — после 5b.4 + 5b.4b. Раз в сутки по маркеру, НО также если появился новый IPhone/*.txt
 # позже последнего PNG (иначе ночной прогон в 00:04 блокирует день до вечернего снапшота).
 NUTR_MARKER="$SYNC_DIR/daily_iphone_nutrition_date.txt"
-_IPHONE_CTX_DIR="$LOCAL_VAULT/300_Дашборды/Данные/Действия/IPhone"
-_NUTR_PNG="$LOCAL_VAULT/300_Дашборды/Графики/Питание_КБЖУ_по_дням.png"
+_IPHONE_CTX_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Действия/IPhone"
+_NUTR_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Питание_КБЖУ_по_дням.png"
 _SHOULD_NUTR=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_NUTR=1
@@ -718,8 +736,8 @@ unset _SHOULD_NUTR _IPHONE_CTX_DIR _NUTR_PNG _latest_iph _png_m
 # 6. Финансы: каждый синк — pull канонической БД с сервера; PNG/markdown — раз в день или FORCE
 FINANCE_MARKER="$SYNC_DIR/finance_dashboard_date.txt"
 FINANCE_BOT="$AGENT_ROOT/finance_bot"
-FIN_DB="$LOCAL_VAULT/300_Дашборды/Данные/finance.db"
-FIN_CHART_REF="$LOCAL_VAULT/300_Дашборды/Графики/Финансы/Траты_по_дням_категории.png"
+FIN_DB="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/finance.db"
+FIN_CHART_REF="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Финансы/Траты_по_дням_категории.png"
 FIN_DB_NEWER=
 if [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && [ "$FIN_DB" -nt "$FIN_CHART_REF" ]; then
   FIN_DB_NEWER=1

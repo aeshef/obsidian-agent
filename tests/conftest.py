@@ -31,6 +31,36 @@ def _knowledge_subdir_for_tests(monkeypatch):
     load_platform_config.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def _domain_messages_merge_example(monkeypatch):
+    """Tests see keys from domain_messages.yaml.example merged under local overrides."""
+    from functools import lru_cache
+
+    from shared import domain_messages as dm
+    from shared.yaml_config import deep_merge, load_yaml
+
+    cfg = ROOT / "config"
+    example = load_yaml(cfg / "domain_messages.yaml.example", default={})
+    local_path = cfg / "domain_messages.yaml"
+    local = load_yaml(local_path, default={}) if local_path.is_file() else {}
+    merged = deep_merge(example, local) if local else example
+
+    @lru_cache(maxsize=1)
+    def _merged_domain() -> dict:
+        return merged
+
+    monkeypatch.setattr(dm, "_domain", _merged_domain)
+    dm.clear_domain_messages_cache()
+    try:
+        from planning_bot.services import action_logger as al
+
+        al._legacy_log_entry_re.cache_clear()
+    except Exception:
+        pass
+    yield
+    dm.clear_domain_messages_cache()
+
+
 def knowledge_rel(*parts: str) -> str:
     from shared.vault_layout import knowledge_subdir
 
