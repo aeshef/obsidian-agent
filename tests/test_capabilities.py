@@ -77,9 +77,11 @@ def test_finance_only_profile_disables_planning_sync(tmp_path: Path):
 
 
 def test_connector_off_filters_finance_broker_tool():
+    from shared.capabilities.profile import CONNECTOR_MANUAL_BROKER
+
     prof = CapabilityProfile(
         modules={MODULE_FINANCE: True, MODULE_PLANNING: True, MODULE_KNOWLEDGE: True},
-        connectors={CONNECTOR_BROKER_SYNC: False},
+        connectors={CONNECTOR_BROKER_SYNC: False, CONNECTOR_MANUAL_BROKER: False},
         sync_profile=SYNC_PROFILE_FULL,
     )
 
@@ -150,6 +152,77 @@ def test_export_shell_env_includes_modules(monkeypatch, tmp_path: Path):
     assert "CAP_MODULE_FINANCE=1" in env
     assert "CAP_MODULE_PLANNING=0" in env
     assert "CAP_SYNC_PLANNING_CHARTS=0" in env
+
+
+def test_feature_off_disables_nutrition_sync(tmp_path: Path):
+    cfg = tmp_path / "capabilities.yaml"
+    cfg.write_text(
+        yaml.dump(
+            {
+                "modules": {"finance": False, "planning": True, "knowledge": False},
+                "connectors": {"apple_health": True},
+                "features": {"health_nutrition_chart": False},
+            }
+        ),
+        encoding="utf-8",
+    )
+    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    clear_capabilities_cache()
+    from shared.capabilities.sync_steps import STEP_NUTRITION, sync_step_enabled
+
+    prof = load_capabilities()
+    assert not sync_step_enabled(STEP_NUTRITION, prof)
+
+
+def test_planning_weekly_review_feature_off(tmp_path: Path):
+    cfg = tmp_path / "capabilities.yaml"
+    cfg.write_text(
+        yaml.dump(
+            {
+                "modules": {"planning": True},
+                "features": {"planning_weekly_review": False},
+            }
+        ),
+        encoding="utf-8",
+    )
+    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    clear_capabilities_cache()
+    from shared.capabilities.planning_gates import planning_weekly_review_enabled
+
+    assert not planning_weekly_review_enabled()
+
+
+def test_infer_planning_only_sync_profile():
+    from shared.capabilities.compose import infer_sync_profile
+
+    doc = {
+        "modules": {"finance": False, "planning": True, "knowledge": False},
+        "connectors": {c: False for c in (
+            "corporate_badge", "broker_sync", "manual_broker_accounts",
+            "apple_health", "gmail_health_pipeline", "apple_calendar",
+            "mac_context", "knowledge_serendipity",
+        )},
+    }
+    from shared.capabilities.profile import SYNC_PROFILE_PLANNING_KANBAN
+
+    assert infer_sync_profile(doc) == SYNC_PROFILE_PLANNING_KANBAN
+
+
+def test_manual_broker_tool_without_api_connector():
+    from shared.capabilities.profile import CONNECTOR_BROKER_SYNC, CONNECTOR_MANUAL_BROKER
+
+    prof = CapabilityProfile(
+        modules={"finance": True, "planning": False, "knowledge": False},
+        connectors={CONNECTOR_BROKER_SYNC: False, CONNECTOR_MANUAL_BROKER: True},
+        sync_profile="finance_only",
+    )
+
+    class _Tool:
+        def __init__(self, name: str):
+            self.__name__ = name
+
+    filtered = filter_finance_tools([_Tool("get_broker_overview")], prof)
+    assert len(filtered) == 1
 
 
 def test_broker_exact_command_filtered(monkeypatch):

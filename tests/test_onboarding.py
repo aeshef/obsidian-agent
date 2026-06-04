@@ -36,9 +36,27 @@ def test_finance_only_preset():
     assert doc["connectors"][CONNECTOR_BROKER_SYNC] is False
 
 
+def test_only_modules_planning():
+    doc = build_capabilities_document(only_modules=["planning"])
+    assert doc["modules"]["planning"] is True
+    assert doc["modules"]["finance"] is False
+    assert doc["sync"]["profile"] == "planning_kanban"
+
+
 def test_builder_yandex_badge():
     doc = build_capabilities_document(PRESET_FINANCE_ONLY, yandex_corporate_badge=True)
     assert doc["connectors"][CONNECTOR_CORPORATE_BADGE] is True
+
+
+def test_env_patch_does_not_overwrite(tmp_path: Path):
+    env = tmp_path / ".env"
+    env.write_text("TINKOFF_API_TOKEN=secret\n", encoding="utf-8")
+    from shared.setup.env_patch import patch_env_file
+
+    added = patch_env_file(env, ["TINKOFF_API_TOKEN=", "VAULT_PATH="])
+    assert "VAULT_PATH=" in added
+    assert "TINKOFF_API_TOKEN=" not in added
+    assert "secret" in env.read_text(encoding="utf-8")
 
 
 def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
