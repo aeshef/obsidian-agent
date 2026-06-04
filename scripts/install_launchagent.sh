@@ -24,8 +24,18 @@ cat > "$LAUNCH_WRAPPER" <<EOF
 #!/bin/zsh
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
+export AGENT_ROOT="$AGENT_DIR"
+export LOCAL_VAULT="$VAULT_PATH"
+export VAULT_PATH="$VAULT_PATH"
 DEBUG_LOG="/tmp/obsidian_sync_launchagent_wrapper.log"
 echo "\$(date '+%Y-%m-%dT%H:%M:%S') pid=\$\$ wrapper START" >> "\$DEBUG_LOG" 2>/dev/null || true
+_CAP_PY=""
+for _c in "$AGENT_DIR/planning_bot/.venv/bin/python" "$AGENT_DIR/finance_bot/.venv/bin/python" python3; do
+  if [[ -x "\$_c" ]]; then _CAP_PY="\$_c"; break; fi
+done
+if [[ -n "\$_CAP_PY" && -f "$AGENT_DIR/scripts/export_capabilities_env.py" ]]; then
+  eval "\$("\$_CAP_PY" "$AGENT_DIR/scripts/export_capabilities_env.py" 2>/dev/null)" || true
+fi
 exec "$SYNC_LINK"
 EOF
 chmod +x "$LAUNCH_WRAPPER"
