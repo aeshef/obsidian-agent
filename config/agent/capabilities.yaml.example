@@ -17,6 +17,8 @@ connectors:
   broker_sync: true
   # Manual broker/custodian accounts in finance YAML (no API); balances via finance.db
   manual_broker_accounts: true
+  # Card/wallet balances in finance dashboard (NLU expenses work without broker API)
+  domestic_bank_cards: true
   # Apple Health via IPhone/*.txt snapshots
   apple_health: true
   # Gmail IMAP → health shortcuts (requires GMAIL_IMAP_* in .env)
