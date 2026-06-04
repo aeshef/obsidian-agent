@@ -29,6 +29,7 @@ planning_bot/.venv
 **/config/initial_accounts.yaml
 **/config/user_context.md
 config/agent/user_profile.md
+config/agent/capabilities.yaml
 config/agent/platform.yaml
 config/agent/memory.yaml
 config/agent/models.yaml

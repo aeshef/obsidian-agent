@@ -1,0 +1,31 @@
+# Product capabilities manifest — copy to capabilities.yaml (gitignored).
+# Missing capabilities.yaml = full install (backward compatible for existing users).
+#
+# modules: turn off entire Telegram domains (finance / planning / knowledge).
+# connectors: optional data pipelines; off = no agent tools, no sync steps, no prompts.
+# sync.profile: coarse obsidian_sync.sh profile on Mac.
+
+modules:
+  finance: true
+  planning: true
+  knowledge: true
+
+connectors:
+  # Yandex corporate meal badge (also requires finance_bot/config/badge.yaml enabled)
+  corporate_badge: true
+  # Broker portfolio sync (also requires TINKOFF_API_TOKEN in .env)
+  broker_sync: true
+  # Apple Health via IPhone/*.txt snapshots
+  apple_health: true
+  # Gmail IMAP → health shortcuts (requires GMAIL_IMAP_* in .env)
+  gmail_health_pipeline: true
+  # Calendar.txt / JSON / meeting charts
+  apple_calendar: true
+  # Mac focus snapshots (Действия/Mac)
+  mac_context: true
+  # Daily random KB note push in Telegram
+  knowledge_serendipity: true
+
+sync:
+  # full | finance_only | planning_light | minimal
+  profile: full

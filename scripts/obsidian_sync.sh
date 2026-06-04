@@ -38,6 +38,18 @@ fi
 AGENT_ROOT="${AGENT_ROOT:-${AGENT_ROOT}}"
 export AGENT_ROOT LOCAL_VAULT
 
+# shellcheck source=scripts/lib/capabilities.sh
+# Product manifest: optional sync steps (default = all on if exporter missing)
+if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$AGENT_ROOT/scripts/lib/capabilities.sh"
+  cap_load_env
+fi
+# Fallback: no manifest exporter → run full sync (backward compatible)
+if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
+  cap_step_enabled() { return 0; }
+fi
+
 VAULT_TEST="${AGENT_ROOT}/scripts/obsidian_sync.sh"
 if ! test -r "$VAULT_TEST" 2>/dev/null || ! head -c1 "$VAULT_TEST" >/dev/null 2>/dev/null; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP: нет доступа к vault (запуск без FDA), выхожу" >> "$DEBUG_LOG" 2>/dev/null || true
@@ -281,6 +293,9 @@ elif [ -f "$_CUR_LOG" ]; then
   _png_m=$(_chart_png_mtime_max "$_CHART_DIR")
   [ "$_log_m" -gt "$_png_m" ] && _SHOULD_CHARTS=1
 fi
+if ! cap_step_enabled SYNC_PLANNING_CHARTS; then
+  _SHOULD_CHARTS=0
+fi
 if [ "$_SHOULD_CHARTS" = "1" ]; then
   PLANNING_BOT="$AGENT_ROOT/planning_bot"
   if [ -n "$HAS_LOGS" ] && [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" ]; then
@@ -314,6 +329,9 @@ elif [ -f "$_CAL_JSON" ] && [ -f "$_CAL_PNG" ]; then
   _cal_j=$(stat -f '%m' "$_CAL_JSON" 2>/dev/null || echo 0)
   _cal_p=$(stat -f '%m' "$_CAL_PNG" 2>/dev/null || echo 0)
   [ "$_cal_j" -gt "$_cal_p" ] && _SHOULD_CAL=1
+fi
+if ! cap_step_enabled SYNC_CALENDAR; then
+  _SHOULD_CAL=0
 fi
 if [ "$_SHOULD_CAL" = "1" ]; then
   if [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ]; then
@@ -412,9 +430,9 @@ VM_LOCK="$SYNC_DIR/vault_maintenance.lock"
 #  — FORCE_VAULT_MAINTENANCE=1 → всегда запускать
 _vm_skip_today=0
 [ "$(cat "$VM_SKIP_MARKER" 2>/dev/null)" = "$TODAY" ] && ! [ -t 0 ] && _vm_skip_today=1
-if [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
+if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}" ] \
    || { { [ ! -f "$VM_MARKER" ] || [ "$(cat "$VM_MARKER" 2>/dev/null)" != "$TODAY" ]; } \
-        && [ "$_vm_skip_today" = "0" ]; }; then
+        && [ "$_vm_skip_today" = "0" ]; }; }; then
   if mkdir "$VM_LOCK" 2>/dev/null; then
     # Чистим lock при выходе (в т.ч. при Ctrl-C), чтобы следующий день не застрял
     trap 'rmdir "$VM_LOCK" 2>/dev/null || true' EXIT INT TERM
@@ -530,7 +548,7 @@ unset _vm_skip_today
 KN_SKIP_MARKER="$SYNC_DIR/daily_knowledge_vault_audit_skip_date.txt"
 _kn_skip_today=0
 [ "$(cat "$KN_SKIP_MARKER" 2>/dev/null)" = "$TODAY" ] && ! [ -t 0 ] && _kn_skip_today=1
-if { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] \
+if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] \
      || { [ ! -f "$KN_AUDIT_MARKER" ] || [ "$(cat "$KN_AUDIT_MARKER" 2>/dev/null)" != "$TODAY" ]; } \
    } && [ "$_kn_skip_today" = "0" ]; then
   if [ -d "$KNOWLEDGE_BOT" ] && [ -f "$KNOWLEDGE_BOT/tools/analyze_vault_report.py" ]; then
@@ -586,7 +604,7 @@ else
     _SHOULD_IMAP=1
   fi
 fi
-if [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/tools/iphone_mail_sync.py" ]; then
+if cap_step_enabled SYNC_GMAIL_HEALTH && [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/tools/iphone_mail_sync.py" ]; then
   echo "obsidian_sync: шаг 5b.4 — iPhone mail sync (Gmail IMAP → IPhone/*.txt)…" >&2
   # Локальный vault, не путь с сервера из .env
   export VAULT_PATH="$LOCAL_VAULT"
@@ -629,7 +647,7 @@ if [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/to
 fi
 
 # 5b.4b Каждый синк: iphone_today.json / iphone_week.json из IPhone/*.txt (без IMAP, быстро)
-if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/tools/iphone_context_sync.py" ]; then
+if cap_step_enabled SYNC_MAC_IPHONE && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/tools/iphone_context_sync.py" ]; then
   touch "$PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
@@ -656,6 +674,9 @@ elif [ -d "$_IPHONE_CTX_DIR" ] && [ -f "$_NUTR_PNG" ]; then
     _SHOULD_NUTR=1
   fi
 fi
+if ! cap_step_enabled SYNC_NUTRITION; then
+  _SHOULD_NUTR=0
+fi
 if [ "$_SHOULD_NUTR" = "1" ]; then
   if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_iphone_nutrition_chart.py" ]; then
     echo "obsidian_sync: шаг 5d — Питание КБЖУ (PNG, после iphone_context_sync; лог: $PLANNING_BOT/logs/charts.log)…" >&2
@@ -678,7 +699,7 @@ FIN_DB_NEWER=
 if [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && [ "$FIN_DB" -nt "$FIN_CHART_REF" ]; then
   FIN_DB_NEWER=1
 fi
-if [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; then
+if cap_step_enabled SYNC_FINANCE_DASHBOARD && [ -d "$FINANCE_BOT" ] && [ -f "$FINANCE_BOT/scripts/sync_finance_db.sh" ]; then
   if [ -n "$SYNC_STATE_DIR" ]; then FIN_LOG="$SYNC_DIR/finance_dashboard_daily.log"; else FIN_LOG="$FINANCE_BOT/logs/finance_dashboard_daily.log"; fi
   mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
   _FIN_BUILD=0
