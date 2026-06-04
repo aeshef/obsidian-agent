@@ -42,6 +42,7 @@ jobs:
           TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
+          AGENT_LOCALE: ru
         run: bash scripts/run_tests.sh
 
   capabilities:
@@ -59,5 +60,5 @@ jobs:
           python3 -m pytest tests/test_capabilities.py tests/test_profile_matrix.py \
             tests/test_ui_bindings.py tests/test_ui_patterns.py tests/test_agent_sanity.py \
             tests/test_prompt_preamble.py tests/test_onboarding.py tests/test_no_cyrillic_in_py.py \
-            tests/test_messages_locale_parity.py tests/test_prompt_git_policy.py \
-            tests/test_prompt_scaffolds.py -q
+            tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
+            tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py -q

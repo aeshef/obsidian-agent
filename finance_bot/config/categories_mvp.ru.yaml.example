@@ -1,0 +1,19 @@
+# cp finance_bot/config/categories_mvp.ru.yaml.example → categories_mvp.yaml (AGENT_LOCALE=ru)
+# Lean MVP expense categories (marketplaces → tag, not category)
+- Транспорт/Такси
+- Транспорт/Проезд
+- Еда/Продукты
+- Еда/Вне дома
+- Еда/Бейдж
+- Дом/ЖКХ
+- Дом/Быт
+- Здоровье
+- Одежда
+- ИТ
+- Развитие
+- Развлечения
+- Подарки
+- Алкоголь и Табак
+- Подписки
+- Комиссии
+- Прочее

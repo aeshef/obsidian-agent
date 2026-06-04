@@ -1,4 +1,5 @@
-# Default EN (see categories_mvp.en.yaml.example / categories_mvp.ru.yaml.example)
+# cp finance_bot/config/categories_mvp.en.yaml.example → categories_mvp.yaml (AGENT_LOCALE=en)
+# Lean MVP expense categories (marketplaces → tag, not category)
 - Transport/Taxi
 - Transport/Transit
 - Food/Groceries

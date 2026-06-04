@@ -1,0 +1,4 @@
+# cp finance_bot/config/income_categories.en.yaml.example → income_categories.yaml
+- Salary
+- Gift
+- Other

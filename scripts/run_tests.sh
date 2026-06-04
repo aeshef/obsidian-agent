@@ -11,6 +11,7 @@ export TELEGRAM_UNIFIED_BOT_TOKEN="${TELEGRAM_UNIFIED_BOT_TOKEN:-ci-smoke-test-t
 export TELEGRAM_FINANCE_BOT_TOKEN="${TELEGRAM_FINANCE_BOT_TOKEN:-ci-smoke-test-token}"
 export TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-ci-smoke-test-token}"
 export DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY:-ci-smoke-test-key}"
+export AGENT_LOCALE="${AGENT_LOCALE:-ru}"
 
 cp finance_bot/config/nlu_config.yaml.example finance_bot/config/nlu_config.yaml 2>/dev/null || true
 cp knowledge_bot/config/media_extensions.yaml.example knowledge_bot/config/media_extensions.yaml 2>/dev/null || true
@@ -43,7 +44,8 @@ if [[ ${#ARGS[@]} -eq 0 ]]; then
     tests/test_prompt_preamble.py tests/test_runtime_config.py tests/test_ui_bindings.py
     tests/test_profile_matrix.py tests/test_msg_capability_gate.py
     tests/test_agent_sanity.py tests/test_ui_patterns.py
-    tests/test_messages_locale_parity.py tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py
+    tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
+    tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py
   )
   echo "=== finance/planning/shared tests ==="
   "$FIN_PY" -m pytest "${FIN_TESTS[@]}" -q

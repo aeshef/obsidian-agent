@@ -23,6 +23,23 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _pytest_agent_locale_ru(monkeypatch):
+    """RU vault fixtures (100_Задачи) + legacy assertions; locale parity has dedicated tests."""
+    monkeypatch.setenv("AGENT_LOCALE", "ru")
+    from shared import i18n
+    from shared import vault_paths_config as vp
+    from shared import domain_messages as dm
+
+    i18n.clear_messages_cache()
+    vp.vault_paths_config.cache_clear()
+    dm.clear_domain_messages_cache()
+    yield
+    i18n.clear_messages_cache()
+    vp.vault_paths_config.cache_clear()
+    dm.clear_domain_messages_cache()
+
+
+@pytest.fixture(autouse=True)
 def _knowledge_subdir_for_tests(monkeypatch):
     """Stable rel_path prefix in knowledge tests (matches legacy fixture paths)."""
     monkeypatch.setenv("VAULT_REL_KNOWLEDGE", "700_База_Данных")
@@ -33,20 +50,25 @@ def _knowledge_subdir_for_tests(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _domain_messages_merge_example(monkeypatch):
-    """Tests see keys from domain_messages.yaml.example merged under local overrides."""
+    """Tests see domain_messages en+ru examples merged under local overrides."""
     from functools import lru_cache
 
     from shared import domain_messages as dm
     from shared.yaml_config import deep_merge, load_yaml
 
     cfg = ROOT / "config"
-    example = load_yaml(cfg / "domain_messages.yaml.example", default={})
-    local_path = cfg / "domain_messages.yaml"
+    ru = load_yaml(cfg / "domain_messages.ru.yaml.example", default={})
+    en = load_yaml(cfg / "domain_messages.en.yaml.example", default={})
+    merged = deep_merge(ru, en)
+    local_path = cfg / "domain_messages.en.yaml"
+    if not local_path.is_file():
+        local_path = cfg / "domain_messages.yaml"
     local = load_yaml(local_path, default={}) if local_path.is_file() else {}
-    merged = deep_merge(example, local) if local else example
+    if local:
+        merged = deep_merge(merged, local)
 
-    @lru_cache(maxsize=1)
-    def _merged_domain() -> dict:
+    @lru_cache(maxsize=2)
+    def _merged_domain(_locale: str = "en") -> dict:
         return merged
 
     monkeypatch.setattr(dm, "_domain", _merged_domain)

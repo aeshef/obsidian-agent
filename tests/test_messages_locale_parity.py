@@ -1,6 +1,6 @@
-"""messages.en.yaml.example is the English product file (no build step for clones).
+"""messages.en.yaml.example is the canonical Telegram UI catalog (English-first OSS).
 
-When adding keys to messages.ru.yaml.example, edit messages.en.yaml.example in the same PR.
+When adding keys, edit messages.en.yaml.example first, then mirror Russian in the same PR.
 """
 from __future__ import annotations
 
@@ -23,14 +23,14 @@ def _flatten(d: object, prefix: tuple[str, ...] = ()) -> dict[tuple[str, ...], s
     return out
 
 
-def test_en_has_all_ru_keys() -> None:
+def test_en_and_ru_same_keys() -> None:
     ru = yaml.safe_load((ROOT / "config/messages.ru.yaml.example").read_text(encoding="utf-8"))
     en = yaml.safe_load((ROOT / "config/messages.en.yaml.example").read_text(encoding="utf-8"))
     fr, fe = set(_flatten(ru)), set(_flatten(en))
-    missing = sorted(fr - fe)
-    extra = sorted(fe - fr)
-    assert not missing, "EN missing keys:\n" + "\n".join(".".join(k) for k in missing[:40])
-    assert not extra, "EN extra keys:\n" + "\n".join(".".join(k) for k in extra[:40])
+    missing_in_en = sorted(fr - fe)
+    missing_in_ru = sorted(fe - fr)
+    assert not missing_in_en, "EN missing keys:\n" + "\n".join(".".join(k) for k in missing_in_en[:40])
+    assert not missing_in_ru, "RU missing keys:\n" + "\n".join(".".join(k) for k in missing_in_ru[:40])
 
 
 def test_en_values_no_cyrillic() -> None:

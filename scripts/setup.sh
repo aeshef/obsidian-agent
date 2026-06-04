@@ -32,12 +32,18 @@ export SMOKE_INSTALL=1
 bash "$ROOT/scripts/smoke_imports.sh"
 
 echo ""
+echo "=== locale (AGENT_LOCALE, default en) ==="
+AGENT_LOCALE="${AGENT_LOCALE:-en}"
+if ! grep -q '^AGENT_LOCALE=' "$ROOT/.env" 2>/dev/null; then
+  echo "AGENT_LOCALE=${AGENT_LOCALE}" >> "$ROOT/.env"
+  echo "  set AGENT_LOCALE=${AGENT_LOCALE} in .env"
+fi
+python3 "$ROOT/scripts/setup/materialize_locale.py" "${AGENT_LOCALE}"
+
+echo ""
 echo "=== bot configs from *.example ==="
 for pair in \
   "config/messages.ru.yaml:config/messages.ru.yaml.example" \
-  "config/vault_paths.yaml:config/vault_paths.yaml.example" \
-  "config/domain_messages.yaml:config/domain_messages.yaml.example" \
-  "config/messages.en.yaml:config/messages.en.yaml.example" \
   "config/agent/platform.yaml:config/agent/platform.yaml.example" \
   "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
   "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example" \

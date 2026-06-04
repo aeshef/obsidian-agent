@@ -1,4 +1,4 @@
-# cp finance_bot/config/income_categories.yaml.example finance_bot/config/income_categories.yaml
-- Зарплата
-- Подарок
-- Прочее
+# Default EN (see income_categories.en / .ru.yaml.example)
+- Salary
+- Gift
+- Other

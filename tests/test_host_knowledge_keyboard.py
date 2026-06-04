@@ -1,5 +1,5 @@
 from shared.telegram.host.keyboards import knowledge_keyboard
-from knowledge_bot.app.state import BTN_BULK_ON, BTN_QUERY
+from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON, BTN_QUERY
 
 
 def test_knowledge_keyboard_has_bulk_and_query():
@@ -10,4 +10,4 @@ def test_knowledge_keyboard_has_bulk_and_query():
 
     kb_on = knowledge_keyboard(bulk_active=True)
     labels_on = {btn.text for row in kb_on.keyboard for btn in row}
-    assert "📤 Прогрузка ВЫКЛ" in labels_on
+    assert BTN_BULK_OFF in labels_on

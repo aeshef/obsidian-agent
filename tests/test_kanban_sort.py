@@ -10,9 +10,6 @@ from tests.conftest import FIXTURE_VAULT
 from tests.kanban_test_data import kanban_board_fixture_path, kanban_strings
 
 
-KANBAN_SRC = kanban_board_fixture_path(FIXTURE_VAULT)
-
-
 def _count_tasks(content: str) -> int:
     return len(re.findall(r"^- \[[ x]\]", content, re.MULTILINE))
 
@@ -64,11 +61,12 @@ def _is_sorted(tasks: list[str]) -> bool:
 
 
 def test_sort_kanban_on_fixture_copy(tmp_path: Path):
-    assert KANBAN_SRC.is_file(), f"fixture missing: {KANBAN_SRC}"
+    kanban_src = kanban_board_fixture_path(FIXTURE_VAULT)
+    assert kanban_src.is_file(), f"fixture missing: {kanban_src}"
     copy_path = tmp_path / "kanban.md"
-    shutil.copy2(KANBAN_SRC, copy_path)
+    shutil.copy2(kanban_src, copy_path)
 
-    with open(KANBAN_SRC, encoding="utf-8") as f:
+    with open(kanban_src, encoding="utf-8") as f:
         orig = f.read()
     n_orig = _count_tasks(orig)
 
