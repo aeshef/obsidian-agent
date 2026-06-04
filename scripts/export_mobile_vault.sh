@@ -36,8 +36,17 @@ _actions_parent="${VAULT_PATH_ACTIONS_MAC:h}"
 
 RSYNC=(rsync -a --delete --exclude='.DS_Store')
 
+_vault_segment_sane() {
+  local val="$1"
+  [[ -n "$val" && "$val" != /* && "$val" != *".."* && "$val" != *"/"* ]]
+}
+
 _rsync_folder() {
   local name="$1"
+  if ! _vault_segment_sane "$name"; then
+    echo "SKIP unsafe folder segment: ${name}" >&2
+    return 0
+  fi
   local src_dir="$SRC/$name"
   if [[ ! -d "$src_dir" ]]; then
     echo "SKIP missing folder: $src_dir" >&2
@@ -45,6 +54,18 @@ _rsync_folder() {
   fi
   mkdir -p "$MOBILE/$name"
   "${RSYNC[@]}" "$src_dir/" "$MOBILE/$name/"
+}
+
+# Remove EN ghost folders from a bad locale run (RU names are canonical here).
+_prune_mobile_stale_en_folders() {
+  local -a stale=(100_Tasks 200_Goals 300_Dashboards 400_Routines 600_Handwritten)
+  local s
+  for s in "${stale[@]}"; do
+    [[ -d "$MOBILE/$s" ]] || continue
+    echo "prune stale mobile folder: $s" >&2
+    rm -rf "$MOBILE/$s"
+  done
+  [[ -d "$MOBILE/Users" ]] && rm -rf "$MOBILE/Users" && echo "prune nested Users/ under mobile vault" >&2
 }
 
 echo "export_mobile_vault: $SRC → $MOBILE"
@@ -73,5 +94,7 @@ for p in dataview templater-obsidian obsidian-kanban; do
   [[ -d "$SRC/.obsidian/plugins/$p" ]] && rsync -a "$SRC/.obsidian/plugins/$p/" "$MOBILE/.obsidian/plugins/$p/"
 done
 [[ -d "$SRC/.obsidian/snippets" ]] && rsync -a "$SRC/.obsidian/snippets/" "$MOBILE/.obsidian/snippets/"
+
+_prune_mobile_stale_en_folders
 
 echo "OK: $(du -sh "$MOBILE" | awk '{print $1}') → $MOBILE"

@@ -20,6 +20,27 @@ vault_paths_apply_defaults() {
   : "${VAULT_FILE_AUDIT_VAULT:=Аудит_хранилища_отчет.md}"
 }
 
+_vault_segment_sane() {
+  local val="$1"
+  [[ -n "$val" && "$val" != /* && "$val" != *".."* && "$val" != *"/"* ]]
+}
+
+_vault_sanitize_exported_segments() {
+  local -a keys=(
+    VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS
+    VAULT_FOLDER_ROUTINES VAULT_FOLDER_HANDWRITTEN
+    VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
+  )
+  local k v
+  for k in "${keys[@]}"; do
+    v="${!k:-}"
+    if [[ -n "$v" ]] && ! _vault_segment_sane "$v"; then
+      echo "vault_paths: drop invalid $k=$v" >&2
+      unset "$k"
+    fi
+  done
+}
+
 vault_paths_load_from_agent() {
   local root="${1:-}"
   [[ -z "$root" ]] && return 0
@@ -29,5 +50,6 @@ vault_paths_load_from_agent() {
     export AGENT_ROOT="$root"
     cap_load_vault_paths 2>/dev/null || true
   fi
+  _vault_sanitize_exported_segments
   vault_paths_apply_defaults
 }
