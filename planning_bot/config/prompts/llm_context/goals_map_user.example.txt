@@ -1,0 +1,2 @@
+Task: {task_title}
+Category: {task_category}

@@ -1,0 +1,1 @@
+ID: {goal_id} | {goal_text} | Category: {goal_category} | Quarter: {goal_quarter} | Priority: {goal_priority}

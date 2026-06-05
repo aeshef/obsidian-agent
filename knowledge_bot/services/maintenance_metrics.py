@@ -110,9 +110,9 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
         if m:
             out["wikilinks_changed"] = int(m.group(1))
     elif step_name == "reprocess_notes":
-        out["reprocess_saved"] = len(re.findall(r"✓ Записано:", text))
+        out["reprocess_saved"] = len(re.findall(re.escape(mm("marker_saved")), text))
         out["reprocess_deleted_empty"] = len(
-            re.findall(r"\[удалено: нет контента\]", text)
+            re.findall(re.escape(mm("marker_deleted_empty")), text)
         )
     elif step_name in ("apply_duplicates", "apply_duplicates_dryrun"):
         out["duplicates_deleted_lines"] = len(

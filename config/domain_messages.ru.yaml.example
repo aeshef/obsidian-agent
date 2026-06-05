@@ -216,6 +216,17 @@ knowledge_tags_prompt:
   broker_withdraw: "Вывод с брокера"
   broker_fee: "Комиссия брокера"
 
+finance_txn_core:
+  account_required: "Не указан счёт для транзакции"
+  broker_fee_default: "Комиссия брокера"
+  broker_withdraw_default: "Вывод с брокера"
+  default_wallet: "Кошелек"
+  line_account: "- Счет: {account}"
+  line_amount: "- Сумма: {amount:,.0f} {currency}"
+  line_category: "- Категория: {category}"
+  line_description: "- Описание: {description}"
+  line_type: "- Тип: {type}"
+  recorded_header: "{emoji} Записал:"
 finance_txn_query:
   expenses_total: "Всего расходов: {total:,.0f} RUB"
   no_expenses_in_period: "(нет расходов в периоде)"
@@ -304,6 +315,7 @@ finance_agent:
   planned_empty: "Planned expenses ({status}): (none)"
   planned_header: "Planned expenses ({status}):"
   planned_line: "  {name}: {amount:,.0f} {currency} (due {due})"
+  planned_no_due: "без срока"
   subscriptions_empty: "Subscriptions: (file empty or not configured)"
   subscriptions_header: "Subscriptions (recurring):"
   subscription_line: "  {name}: {amount} {currency}/{period}, next {next_charge}"
@@ -395,6 +407,7 @@ finance_summary:
   expense_change: "Spending change vs previous period: {change:+.1f}%"
 
 badge:
+  default_category: "Еда/Бейдж"
   line_keyword_pattern: "бейдж"
   line_over_limit: "Сверх лимита: {amount} RUB (удержат из ЗП)."
   input_prompt_fallback: "🍽 Badge spend (account: {account}, category: {category}, limit: {limit} RUB/day)\n\n{prompt}"
@@ -1405,10 +1418,11 @@ planning:
 
   log_entry_regex: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* (.+?)\\n\\n\\*\\*Данные:\\*\\*\\n```json\\n(.+?)\\n```"
   log_entry_legacy_regex: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* \\{'(task_\\w+)'\\}\\*\\*Данные:\\*\\*\\n```json\\n(.+?)\\n```"
-  log_entry_type: |
-    **Тип:** {action_type}
-
-    log_month_header: |
+  log_entry_type: "**Тип:** {action_type}\n\n"
+  log_entry_type_label: "**Тип:**"
+  log_entry_data_label: "**Данные:**"
+  log_entry_data_fenced: "**Данные:**\n```json\n{payload}\n```\n"
+  log_month_header: |
 
     # Логи действий {month}
 

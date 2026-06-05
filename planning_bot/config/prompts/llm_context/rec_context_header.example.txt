@@ -1,0 +1,7 @@
+CURRENT TASKS (all active):
+{stats_summary}
+{tasks_text}
+
+WEEK STATS: {weekly_stats}
+
+GOALS: {goals}

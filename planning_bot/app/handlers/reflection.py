@@ -47,7 +47,7 @@ def _reflection_cfg() -> dict[str, int]:
 def _reflection_file_for_sunday(reflection_dir, sunday: datetime) -> "Path":
     from pathlib import Path
 
-    prefix = pdmsg("reflection_file_prefix") or pdmsg("auto_9e853157ef") or "Рефлексия_"
+    prefix = pdmsg("reflection_file_prefix") or pdmsg("auto_9e853157ef") or "Reflection_"
     return Path(reflection_dir) / f"{prefix}{sunday.strftime('%Y-%m-%d')}.md"
 
 

@@ -7,6 +7,7 @@ asr:
   recognition_failed: Failed to recognize speech. Record the message again, a bit
     longer and clearer.
 badge:
+  default_category: Food/Badge
   dash_none: —
   day_off: Today is a day off — no daily badge quota.
   day_over: 'Over limit: {over} RUB'
@@ -88,6 +89,7 @@ finance_agent:
   planned_empty: 'Planned expenses ({status}): (none)'
   planned_header: 'Planned expenses ({status}):'
   planned_line: '  {name}: {amount:,.0f} {currency} (due {due})'
+  planned_no_due: no deadline
   prompt_suffix: 'Always call tools for any amounts, balances, operations and summaries.
 
 
@@ -151,6 +153,17 @@ finance_tinkoff:
   token_missing: TINKOFF_API_TOKEN is not set in .env
   total_fmt: 'Total: {total:,.2f} RUB'
   total_line: 'Total: {total} RUB'
+finance_txn_core:
+  account_required: Account not specified for transaction
+  broker_fee_default: Broker fee
+  broker_withdraw_default: Broker withdrawal
+  default_wallet: Wallet
+  line_account: '- Account: {account}'
+  line_amount: '- Amount: {amount:,.0f} {currency}'
+  line_category: '- Category: {category}'
+  line_description: '- Description: {description}'
+  line_type: '- Type: {type}'
+  recorded_header: '{emoji} Recorded:'
 finance_txn_query:
   all_zero: '  (all zeros)'
   balance_unset: '  {name} ({acct_type}): balance not set'
@@ -4837,10 +4850,11 @@ planning:
   log_entry_legacy_regex: '## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n\n\*\*Type:\*\*
     \{''(task_\w+)''\}\*\*Data:\*\*\n```json\n(.+?)\n```'
   log_entry_regex: '## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n\n\*\*Type:\*\* (.+?)\n\n\*\*Data:\*\*\n```json\n(.+?)\n```'
-  log_entry_type: '**Type:** {action_type}
-
-
-    log_month_header: |
+  log_entry_type: "**Type:** {action_type}\n\n"
+  log_entry_type_label: "**Type:**"
+  log_entry_data_label: "**Data:**"
+  log_entry_data_fenced: "**Data:**\n```json\n{payload}\n```\n"
+  log_month_header: |
 
 
     # Action Logs {month}

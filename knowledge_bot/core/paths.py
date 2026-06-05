@@ -90,7 +90,7 @@ def target_note_path(vault_root_path: Path, type_name: str, slug: str) -> Path:
 
     cfg = load_config()
     types = load_types_config(cfg.agent_config_path)
-    subdir = types.dir_for(type_name) or types.dir_for(types.default_type) or "Знания"
+    subdir = types.dir_for(type_name) or types.dir_for(types.default_type) or "Knowledge"
     return knowledge_db_root(vault_root_path) / subdir / f"{slug}.md"
 
 

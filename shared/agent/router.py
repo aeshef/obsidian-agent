@@ -1,4 +1,4 @@
-"""Роутинг моделей по роли (config-driven)."""
+"""Model routing by role (config-driven)."""
 from __future__ import annotations
 
 import asyncio

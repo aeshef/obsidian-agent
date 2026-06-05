@@ -78,8 +78,8 @@ def load_types_config(config_dir: Path | str) -> TypesConfig:
         for key, val in raw_types.items():
             types[str(key)] = val if isinstance(val, dict) else {}
     return TypesConfig(
-        default_template=str(data.get("default_template") or "Знание.j2.md"),
-        default_type=str(data.get("default_type") or "знание"),
+        default_template=str(data.get("default_template") or "Knowledge.j2.md"),
+        default_type=str(data.get("default_type") or "knowledge"),
         types=types,
     )
 

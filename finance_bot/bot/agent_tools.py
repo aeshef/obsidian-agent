@@ -1,4 +1,4 @@
-"""Инструменты finance для shared agent core."""
+"""Finance agent tools for shared agent core."""
 from __future__ import annotations
 
 from datetime import date
@@ -11,6 +11,7 @@ from shared.agent.app import DomainAdapter
 from shared.agent.budget import format_txn_recent, format_txn_summary
 from shared.agent.tools import ToolRegistry, tool
 from shared.agent.types import AgentContext, ModelRole
+from shared.domain_messages import dmsg
 from shared.finance.txn_query import (
     fetch_transaction_rows,
     format_broker_overview,
@@ -28,6 +29,7 @@ from bot.services.badge_tracker import BadgeTracker, is_badge_account_name
 from bot.services.subscriptions import load_subscriptions
 
 FINANCE_DOMAIN = "finance"
+_FA = ("finance_agent",)
 
 
 def _analyst(ctx: AgentContext) -> "FinancialAnalyst":
@@ -49,8 +51,8 @@ def _range_label(dr, *, days: int = 0) -> str:
     if dr.start and dr.end:
         return f"{dr.start.isoformat()} … {dr.end.isoformat()}"
     if days:
-        return f"последние {days} дн."
-    return "всё время"
+        return dmsg(*_FA, "range_last_days", days=days)
+    return dmsg(*_FA, "range_all_time")
 
 
 async def _fetch_rows(ctx: AgentContext, **kwargs) -> tuple[Optional[int], list]:
@@ -93,21 +95,21 @@ async def get_transactions(
     days: int = 0,
     category: str = "",
 ) -> str:
-    """Транзакции за интервал: from_date/to_date YYYY-MM-DD или days. category: точное имя или префикс «Еда/»."""
+    """Transactions in interval: from_date/to_date YYYY-MM-DD or days. category: exact name or prefix."""
     analyst = _analyst(ctx)
     uid, rows = await _fetch_rows(
         ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
     )
     if uid is None:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     dr = resolve_date_range(
         from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
     )
-    label = f"Транзакции ({_range_label(dr, days=days)})"
+    label = dmsg(*_FA, "transactions_label", range=_range_label(dr, days=days))
     monthly = analyst._monthly_summary_text(rows) if rows else ""
     body = format_txn_summary(rows, label=label)
     if monthly:
-        body += "\n\nПомесячно:\n" + monthly
+        body += dmsg(*_FA, "monthly_header") + monthly
     return body
 
 
@@ -118,30 +120,32 @@ async def get_spending_by_category(
     to_date: str = "",
     days: int = 0,
 ) -> str:
-    """Расходы по категориям (только потребление) за интервал (from/to или days)."""
+    """Spending by category (consumption only) for interval (from/to or days)."""
     uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
     if uid is None:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     dr = resolve_date_range(from_date=from_date, to_date=to_date, days=days, default_days=30)
-    return format_spending_by_category(rows, label=f"Расходы по категориям ({_range_label(dr, days=days)})")
+    return format_spending_by_category(
+        rows, label=dmsg(*_FA, "spending_by_category", range=_range_label(dr, days=days))
+    )
 
 
 @tool(category="balance")
 async def get_balance(ctx: AgentContext) -> str:
-    """Текущие балансы по счетам (компактно)."""
+    """Current account balances (compact)."""
     tg_id = await _telegram_id(ctx)
     async with AsyncSessionLocal() as session:
         user = (
             await session.execute(select(User).where(User.telegram_id == tg_id))
         ).scalar_one_or_none()
         if user is None:
-            return "Пользователь не найден."
+            return dmsg(*_FA, "user_not_found")
 
         accounts = (
             await session.execute(select(Account).where(Account.user_id == user.id))
         ).scalars().all()
 
-        lines = ["Балансы по счетам:"]
+        lines = [dmsg(*_FA, "balances_header")]
         for acc in accounts:
             if is_badge_account_name(acc.name):
                 continue
@@ -168,7 +172,7 @@ async def get_balance(ctx: AgentContext) -> str:
                 continue
             lines.append(f"  {acc.name}: {bal:,.2f} {acc.currency} ({acc.type})")
         if len(lines) == 1:
-            lines.append("  (нет ненулевых счетов)")
+            lines.append(dmsg(*_FA, "no_nonzero_accounts"))
         return "\n".join(lines)
 
 
@@ -179,10 +183,10 @@ async def get_recent(
     from_date: str = "",
     to_date: str = "",
 ) -> str:
-    """Последние N операций (опционально в интервале from/to)."""
+    """Last N operations (optional from/to interval)."""
     uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, default_days=None)
     if uid is None:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     if not rows and not (from_date or to_date):
         rows = await _analyst(ctx)._fetch_transactions(uid, days=None)
     return format_txn_recent(rows, n=max(1, min(int(n), 50)))
@@ -195,29 +199,29 @@ async def compute_summary(
     to_date: str = "",
     days: int = 0,
 ) -> str:
-    """Сводка доходов/расходов за интервал (from/to YYYY-MM-DD или days)."""
+    """Income/expense summary for interval (from/to YYYY-MM-DD or days)."""
     analyst = _analyst(ctx)
     uid, subset = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
     if uid is None:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     all_rows = await analyst._fetch_transactions(uid, days=None)
     dr = resolve_date_range(
         from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
     )
-    label = f"Сводка ({_range_label(dr, days=days)})"
+    label = dmsg(*_FA, "summary_label", range=_range_label(dr, days=days))
     baselines = analyst._compute_baselines(all_rows)
     monthly = analyst._monthly_summary_text(all_rows)
     parts = [
         format_txn_summary(subset, label=label),
-        f"Базлайны (медиана прошлых месяцев): {baselines}" if baselines else "",
-        f"Помесячно:\n{monthly}" if monthly else "",
+        dmsg(*_FA, "baselines", baselines=baselines) if baselines else "",
+        dmsg(*_FA, "monthly_header") + monthly if monthly else "",
     ]
     return "\n\n".join(p for p in parts if p)
 
 
 @tool(category="planning")
 async def get_planned_expenses(ctx: AgentContext, status: str = "active") -> str:
-    """Запланированные расходы (status: active | done | cancelled | all)."""
+    """Planned expenses (status: active | done | cancelled | all)."""
     tg_id = await _telegram_id(ctx)
     st = (status or "active").strip().lower()
     async with AsyncSessionLocal() as session:
@@ -225,23 +229,36 @@ async def get_planned_expenses(ctx: AgentContext, status: str = "active") -> str
             await session.execute(select(User).where(User.telegram_id == tg_id))
         ).scalar_one_or_none()
         if not user:
-            return "Пользователь не найден."
+            return dmsg(*_FA, "user_not_found")
         q = select(PlannedExpense).where(PlannedExpense.user_id == user.id)
         if st != "all":
             q = q.where(PlannedExpense.status == st)
         plans = (await session.execute(q.order_by(PlannedExpense.due_date.asc().nullslast()))).scalars().all()
     if not plans:
-        return f"Запланированные расходы ({st}): (нет)"
-    lines = [f"Запланированные расходы ({st}):"]
+        return dmsg(*_FA, "planned_empty", status=st)
+    lines = [dmsg(*_FA, "planned_header", status=st)]
     for p in plans:
-        due = p.due_date.strftime("%Y-%m-%d") if p.due_date else "без срока"
-        lines.append(f"  {p.name}: {float(p.amount):,.0f} {p.currency} (к {due})")
+        due = (
+            p.due_date.strftime("%Y-%m-%d")
+            if p.due_date
+            else dmsg(*_FA, "planned_no_due", default="no deadline")
+        )
+        lines.append(
+            dmsg(
+                *_FA,
+                "planned_line",
+                name=p.name,
+                amount=float(p.amount),
+                currency=p.currency,
+                due=due,
+            )
+        )
     return "\n".join(lines)
 
 
 @tool(category="planning")
 async def get_finance_forecast(ctx: AgentContext) -> str:
-    """LLM-прогноз: хватает ли денег на планы (контекст из БД + subscriptions.yaml)."""
+    """LLM forecast: cash vs plans (DB + subscriptions.yaml)."""
     from bot.services.planning_forecast import generate_forecast
 
     tg_id = await _telegram_id(ctx)
@@ -250,39 +267,49 @@ async def get_finance_forecast(ctx: AgentContext) -> str:
 
 @tool(category="subscriptions")
 async def get_subscriptions(ctx: AgentContext) -> str:
-    """Регулярные подписки из config/subscriptions.yaml."""
+    """Recurring subscriptions from config/subscriptions.yaml."""
     subs = load_subscriptions()
     if not subs:
-        return "Подписки: (файл пуст или не настроен)"
-    lines = ["Подписки (регулярные):"]
+        return dmsg(*_FA, "subscriptions_empty")
+    lines = [dmsg(*_FA, "subscriptions_header")]
     for s in subs:
-        lines.append(f"  {s.name}: {s.amount} {s.currency}/{s.period}, след. {s.next_charge}")
+        lines.append(
+            dmsg(
+                *_FA,
+                "subscription_line",
+                name=s.name,
+                amount=s.amount,
+                currency=s.currency,
+                period=s.period,
+                next_charge=s.next_charge,
+            )
+        )
     return "\n".join(lines)
 
 
 @tool(category="debts")
 async def get_debts_summary(ctx: AgentContext) -> str:
-    """Сводка долгов (счета receivable / liability_payable)."""
+    """Debt summary (receivable / liability_payable accounts)."""
     uid = await _user_id(ctx)
     if not uid:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     async with AsyncSessionLocal() as session:
         return await format_debts_summary(session, uid)
 
 
 @tool(category="investments")
 async def get_broker_overview(ctx: AgentContext) -> str:
-    """Брокерские и внешние балансы счетов."""
+    """Broker and external account balances."""
     uid = await _user_id(ctx)
     if not uid:
-        return "Пользователь не найден."
+        return dmsg(*_FA, "user_not_found")
     async with AsyncSessionLocal() as session:
         return await format_broker_overview(session, uid)
 
 
 @tool(category="badge")
 async def get_badge_status(ctx: AgentContext, day: str = "") -> str:
-    """Статус бейджа питания: day=YYYY-MM-DD или сегодня."""
+    """Meal badge status: day=YYYY-MM-DD or today."""
     tg_id = await _telegram_id(ctx)
     target = date.today()
     if (day or "").strip():
@@ -296,7 +323,7 @@ async def get_badge_status(ctx: AgentContext, day: str = "") -> str:
             await session.execute(select(User).where(User.telegram_id == tg_id))
         ).scalar_one_or_none()
         if not user:
-            return "Пользователь не найден."
+            return dmsg(*_FA, "user_not_found")
         tracker = BadgeTracker()
         acc = await tracker.get_or_create_badge_account(session, user.id)
         ds = await tracker.day_stats(session, user.id, target, acc.id)
@@ -346,15 +373,14 @@ class FinanceAdapter(DomainAdapter):
 
         base = _load_prompt("query_prompt.txt")
         now = self._analyst._now()
-        date_hint = (
-            f"Сегодня: {now.strftime('%Y-%m-%d')}. Текущий месяц: {now.strftime('%B %Y')}."
+        date_hint = dmsg(
+            *_FA,
+            "date_hint",
+            today=now.strftime("%Y-%m-%d"),
+            month=now.strftime("%B %Y"),
         )
-        return (
-            f"{base}\n\n{date_hint}\n"
-            "Обязательно вызывай инструменты для любых сумм, балансов, операций и сводок. "
-            "Интервалы задавай through from_date/to_date (YYYY-MM-DD) или days. "
-            "Не выдумывай цифры."
-        )
+        suffix = dmsg(*_FA, "prompt_suffix")
+        return f"{base}\n\n{date_hint}\n{suffix}"
 
     def memory_layers(self, ctx: AgentContext):
         from shared.memory.layers import build_memory_layers

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from pathlib import Path
 import os
 import re
 import time
@@ -31,15 +32,16 @@ from knowledge_bot.app.state import (
 )
 from knowledge_bot.app.handlers.media import process_single_media
 from knowledge_bot.app.handlers.review import generate_note_review
+from knowledge_bot.app.ui import kmsg
 
 
 async def process_complete(main_message: Message, all_messages: list[Message], combined_text: str, media_group_id: int | None, log: logging.Logger, *, bulk_mode: bool = False) -> None:
-    """Полная обработка сообщения(й) - от медиа до отправки review"""
+    """Full message handling: media ingest through review."""
     cfg = load_config()
     
-    # Отправляем промежуточное сообщение сразу, чтобы пользователь видел, что бот работает
+    #    ,   ,   
     try:
-        processing_msg = await main_message.answer("⏳ Обрабатываю...")
+        processing_msg = await main_message.answer(kmsg("processing"))
     except Exception as proc_err:
         log.warning("Failed to send processing message: %s", proc_err)
         processing_msg = None
@@ -49,7 +51,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     summary_obj = bundle.to_summary()
     summary_obj["meta"] = summary_obj.get("meta", {})
     
-    # YouTube: транскрипт без загрузки (для ссылок на ролики)
+    # YouTube:    (   )
     all_urls = list(bundle.urls or [])
     for msg in all_messages:
         txt = msg.text or msg.caption or ""
@@ -70,17 +72,17 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         except Exception as yt_err:
             log.warning("YouTube transcript failed: %s", yt_err)
     
-    # НЕ делаем роутинг сразу - сначала загрузим медиа и извлечем OCR/ASR
-    # Роутинг будет после загрузки медиа на основе полного контекста
+    #     -      OCR/ASR
+    #         
     routed = {"type": None, "attachments": {"links": [], "files": []}, "form": None}
     summary_obj["derived"] = summary_obj.get("derived", {})
     
-    # Обрабатываем все медиа из группы (или одно сообщение)
+    #      (  )
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
     for msg in all_messages:
         await process_single_media(msg, combined_text, routed, summary_obj, llm, cfg, log)
     
-    # Ре-роутинг после обработки всех медиа, если есть OCR/ASR/PDF/vision/yt_transcript
+    # -    ,   OCR/ASR/PDF/vision/yt_transcript
     has_derived = any(summary_obj["derived"].get(k) for k in ("ocr_text", "asr_text", "pdf_text", "vision_text", "yt_transcript_text"))
     if has_derived and not routed.get("type"):
         try:
@@ -104,7 +106,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         except Exception as re_err:
             log.warning("reroute after media processing failed: %s", re_err)
     
-    # ASR: расшифровка в заметку (видео и голос/аудио) и сводка для видео
+    # ASR:    (  /)    
     if summary_obj["derived"].get("asr_text"):
         routed["asr_text"] = summary_obj["derived"]["asr_text"]
         if routed.get("form") == "video":
@@ -117,7 +119,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             except Exception as sum_err:
                 log.warning("ASR summarize failed: %s", sum_err)
     
-    # YouTube transcript summary (для ссылок на ролики без загрузки)
+    # YouTube transcript summary (     )
     if summary_obj["derived"].get("yt_transcript_text"):
         try:
             yt_system = load_prompt(cfg.agent_config_path, "yt_transcript_summary")
@@ -128,7 +130,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                 routed["yt_transcript_summary"] = summary_obj["derived"]["yt_transcript_summary"]
                 log.info("YouTube transcript summarized: %d chars", len(summary_obj["derived"]["yt_transcript_summary"]))
                 log.info("[DEBUG yt] routed['yt_transcript_summary'] set, len=%d", len(routed["yt_transcript_summary"]))
-                # Освободить память: полный транскрипт больше не нужен после суммаризации
+                #  :       
                 try:
                     summary_obj["derived"].pop("yt_transcript_text", None)
                 except Exception:
@@ -165,7 +167,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                     routed["form"] = routed.get("form") or "video"
                     routed.setdefault("filenames", []).append(saved_path.name)
                     try:
-                        # Используем семафор для ограничения параллельных ASR процессов
+                        #      ASR 
                         asr_sem = get_asr_semaphore()
                         async with asr_sem:
                             derived = await asyncio.to_thread(extract_from_path, str(saved_path))
@@ -182,7 +184,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     except Exception as _e:
         logging.getLogger("kb.bot").warning("ytdlp fallback failed: %s", _e)
     
-    # Финальный роутинг если type еще не установлен (после загрузки всех медиа)
+    #    type    (   )
     if not routed.get("type"):
         try:
             routed = route_and_fill(llm, summary_obj, source_hint="telegram")
@@ -190,7 +192,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             log.info("Final routing: type=%s title=%s", routed.get("type"), routed.get("title"))
         except Exception as final_route_err:
             log.warning("Final routing failed: %s", final_route_err)
-            routed.setdefault("type", "ссылка")  # Fallback
+            routed.setdefault("type", "link")
 
     # Naming: use summary context for robust 2–3 word title
     try:
@@ -202,25 +204,25 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             "hint_title": routed.get("title")
         }, ensure_ascii=False)
         named = llm.chat_json(naming_system, naming_input).content or {}
-        # Проверяем, что named - это словарь и содержит только title (не весь routing объект)
+        # ,  named -      title (  routing )
         if isinstance(named, dict):
             title_val = named.get("title")
-            # Если fallback вернул весь объект (с type, tags и т.д.), игнорируем его
-            # Используем title только если:
-            # 1. Это строка (не JSON объект)
-            # 2. Не начинается с { (не JSON строка)
-            # 3. Имеет разумную длину (не весь JSON dump)
+            #  fallback    ( type, tags  ..),  
+            #  title  :
+            # 1.   ( JSON )
+            # 2.    { ( JSON )
+            # 3.    (  JSON dump)
             if isinstance(title_val, str) and title_val.strip():
                 title_clean = title_val.strip()
-                # Проверяем, что это не JSON строка или объект
+                # ,    JSON   
                 if not (title_clean.startswith("{") or title_clean.startswith("[")):
-                    # Проверяем, что это не слишком длинная строка (вероятно JSON dump)
+                    # ,       ( JSON dump)
                     if len(title_clean) < 200:
                         routed["title"] = title_clean
     except Exception:
         pass
-    routed.setdefault("title", "Без названия")
-    # Если по ссылке пришёл мусорный заголовок страницы (например YouTube Terms Privacy), подставить название из oEmbed
+    routed.setdefault("title", kmsg("untitled"))
+    #        ( YouTube Terms Privacy),    oEmbed
     if yt_url:
         t = (routed.get("title") or "").strip()
         if t and ("youtube terms" in t.lower() or (len(t) < 25 and "privacy" in t.lower())):
@@ -249,7 +251,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         # regex over raw text
         for m in re.finditer(r"https?://[^\s)]+", bundle.raw_text or ""):
             links.add(_normalize_url(m.group(0)))
-        # telegram entities (text or caption) - обрабатываем все сообщения из группы
+        # telegram entities (text or caption) -     
         for msg in all_messages:
             ents = msg.entities if msg.text is not None else msg.caption_entities
             txt = msg.text if msg.text is not None else (msg.caption or "")
@@ -297,7 +299,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                     routed.setdefault("filenames", []).append(saved_path.name)
                     # Try ASR on downloaded media
                     try:
-                        # Используем семафор для ограничения параллельных ASR процессов
+                        #      ASR 
                         asr_sem = get_asr_semaphore()
                         async with asr_sem:
                             derived = await asyncio.to_thread(extract_from_path, str(saved_path))
@@ -328,12 +330,12 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             }
         }
         filled = llm.chat_json(field_system, json.dumps(user, ensure_ascii=False)).content or {}
-        # Не перезаписывать производные поля (уже заполнены из медиа/YouTube), если значение не пустое
+        #     (   /YouTube),    
         derived_keys = {"yt_transcript_summary", "asr_text", "vision_text", "asr_summary"}
         for k in allowed_fields:
             if k in filled:
                 if k in derived_keys and routed.get(k):
-                    continue  # сохраняем уже заполненное из extract/LLM
+                    continue
                 routed[k] = filled[k]
     except Exception as e:
         log.warning("field_fill failed: %s", e)
@@ -343,7 +345,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         enums_cfg = load_enums_config(cfg.agent_config_path)
         tags_system = load_prompt(cfg.agent_config_path, "tags")
         ctx = get_author_context(cfg.agent_config_path)
-        author_line = f"Учти личность автора: {ctx}\n\n" if ctx else ""
+        author_line = kmsg("author_context_line", context=ctx) if ctx else ""
         tags_system = tags_system.replace("{{AUTHOR_CONTEXT_LINE}}", author_line)
         # Add tags inventory to system prompt
         tags_inventory_text = get_tags_inventory_for_prompt(cfg.agent_config_path)
@@ -377,16 +379,11 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         else:
             tag_candidates = tag_resp if isinstance(tag_resp, list) else []
         # Normalize tags to all-English ASCII slugs (free namespaces), lower-case namespaces
+        _slug_map_path = Path(__file__).resolve().parents[2] / "config" / "cyrillic_slug_map.json"
+        _slug_map = json.loads(_slug_map_path.read_text(encoding="utf-8"))
+
         def _translit_ru(s: str) -> str:
-            table = str.maketrans({
-                "а":"a","б":"b","в":"v","г":"g","д":"d","е":"e","ё":"e","ж":"zh","з":"z","и":"i","й":"i",
-                "к":"k","л":"l","м":"m","н":"n","о":"o","п":"p","р":"r","с":"s","т":"t","у":"u","ф":"f",
-                "х":"h","ц":"c","ч":"ch","ш":"sh","щ":"shch","ы":"y","э":"e","ю":"yu","я":"ya",
-                "А":"a","Б":"b","В":"v","Г":"g","Д":"d","Е":"e","Ё":"e","Ж":"zh","З":"z","И":"i","Й":"i",
-                "К":"k","Л":"l","М":"m","Н":"n","О":"o","П":"p","Р":"r","С":"s","Т":"t","У":"u","Ф":"f",
-                "Х":"h","Ц":"c","Ч":"ch","Ш":"sh","Щ":"shch","Ы":"y","Э":"e","Ю":"yu","Я":"ya",
-            })
-            return s.translate(table)
+            return s.translate(str.maketrans(_slug_map))
 
         def _slug_ascii(s: str) -> str:
             import re
@@ -446,9 +443,9 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         logging.getLogger("kb.bot").warning("tags generation failed: %s", e)
         routed.setdefault("tags", [])
 
-    # Передать в шаблон производные поля (описание сцены и т.д.)
+    #      (   ..)
     routed["vision_text"] = (summary_obj["derived"].get("vision_text") or "").strip()
-    # Гарантированно подставить yt_transcript_summary в payload для рендера (для типа «видео»)
+    #   yt_transcript_summary  payload   (  «»)
     if summary_obj["derived"].get("yt_transcript_summary") and not routed.get("yt_transcript_summary"):
         routed["yt_transcript_summary"] = summary_obj["derived"]["yt_transcript_summary"]
         log.info("[DEBUG yt] filled routed from derived, len=%d", len(routed["yt_transcript_summary"]))
@@ -465,27 +462,31 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
         log.error("Failed to render note: %s", render_err, exc_info=True)
         rendered = ""
     
-    # Генерируем ревью заметки
+    #   
     try:
         review_text = generate_note_review(routed, summary_obj)
         log.info("Review text generated (len=%d)", len(review_text))
     except Exception as review_err:
         log.error("Failed to generate review: %s", review_err, exc_info=True)
-        review_text = f"Готово к сохранению — тип: {routed.get('type', 'не определен')}\nНазвание: {routed.get('title', 'Без названия')}"
+        review_text = kmsg(
+            "preview_ready_fallback",
+            type=routed.get("type", kmsg("type_undefined")),
+            title=routed.get("title", kmsg("untitled")),
+        )
     
-    # Удаляем промежуточное сообщение "Обрабатываю..."
+    #    "..."
     if processing_msg:
         try:
             await processing_msg.delete()
             log.debug("Processing message deleted")
         except Exception:
-            pass  # Не критично, если не удалось удалить
+            pass
     
-    # Экранируем спецсимволы Markdown для безопасности (если используется Markdown)
-    # Убираем parse_mode, так как могут быть проблемы с парсингом
-    # Telegram V2 API поддерживает HTML, но Markdown более чувствителен к ошибкам
+    #   Markdown   (  Markdown)
+    #  parse_mode,       
+    # Telegram V2 API  HTML,  Markdown    
     
-    # Защита от дублирования: если для этого message_id уже отправляли ревью недавно (в течение 10 сек), пропускаем
+    #   :    message_id     (  10 ), 
     msg_id = main_message.message_id if main_message else None
     if msg_id and msg_id in app_state._RECENT_REVIEWS:
         elapsed = time.time() - app_state._RECENT_REVIEWS[msg_id]
@@ -494,7 +495,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             return
     
     # Send review and bind state to the preview message id to support multiple parallel drafts per user
-    # Используем rate limiter и retry с экспоненциальным backoff
+    #  rate limiter  retry   backoff
     log.info("Sending review message (len=%d, main_message=%s)...", len(review_text), main_message.message_id if main_message else "None")
     
     preview_msg = None
@@ -502,10 +503,10 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     base_delay = 1.0
     
     async def _send_with_rate_limit(text: str, use_markup: bool = True) -> Message | None:
-        """Отправляет сообщение с учетом rate limiting"""
+        """Send message with rate limiting."""
         limiter = get_message_rate_limiter()
         async with limiter:
-            # Увеличена задержка до 3 сек между сообщениями для стабильной обработки множества видео
+            #    3        
             await asyncio.sleep(3.0)
             if use_markup:
                 return await main_message.answer(
@@ -515,28 +516,28 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             else:
                 return await main_message.answer(text[:4096])
     
-    # Retry логика с экспоненциальным backoff
+    # Retry    backoff
     for attempt in range(max_retries):
         try:
             preview_msg = await _send_with_rate_limit(review_text[:4096], use_markup=True)
             log.info("Review message sent successfully (msg_id=%d, attempt=%d)", preview_msg.message_id if preview_msg else 0, attempt + 1)
-            # Отмечаем, что ревью отправлено для этого message_id
+            # ,      message_id
             if msg_id:
                 app_state._RECENT_REVIEWS[msg_id] = time.time()
-                # Очищаем старые записи (старше 60 сек)
+                #    ( 60 )
                 stale = [k for k, v in list(app_state._RECENT_REVIEWS.items()) if time.time() - v >= 60.0]
                 for k in stale:
                     app_state._RECENT_REVIEWS.pop(k, None)
             break
         except Exception as e:
             if attempt < max_retries - 1:
-                delay = base_delay * (2 ** attempt)  # Экспоненциальный backoff: 1s, 2s, 4s, 8s
+                delay = base_delay * (2 ** attempt)
                 log.warning("Failed to send review message (attempt %d/%d): %s, retrying in %.1fs...", 
                            attempt + 1, max_retries, e, delay)
                 await asyncio.sleep(delay)
             else:
                 log.error("Failed to send review message after %d attempts: %s", max_retries, e, exc_info=True)
-                # Пробуем без форматирования (последняя попытка)
+                #    ( )
                 try:
                     preview_msg = await _send_with_rate_limit(
                         review_text[:4096].replace("*", "").replace("_", "").replace("`", ""),
@@ -545,16 +546,16 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
                     log.info("Review message sent (plain text, msg_id=%d)", preview_msg.message_id if preview_msg else 0)
                 except Exception as e2:
                     log.error("Failed to send plain review message: %s", e2, exc_info=True)
-                    # Последняя попытка - простой текст без markup
+                    #   -    markup
                     try:
                         preview_msg = await _send_with_rate_limit(
-                            f"Готово к сохранению — тип: {routed['type']}\nНазвание: {routed['title']}",
+                            kmsg("preview_ready_typed", type=routed["type"], title=routed["title"]),
                             use_markup=True
                         )
                         log.info("Review message sent (fallback, msg_id=%d)", preview_msg.message_id if preview_msg else 0)
                     except Exception as e3:
                         log.error("Failed to send fallback review message: %s", e3, exc_info=True)
-                        return  # Не удалось отправить ответ
+                        return
     
     if not preview_msg:
         log.error("Could not send review message after all retries, giving up")
@@ -564,13 +565,13 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
              len(routed.get("yt_transcript_summary") or ""))
     app_state._PENDING[preview_msg.message_id] = {"payload": routed, "rendered": rendered, "summary": summary_obj}
     
-    # Очищаем media_group после обработки
+    #  media_group  
     if media_group_id:
         app_state._MEDIA_GROUPS[media_group_id]["processed"] = True
         app_state._MEDIA_GROUPS[media_group_id]["processing"] = False
-        # Удаляем через некоторое время, чтобы не накапливать
+        #    ,   
         asyncio.create_task(cleanup_media_group_after_delay(media_group_id, delay=60))
-    # Ограничиваем размер _PENDING и освобождаем память после тяжёлой обработки (снижение риска OOM)
+    #   _PENDING       (  OOM)
     limit = pending_limit()
     if len(app_state._PENDING) > limit:
         by_id = sorted(app_state._PENDING.keys())

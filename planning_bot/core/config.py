@@ -98,17 +98,11 @@ def _schema_order(key: str) -> dict:
     return dict(val) if isinstance(val, dict) else {}
 
 
-_DEFAULT_KANBAN_COLUMNS = [
-    "📋 Бэклог",
-    "📅 Ждёт даты",
-    "⏸ Отложено",
-    "🔄 В работе",
-    "🚫 Заблокировано",
-    "✅ Сделано",
-]
+_DEFAULT_KANBAN_COLUMNS: list[str] = []
 KANBAN_COLUMNS = _schema_list("columns") or list(_DEFAULT_KANBAN_COLUMNS)
 BACKLOG_COLUMN = KANBAN_COLUMNS[0] if KANBAN_COLUMNS else ""
 WAITING_DATE_COLUMN = KANBAN_COLUMNS[1] if len(KANBAN_COLUMNS) > 1 else ""
+POSTPONED_COLUMN = KANBAN_COLUMNS[2] if len(KANBAN_COLUMNS) > 2 else ""
 DONE_COLUMN = KANBAN_COLUMNS[-1] if KANBAN_COLUMNS else ""
 IN_WORK_COLUMN = KANBAN_COLUMNS[3] if len(KANBAN_COLUMNS) > 3 else ""
 BLOCKED_COLUMN = KANBAN_COLUMNS[4] if len(KANBAN_COLUMNS) > 4 else ""
@@ -118,24 +112,15 @@ PRIORITIES = _schema_list("priorities")
 CATEGORY_ORDER = _schema_order("category_order")
 PRIORITY_ORDER = _schema_order("priority_order")
 
-DEFAULT_CATEGORY = CATEGORIES[0] if CATEGORIES else "прочее"
-DEFAULT_PRIORITY = "средний" if "средний" in PRIORITIES else (PRIORITIES[1] if len(PRIORITIES) > 1 else "средний")
+DEFAULT_CATEGORY = CATEGORIES[0] if CATEGORIES else "other"
+DEFAULT_PRIORITY = (
+    PRIORITIES[1]
+    if len(PRIORITIES) > 1
+    else (PRIORITIES[0] if PRIORITIES else "medium")
+)
 
-_DEFAULT_CATEGORY_EMOJIS: dict[str, str] = {
-    "карьера": "💼",
-    "учеба": "📚",
-    "развитие": "🚀",
-    "дом": "🏠",
-    "семья": "👥",
-    "здоровье": "💪",
-    "инфраструктура": "⚙️",
-    "опыт": "🌟",
-}
-_DEFAULT_PRIORITY_EMOJIS: dict[str, str] = {
-    "высокий": "🔥",
-    "средний": "🟡",
-    "низкий": "⚪",
-}
+_DEFAULT_CATEGORY_EMOJIS: dict[str, str] = {}
+_DEFAULT_PRIORITY_EMOJIS: dict[str, str] = {}
 
 
 def _emoji_map_from_schema(key: str, defaults: dict[str, str]) -> dict[str, str]:

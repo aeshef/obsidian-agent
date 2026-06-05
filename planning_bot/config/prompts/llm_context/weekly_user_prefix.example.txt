@@ -1,0 +1,2 @@
+Generate weekly review from data below. Numbers must match Review data block; for moves use only Week moves list. If CALENDAR block exists, weave 1-2 busiest days from it; do not invent meetings.
+

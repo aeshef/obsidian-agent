@@ -12,7 +12,10 @@ from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 from sqlalchemy import select
 
+from functools import lru_cache
+
 from bot.config_loader import get_badge_config, is_badge_enabled
+from shared.domain_messages import dmsg
 from bot.db import AsyncSessionLocal
 from bot.models import Account, User
 from bot.ui import fmsg
@@ -23,11 +26,15 @@ from bot.services.dashboard.format import fmt_num
 
 router = Router(name="finance_badge")
 
-_BADGE_LINE_RE = re.compile(r"бейдж\s*кр", re.I)
+@lru_cache(maxsize=1)
+def _badge_line_re() -> re.Pattern[str]:
+    pat = dmsg("badge", "line_keyword_pattern", default="badge")
+    return re.compile(pat, re.I)
 
 
 def badge_category_name() -> str:
-    return str(get_badge_config().get("category", "Еда/Бейдж")).strip()
+    cfg = get_badge_config()
+    return str(cfg.get("category") or dmsg("badge", "default_category", default="")).strip()
 
 
 def badge_write_context() -> dict[str, str]:
@@ -107,7 +114,7 @@ def infer_badge_spend_text(text: str) -> bool:
     lines = [ln.strip() for ln in (text or "").splitlines() if ln.strip()]
     if not lines:
         return False
-    badge_lines = sum(1 for ln in lines if _BADGE_LINE_RE.search(ln))
+    badge_lines = sum(1 for ln in lines if _badge_line_re().search(ln))
     return badge_lines > 0 and badge_lines >= max(1, len(lines) // 2)
 
 

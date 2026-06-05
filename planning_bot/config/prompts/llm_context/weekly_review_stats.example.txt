@@ -1,0 +1,22 @@
+Review data (use ONLY these numbers and lists).
+
+Week: Monday {week_start_str} — Sunday {week_end_str}.
+Formed at: {weekday_str}, {formed_at_str}, {time_str}.
+
+Board state:
+- Column «{backlog_col}»: {backlog_only} tasks
+- Column «{waiting_col}»: {in_waiting_date} tasks
+- Column «{postponed_col}»: {in_postponed} tasks
+- Column «{in_work_col}»: {in_work} tasks (in-work column only)
+- Column «{blocked_col}»: {in_blocked} tasks
+- Active total (backlog + in-work): {total_active}
+
+Week log totals:
+- Completed: {completed}
+- Move records below: {num_moves}
+
+By category: {by_category}
+By priority: {by_priority}
+{completed_titles_block}
+
+Note: in-work = «{in_work_col}» only; active planning = «{backlog_col}» + «{in_work_col}».

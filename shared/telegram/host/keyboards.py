@@ -9,7 +9,7 @@ from shared.telegram.keyboards import append_button_rows
 
 
 def configure_host_keyboards() -> None:
-    """Footer «Главное» on embedded domain reply keyboards."""
+    """Footer home button on embedded domain reply keyboards."""
     from planning_bot.app.keyboards import set_keyboard_extras
 
     set_keyboard_extras([[KeyboardButton(text=L.back_home())]])
@@ -22,7 +22,7 @@ def root_keyboard() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=L.mode_knowledge()), KeyboardButton(text=L.mode_auto())],
         ],
         resize_keyboard=True,
-        input_field_placeholder=msg("host", "placeholder_root", default="Выбери режим или напиши вопрос"),
+        input_field_placeholder=msg("host", "placeholder_root", default="Choose mode or ask a question"),
     )
 
 
@@ -49,7 +49,7 @@ def knowledge_keyboard(*, bulk_active: bool = False) -> ReplyKeyboardMarkup:
         ],
         resize_keyboard=True,
         input_field_placeholder=msg(
-            "host", "placeholder_knowledge", default="Прогрузка медиа или вопрос по заметкам"
+            "host", "placeholder_knowledge", default="Media ingest or question about notes"
         ),
     )
 
@@ -59,7 +59,7 @@ def auto_keyboard() -> ReplyKeyboardMarkup:
         keyboard=[[KeyboardButton(text=L.back_home())]],
         resize_keyboard=True,
         input_field_placeholder=msg(
-            "host", "placeholder_auto", default="Вопрос — домен выберется сам"
+            "host", "placeholder_auto", default="Question — domain is auto-selected"
         ),
     )
 

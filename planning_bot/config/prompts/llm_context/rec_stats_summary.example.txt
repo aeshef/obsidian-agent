@@ -1,0 +1,3 @@
+Active tasks: {total}
+In progress: {in_work} (highest priority)
+Backlog: {backlog}
