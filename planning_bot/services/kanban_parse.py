@@ -85,25 +85,33 @@ def title_from_block(block: str) -> str:
 
 
 def created_date_from_block(block: str) -> str:
-    m = re.search(pdmsg("auto_04f3888a7d"), block)
+    from planning_bot.services.kanban_format import tag_created_regex
+
+    m = tag_created_regex().search(block)
     return m.group(1) if m else "0000-00-00"
 
 
 def metadata_from_block(block: str) -> Dict[str, Optional[str]]:
+    from planning_bot.services.kanban_format import (
+        tag_deadline_regex,
+        tag_goal_regex,
+        tag_priority_regex,
+    )
+
     first = (block.split("\n") or [""])[0]
     is_completed = bool(re.match(r"^\s*- \[x\]", first))
     category = None
     priority = None
     deadline = None
-    cm = re.search(pdmsg("auto_8d7e383ebe"), block)
-    pm = re.search(pdmsg("auto_a1fb4d656a"), block)
-    dm = re.search(pdmsg("auto_4f6bd2f69f"), block)
+    cm = tag_goal_regex().search(block)
+    pm = tag_priority_regex().search(block)
+    dm = tag_deadline_regex().search(block)
     if cm:
-        category = cm.group(1)
+        category = (cm.group(1) or "").strip()
     if pm:
-        priority = pm.group(1)
+        priority = (pm.group(1) or "").strip()
     if dm:
-        deadline = dm.group(1)
+        deadline = (dm.group(1) or "").strip()
     return {
         "title": title_from_block(block),
         "completed": is_completed,

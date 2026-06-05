@@ -53,3 +53,11 @@ priority_emojis:
   высокий: "🔥"
   средний: "🟡"
   низкий: "⚪"
+
+# Task block format (used when creating tasks in the board file).
+task_meta_template: "\t#цель/{category} #приоритет/{priority}"
+task_created_template: "\t📅 Создано: {created_date}"
+tag_goal_regex: '#цель/([^\s#]+)'
+tag_priority_regex: '#приоритет/(высокий|средний|низкий)'
+tag_deadline_regex: '#дедлайн/(\d{4}-\d{2}-\d{2})'
+tag_created_regex: '📅 Создано:\s*(\d{4}-\d{2}-\d{2})'

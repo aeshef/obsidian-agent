@@ -266,7 +266,13 @@ def apply_kanban_action(
             return (
                 pdmsg("auto_9105976fe5")
             )
-        tid = board.add_task_to_backlog(title.strip(), category, priority)
+        from planning_bot.services.kanban_format import normalize_category, normalize_priority
+
+        tid = board.add_task_to_backlog(
+            title.strip(),
+            normalize_category(category),
+            normalize_priority(priority),
+        )
         if logger:
             logger.log_task_created(title.strip(), category, priority, task_id=tid)
         _sync_state_file(board)

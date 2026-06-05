@@ -12,6 +12,12 @@ from planning_bot.core.config import (
 )
 from planning_bot.services.kanban_utils import get_column_by_position
 from planning_bot.services import kanban_parse as kp
+from planning_bot.services.kanban_format import (
+    normalize_category,
+    normalize_priority,
+    task_created_line,
+    task_meta_line,
+)
 
 
 class KanbanBoard:
@@ -70,12 +76,19 @@ class KanbanBoard:
         # (comment)
         task_id = str(uuid.uuid4())[:8]  # (comment)
 
-        # (comment)
+        cat = normalize_category(category)
+        pri = normalize_priority(priority)
         task_line = f"- [ ] {title}"
-        task_meta = pdmsg("auto_743c193451", category={category}, priority={priority})
-        task_date = pdmsg("auto_90845dcdf6", created_date={created_date})
+        task_meta = task_meta_line(cat, pri)
+        task_date = task_created_line(created_date)
         task_id_line = f"\t🆔 ID: {task_id}"
-        new_task = f"{task_line}\n{task_meta}\n{task_date}\n{task_id_line}"
+        parts = [task_line]
+        if task_meta.strip():
+            parts.append(task_meta)
+        if task_date.strip():
+            parts.append(task_date)
+        parts.append(task_id_line)
+        new_task = "\n".join(parts)
 
         backlog_header = f"## {BACKLOG_COLUMN}"
         backlog_index = self.content.find(backlog_header)
