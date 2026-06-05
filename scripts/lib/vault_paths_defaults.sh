@@ -6,6 +6,7 @@ vault_paths_apply_defaults() {
   : "${VAULT_FOLDER_DASHBOARDS:=300_Dashboards}"
   : "${VAULT_FOLDER_ROUTINES:=400_Routines}"
   : "${VAULT_FOLDER_HANDWRITTEN:=600_Handwritten}"
+  : "${VAULT_FOLDER_AUTOMATION:=800_Automation}"
   : "${VAULT_DASH_LOGS:=Logs}"
   : "${VAULT_DASH_CHARTS:=Charts}"
   : "${VAULT_DASH_DATA:=Data}"
@@ -28,7 +29,7 @@ _vault_segment_sane() {
 _vault_sanitize_exported_segments() {
   local -a keys=(
     VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS
-    VAULT_FOLDER_ROUTINES VAULT_FOLDER_HANDWRITTEN
+    VAULT_FOLDER_ROUTINES VAULT_FOLDER_HANDWRITTEN VAULT_FOLDER_AUTOMATION
     VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
   )
   local k v

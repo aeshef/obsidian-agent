@@ -460,6 +460,8 @@ planning:
   calendar_meta_missing: "meta: calendar.json отсутствует"
   calendar_meta_read_error: "meta: ошибка чтения ({error})"
   calendar_meta_txt_newer: ". ⚠️ calendar.txt новее JSON — нужен calendar_sync."
+  calendar_meta_stale: ". ⚠️ calendar.json last_updated={updated} (>{hours}ч назад) — данные могут быть устаревшими."
+  calendar_slot_conflict: "⚠️ КОНФЛИКТ {date} {start}-{end}: {titles}"
   calendar_invalid_day: "Некорректная дата: {day} (ожидается YYYY-MM-DD)"
   calendar_tool_prefix: "Календарь (день):"
   calendar_tool_empty: "Календарь пуст или недоступен. [{meta}]"

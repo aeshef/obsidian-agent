@@ -47,16 +47,15 @@ python3 planning_bot/tools/calendar_sync.py
 
 | Item | Location | Notes |
 |------|----------|-------|
-| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | Deprecate to thin wrapper; emoji logging |
-| `shared/llm.py` signature defaults | `chat_messages` / `chat_with_tools` None not fully wired | Low-level; callers use router/config |
+| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | Thin wrapper in progress; emoji logs trimmed |
 | Menu labels | `menus.py` still uses NLU/kb constants | OK for detection; dispatch centralized |
+| `ui_bindings.yaml` | not yet | Replace `is_*_menu()` with config table |
 
 ### Git hygiene
 
-| Item | Action |
+| Item | Status |
 |------|--------|
-| `scripts/public_release_mailmap.txt` | `git rm --cached` (content sanitized; policy = not in index) |
-| `scripts/public_release_filter_replacements.txt` | same |
+| `public_release_*` in index | Removed in `9b22d81` |
 
 ### Onboarding / universal repo
 
@@ -71,11 +70,11 @@ python3 planning_bot/tools/calendar_sync.py
 
 ## P2 — improvements
 
-- Config-driven host menu dispatch table (replace `is_*_menu()` chains).
-- `get_calendar` tool: surface `meta.txt_last_parsed` + stale warning in output.
-- `planning_bot/core/llm.py` deprecation path documented in `ARCHITECTURE.md`.
-- LaunchAgent interval from `platform.yaml` / env, not plist hardcode.
-- Wire `finance_bot` NLU temps from `llm_config.yaml`.
+- `ui_bindings.yaml` for menu detection.
+- `planning_bot/core/llm.py` deprecation in `ARCHITECTURE.md`.
+- Onboarding skill: full wizard for personalized prompts + `.env`.
+- Capabilities: hide disabled-module keyboard buttons consistently.
+- Git history filter-repo if public OSS needs zero PII in old commits.
 
 ---
 

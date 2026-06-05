@@ -568,6 +568,8 @@ planning:
   calendar_meta_missing: "meta: calendar.json missing"
   calendar_meta_read_error: "meta: read error ({error})"
   calendar_meta_txt_newer: ". ⚠️ calendar.txt newer than JSON — run calendar_sync."
+  calendar_meta_stale: ". ⚠️ calendar.json last_updated={updated} (> {hours}h ago) — data may be stale."
+  calendar_slot_conflict: "⚠️ CONFLICT {date} {start}-{end}: {titles}"
   calendar_invalid_day: "Invalid date: {day} (expected YYYY-MM-DD)"
   calendar_tool_prefix: "Calendar (day):"
   calendar_tool_empty: "Calendar empty or unavailable. [{meta}]"

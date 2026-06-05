@@ -80,6 +80,44 @@ def _event_sort_key(ev: Dict):
         return (date.min, "00:00")
 
 
+def _slot_key(ev: Dict) -> str:
+    return f"{ev.get('date', '')}|{ev.get('start', '')}|{ev.get('end', '')}"
+
+
+def _format_slot_lines(events: List[Dict]) -> List[str]:
+    """Format events; overlapping active slots become one CONFLICT line."""
+    from collections import defaultdict
+
+    active_by_slot: dict[str, List[Dict]] = defaultdict(list)
+    for ev in events:
+        if ev.get("is_cancelled"):
+            continue
+        active_by_slot[_slot_key(ev)].append(ev)
+
+    lines: List[str] = []
+    seen: set[str] = set()
+    for ev in events:
+        sk = _slot_key(ev)
+        if sk in seen:
+            continue
+        seen.add(sk)
+        active = active_by_slot.get(sk, [])
+        if len(active) > 1:
+            titles = " | ".join((e.get("title") or "(empty)" for e in active))
+            lines.append(
+                pdmsg(
+                    "calendar_slot_conflict",
+                    date=ev.get("date", ""),
+                    start=ev.get("start", ""),
+                    end=ev.get("end", ""),
+                    titles=titles,
+                )
+            )
+        else:
+            lines.append(_format_event(ev))
+    return lines
+
+
 def _format_event(ev: Dict) -> str:
     tag = ev.get("tag")
     title = ev.get("title") or ""
@@ -327,8 +365,7 @@ def get_events_in_range_text(
         lines.append(
             pdmsg("calendar_range_truncated", max=cap, total=total)
         )
-    for ev in window:
-        lines.append(_format_event(ev))
+    lines.extend(_format_slot_lines(window))
     return with_calendar_attendance_note("\n".join(lines))
 
 
@@ -346,6 +383,25 @@ def _calendar_meta_footer(json_path: Path) -> str:
     tail = f"meta: last_updated={updated}"
     if total is not None:
         tail += f", events={total}"
+    try:
+        from shared.agent.platform_config import platform_int
+
+        stale_h = platform_int("planning_calendar", "meta_stale_hours", default=6)
+        stamp = meta.get("last_updated") or meta.get("txt_last_parsed")
+        if stale_h > 0 and stamp and stamp != "?":
+            try:
+                dt = datetime.fromisoformat(str(stamp))
+                age_h = (_now_in_calendar_tz() - dt).total_seconds() / 3600.0
+                if age_h > stale_h:
+                    tail += pdmsg(
+                        "calendar_meta_stale",
+                        updated=stamp,
+                        hours=stale_h,
+                    )
+            except ValueError:
+                pass
+    except Exception:
+        pass
     try:
         from planning_bot.core.config import CALENDAR_TXT_FILE
 

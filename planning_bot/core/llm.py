@@ -134,24 +134,24 @@ class DeepSeekClient:
         if temperature is None:
             temperature = planning_llm_temperature("recommendations", 0.7)
         """   DeepSeek API  retry  ( — shared.llm)."""
-        logger.info("📤    DeepSeek API")
+        logger.info("DeepSeek API request")
         logger.debug("Model: %s, Temperature: %s, messages: %s", self.model, temperature, len(messages))
 
         for attempt in range(1, max_retries + 1):
             try:
-                logger.info("🔄  %s/%s", attempt, max_retries)
+                logger.info("DeepSeek retry %s/%s", attempt, max_retries)
                 content = self._transport.chat_messages(
                     messages,
                     temperature=temperature,
                     timeout=planning_chat_timeout_sec(),
                     raise_on_error=True,
                 )
-                logger.info("✅    API (: %s )", len(content))
+                logger.info("DeepSeek API ok (%s chars)", len(content))
                 logger.debug("Response preview: %s...", content[:200])
                 return content
 
             except requests.exceptions.Timeout as e:
-                logger.error(f"⏱️    {attempt}/{max_retries}")
+                logger.error("DeepSeek timeout attempt %s/%s", attempt, max_retries)
                 logger.error(f"Timeout error: {str(e)}")
                 logger.error(f"URL: {self.api_url}")
                 if attempt < max_retries:

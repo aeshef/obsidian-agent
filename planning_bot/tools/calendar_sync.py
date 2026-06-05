@@ -262,6 +262,27 @@ def _dedupe_same_time_slot(events: List[Dict]) -> List[Dict]:
     return sorted(best.values(), key=lambda e: (e["date"], e["start"]))
 
 
+def _sync_from_txt(
+    data: Dict,
+    txt_content: str,
+    txt_ts: Optional[str],
+) -> Tuple[Dict, List[Dict], bool, int, int, int]:
+    """Reconcile + merge txt snapshot into JSON. Returns changed flag."""
+    new_events = _parse_txt(txt_content)
+    existing, dropped = _reconcile_existing(data.get("events", []), new_events, txt_ts)
+    if dropped:
+        logger.info("calendar reconcile: dropped %s phantom future slot(s)", dropped)
+    merged, added, updated = _merge(existing, new_events)
+    changed = bool(dropped or added or updated)
+    now_iso = datetime.now().isoformat(timespec="seconds")
+    if changed:
+        data["meta"]["last_updated"] = now_iso
+        data["meta"]["txt_last_parsed"] = txt_ts or now_iso
+        data["meta"]["total_events"] = len(merged)
+        data["events"] = merged
+    return data, merged, changed, dropped, added, updated
+
+
 def run_calendar_sync() -> bool:
     'Operation implementation.'
     if not CALENDAR_TXT_FILE.exists():
@@ -275,52 +296,39 @@ def run_calendar_sync() -> bool:
 
     data = _load_json(CALENDAR_JSON_FILE)
     last_parsed = data["meta"].get("txt_last_parsed")
+    unchanged_ts = bool(txt_ts and txt_ts == last_parsed)
 
-    if txt_ts and txt_ts == last_parsed:
+    if unchanged_ts:
         logger.info(pdmsg("auto_db56dcef25"), txt_ts)
         print(pdmsg("auto_80593794b5"), flush=True)
-        try:
-            evs = data.get("events", [])
-            data, moved, _ = apply_retention(data)
-            if moved:
-                _save_json(CALENDAR_JSON_FILE, data)
-            now_iso = datetime.now().isoformat(timespec="seconds")
-            _build_and_write_dashboard(evs, now_iso)
-            print(pdmsg("auto_f2964bb97c", CALENDAR_DASHBOARD_MD={CALENDAR_DASHBOARD_MD}), flush=True)
-        except Exception as e:
-            logger.warning(pdmsg("auto_9f886df28c"), e)
-        return True
+    else:
+        print(pdmsg("auto_c8a1e8f8bb"), flush=True)
+        print(pdmsg("auto_779ae56025", CALENDAR_TXT_FILE={CALENDAR_TXT_FILE}), flush=True)
+        print(pdmsg("auto_8fe3e14bf5", _p1=last_parsed or pdmsg('auto_f0cf0b41cc')), flush=True)
+        print(pdmsg("auto_81a548769a", txt_ts={txt_ts}), flush=True)
 
-    print(pdmsg("auto_c8a1e8f8bb"), flush=True)
-    print(pdmsg("auto_779ae56025", CALENDAR_TXT_FILE={CALENDAR_TXT_FILE}), flush=True)
-    print(pdmsg("auto_8fe3e14bf5", _p1=last_parsed or pdmsg('auto_f0cf0b41cc')), flush=True)
-    print(pdmsg("auto_81a548769a", txt_ts={txt_ts}), flush=True)
-
-    new_events = _parse_txt(txt_content)
-
-    existing, dropped = _reconcile_existing(data.get("events", []), new_events, txt_ts)
-    if dropped:
-        logger.info("calendar reconcile: dropped %s phantom future slot(s)", dropped)
-
-    merged, added, updated = _merge(existing, new_events)
+    data, merged, changed, dropped, added, updated = _sync_from_txt(
+        data, txt_content, txt_ts
+    )
 
     now_iso = datetime.now().isoformat(timespec="seconds")
-    data["meta"]["last_updated"] = now_iso
-    data["meta"]["txt_last_parsed"] = txt_ts or now_iso
-    data["meta"]["total_events"] = len(merged)
-    data["events"] = merged
-
     data, moved, detail_n = apply_retention(data)
     if moved:
         logger.info("calendar retention: moved %s events to archive, detail=%s", moved, detail_n)
-    _save_json(CALENDAR_JSON_FILE, data)
+    if changed or moved:
+        _save_json(CALENDAR_JSON_FILE, data)
 
-    line_count = txt_content.count("\n") + (1 if txt_content else 0)
-    if should_compact_txt(line_count):
-        compacted, dropped = compact_calendar_txt(txt_content)
-        if dropped > 0 and compacted != txt_content:
-            CALENDAR_TXT_FILE.write_text(compacted, encoding="utf-8")
-            logger.info("calendar txt compacted: dropped %s lines before %s", dropped, data["meta"].get("detail_cutoff"))
+    if not unchanged_ts:
+        line_count = txt_content.count("\n") + (1 if txt_content else 0)
+        if should_compact_txt(line_count):
+            compacted, compact_dropped = compact_calendar_txt(txt_content)
+            if compact_dropped > 0 and compacted != txt_content:
+                CALENDAR_TXT_FILE.write_text(compacted, encoding="utf-8")
+                logger.info(
+                    "calendar txt compacted: dropped %s lines before %s",
+                    compact_dropped,
+                    data["meta"].get("detail_cutoff"),
+                )
 
     try:
         _build_and_write_dashboard(data.get("events", merged), now_iso)
@@ -328,7 +336,8 @@ def run_calendar_sync() -> bool:
     except Exception as e:
         logger.warning(pdmsg("auto_58b2a8d2f2"), e)
 
-    print(pdmsg("auto_3d9d657bf4", _p1=added, _p3=updated, _p5=len(merged)), flush=True)
+    if changed:
+        print(pdmsg("auto_3d9d657bf4", _p1=added, _p3=updated, _p5=len(merged)), flush=True)
     return True
 
 

@@ -161,13 +161,9 @@ async def run_agent(
         {"role": "user", "content": ctx.question},
     ]
 
-    from shared.agent.config import load_models_config
+    from shared.llm_defaults import role_temperature
 
-    analyze_role = (load_models_config().get("roles") or {}).get("analyze") or {}
-    try:
-        loop_temp = float(analyze_role.get("temperature", 0.2))
-    except (TypeError, ValueError):
-        loop_temp = 0.2
+    loop_temp = role_temperature("analyze")
 
     last_text: str | None = None
     tool_bodies: list[str] = []

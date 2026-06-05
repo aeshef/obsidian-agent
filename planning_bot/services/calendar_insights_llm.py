@@ -34,17 +34,24 @@ def _write_cache(path: Path, stats_hash: str, insights_md: str, at: str) -> None
 def generate_calendar_insights(analytics: Dict[str, Any]) -> Optional[str]:
     'Operation implementation.'
     try:
-        from planning_bot.core.llm import DeepSeekClient
+        from planning_bot.core.config import DEEPSEEK_API_TOKEN, DEEPSEEK_MODEL
+        from planning_bot.core.llm_params import planning_llm_temperature
         from planning_bot.core.settings import get_config_path, load_prompt
+        from shared.constants import deepseek_base_url
+        from shared.llm import LLMClient
     except Exception as e:
         logger.debug("calendar insights: import %s", e)
         return None
 
-    try:
-        client = DeepSeekClient()
-    except Exception as e:
-        logger.info(pdmsg("auto_adb9a2ca8d"), e)
+    if not DEEPSEEK_API_TOKEN:
+        logger.info(pdmsg("auto_adb9a2ca8d"), "DEEPSEEK_API_TOKEN missing")
         return None
+
+    client = LLMClient(
+        api_key=DEEPSEEK_API_TOKEN,
+        base_url=deepseek_base_url(),
+        model=DEEPSEEK_MODEL,
+    )
 
     try:
         system = load_prompt(get_config_path(), "calendar_week_insights")
@@ -52,9 +59,14 @@ def generate_calendar_insights(analytics: Dict[str, Any]) -> Optional[str]:
         logger.warning(pdmsg("auto_57bd906864"), e)
         return None
 
+    from shared.agent.platform_config import platform_int
+
+    max_payload = platform_int(
+        "planning_calendar", "insights_payload_max_chars", default=12000
+    )
     payload = json.dumps(analytics, ensure_ascii=False, indent=2)
-    if len(payload) > 12000:
-        payload = payload[:12000] + "\n…"
+    if max_payload > 0 and len(payload) > max_payload:
+        payload = payload[:max_payload] + "\n…"
 
     messages = [
         {"role": "system", "content": system},
@@ -66,7 +78,12 @@ def generate_calendar_insights(analytics: Dict[str, Any]) -> Optional[str]:
         },
     ]
     try:
-        text = client.chat(messages, temperature=0.45, max_retries=2)
+        text = client.chat_messages(
+            messages,
+            temperature=planning_llm_temperature("calendar_insights", 0.45),
+            max_retries=2,
+            raise_on_error=True,
+        )
     except Exception as e:
         logger.warning("calendar insights: API %s", e)
         return None

@@ -8,6 +8,11 @@ from typing import Any
 from shared.agent.config import load_models_config
 from shared.agent.types import ModelRole
 from shared.llm import LLMClient, LLMResponse
+from shared.llm_defaults import (
+    role_temperature as cfg_role_temperature,
+    role_timeout_sec as cfg_role_timeout_sec,
+    role_tool_choice as cfg_role_tool_choice,
+)
 
 log = logging.getLogger("shared.agent.router")
 
@@ -30,12 +35,7 @@ class ModelRouter:
         return block if isinstance(block, dict) else {}
 
     def role_temperature(self, role: ModelRole, override: float | None = None) -> float:
-        if override is not None:
-            return override
-        try:
-            return float(self._role_block(role).get("temperature", 0.2))
-        except (TypeError, ValueError):
-            return 0.2
+        return cfg_role_temperature(role.value, override=override)
 
     def role_timeout(self, role: ModelRole, override: float | None = None) -> float:
         if override is not None:
@@ -43,13 +43,15 @@ class ModelRouter:
         try:
             return float(self._role_block(role).get("timeout_sec", self._default_timeout))
         except (TypeError, ValueError):
-            return self._default_timeout
+            return cfg_role_timeout_sec(role.value, override=override)
 
     def role_tool_choice(self, role: ModelRole, override: str | None = None) -> str:
         if override is not None:
             return override
         raw = self._role_block(role).get("tool_choice", self._default_tool_choice)
-        return str(raw) if raw else self._default_tool_choice
+        if raw:
+            return str(raw)
+        return cfg_role_tool_choice(role.value, override=override)
 
     async def chat_with_tools(
         self,

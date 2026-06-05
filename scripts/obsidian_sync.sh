@@ -500,7 +500,8 @@ set -euo pipefail
 export VAULT_PATH
 export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
 KB=""
-for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${VAULT_PATH}/800_Автоматизация/Agent/knowledge_bot" "${SERVER_BOTS}/knowledge_bot"; do
+_VAULT_AUTO="${VAULT_FOLDER_AUTOMATION:-800_Automation}"
+for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${SERVER_BOTS}/knowledge_bot" "${VAULT_PATH}/${_VAULT_AUTO}/Agent/knowledge_bot"; do
   [ -z "${d}" ] && continue
   [ -f "${d}/tools/apply_duplicates_resolution.py" ] || continue
   KB="${d}"

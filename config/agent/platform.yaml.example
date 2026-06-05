@@ -63,6 +63,11 @@ planning_calendar:
   default_hours_ahead: 48
   range_max_events: 400
   sync_horizon_days: 8
+  meta_stale_hours: 6
+  insights_payload_max_chars: 12000
+
+obsidian_sync:
+  launchagent_interval_sec: 300
 
 planning_alerts:
   stuck_task_days: 14
@@ -104,6 +109,7 @@ planning_llm:
   weekly_review: 0.8
   recommendations: 0.7
   goals_mapping: 0.3
+  calendar_insights: 0.45
   chat_timeout_sec: 90
 
 json_parse:

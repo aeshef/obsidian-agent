@@ -26,6 +26,7 @@ import requests
 
 from shared.constants import deepseek_base_url, deepseek_chat_completions_url, deepseek_model
 from shared.json_parse import LLMJsonParseError, parse_json_object
+from shared.llm_defaults import role_temperature, role_timeout_sec, role_tool_choice
 from shared.llm_reachable import deepseek_api_reachable
 
 log = logging.getLogger("shared.llm")
@@ -139,10 +140,8 @@ class LLMClient:
         raise_on_error: bool = False,
     ) -> LLMResult:
         model = model or self.model
-        if temperature is None:
-            temperature = 0.1
-        if timeout is None:
-            timeout = 120.0
+        temperature = role_temperature("parse", override=temperature)
+        timeout = role_timeout_sec("parse", override=timeout)
         if not self.api_key:
             log.warning("DEEPSEEK API key missing — using fallback (chat_json)")
             if raise_on_error:
@@ -180,8 +179,8 @@ class LLMClient:
         messages: list[dict[str, Any]],
         *,
         model: str | None = None,
-        temperature: float = 0.7,
-        timeout: float = 90.0,
+        temperature: float | None = None,
+        timeout: float | None = None,
         max_tokens: int | None = None,
         raise_on_error: bool = False,
         max_retries: int = 1,
@@ -191,6 +190,8 @@ class LLMClient:
         from time import sleep
 
         model = model or self.model
+        temperature = role_temperature("chat", override=temperature)
+        timeout = role_timeout_sec("chat", override=timeout)
         if not self.api_key:
             if raise_on_error:
                 raise ValueError("DEEPSEEK API key missing")
@@ -225,13 +226,15 @@ class LLMClient:
         messages: list[dict[str, Any]],
         *,
         model: str | None = None,
-        temperature: float = 0.3,
-        timeout: float = 30.0,
+        temperature: float | None = None,
+        timeout: float | None = None,
         max_tokens: int | None = None,
         raise_on_error: bool = False,
     ) -> dict[str, Any]:
         """JSON-mode with message list. On error — {} or raise."""
         model = model or self.model
+        temperature = role_temperature("parse", override=temperature)
+        timeout = role_timeout_sec("parse", override=timeout)
         if not self.api_key:
             if raise_on_error:
                 raise ValueError("DEEPSEEK API key missing")
@@ -267,13 +270,16 @@ class LLMClient:
         tools: list[dict[str, Any]],
         *,
         model: str | None = None,
-        temperature: float = 0.2,
-        tool_choice: str = "auto",
-        timeout: float = 120.0,
+        temperature: float | None = None,
+        tool_choice: str | None = None,
+        timeout: float | None = None,
         raise_on_error: bool = False,
     ) -> LLMResponse:
         """OpenAI-compatible function calling."""
         model = model or self.model
+        temperature = role_temperature("analyze", override=temperature)
+        tool_choice = role_tool_choice("analyze", override=tool_choice)
+        timeout = role_timeout_sec("analyze", override=timeout)
         if not self.api_key:
             msg = "DEEPSEEK API key missing"
             if raise_on_error:
@@ -314,14 +320,17 @@ class LLMClient:
         tools: list[dict[str, Any]],
         *,
         model: str | None = None,
-        temperature: float = 0.2,
-        tool_choice: str = "auto",
-        timeout: float = 120.0,
+        temperature: float | None = None,
+        tool_choice: str | None = None,
+        timeout: float | None = None,
         raise_on_error: bool = False,
         on_text_delta: Callable[[str], None] | None = None,
     ) -> LLMResponse:
         """Streaming chat/completions; on_text_delta — accumulated text (only when no tool_calls)."""
         model = model or self.model
+        temperature = role_temperature("analyze", override=temperature)
+        tool_choice = role_tool_choice("analyze", override=tool_choice)
+        timeout = role_timeout_sec("analyze", override=timeout)
         if not self.api_key:
             msg = "DEEPSEEK API key missing"
             if raise_on_error:
@@ -425,10 +434,12 @@ class LLMClient:
         user_prompt: str,
         model: str | None = None,
         *,
-        timeout: float = 30.0,
-        temperature: float = 0.2,
+        timeout: float | None = None,
+        temperature: float | None = None,
     ) -> LLMResult:
         model = model or self.model
+        temperature = role_temperature("chat", override=temperature)
+        timeout = role_timeout_sec("chat", override=timeout)
         if not self.api_key:
             log.warning("DEEPSEEK API key missing — echo input (chat)")
             return LLMResult(content=user_prompt)
