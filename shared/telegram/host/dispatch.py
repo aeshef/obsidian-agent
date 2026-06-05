@@ -6,12 +6,7 @@ from aiogram.types import Message
 
 from shared.i18n import msg
 from shared.telegram.host.constants import DOMAIN_FINANCE, DOMAIN_IDS, UI_MODE_AUTO
-from shared.telegram.host.keyboards import (
-    auto_keyboard,
-    finance_keyboard,
-    knowledge_keyboard,
-    planning_keyboard,
-)
+from shared.telegram.host.keyboards import keyboard_for_mode
 
 
 async def ensure_finance_user(message: Message) -> None:
@@ -62,18 +57,12 @@ async def switch_mode(message: Message, state: FSMContext, mode: str) -> None:
     await state.update_data(ui_mode=mode, fixed_domain=mode if mode != "auto" else None)
     if mode == DOMAIN_FINANCE:
         await ensure_finance_user(message)
-        text = msg("host", "switch_finance")
-        kb = finance_keyboard()
-    elif mode == "planning":
-        text = msg("host", "switch_planning")
-        kb = planning_keyboard()
-    elif mode == "knowledge":
-        text = msg("host", "switch_knowledge")
-        from knowledge_bot.app.state import is_bulk_ingest
-
-        uid = message.from_user.id if message.from_user else None
-        kb = knowledge_keyboard(bulk_active=is_bulk_ingest(uid) if uid else False)
-    else:
-        text = msg("host", "switch_auto")
-        kb = auto_keyboard()
+    mode_keys = {
+        DOMAIN_FINANCE: "switch_finance",
+        "planning": "switch_planning",
+        "knowledge": "switch_knowledge",
+    }
+    text = msg("host", mode_keys.get(mode, "switch_auto"))
+    uid = message.chat.id if message.chat else None
+    kb = keyboard_for_mode(mode if mode != UI_MODE_AUTO else "auto", user_id=uid)
     await message.answer(text, reply_markup=kb)

@@ -11,7 +11,7 @@ errors:
 
     Запусти синхронизацию:
     ```bash
-    cd 800_Автоматизация/Agent/finance_bot && ./scripts/sync_finance_db.sh
+    cd /path/to/finance_bot && ./scripts/sync_finance_db.sh
     ./scripts/run_finance_dashboard.sh
     ```
   db_not_found_log: "DB not found. Wrote stub: {out_path}"
@@ -126,7 +126,7 @@ footer:
   refresh: |
     ---
 
-    **Принудительное обновление:** из папки `800_Автоматизация/Agent/finance_bot` выполни `./scripts/run_finance_dashboard_daily.sh` (скачает БД с сервера и пересоберёт дашборд).
+    **Принудительное обновление:** из папки `finance_bot` выполни `./scripts/run_finance_dashboard_daily.sh` (скачает БД с сервера и пересоберёт дашборд).
 
 charts:
   daily_categories_file: "Траты_по_дням_категории.png"

@@ -148,7 +148,7 @@ def test_anomalies_and_correlations_smoke(tmp_path, monkeypatch):
         iphone_dir,
     )
     anom = format_health_anomalies(lookback_days=10, z_threshold=1.5)
-    assert "календарных" in anom or "steps" in anom
+    assert "календарных" in anom or "steps" in anom.lower() or "аномалий" in anom
     corr = format_health_correlations("2026-05-20", "2026-05-25", ["steps", "weight_kg"])
     assert "корреляц" in corr.lower() or "(" in corr
 

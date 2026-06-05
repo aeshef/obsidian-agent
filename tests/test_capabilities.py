@@ -56,7 +56,7 @@ def test_missing_manifest_defaults_full_product(monkeypatch, tmp_path: Path):
     assert sync_step_enabled(STEP_FINANCE_DASHBOARD, prof)
 
 
-def test_finance_only_profile_disables_planning_sync(tmp_path: Path):
+def test_finance_only_profile_disables_planning_sync(monkeypatch, tmp_path: Path):
     cfg = tmp_path / "capabilities.yaml"
     cfg.write_text(
         yaml.dump(
@@ -67,7 +67,7 @@ def test_finance_only_profile_disables_planning_sync(tmp_path: Path):
         ),
         encoding="utf-8",
     )
-    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(cfg))
     clear_capabilities_cache()
     prof = load_capabilities()
     assert not prof.module(MODULE_PLANNING)
@@ -144,7 +144,7 @@ def test_export_shell_env_includes_modules(monkeypatch, tmp_path: Path):
         ),
         encoding="utf-8",
     )
-    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(cfg))
     clear_capabilities_cache()
     from shared.capabilities.sync_steps import export_shell_env
 
@@ -154,7 +154,7 @@ def test_export_shell_env_includes_modules(monkeypatch, tmp_path: Path):
     assert "CAP_SYNC_PLANNING_CHARTS=0" in env
 
 
-def test_feature_off_disables_nutrition_sync(tmp_path: Path):
+def test_feature_off_disables_nutrition_sync(monkeypatch, tmp_path: Path):
     cfg = tmp_path / "capabilities.yaml"
     cfg.write_text(
         yaml.dump(
@@ -166,7 +166,7 @@ def test_feature_off_disables_nutrition_sync(tmp_path: Path):
         ),
         encoding="utf-8",
     )
-    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(cfg))
     clear_capabilities_cache()
     from shared.capabilities.sync_steps import STEP_NUTRITION, sync_step_enabled
 
@@ -174,7 +174,7 @@ def test_feature_off_disables_nutrition_sync(tmp_path: Path):
     assert not sync_step_enabled(STEP_NUTRITION, prof)
 
 
-def test_planning_weekly_review_feature_off(tmp_path: Path):
+def test_planning_weekly_review_feature_off(monkeypatch, tmp_path: Path):
     cfg = tmp_path / "capabilities.yaml"
     cfg.write_text(
         yaml.dump(
@@ -185,7 +185,7 @@ def test_planning_weekly_review_feature_off(tmp_path: Path):
         ),
         encoding="utf-8",
     )
-    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(cfg))
     clear_capabilities_cache()
     from shared.capabilities.planning_gates import planning_weekly_review_enabled
 

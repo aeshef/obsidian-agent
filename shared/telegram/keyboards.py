@@ -42,6 +42,57 @@ class ReplyKeyboardExtras:
         )
 
 
+def compact_keyboard_rows(rows: list[list[KeyboardButton | str]]) -> list[list[KeyboardButton]]:
+    """Drop buttons with empty labels and remove empty rows (CAP-gated msg() returns '')."""
+    out: list[list[KeyboardButton]] = []
+    for row in rows:
+        buttons: list[KeyboardButton] = []
+        for btn in row:
+            if isinstance(btn, KeyboardButton):
+                text = (btn.text or "").strip()
+                if text:
+                    buttons.append(btn)
+            else:
+                text = (btn or "").strip()
+                if text:
+                    buttons.append(KeyboardButton(text=text))
+        if buttons:
+            out.append(buttons)
+    return out
+
+
+def reply_keyboard_from_rows(
+    rows: list[list[KeyboardButton | str]],
+    *,
+    resize_keyboard: bool = True,
+    input_field_placeholder: str | None = None,
+    **kwargs: object,
+) -> ReplyKeyboardMarkup:
+    compact = compact_keyboard_rows(rows)
+    return ReplyKeyboardMarkup(
+        keyboard=compact,
+        resize_keyboard=resize_keyboard,
+        input_field_placeholder=input_field_placeholder,
+        **kwargs,
+    )
+
+
+def compact_reply_keyboard(kb: ReplyKeyboardMarkup) -> ReplyKeyboardMarkup:
+    """Remove CAP-gated empty buttons from an existing keyboard."""
+    rows = [[btn for btn in row] for row in kb.keyboard]
+    compact = compact_keyboard_rows(rows)
+    if compact == kb.keyboard:
+        return kb
+    return ReplyKeyboardMarkup(
+        keyboard=compact,
+        resize_keyboard=kb.resize_keyboard,
+        input_field_placeholder=kb.input_field_placeholder,
+        selective=kb.selective,
+        one_time_keyboard=kb.one_time_keyboard,
+        is_persistent=kb.is_persistent,
+    )
+
+
 def append_button_rows(
     kb: ReplyKeyboardMarkup,
     rows: list[list[KeyboardButton | str]],

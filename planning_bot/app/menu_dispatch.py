@@ -10,6 +10,7 @@ from planning_bot.app import keyboards
 from planning_bot.app.handlers import menus, tasks
 from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
 from planning_bot.core.pdmsg import pdmsg
+from shared.capabilities.ui_bindings import message_allowed
 
 _RESET_KEYS: Tuple[str, ...] = (
     "auto_322fab4a99",
@@ -52,7 +53,12 @@ async def dispatch_planning_menu(
     ]
 
     for key, action in label_actions:
-        if user_message == pdmsg(key):
+        if not message_allowed("planning", key):
+            continue
+        label = pdmsg(key)
+        if not label:
+            continue
+        if user_message == label:
             await action()
             return True
 

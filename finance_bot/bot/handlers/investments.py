@@ -18,29 +18,40 @@ from decimal import Decimal
 router = Router()
 
 
+def _compact_inline_rows(rows: list[list[InlineKeyboardButton]]) -> list[list[InlineKeyboardButton]]:
+    out: list[list[InlineKeyboardButton]] = []
+    for row in rows:
+        buttons = [btn for btn in row if (btn.text or "").strip()]
+        if buttons:
+            out.append(buttons)
+    return out
+
+
 def invest_menu_kb() -> InlineKeyboardMarkup:
     from shared.capabilities.finance_gates import broker_sync_enabled
     from shared.capabilities.finance_ui import invest_menu_visible
     from shared.capabilities.profile import CONNECTOR_MANUAL_BROKER, get_capabilities
+    from shared.capabilities.ui_bindings import message_allowed
 
     rows: list[list[InlineKeyboardButton]] = []
-    if not invest_menu_visible():
+    if not invest_menu_visible() or not message_allowed("finance", "menu", "invest"):
         rows.append([InlineKeyboardButton(text=common("menu_home"), callback_data="action:menu")])
         return InlineKeyboardMarkup(inline_keyboard=rows)
     if broker_sync_enabled():
-        rows.append(
-            [InlineKeyboardButton(text=fmsg("inline_invest_sync"), callback_data="invest:sync")],
-        )
+        sync_label = fmsg("inline_invest_sync")
+        if sync_label:
+            rows.append([InlineKeyboardButton(text=sync_label, callback_data="invest:sync")])
     if broker_sync_enabled() or get_capabilities().connector(CONNECTOR_MANUAL_BROKER):
-        rows.extend(
-            [
-                [InlineKeyboardButton(text=fmsg("inline_invest_topup"), callback_data="invest:topup")],
-                [InlineKeyboardButton(text=fmsg("inline_invest_withdraw"), callback_data="invest:withdraw")],
-                [InlineKeyboardButton(text=fmsg("inline_invest_details"), callback_data="invest:details")],
-            ]
-        )
+        for key, cb in (
+            ("inline_invest_topup", "invest:topup"),
+            ("inline_invest_withdraw", "invest:withdraw"),
+            ("inline_invest_details", "invest:details"),
+        ):
+            label = fmsg(key)
+            if label:
+                rows.append([InlineKeyboardButton(text=label, callback_data=cb)])
     rows.append([InlineKeyboardButton(text=common("menu_home"), callback_data="action:menu")])
-    return InlineKeyboardMarkup(inline_keyboard=rows)
+    return InlineKeyboardMarkup(inline_keyboard=_compact_inline_rows(rows))
 
 
 def _invest_back_row(*, details: bool = False) -> list[InlineKeyboardButton]:

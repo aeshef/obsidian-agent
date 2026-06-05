@@ -4,6 +4,7 @@ from __future__ import annotations
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 
 from planning_bot.app.ui import pmsg_menu
+from shared.telegram.keyboards import compact_keyboard_rows, reply_keyboard_from_rows
 
 
 class ReplyKeyboardExtras:
@@ -79,17 +80,17 @@ def append_button_rows(
 
 
 def get_routines_keyboard() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardMarkup(
-        keyboard=[
+    rows = compact_keyboard_rows(
+        [
             [
-                KeyboardButton(text=pmsg_menu("routines_stats")),
-                KeyboardButton(text=pmsg_menu("routines_recommendations")),
+                pmsg_menu("routines_stats"),
+                pmsg_menu("routines_recommendations"),
             ],
-            [KeyboardButton(text=pmsg_menu("routines_today"))],
-            [KeyboardButton(text=pmsg_menu("back"))],
-        ],
-        resize_keyboard=True,
+            [pmsg_menu("routines_today")],
+            [pmsg_menu("back")],
+        ]
     )
+    kb = reply_keyboard_from_rows(rows, resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 
 

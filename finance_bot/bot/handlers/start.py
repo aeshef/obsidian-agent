@@ -22,14 +22,20 @@ def _badge_label() -> str:
     return fin_menu("badge")
 
 
+def _badge_visible() -> bool:
+    from shared.capabilities.ui_bindings import message_allowed
+
+    return is_badge_enabled() and message_allowed("finance", "menu", "badge")
+
+
 def _badge_inline_row() -> list[InlineKeyboardButton]:
-    if is_badge_enabled():
+    if _badge_visible():
         return [InlineKeyboardButton(text=_badge_label(), callback_data="action:badge")]
     return []
 
 
 def _badge_reply_row() -> list[KeyboardButton]:
-    if is_badge_enabled():
+    if _badge_visible():
         return [KeyboardButton(text=_badge_label())]
     return []
 
@@ -42,10 +48,11 @@ def main_menu_inline() -> InlineKeyboardMarkup:
     if badge:
         rows.append(badge)
     invest_rows: list[list[InlineKeyboardButton]] = []
-    if invest_menu_visible():
-        invest_rows.append(
-            [InlineKeyboardButton(text=fin_menu("invest"), callback_data="action:invest")],
-        )
+    from shared.capabilities.ui_bindings import message_allowed
+
+    invest_label = fin_menu("invest")
+    if invest_menu_visible() and message_allowed("finance", "menu", "invest") and invest_label:
+        invest_rows.append([InlineKeyboardButton(text=invest_label, callback_data="action:invest")])
     rows.extend(
         invest_rows
         + [

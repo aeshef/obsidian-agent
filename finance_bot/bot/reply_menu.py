@@ -29,9 +29,12 @@ def _build_handler_map() -> dict[str, Handler]:
         missing = configured - set(canonical)
         if missing:
             raise RuntimeError(f"nlu menu_buttons without handlers: {sorted(missing)}")
-    if is_badge_enabled():
+    from shared.capabilities.ui_bindings import message_allowed
+
+    if is_badge_enabled() and message_allowed("finance", "menu", "badge"):
         badge = (get_badge_config().get("ui") or {}).get("menu_button") or fin_menu("badge")
-        canonical[badge] = h.handle_badge_button
+        if badge:
+            canonical[badge] = h.handle_badge_button
 
     out = dict(canonical)
     for alias, label in finance_menu_aliases().items():

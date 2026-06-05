@@ -24,6 +24,19 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
+def _clear_capability_caches():
+    """Env overrides in one test must not leak via get_capabilities() lru_cache."""
+    from shared.capabilities.profile import clear_capabilities_cache
+    from shared.capabilities.ui_bindings import clear_ui_bindings_cache
+
+    clear_capabilities_cache()
+    clear_ui_bindings_cache()
+    yield
+    clear_capabilities_cache()
+    clear_ui_bindings_cache()
+
+
+@pytest.fixture(autouse=True)
 def _pytest_agent_locale_ru(monkeypatch):
     """RU vault fixtures (100_Задачи) + legacy assertions; locale parity has dedicated tests."""
     monkeypatch.setenv("AGENT_LOCALE", "ru")

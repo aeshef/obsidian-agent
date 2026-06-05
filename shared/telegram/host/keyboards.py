@@ -57,19 +57,22 @@ def planning_keyboard() -> ReplyKeyboardMarkup:
 
 
 def knowledge_keyboard(*, bulk_active: bool = False) -> ReplyKeyboardMarkup:
-    from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON, BTN_QUERY
+    from knowledge_bot.app import kb_labels as kb_lbl
+    from shared.telegram.keyboards import reply_keyboard_from_rows
 
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=BTN_BULK_OFF if bulk_active else BTN_BULK_ON)],
-            [KeyboardButton(text=BTN_QUERY)],
-            [KeyboardButton(text=L.back_home())],
+    bulk_btn = kb_lbl.bulk_off() if bulk_active else kb_lbl.bulk_on()
+    rows = reply_keyboard_from_rows(
+        [
+            [bulk_btn],
+            [kb_lbl.query_button()],
+            [L.back_home()],
         ],
         resize_keyboard=True,
         input_field_placeholder=msg(
             "host", "placeholder_knowledge", default="Media ingest or question about notes"
         ),
     )
+    return rows
 
 
 def auto_keyboard() -> ReplyKeyboardMarkup:
