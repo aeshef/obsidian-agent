@@ -11,6 +11,7 @@ from shared.constants import deepseek_base_url
 from shared.llm import LLMClient as _SharedLLMClient
 
 from .config import DEEPSEEK_API_TOKEN, DEEPSEEK_API_URL, DEEPSEEK_MODEL
+from .llm_params import planning_chat_timeout_sec, planning_llm_temperature
 from .settings import load_prompt, get_config_path
 from .llm_context import lctx
 from .config import (
@@ -124,7 +125,14 @@ class DeepSeekClient:
             model=DEEPSEEK_MODEL,
         )
 
-    def chat(self, messages: List[Dict[str, str]], temperature: float = 0.7, max_retries: int = 3) -> str:
+    def chat(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float | None = None,
+        max_retries: int = 3,
+    ) -> str:
+        if temperature is None:
+            temperature = planning_llm_temperature("recommendations", 0.7)
         """   DeepSeek API  retry  ( — shared.llm)."""
         logger.info("📤    DeepSeek API")
         logger.debug("Model: %s, Temperature: %s, messages: %s", self.model, temperature, len(messages))
@@ -135,7 +143,7 @@ class DeepSeekClient:
                 content = self._transport.chat_messages(
                     messages,
                     temperature=temperature,
-                    timeout=90.0,
+                    timeout=planning_chat_timeout_sec(),
                     raise_on_error=True,
                 )
                 logger.info("✅    API (: %s )", len(content))
@@ -219,7 +227,10 @@ class DeepSeekClient:
                 {"role": "user", "content": user_message}
             ]
 
-            response = self.chat(messages, temperature=0.3)
+            response = self.chat(
+                messages,
+                temperature=planning_llm_temperature("task_parsing", 0.3),
+            )
             logger.debug(f"   LLM   (: {len(response)} )")
             
             #  JSON  
@@ -422,7 +433,10 @@ class DeepSeekClient:
                 {"role": "user", "content": user_content}
             ]
 
-            review = self.chat(messages, temperature=0.8)
+            review = self.chat(
+                messages,
+                temperature=planning_llm_temperature("weekly_review", 0.8),
+            )
             logger.info(f"✅    (: {len(review)} )")
             return review
         except Exception as e:
@@ -616,7 +630,10 @@ class DeepSeekClient:
                 {"role": "user", "content": anchor_hint + lctx("rec_user_suffix") + context},
             ]
 
-            recommendations = self.chat(messages, temperature=0.7)
+            recommendations = self.chat(
+                messages,
+                temperature=planning_llm_temperature("recommendations", 0.7),
+            )
             recommendations = _strip_telegram_markdown_facade((recommendations or "").strip())
             logger.info(f"✅   (: {len(recommendations)} )")
             return recommendations
@@ -648,7 +665,10 @@ class DeepSeekClient:
                 {"role": "user", "content": lctx("goals_map_user").format(task_title=task_title, task_category=task_category)}
             ]
             
-            response = self.chat(messages, temperature=0.3)
+            response = self.chat(
+                messages,
+                temperature=planning_llm_temperature("goals_mapping", 0.3),
+            )
             
             #  JSON
             try:

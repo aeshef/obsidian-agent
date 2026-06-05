@@ -61,5 +61,21 @@ def load_routing_config() -> dict:
                 "planning": "add_task",
                 "knowledge": "new_note",
             },
+            "agent": {
+                "tools_first_iter_domains": [
+                    "finance",
+                    "planning",
+                    "knowledge",
+                    "unified",
+                ],
+            },
         },
     )
+
+
+def tools_first_iter_domains() -> frozenset[str]:
+    cfg = load_routing_config().get("agent") or {}
+    raw = cfg.get("tools_first_iter_domains")
+    if isinstance(raw, list) and raw:
+        return frozenset(str(d).strip() for d in raw if str(d).strip())
+    return frozenset({"finance", "planning", "knowledge", "unified"})

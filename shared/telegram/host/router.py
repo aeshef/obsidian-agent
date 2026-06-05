@@ -22,12 +22,8 @@ from shared.telegram.host.dispatch import switch_mode
 from shared.i18n import msg, msgf
 from shared.telegram.host import labels as L
 from shared.telegram.host.keyboards import keyboard_for_mode, root_keyboard
-from shared.telegram.host.menus import (
-    is_finance_menu,
-    is_knowledge_menu,
-    is_planning_menu,
-    mode_from_button,
-)
+from shared.telegram.host.domain_dispatch import try_dispatch_domain_text
+from shared.telegram.host.menus import mode_from_button
 from shared.telegram.messaging import send_long_message
 from shared.telegram_utils import strip_telegram_markdown
 
@@ -184,71 +180,9 @@ async def handle_text(
         await switch_mode(message, state, new_mode)
         return
 
-    if agent_app.has_domain(DOMAIN_FINANCE) and (
-        ui_mode == DOMAIN_FINANCE or (ui_mode == UI_MODE_AUTO and is_finance_menu(text))
+    if await try_dispatch_domain_text(
+        message, state, agent_app, text, ui_mode, planning=planning
     ):
-        if ui_mode != DOMAIN_FINANCE:
-            await state.update_data(ui_mode=DOMAIN_FINANCE, fixed_domain=DOMAIN_FINANCE)
-        if is_finance_menu(text):
-            from bot.reply_menu import dispatch_reply_menu_button
-
-            if await dispatch_reply_menu_button(message, state):
-                return
-        from bot.handlers.financial_query import handle_smart_text
-
-        await handle_smart_text(message, state, agent_app=agent_app)
-        return
-
-    if agent_app.has_domain(DOMAIN_PLANNING) and (
-        ui_mode == DOMAIN_PLANNING or (ui_mode == UI_MODE_AUTO and is_planning_menu(text))
-    ):
-        if planning is None:
-            await message.answer(
-                msgf(
-                    "host",
-                    "planning_unavailable",
-                    finance=L.mode_finance(),
-                    knowledge=L.mode_knowledge(),
-                ),
-                reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
-            )
-            return
-        if ui_mode != DOMAIN_PLANNING:
-            await state.update_data(ui_mode=DOMAIN_PLANNING, fixed_domain=DOMAIN_PLANNING)
-        from planning_bot.app.handlers import commands as planning_commands
-
-        await planning_commands.process_user_text(
-            planning, message, state, text, agent_app=agent_app
-        )
-        return
-
-    if agent_app.has_domain(DOMAIN_KNOWLEDGE) and ui_mode == DOMAIN_KNOWLEDGE:
-        from shared.telegram.host.knowledge_dispatch import try_handle_knowledge_text
-
-        await try_handle_knowledge_text(message, agent_app, state=state)
-        return
-
-    from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON
-
-    if agent_app.has_domain(DOMAIN_KNOWLEDGE) and is_knowledge_menu(text):
-        # Legacy KB keyboard after home — still route to knowledge mode
-        if ui_mode != DOMAIN_KNOWLEDGE:
-            await switch_mode(message, state, DOMAIN_KNOWLEDGE)
-        from knowledge_bot.app.handlers.modes import disable_bulk_ingest, enable_bulk_ingest
-        from shared.telegram.host.keyboards import knowledge_keyboard
-        from shared.telegram.host.knowledge_dispatch import try_handle_knowledge_text
-
-        if text == BTN_BULK_ON:
-            await enable_bulk_ingest(
-                message, reply_markup=knowledge_keyboard(bulk_active=True), state=state
-            )
-            return
-        if text == BTN_BULK_OFF:
-            await disable_bulk_ingest(
-                message, reply_markup=knowledge_keyboard(bulk_active=False), state=state
-            )
-            return
-        await try_handle_knowledge_text(message, agent_app, state=state)
         return
 
     uid = message.chat.id

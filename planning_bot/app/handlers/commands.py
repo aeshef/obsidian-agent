@@ -8,8 +8,6 @@ from shared.telegram.agent_delivery import deliver_agent_answer
 from shared.telegram.messaging import send_long_message
 from planning_bot.app import keyboards
 from planning_bot.app.chatid_store import save_chat_id
-from planning_bot.app.handlers import menus, tasks
-from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
 from shared.agent.llm_classify import LLMClassificationError, classify_host_domain_llm, classify_planning_intent_llm, map_general_domain
 logger = logging.getLogger(__name__)
 
@@ -47,49 +45,9 @@ async def process_user_text(self, message: Message, state: FSMContext, user_mess
     try:
         chat_id = message.chat.id
         logger.info(pdmsg("auto_b1e0a2e96e"), chat_id, user_message[:100])  # log
-        if user_message.lower() in (pdmsg("auto_322fab4a99"), pdmsg("auto_27c8e8e900"), pdmsg("auto_f0bc732b56")):
-            await cmd_reset_context(self, message, state)
-            return
-        if user_message == pdmsg("auto_ca15d9d2aa"):
-            await menus.show_tasks_menu(self, message)
-            return
-        if user_message == pdmsg("auto_edc1040220"):
-            await menus.show_categories_menu(self, message)
-            return
-        if user_message == pdmsg("auto_8771b735cb"):
-            await menus.show_priorities_menu(self, message)
-            return
-        if user_message == pdmsg("auto_a0b7b44b3f"):
-            await menus.show_statuses_menu(self, message)
-            return
-        if user_message in KANBAN_COLUMNS:
-            await tasks.show_tasks_by_status(self, message, column=user_message)
-            return
-        if user_message.startswith('📋 ') and user_message[2:] in CATEGORIES:
-            category = user_message.replace('📋 ', '').strip()
-            await tasks.show_tasks(self, message, category=category)
-            return
-        if user_message.startswith('📋 ') and user_message[2:] in PRIORITIES:
-            priority = user_message.replace('📋 ', '').strip()
-            await tasks.show_tasks(self, message, priority=priority)
-            return
-        if user_message == pdmsg("auto_e9917f3011"):
-            await tasks.show_tasks(self, message)
-            return
-        if user_message == pdmsg("auto_dc232d1607"):
-            await message.answer(pdmsg("auto_80c02bf46b"), reply_markup=keyboards.get_main_keyboard())
-            return
-        if user_message == pdmsg("auto_f317ab8f35"):
-            await menus.show_routines_statistics(self, message)
-            return
-        if user_message == pdmsg("auto_b6b32200b7"):
-            await self.get_routines_recommendations(message)
-            return
-        if user_message == pdmsg("auto_7a4a4c1791"):
-            await menus.show_pending_routines(self, message)
-            return
-        if user_message == pdmsg("auto_f895d3042c"):
-            await self.start_reflection(message, state)
+        from planning_bot.app.menu_dispatch import dispatch_planning_menu
+
+        if await dispatch_planning_menu(self, message, state, user_message):
             return
         if agent_app is not None:
             routed = await _maybe_answer_other_domain(message, user_message, agent_app)

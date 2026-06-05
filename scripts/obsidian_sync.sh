@@ -28,7 +28,7 @@ if [[ -n "${0:A}" && -f "${0:A}" ]]; then
     P="$(cd "$_SDIR/../.." 2>/dev/null && pwd)"
     AGENT_ROOT="$_SDIR"
   fi
-  [[ -n "$P" && -d "$P/800_Автоматизация" ]] && LOCAL_VAULT="$P"
+  [[ -n "$P" && -d "$P/.obsidian" ]] && LOCAL_VAULT="$P"
 fi
 LOCAL_VAULT="${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}"
 # Fallback если Documents/Obsidian Vault не существует
@@ -46,23 +46,9 @@ if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
   cap_load_env
   cap_load_vault_paths 2>/dev/null || true
 fi
-# Defaults when vault_paths exporter missing (match config/vault_paths.yaml.example)
-: "${VAULT_FOLDER_TASKS:=100_Задачи}"
-: "${VAULT_FOLDER_GOALS:=200_Цели}"
-: "${VAULT_FOLDER_DASHBOARDS:=300_Дашборды}"
-: "${VAULT_FOLDER_ROUTINES:=400_Рутины}"
-: "${VAULT_FOLDER_HANDWRITTEN:=600_Рукописное}"
-: "${VAULT_DASH_LOGS:=Логи}"
-: "${VAULT_DASH_CHARTS:=Графики}"
-: "${VAULT_DASH_DATA:=Данные}"
-: "${VAULT_PATH_ACTIONS_MAC:=Действия/Mac}"
-: "${VAULT_PATH_ACTIONS_IPHONE:=Действия/IPhone}"
-: "${VAULT_PATH_CONTEXT_TODAY:=Действия/context_today.json}"
-: "${VAULT_PATH_CONTEXT_WEEK:=Действия/context_week.json}"
-: "${VAULT_PATH_IPHONE_TODAY:=Действия/iphone_today.json}"
-: "${VAULT_PATH_IPHONE_WEEK:=Действия/iphone_week.json}"
-: "${VAULT_FILE_AUDIT_SYSTEM:=Аудит_системы_отчет.md}"
-: "${VAULT_FILE_AUDIT_VAULT:=Аудит_хранилища_отчет.md}"
+# shellcheck source=scripts/lib/vault_paths_defaults.sh
+source "$AGENT_ROOT/scripts/lib/vault_paths_defaults.sh"
+vault_paths_load_from_agent "$AGENT_ROOT"
 # Fallback: no manifest exporter → run full sync (backward compatible)
 if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
   cap_step_enabled() { return 0; }

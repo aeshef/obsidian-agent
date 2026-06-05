@@ -6,7 +6,7 @@ Scope: `800_Автоматизация/Agent` monorepo vs. target architecture (
 
 ---
 
-## Fixed in this iteration (commit pending)
+## Fixed (9b22d81 + follow-up)
 
 | Area | Fix |
 |------|-----|
@@ -15,6 +15,13 @@ Scope: `800_Автоматизация/Agent` monorepo vs. target architecture (
 | LLM router | `ModelRouter` reads `temperature`, `timeout_sec`, `tool_choice` from `config/agent/models.yaml` |
 | Prompt policy | `llm_context/*.example.txt` → `generic_en_prefixes` in `prompt_manifest.yaml.example` |
 | Platform | `planning_calendar.sync_horizon_days` in `platform.yaml.example` |
+| Menu dispatch | `domain_dispatch.py` + `menu_dispatch.py` — host/planning if-chains extracted |
+| tool_choice | `routing.yaml` → `agent.tools_first_iter_domains` |
+| Finance LLM | `llm_params.py` wires `llm_config.yaml` temps/timeouts/max_tokens |
+| Planning LLM | `llm_params.py` + `platform.yaml` `planning_llm.*` |
+| obsidian_sync | EN fallbacks via `vault_paths_defaults.sh`; vault detect via `.obsidian` |
+
+**Mac sync:** `com.aeshef.obsidian-sync` is loaded (300s interval). False P0 from earlier grep.
 
 **Post-deploy (vault, not git):** run once on server + local:
 
@@ -36,16 +43,13 @@ python3 planning_bot/tools/calendar_sync.py
 
 ## P1 — open (next iterations)
 
-### Architecture / no hardcode
+### Architecture / no hardcode (remaining)
 
 | Item | Location | Notes |
 |------|----------|-------|
-| Legacy menu if-chains | `shared/telegram/host/router.py`, `planning_bot/app/handlers/commands.py` | KB bulk buttons, finance/planning menus before agent path |
-| `tool_choice` first-iter policy | `shared/agent/core.py` `_DOMAINS_REQUIRE_TOOLS_FIRST` | Domain set in code, not YAML |
-| Duplicate LLM client | `planning_bot/core/llm.py` | Temps 0.3/0.7/0.8 hardcoded; migrate to `shared.llm` + `platform.yaml` `planning_llm` |
-| `shared/llm.py` signature defaults | `chat_json` temp 0.1, various timeouts | Callers should pass router/config values |
-| Finance LLM config dead | `finance_bot/config/llm_config.yaml.example` | Not wired into `finance_bot/bot/llm.py` |
-| Cyrillic sync defaults | `scripts/obsidian_sync.sh` vault folder fallbacks | Should be env/`vault_paths.yaml` only |
+| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | Deprecate to thin wrapper; emoji logging |
+| `shared/llm.py` signature defaults | `chat_messages` / `chat_with_tools` None not fully wired | Low-level; callers use router/config |
+| Menu labels | `menus.py` still uses NLU/kb constants | OK for detection; dispatch centralized |
 
 ### Git hygiene
 

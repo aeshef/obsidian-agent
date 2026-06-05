@@ -1,5 +1,13 @@
-# Только настройки host. Домен и интент — LLM (shared/agent/llm_classify.py).
-# При недоступности LLM запрос падает с ошибкой, без keyword-fallback.
+# Host routing settings. Domain/intent classification — LLM (shared/agent/llm_classify.py).
+# On LLM failure the request errors out (no keyword fallback).
 
 host:
   general_domain: planning
+
+agent:
+  # First agent loop iteration: tool_choice=required for these domains (when tools exist).
+  tools_first_iter_domains:
+    - finance
+    - planning
+    - knowledge
+    - unified

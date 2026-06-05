@@ -7,6 +7,7 @@ from typing import Any
 
 from bot.config import get_settings
 from bot.config_loader import get_llm_config
+from bot.llm_params import llm_max_tokens, llm_temperature, llm_timeout
 from shared.constants import deepseek_base_url, deepseek_model
 from shared.llm import LLMClient as _SharedLLMClient
 
@@ -31,7 +32,14 @@ class LLMClient(_SharedLLMClient):
         )
 
     async def chat(self, messages: list[dict[str, Any]], **kwargs: Any) -> str:
+        kwargs.setdefault("temperature", llm_temperature("text"))
+        kwargs.setdefault("timeout", llm_timeout("text"))
         return await asyncio.to_thread(self.chat_messages, messages, **kwargs)
 
     async def chat_json(self, messages: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+        kwargs.setdefault("temperature", llm_temperature("json"))
+        kwargs.setdefault("timeout", llm_timeout("json"))
+        mt = llm_max_tokens("nlu")
+        if mt is not None:
+            kwargs.setdefault("max_tokens", mt)
         return await asyncio.to_thread(self.chat_json_messages, messages, **kwargs)

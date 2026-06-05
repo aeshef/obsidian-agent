@@ -131,13 +131,18 @@ class LLMClient:
         system_prompt: str,
         user_prompt: str,
         model: str | None = None,
-        timeout: float = 120.0,
+        temperature: float | None = None,
+        timeout: float | None = None,
         max_tokens: int | None = None,
         *,
         fallback: Callable[[str], Any] | None = None,
         raise_on_error: bool = False,
     ) -> LLMResult:
         model = model or self.model
+        if temperature is None:
+            temperature = 0.1
+        if timeout is None:
+            timeout = 120.0
         if not self.api_key:
             log.warning("DEEPSEEK API key missing — using fallback (chat_json)")
             if raise_on_error:
@@ -150,7 +155,7 @@ class LLMClient:
                 {"role": "user", "content": user_prompt},
             ],
             "response_format": {"type": "json_object"},
-            "temperature": 0.1,
+            "temperature": temperature,
         }
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens

@@ -104,6 +104,7 @@ planning_llm:
   weekly_review: 0.8
   recommendations: 0.7
   goals_mapping: 0.3
+  chat_timeout_sec: 90
 
 json_parse:
   error_preview_chars: 400

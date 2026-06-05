@@ -16,9 +16,6 @@ from shared.llm import LLMResponse
 
 log = logging.getLogger("shared.agent.core")
 
-_DOMAINS_REQUIRE_TOOLS_FIRST = frozenset({"finance", "planning", "knowledge", "unified"})
-
-
 def _max_iters() -> int:
     from shared.agent.platform_config import platform_int
 
@@ -175,9 +172,11 @@ async def run_agent(
     last_text: str | None = None
     tool_bodies: list[str] = []
     for iteration in range(limit):
+        from shared.agent.config import tools_first_iter_domains
+
         tool_choice = (
             "required"
-            if iteration == 0 and ctx.domain in _DOMAINS_REQUIRE_TOOLS_FIRST and schemas
+            if iteration == 0 and ctx.domain in tools_first_iter_domains() and schemas
             else "auto"
         )
         on_delta = None
