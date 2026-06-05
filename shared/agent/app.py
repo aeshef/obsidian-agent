@@ -192,10 +192,13 @@ class AgentApp:
         from shared.i18n import msgf
 
         date_hint = msgf("agent", "date_hint", date=now.strftime("%Y-%m-%d (%A)"))
+        followup = msgf("agent", "host_followup_hint")
         layers: list[MemoryLayer] = []
         for adapter in self._adapters.values():
             layers.extend(adapter.memory_layers(ctx))
-        return await build_system_prompt(f"{base}\n\n{date_hint}", ctx, layers)
+        return await build_system_prompt(
+            f"{base}\n\n{date_hint}\n\n{followup}", ctx, layers
+        )
 
 
 def build_app(llm: LLMClient, *adapters: DomainAdapter) -> AgentApp:

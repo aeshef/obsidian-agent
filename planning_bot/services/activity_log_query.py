@@ -4,6 +4,7 @@ from collections import Counter
 from datetime import date
 from typing import Dict, List, Optional, Set
 
+from planning_bot.core.config import DONE_COLUMN
 from planning_bot.core.pdmsg import pdmsg
 
 
@@ -54,6 +55,36 @@ def fetch_activity_events(
     return display, all_entries, n_raw, counts
 
 
+def unique_completions(all_entries: List[Dict]) -> List[Dict]:
+    """One row per closed task (task_completed or move to DONE), deduped by task_id."""
+    seen_ids: set[str] = set()
+    seen_titles: set[str] = set()
+    result: List[Dict] = []
+    for e in all_entries:
+        t = e.get("type")
+        d = e.get("data") or {}
+        if t == "task_completed":
+            pass
+        elif t == "task_moved" and d.get("to") == DONE_COLUMN:
+            pass
+        else:
+            continue
+        tid = (d.get("task_id") or "").strip()
+        title = (d.get("title") or "").strip()
+        if tid:
+            if tid in seen_ids:
+                continue
+            seen_ids.add(tid)
+        elif title:
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
+        else:
+            continue
+        result.append(e)
+    return result
+
+
 def format_completion_hour_histogram(all_entries: List[Dict]) -> str:
     hours: Counter[int] = Counter()
     for e in all_entries:
@@ -98,6 +129,20 @@ def format_activity_events_block(
                 end=period_end.isoformat(),
             )
         )
+    unique = unique_completions(all_entries)
+    if unique:
+        titles = "; ".join(
+            ((e.get("data") or {}).get("title") or "?").replace("\n", " ") for e in unique
+        )
+        lines.append(
+            pdmsg(
+                "agent_action_log_unique_completions",
+                count=len(unique),
+                titles=titles,
+            )
+        )
+        lines.append(pdmsg("agent_action_log_completion_note"))
+
     if filtered_type:
         lines.append(
             pdmsg(
@@ -119,6 +164,7 @@ def format_activity_events_block(
                 completed=type_counts.get("task_completed", 0),
                 moved=type_counts.get("task_moved", 0),
                 created=type_counts.get("task_created", 0),
+                unique_completed=len(unique),
             )
         )
     if len(entries) < n_raw:

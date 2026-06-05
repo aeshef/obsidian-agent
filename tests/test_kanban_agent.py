@@ -207,7 +207,9 @@ def test_apply_create_logs_priority(monkeypatch):
         priority=low,
         logger=logger,
     )
+    from planning_bot.services.kanban_format import normalize_category
+
     assert "deadbeef" in out
     logger.log_task_created.assert_called_once_with(
-        title, personal, low, task_id="deadbeef"
+        title, normalize_category(personal), low, task_id="deadbeef"
     )

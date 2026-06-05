@@ -584,8 +584,13 @@ planning:
   agent_action_log_unavailable: "Action log unavailable."
   agent_action_log_no_events: "No events for filter."
   agent_action_log_period: "Log period: {start} … {end}"
-  agent_action_log_summary: "Task log: {shown}/{total} rows. By type: completed={completed}, moved={moved}, created={created}."
+  agent_action_log_summary: "Task log: {shown}/{total} rows. By type: completed={completed}, moved={moved}, created={created}, unique_done={unique_completed}."
   agent_action_log_summary_filtered: "Task log ({event_type}): {shown}/{total} rows."
+  agent_action_log_unique_completions: "Unique completed tasks: {count}. Titles: {titles}"
+  agent_action_log_completion_note: "Use unique completions above only; each close logs both task_moved→Done and task_completed."
+  apply_kanban_tool_hint: "Kanban: create|move|complete. category (#goal): {categories}. priority: {priorities}."
+  kanban_task_created: "Task created id={task_id}: {title} | #goal/{category} #priority/{priority}"
+  kanban_category_remapped: "Category \"{requested}\" is not in kanban schema → saved as \"{used}\". Allowed: {allowed}."
   agent_action_log_hour_header: "Completions by hour (n={n}):"
   agent_action_log_hour_columns: "hour\tcount"
   agent_action_log_hour_row: "{hour}\t{count}"
@@ -4928,6 +4933,16 @@ relative_calendar:
   day_before_yesterday: (?:^|\s)(?:the day before yesterday)(?:\s|$|[?.!,])
   days_ago: (?:^|\s)(\d{1,3})\s*(?:day|days)\s*(?:ago)(?:\s|$|[?.!,])
   yesterday: (?:^|\s)(?:yesterday)(?:\s|$|[?.!,])
+
+finance_analyst:
+  insight_allowed_categories: |
+    Allowed expense category labels (use verbatim in the insight text):
+    {categories}
+  insight_category_rule: |
+    Do not invent category aliases ("Food delivery", etc.). Use only allowed_categories and pace_facts labels.
+  insight_pace_header: |
+    Current-month spend pace (facts; baseline = median of past months excluding current):
+  insight_pace_line: "- {category}: {spent} RUB in {days_elapsed} days; baseline {baseline} RUB/mo; projected month-end {projected} RUB ({delta_pct:+.0f}% vs baseline)"
 
 finance:
   uncategorized: Uncategorized

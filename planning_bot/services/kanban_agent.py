@@ -259,24 +259,45 @@ def apply_kanban_action(
         if not (title or "").strip():
             return pdmsg("auto_500c1d0683")
         if dry_run:
-            return (
-                pdmsg("auto_690e1f6cab", _p1=title.strip(), _p3=BACKLOG_COLUMN, _p5=category, _p7=priority)
+            from planning_bot.services.kanban_format import normalize_category, normalize_priority
+
+            return pdmsg(
+                "auto_690e1f6cab",
+                _p1=title.strip(),
+                _p3=BACKLOG_COLUMN,
+                _p5=normalize_category(category),
+                _p7=normalize_priority(priority),
             )
         if not writes_ok:
             return (
                 pdmsg("auto_9105976fe5")
             )
+        from planning_bot.core.config import CATEGORIES
         from planning_bot.services.kanban_format import normalize_category, normalize_priority
 
-        tid = board.add_task_to_backlog(
-            title.strip(),
-            normalize_category(category),
-            normalize_priority(priority),
-        )
+        cat_norm = normalize_category(category)
+        pri_norm = normalize_priority(priority)
+        tid = board.add_task_to_backlog(title.strip(), cat_norm, pri_norm)
         if logger:
-            logger.log_task_created(title.strip(), category, priority, task_id=tid)
+            logger.log_task_created(title.strip(), cat_norm, pri_norm, task_id=tid)
         _sync_state_file(board)
-        return pdmsg("auto_258b01eb13", _p1=tid, _p3=title.strip())
+        out = pdmsg(
+            "kanban_task_created",
+            task_id=tid,
+            title=title.strip(),
+            category=cat_norm,
+            priority=pri_norm,
+        )
+        raw_cat = (category or "").strip().lower()
+        if raw_cat and raw_cat != cat_norm:
+            allowed = ", ".join(CATEGORIES) if CATEGORIES else cat_norm
+            out += "\n" + pdmsg(
+                "kanban_category_remapped",
+                requested=category.strip(),
+                used=cat_norm,
+                allowed=allowed,
+            )
+        return out
 
     if not (task_id or "").strip() and not (title or "").strip():
         return pdmsg("auto_5f55b37cbc", act={act})

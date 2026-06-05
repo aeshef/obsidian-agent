@@ -460,6 +460,29 @@ async def get_action_log(
         return pdmsg("agent_action_log_unavailable")
 
 
+def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
+    """Inject kanban_schema categories into tool schema (no hardcoded labels in .py)."""
+    from planning_bot.core.config import CATEGORIES, PRIORITIES
+
+    try:
+        t = reg.get("apply_kanban_task")
+    except KeyError:
+        return
+    cats = list(CATEGORIES) if CATEGORIES else []
+    prios = list(PRIORITIES) if PRIORITIES else []
+    t.description = pdmsg(
+        "apply_kanban_tool_hint",
+        categories=", ".join(cats) if cats else DEFAULT_CATEGORY,
+        priorities=", ".join(prios) if prios else DEFAULT_PRIORITY,
+    )
+    props = dict(t.parameters.get("properties") or {})
+    if cats:
+        props["category"] = {"type": "string", "enum": cats}
+    if prios:
+        props["priority"] = {"type": "string", "enum": prios}
+    t.parameters = {**t.parameters, "properties": props}
+
+
 def build_planning_registry() -> ToolRegistry:
     from shared.capabilities.registry import filter_planning_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
@@ -490,6 +513,7 @@ def build_planning_registry() -> ToolRegistry:
             ]
         ),
     )
+    _enrich_apply_kanban_tool(reg)
     attach_memory_tools(reg)
     return reg
 

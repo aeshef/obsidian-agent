@@ -4,6 +4,8 @@
 
 agent:
   date_hint: 'Today: {date}.'
+  host_followup_hint: |
+    If the user clarifies the previous reply ("I mean…", "no, about…", "yesterday night"), keep the same topic and domain (tasks/finance/knowledge) until they explicitly switch.
   max_iters_reached: Failed to complete the analysis within the allotted number of
     steps.
   no_answer: Failed to get a response.

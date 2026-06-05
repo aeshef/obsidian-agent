@@ -27,6 +27,7 @@ from ..config_loader import CONFIG_DIR
 from ..db import AsyncSessionLocal
 from ..llm import LLMClient
 from ..models import Transaction, User
+from ..services.categories import load_categories
 
 log = logging.getLogger("finance.analyst")
 
@@ -252,6 +253,47 @@ class FinancialAnalyst:
         last_day = calendar.monthrange(now.year, now.month)[1]
         return last_day - now.day
 
+    def _insight_pace_facts(
+        self, transactions: List[Dict], baselines: Dict[str, float], now: datetime
+    ) -> str:
+        """Per-category month pace using exact DB category labels (for daily_insight)."""
+        current_month_key = now.strftime("%Y-%m")
+        cat_month: Dict[str, float] = {}
+        for t in transactions:
+            if t["type"] != "expense" or not t["date"].startswith(current_month_key):
+                continue
+            if not is_consumption_expense(t):
+                continue
+            cat = t["category"] or uncategorized_label()
+            cat_month[cat] = cat_month.get(cat, 0.0) + t["amount"]
+
+        if not cat_month:
+            return ""
+
+        days_elapsed = max(1, now.day)
+        days_left = max(0, self._days_until_month_end(now))
+        lines = [dmsg("finance_analyst", "insight_pace_header")]
+        for cat, spent in sorted(cat_month.items(), key=lambda x: -x[1]):
+            baseline = float(baselines.get(cat, 0.0))
+            projected = spent / days_elapsed * (days_elapsed + days_left)
+            if baseline > 0:
+                delta_pct = (projected - baseline) / baseline * 100
+            else:
+                delta_pct = 0.0
+            lines.append(
+                dmsg(
+                    "finance_analyst",
+                    "insight_pace_line",
+                    category=cat,
+                    spent=round(spent, 0),
+                    days_elapsed=days_elapsed,
+                    baseline=round(baseline, 0),
+                    projected=round(projected, 0),
+                    delta_pct=delta_pct,
+                )
+            )
+        return "\n".join(lines)
+
     def _build_context_block(
         self,
         user_context: str,
@@ -425,6 +467,11 @@ class FinancialAnalyst:
         recent_text = self._format_transactions_for_llm(txns_all, days=None)
 
         now = self._now()
+        try:
+            allowed_cats = load_categories("expense")
+        except FileNotFoundError:
+            allowed_cats = sorted({t["category"] for t in txns_all if t.get("category")})
+        pace_facts = self._insight_pace_facts(txns_all, baselines, now)
         context = dmsg(
             "finance_analyst",
             "insight_context",
@@ -436,6 +483,14 @@ class FinancialAnalyst:
             today=now.strftime("%Y-%m-%d"),
             days_left=self._days_until_month_end(now),
         )
+        context += dmsg(
+            "finance_analyst",
+            "insight_allowed_categories",
+            categories="\n".join(f"- {c}" for c in allowed_cats),
+        )
+        context += dmsg("finance_analyst", "insight_category_rule")
+        if pace_facts:
+            context += pace_facts
 
         response = await self.llm.chat([
             {"role": "system", "content": prompt},

@@ -476,8 +476,13 @@ planning:
   agent_action_log_unavailable: "Лог действий недоступен."
   agent_action_log_no_events: "Событий по фильтру нет."
   agent_action_log_period: "Период лога: {start} … {end}"
-  agent_action_log_summary: "Лог задач: строк {shown}/{total}. По типам: completed={completed}, moved={moved}, created={created}."
+  agent_action_log_summary: "Лог задач: строк {shown}/{total}. По типам: completed={completed}, moved={moved}, created={created}, уникальных завершений={unique_completed}."
   agent_action_log_summary_filtered: "Лог задач ({event_type}): строк {shown}/{total}."
+  agent_action_log_unique_completions: "Уникальных завершённых задач: {count}. Список: {titles}"
+  agent_action_log_completion_note: "Считай только уникальные завершения выше; одно закрытие даёт и task_moved→Сделано, и task_completed."
+  apply_kanban_tool_hint: "Канбан: create|move|complete. category (#цель): {categories}. priority: {priorities}."
+  kanban_task_created: "Создана задача id={task_id}: {title} | #цель/{category} #приоритет/{priority}"
+  kanban_category_remapped: "Категория «{requested}» не из схемы канбана → записано «{used}». Допустимо: {allowed}."
   agent_action_log_hour_header: "Завершения по часу (n={n}):"
   agent_action_log_hour_columns: "hour\tcount"
   agent_action_log_hour_row: "{hour}\t{count}"
@@ -4699,6 +4704,16 @@ planning:
   auto_f61e904259: "📝 Генерация еженедельного ревью"
   auto_f6622f8d0d: "Добавлен контекст календаря в рекомендации"
   auto_f6d046868d: "Контекст Mac в ревью: %d снапшотов"
+
+finance_analyst:
+  insight_allowed_categories: |
+    Допустимые названия категорий расходов (в инсайте — только дословно из списка):
+    {categories}
+  insight_category_rule: |
+    Не придумывай синонимы категорий («Доставка еды», «Фастфуд» и т.п.). Используй только строки из allowed_categories и pace_facts.
+  insight_pace_header: |
+    Темп расходов в текущем месяце (факты, медиана прошлых месяцев без текущего):
+  insight_pace_line: "- {category}: {spent}₽ за {days_elapsed} дн.; медиана {baseline}₽/мес; прогноз к концу месяца {projected}₽ ({delta_pct:+.0f}% к медиане)"
 
 finance:
   uncategorized: "Без категории"
