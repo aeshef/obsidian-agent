@@ -185,6 +185,14 @@ async def handle_text(
     ):
         return
 
+    if ui_mode == DOMAIN_PLANNING and not agent_app.has_domain(DOMAIN_PLANNING):
+        await message.answer(
+            msg("host", "planning_unavailable"),
+            reply_markup=keyboard_for_mode(UI_MODE_AUTO, user_id=uid),
+        )
+        await state.update_data(ui_mode=UI_MODE_AUTO, fixed_domain=None)
+        return
+
     uid = message.chat.id
     await message.bot.send_chat_action(message.chat.id, "typing")
     try:

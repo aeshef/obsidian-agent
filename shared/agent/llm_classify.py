@@ -127,7 +127,24 @@ async def classify_host_domain_llm(
         },
         label="host_domain",
     )
-    dom = _require_json_field(raw, "domain", allowed, label="host_domain")
+    dom_raw = str(raw.get("domain", "")).strip().lower()
+    if not dom_raw:
+        dom = _require_json_field(raw, "domain", allowed, label="host_domain")
+    elif dom_raw not in allowed:
+        enabled_set = set(enabled)
+        if dom_raw in ("planning", "finance", "knowledge") and dom_raw not in enabled_set:
+            log.warning(
+                "host_domain: LLM chose disabled %s (enabled=%s) → general",
+                dom_raw,
+                enabled,
+            )
+            dom = "general"
+        else:
+            raise LLMClassificationError(
+                f"host_domain: invalid domain={dom_raw!r}, expected one of {sorted(allowed)}"
+            )
+    else:
+        dom = dom_raw
     log.info(
         "host domain LLM: %s (conf=%s) text=%.50s",
         dom,

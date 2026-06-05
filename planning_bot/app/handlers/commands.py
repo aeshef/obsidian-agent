@@ -49,10 +49,6 @@ async def process_user_text(self, message: Message, state: FSMContext, user_mess
 
         if await dispatch_planning_menu(self, message, state, user_message):
             return
-        if agent_app is not None:
-            routed = await _maybe_answer_other_domain(message, user_message, agent_app)
-            if routed:
-                return
         intent = await classify_planning_intent_llm(user_message)
         logger.info("Router intent for '%s': %s", user_message[:60], intent)
         if intent == 'task':
@@ -65,6 +61,9 @@ async def process_user_text(self, message: Message, state: FSMContext, user_mess
                 return
             await tasks.process_task_message(self, message, user_message)
         elif agent_app is not None:
+            routed = await _maybe_answer_other_domain(message, user_message, agent_app)
+            if routed:
+                return
             await _answer_planning_agent(message, user_message, agent_app)
         else:
             await handle_chat_message(self, message, user_message)
@@ -83,7 +82,14 @@ async def _maybe_answer_other_domain(message: Message, user_message: str, agent_
     """Planning bot module."""
     from shared.telegram_utils import strip_telegram_markdown
     enabled = [d for d in ('finance', 'planning', 'knowledge') if agent_app.has_domain(d)]
-    dom = await classify_host_domain_llm(user_message, enabled=enabled or ['planning'], chat_id=message.chat.id, ui_mode='planning')
+    if not enabled:
+        return False
+    dom = await classify_host_domain_llm(
+        user_message,
+        enabled=enabled,
+        chat_id=message.chat.id,
+        ui_mode='planning',
+    )
     name = map_general_domain(dom)
     if name in ('planning', 'general'):
         return False
