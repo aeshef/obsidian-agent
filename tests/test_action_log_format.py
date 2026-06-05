@@ -6,7 +6,7 @@ from pathlib import Path
 
 from planning_bot.core.config import ACTION_LOG_PREFIX
 from planning_bot.core.pdmsg import pdmsg
-from planning_bot.services.action_log_format import content_for_parse
+from planning_bot.services.action_log_format import content_for_parse, format_log_entry, needs_repair
 from planning_bot.services.action_log_parser import parse_log_content
 from planning_bot.services.action_logger import ActionLogger
 
@@ -65,6 +65,11 @@ def test_parse_glued_separator_in_memory():
     events = parse_log_content(content_for_parse(raw))
     assert len(events) == 1
     assert events[0]["type"] == "task_moved"
+
+
+def test_canonical_entry_does_not_need_repair():
+    entry = format_log_entry("2026-06-05 12:00:00", "task_moved", {"title": "T", "from": "A", "to": "B"})
+    assert not needs_repair(entry)
 
 
 def test_double_append_no_glued_separator():

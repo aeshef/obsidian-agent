@@ -29,6 +29,10 @@ def generic_en_prompts() -> frozenset[str]:
     return _tier_paths("generic_en")
 
 
+def generic_en_prefixes() -> frozenset[str]:
+    return _tier_paths("generic_en_prefixes")
+
+
 def personalized_prompts() -> frozenset[str]:
     return _tier_paths("personalized")
 
@@ -38,6 +42,9 @@ def prompt_tier(rel_path: str) -> PromptTier:
     norm = rel_path.replace("\\", "/").strip()
     if norm in generic_en_prompts():
         return "generic_en"
+    for prefix in generic_en_prefixes():
+        if norm.startswith(prefix):
+            return "generic_en"
     if norm in personalized_prompts():
         return "personalized"
     return "personalized"

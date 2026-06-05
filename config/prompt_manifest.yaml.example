@@ -18,6 +18,10 @@ generic_en:
   - planning_bot/config/prompts/intent_router.example.txt
   - finance_bot/config/prompts/amount_extract_prompt.example.txt
 
+# English llm_context templates (structural, no user PII) — safe in git as working examples.
+generic_en_prefixes:
+  - planning_bot/config/prompts/llm_context/
+
 personalized:
   - finance_bot/config/prompts/nlu_prompt.example.txt
   - finance_bot/config/prompts/query_prompt.example.txt

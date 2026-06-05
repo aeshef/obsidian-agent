@@ -1,3 +1,0 @@
-Obsidian Agent <noreply@example.com> <contributor> <noreply@example.com>
-Obsidian Agent <noreply@example.com> <> <noreply@users.noreply.github.com>
-Obsidian Agent <noreply@example.com> <> <privacy@users.noreply.github.com>

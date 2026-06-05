@@ -1,11 +1,19 @@
-# Роль → модель (расширение на другого провайдера — только правка YAML + .env)
+# Role -> model (swap provider via YAML + .env only).
+defaults:
+  timeout_sec: 120
+  tool_choice: auto
+
 roles:
   parse:
     model: deepseek-chat
     temperature: 0.1
+    timeout_sec: 90
   analyze:
     model: deepseek-chat
     temperature: 0.2
+    timeout_sec: 120
+    tool_choice: auto
   chat:
     model: deepseek-chat
     temperature: 0.7
+    timeout_sec: 90

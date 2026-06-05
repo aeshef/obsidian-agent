@@ -37,9 +37,17 @@ from planning_bot.services.calendar_retention import (
 )
 
 
+def _dashboard_horizon_days() -> int:
+    from shared.agent.platform_config import platform_int
+
+    return platform_int("planning_calendar", "sync_horizon_days", default=8)
+
+
 def _build_and_write_dashboard(events: List[Dict], now_iso: str) -> None:
     'Operation implementation.'
-    analytics = compute_week_analytics(events, date.today(), horizon_days=8)
+    analytics = compute_week_analytics(
+        events, date.today(), horizon_days=_dashboard_horizon_days()
+    )
     write_analytics_json(CALENDAR_ANALYTICS_JSON, analytics)
     h = analytics_stable_hash(analytics)
     insights, _from_cache = get_or_create_insights(analytics, CALENDAR_INSIGHTS_CACHE, h, now_iso)
@@ -156,6 +164,61 @@ def _parse_txt(txt_content: str) -> List[Dict]:
     return events
 
 
+def _slot_key(ev: Dict) -> str:
+    return f"{ev['date']}|{ev['start']}|{ev['end']}"
+
+
+def _parse_export_anchor(txt_ts: Optional[str]) -> Optional[datetime]:
+    if not txt_ts:
+        return None
+    try:
+        return datetime.fromisoformat(txt_ts)
+    except ValueError:
+        return None
+
+
+def _event_start_dt(ev: Dict) -> Optional[datetime]:
+    try:
+        return datetime.strptime(f"{ev['date']} {ev['start']}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return None
+
+
+def _reconcile_existing(
+    existing_events: List[Dict],
+    new_events: List[Dict],
+    txt_ts: Optional[str],
+) -> Tuple[List[Dict], int]:
+    """Drop phantom future slots on days covered by the latest iPhone export."""
+    export_anchor = _parse_export_anchor(txt_ts)
+    new_dates = {e["date"] for e in new_events}
+    new_slot_keys = {_slot_key(e) for e in new_events}
+    kept: List[Dict] = []
+    removed = 0
+    for ev in existing_events:
+        if ev.get("is_cancelled"):
+            kept.append(ev)
+            continue
+        if ev["date"] not in new_dates:
+            kept.append(ev)
+            continue
+        if _slot_key(ev) in new_slot_keys:
+            kept.append(ev)
+            continue
+        if export_anchor is None:
+            kept.append(ev)
+            continue
+        start_dt = _event_start_dt(ev)
+        if start_dt is None:
+            kept.append(ev)
+            continue
+        if start_dt >= export_anchor:
+            removed += 1
+            continue
+        kept.append(ev)
+    return kept, removed
+
+
 def _merge(existing_events: List[Dict], new_events: List[Dict]) -> Tuple[List[Dict], int, int]:
     'Operation implementation.'
     now_iso = datetime.now().isoformat(timespec="seconds")
@@ -235,8 +298,11 @@ def run_calendar_sync() -> bool:
 
     new_events = _parse_txt(txt_content)
 
-    merged, added, updated = _merge(data.get("events", []), new_events)
-    merged = _dedupe_same_time_slot(merged)
+    existing, dropped = _reconcile_existing(data.get("events", []), new_events, txt_ts)
+    if dropped:
+        logger.info("calendar reconcile: dropped %s phantom future slot(s)", dropped)
+
+    merged, added, updated = _merge(existing, new_events)
 
     now_iso = datetime.now().isoformat(timespec="seconds")
     data["meta"]["last_updated"] = now_iso

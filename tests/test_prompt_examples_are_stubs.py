@@ -5,6 +5,7 @@ from pathlib import Path
 
 from shared.capabilities.prompt_manifest import (
     generic_en_prompts,
+    generic_en_prefixes,
     list_tracked_example_prompts,
     personalized_prompts,
     prompt_tier,
@@ -12,6 +13,11 @@ from shared.capabilities.prompt_manifest import (
 from shared.prompts import _is_comment_stub
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _structural_generic_en(rel: str) -> bool:
+    norm = rel.replace("\\", "/")
+    return any(norm.startswith(p) for p in generic_en_prefixes())
 
 
 def test_tracked_prompt_examples_tier_policy():
@@ -23,7 +29,8 @@ def test_tracked_prompt_examples_tier_policy():
         tier = prompt_tier(rel)
         is_stub = _is_comment_stub(text)
         if tier == "generic_en":
-            if is_stub or len(text) < 40:
+            min_len = 1 if _structural_generic_en(rel) else 40
+            if is_stub or len(text) < min_len:
                 bad.append(f"{rel}: generic_en must contain working English prompt text")
         else:
             if not is_stub:
@@ -41,3 +48,12 @@ def test_manifest_covers_agent_routers():
 
 def test_personalized_includes_nlu():
     assert "finance_bot/config/prompts/nlu_prompt.example.txt" in personalized_prompts()
+
+
+def test_llm_context_examples_are_generic_en():
+    prefix = "planning_bot/config/prompts/llm_context/"
+    assert prefix in generic_en_prefixes()
+    paths = [p for p in list_tracked_example_prompts() if p.startswith(prefix)]
+    assert len(paths) >= 30
+    for rel in paths:
+        assert prompt_tier(rel) == "generic_en"

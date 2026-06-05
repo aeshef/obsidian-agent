@@ -30,8 +30,9 @@ def _glued_type_re() -> re.Pattern[str]:
 
 @lru_cache(maxsize=1)
 def _loose_json_block_re() -> re.Pattern[str]:
+    """Match corrupted blocks only: 2+ blank lines between data label and ```json."""
     d = re.escape(_data_label())
-    return re.compile(rf"{d}\n+\n*```json\n+\n*", re.MULTILINE)
+    return re.compile(rf"{d}\n\n+\n*```json\n+\n*", re.MULTILINE)
 
 
 def format_log_entry(timestamp: str, action_type: str, data: Dict) -> str:
@@ -118,6 +119,8 @@ def repair_log_text(content: str) -> tuple[str, int]:
         out,
     )
     n += c4
+    out, c5 = re.subn(r"\n{3,}", "\n\n", out)
+    n += c5
     if out and not out.endswith("\n"):
         out += "\n"
     return out, n

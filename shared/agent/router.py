@@ -17,9 +17,39 @@ class ModelRouter:
         cfg = load_models_config()
         self._llm = llm
         self._model_map = model_map or cfg.get("model_map") or {}
+        self._roles = cfg.get("roles") or {}
+        defaults = cfg.get("defaults") or {}
+        self._default_timeout = float(defaults.get("timeout_sec", 120))
+        self._default_tool_choice = str(defaults.get("tool_choice", "auto"))
 
     def model_for(self, role: ModelRole) -> str:
         return self._model_map.get(role.value, self._model_map.get("analyze", "deepseek-chat"))
+
+    def _role_block(self, role: ModelRole) -> dict:
+        block = self._roles.get(role.value) or self._roles.get("analyze") or {}
+        return block if isinstance(block, dict) else {}
+
+    def role_temperature(self, role: ModelRole, override: float | None = None) -> float:
+        if override is not None:
+            return override
+        try:
+            return float(self._role_block(role).get("temperature", 0.2))
+        except (TypeError, ValueError):
+            return 0.2
+
+    def role_timeout(self, role: ModelRole, override: float | None = None) -> float:
+        if override is not None:
+            return override
+        try:
+            return float(self._role_block(role).get("timeout_sec", self._default_timeout))
+        except (TypeError, ValueError):
+            return self._default_timeout
+
+    def role_tool_choice(self, role: ModelRole, override: str | None = None) -> str:
+        if override is not None:
+            return override
+        raw = self._role_block(role).get("tool_choice", self._default_tool_choice)
+        return str(raw) if raw else self._default_tool_choice
 
     async def chat_with_tools(
         self,
@@ -27,12 +57,15 @@ class ModelRouter:
         tools: list[dict[str, Any]],
         *,
         role: ModelRole = ModelRole.ANALYZE,
-        temperature: float = 0.2,
-        tool_choice: str = "auto",
-        timeout: float = 120.0,
+        temperature: float | None = None,
+        tool_choice: str | None = None,
+        timeout: float | None = None,
         on_text_delta: Any | None = None,
     ) -> LLMResponse:
         model = self.model_for(role)
+        temperature = self.role_temperature(role, temperature)
+        tool_choice = self.role_tool_choice(role, tool_choice)
+        timeout = self.role_timeout(role, timeout)
         if on_text_delta is not None:
             return await asyncio.to_thread(
                 self._llm.chat_with_tools_stream,
@@ -59,14 +92,14 @@ class ModelRouter:
         messages: list[dict[str, Any]],
         *,
         role: ModelRole = ModelRole.CHAT,
-        temperature: float = 0.7,
-        timeout: float = 90.0,
+        temperature: float | None = None,
+        timeout: float | None = None,
     ) -> str:
         text = await asyncio.to_thread(
             self._llm.chat_messages,
             messages,
             model=self.model_for(role),
-            temperature=temperature,
-            timeout=timeout,
+            temperature=self.role_temperature(role, temperature),
+            timeout=self.role_timeout(role, timeout),
         )
         return text or ""

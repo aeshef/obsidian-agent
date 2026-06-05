@@ -29,7 +29,8 @@ def load_models_config() -> dict:
     for key, val in roles.items():
         if isinstance(val, dict) and val.get("model"):
             defaults[key] = str(val["model"])
-    return {"roles": roles, "model_map": defaults}
+    defaults_block = cfg.get("defaults") if isinstance(cfg.get("defaults"), dict) else {}
+    return {"roles": roles, "model_map": defaults, "defaults": defaults_block}
 
 
 @lru_cache(maxsize=1)
