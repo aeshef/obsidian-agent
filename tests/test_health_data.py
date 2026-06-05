@@ -153,8 +153,15 @@ def test_anomalies_and_correlations_smoke(tmp_path, monkeypatch):
     assert "корреляц" in corr.lower() or "(" in corr
 
 
-def test_planning_registry_tools():
+def test_planning_registry_tools(monkeypatch):
     from planning_bot.app.agent_tools import build_planning_registry
+    from shared.capabilities.profile import clear_capabilities_cache
+
+    monkeypatch.setenv("CAP_MODULE_PLANNING", "1")
+    monkeypatch.setenv("CAP_CONNECTOR_APPLE_HEALTH", "1")
+    monkeypatch.setenv("CAP_CONNECTOR_MAC_CONTEXT", "1")
+    monkeypatch.setenv("CAP_CONNECTOR_APPLE_CALENDAR", "1")
+    clear_capabilities_cache()
 
     reg = build_planning_registry()
     names = set(reg.names())

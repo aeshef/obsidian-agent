@@ -16,11 +16,29 @@ def configure_host_keyboards() -> None:
 
 
 def root_keyboard() -> ReplyKeyboardMarkup:
+    from shared.capabilities.profile import (
+        MODULE_FINANCE,
+        MODULE_KNOWLEDGE,
+        MODULE_PLANNING,
+        get_capabilities,
+    )
+
+    prof = get_capabilities()
+    rows: list[list[KeyboardButton]] = []
+    top: list[KeyboardButton] = []
+    if prof.module(MODULE_FINANCE):
+        top.append(KeyboardButton(text=L.mode_finance()))
+    if prof.module(MODULE_PLANNING):
+        top.append(KeyboardButton(text=L.mode_planning()))
+    if top:
+        rows.append(top)
+    bottom: list[KeyboardButton] = []
+    if prof.module(MODULE_KNOWLEDGE):
+        bottom.append(KeyboardButton(text=L.mode_knowledge()))
+    bottom.append(KeyboardButton(text=L.mode_auto()))
+    rows.append(bottom)
     return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text=L.mode_finance()), KeyboardButton(text=L.mode_planning())],
-            [KeyboardButton(text=L.mode_knowledge()), KeyboardButton(text=L.mode_auto())],
-        ],
+        keyboard=rows,
         resize_keyboard=True,
         input_field_placeholder=msg("host", "placeholder_root", default="Choose mode or ask a question"),
     )

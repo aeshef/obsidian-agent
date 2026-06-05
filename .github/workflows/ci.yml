@@ -35,7 +35,10 @@ jobs:
           DEEPSEEK_API_KEY: ci-smoke-test-key
         run: SMOKE_INSTALL=1 ./scripts/smoke_imports.sh
 
-      - name: Integration tests
+      - name: Ensure bot venvs
+        run: bash scripts/ensure_bot_venv.sh finance_bot knowledge_bot
+
+      - name: Integration tests (full suite)
         env:
           TELEGRAM_BOT_TOKEN: ci-smoke-test-token
           TELEGRAM_FINANCE_BOT_TOKEN: ci-smoke-test-token
@@ -43,7 +46,10 @@ jobs:
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
           AGENT_LOCALE: ru
-        run: bash scripts/run_tests.sh
+          VAULT_PATH: ${{ runner.temp }}/ci-vault
+        run: |
+          mkdir -p "$VAULT_PATH"
+          bash scripts/run_tests.sh
 
   capabilities:
     runs-on: ubuntu-latest

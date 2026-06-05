@@ -30,30 +30,15 @@ fi
 
 ARGS=("$@")
 if [[ ${#ARGS[@]} -eq 0 ]]; then
-  FIN_TESTS=(
-    tests/test_transaction_parse.py tests/test_llm_json.py tests/test_kanban_sort.py
-    tests/test_finance_llm.py tests/test_transactions_core.py tests/test_agent_platform.py
-    tests/test_calendar_sync.py tests/test_tag_normalize.py tests/test_entity_names.py
-    tests/test_note_lookup.py tests/test_kanban_parse_substantive.py tests/test_kanban_columns_config.py
-    tests/test_planning_agent_tools_imports.py
-    tests/test_agent_progress.py tests/test_date_range.py tests/test_reference_date.py
-    tests/test_host_knowledge_keyboard.py tests/test_finance_txn_query.py
-    tests/test_brain_query_helpers.py
-    tests/test_prompt_examples_are_stubs.py
-    tests/test_capabilities.py tests/test_onboarding.py tests/test_prompt_filter.py
-    tests/test_prompt_preamble.py tests/test_runtime_config.py tests/test_ui_bindings.py
-    tests/test_profile_matrix.py tests/test_msg_capability_gate.py
-    tests/test_agent_sanity.py tests/test_ui_patterns.py
-    tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
-    tests/test_vault_paths_config.py \
-    tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py
-  )
-  echo "=== finance/planning/shared tests ==="
-  "$FIN_PY" -m pytest "${FIN_TESTS[@]}" -q
+  echo "=== finance/planning/shared tests (full suite) ==="
+  "$FIN_PY" -m pytest tests/ -q \
+    --ignore=tests/test_note_complete.py \
+    --ignore=tests/test_note_lookup.py \
+    --ignore=tests/test_ocr_profile.py
   if [[ -x "$KB_PY" ]]; then
-  "$KB_PY" -m pip install -q pytest 2>/dev/null || true
-  echo "=== knowledge tests ==="
-  "$KB_PY" -m pytest tests/test_note_complete.py -q
+    "$KB_PY" -m pip install -q pytest 2>/dev/null || true
+    echo "=== knowledge tests ==="
+    "$KB_PY" -m pytest tests/test_note_complete.py tests/test_note_lookup.py tests/test_ocr_profile.py -q
   fi
   exit 0
 fi

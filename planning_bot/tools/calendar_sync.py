@@ -101,66 +101,184 @@ def _extract_txt_timestamp(txt_content: str) -> Optional[str]:
     return last
 
 
-def _parse_txt(txt_content: str) -> List[Dict]:
-    'Operation implementation.'
-    # (comment)
-    raw: List[Dict] = []
-    for line in txt_content.splitlines():
-        m = _LINE_RE.match(line.strip())
-        if not m:
-            continue
-        day, month, year, start, end, title = m.groups()
-        date_str = f"{year}-{month}-{day}"
-        title = title.strip()
+def _parse_event_line(line: str) -> Optional[Dict]:
+    m = _LINE_RE.match(line.strip())
+    if not m:
+        return None
+    day, month, year, start, end, title = m.groups()
+    date_str = f"{year}-{month}-{day}"
+    title = title.strip()
 
-        is_cancelled = False
-        if title.startswith(pdmsg("auto_d0edfc7fdc")):
-            is_cancelled = True
-            title = title[len(pdmsg("auto_d0edfc7fdc")):].strip()
+    is_cancelled = False
+    if title.startswith(pdmsg("auto_d0edfc7fdc")):
+        is_cancelled = True
+        title = title[len(pdmsg("auto_d0edfc7fdc")) :].strip()
 
-        is_allday = (start == "00:00" and end == "23:59")
+    is_allday = start == "00:00" and end == "23:59"
 
-        tag = None
-        tag_m = TAG_RE.match(title)
-        if tag_m:
-            tag = tag_m.group(1)
-            title = title[tag_m.end() :].strip()
+    tag = None
+    tag_m = TAG_RE.match(title)
+    if tag_m:
+        tag = tag_m.group(1)
+        title = title[tag_m.end() :].strip()
 
-        raw.append({
-            "date": date_str,
-            "start": start,
-            "end": end,
-            "title": title,
-            "is_allday": is_allday,
-            "is_cancelled": is_cancelled,
-            "tag": tag,
-        })
+    return {
+        "date": date_str,
+        "start": start,
+        "end": end,
+        "title": title,
+        "is_allday": is_allday,
+        "is_cancelled": is_cancelled,
+        "tag": tag,
+    }
 
-    # (comment)
-    # (comment)
-    # (comment)
-    seen: Dict[str, Dict] = {}  # key → event
+
+def _dedupe_block_events(raw: List[Dict]) -> Tuple[List[Dict], int]:
+    """Collapse empty/title pairs inside one export block; keep double-bookings."""
+    seen: Dict[str, Dict] = {}
     duplicates_dropped = 0
     for ev in raw:
         key = f"{ev['date']}|{ev['start']}|{ev['end']}"
         if key not in seen:
             seen[key] = ev
-        else:
-            existing = seen[key]
-            if not existing["title"] and ev["title"]:
-                # (comment)
-                seen[key] = ev
-                duplicates_dropped += 1
-            elif existing["title"] and not ev["title"]:
-                # (comment)
-                duplicates_dropped += 1
-            elif existing["title"] != ev["title"]:
-                # (comment)
-                seen[f"{key}|{ev['title'][:20]}"] = ev
+            continue
+        existing = seen[key]
+        if not existing["title"] and ev["title"]:
+            seen[key] = ev
+            duplicates_dropped += 1
+        elif existing["title"] and not ev["title"]:
+            duplicates_dropped += 1
+        elif existing["title"] != ev["title"]:
+            seen[f"{key}|{ev['title'][:20]}"] = ev
+    return list(seen.values()), duplicates_dropped
 
-    events = sorted(seen.values(), key=lambda e: (e["date"], e["start"]))
-    logger.info(pdmsg("auto_c24be15722"),
-                len(raw), len(events), duplicates_dropped)
+
+def _split_export_blocks(txt_content: str) -> List[Tuple[Optional[datetime], List[str]]]:
+    """Append-only iPhone export: --- / timestamp / --- / event lines."""
+    blocks: List[Tuple[Optional[datetime], List[str]]] = []
+    block_ts: Optional[datetime] = None
+    block_lines: List[str] = []
+
+    def flush() -> None:
+        nonlocal block_ts, block_lines
+        if block_ts is not None or block_lines:
+            blocks.append((block_ts, block_lines))
+        block_ts = None
+        block_lines = []
+
+    for line in txt_content.splitlines():
+        stripped = line.strip()
+        if _TS_RE.match(stripped):
+            flush()
+            try:
+                block_ts = datetime.strptime(stripped, "%d %b %Y at %H:%M")
+            except ValueError:
+                block_ts = None
+            continue
+        if stripped == "---" and not block_lines:
+            continue
+        block_lines.append(line)
+
+    flush()
+    return blocks
+
+
+def _event_end_dt(ev: Dict) -> Optional[datetime]:
+    try:
+        return datetime.strptime(f"{ev['date']} {ev['end']}", "%Y-%m-%d %H:%M")
+    except ValueError:
+        return None
+
+
+def _store_block_events(
+    events_map: Dict[str, Dict],
+    block_events: List[Dict],
+    block_ts: Optional[datetime] = None,
+) -> None:
+    for ev in block_events:
+        base = _slot_key(ev)
+        key = base
+        if key in events_map and events_map[key].get("title") != ev.get("title"):
+            title = (ev.get("title") or "")[:20]
+            if title:
+                key = f"{base}|{title}"
+        events_map[key] = ev
+
+        if block_ts is None:
+            continue
+        start_dt = _event_start_dt(ev)
+        if start_dt is None or start_dt < block_ts:
+            continue
+        drop_same_start: List[str] = []
+        for other_key, other in events_map.items():
+            if other_key == key:
+                continue
+            if other["date"] != ev["date"] or other["start"] != ev["start"]:
+                continue
+            if _slot_key(other) == base:
+                continue
+            other_start = _event_start_dt(other)
+            if other_start is not None and other_start >= block_ts:
+                drop_same_start.append(other_key)
+        for other_key in drop_same_start:
+            del events_map[other_key]
+
+
+def _parse_txt(txt_content: str) -> List[Dict]:
+    """Parse export blocks; drop future slots missing from newer hourly snapshots."""
+    blocks = _split_export_blocks(txt_content)
+    events_map: Dict[str, Dict] = {}
+    raw_total = 0
+    duplicates_dropped = 0
+
+    for block_ts, lines in blocks:
+        raw: List[Dict] = []
+        for line in lines:
+            ev = _parse_event_line(line)
+            if ev is not None:
+                raw.append(ev)
+        raw_total += len(raw)
+        block_events, dropped = _dedupe_block_events(raw)
+        duplicates_dropped += dropped
+        block_base_keys = {_slot_key(e) for e in block_events}
+        block_dates = {e["date"] for e in block_events}
+
+        _store_block_events(events_map, block_events, block_ts)
+
+        if block_ts is None or not block_dates:
+            continue
+
+        bases_present = {_slot_key(ev) for ev in events_map.values()}
+        to_drop: List[str] = []
+        for base_key in bases_present:
+            date_str = base_key.split("|", 1)[0]
+            if date_str not in block_dates:
+                continue
+            sample = next(ev for ev in events_map.values() if _slot_key(ev) == base_key)
+            end_dt = _event_end_dt(sample)
+            if end_dt is None or end_dt <= block_ts:
+                continue
+            if base_key in block_base_keys:
+                continue
+            title = (sample.get("title") or "").strip()
+            start_dt = _event_start_dt(sample)
+            if title and start_dt is not None and start_dt < block_ts:
+                continue
+            to_drop.append(base_key)
+
+        if to_drop:
+            drop_set = set(to_drop)
+            for key in list(events_map.keys()):
+                if _slot_key(events_map[key]) in drop_set:
+                    del events_map[key]
+
+    events = sorted(events_map.values(), key=lambda e: (e["date"], e["start"]))
+    logger.info(
+        pdmsg("auto_c24be15722"),
+        raw_total,
+        len(events),
+        duplicates_dropped,
+    )
     return events
 
 
@@ -189,8 +307,8 @@ def _reconcile_existing(
     new_events: List[Dict],
     txt_ts: Optional[str],
 ) -> Tuple[List[Dict], int]:
-    """Drop phantom future slots on days covered by the latest iPhone export."""
-    export_anchor = _parse_export_anchor(txt_ts)
+    """Drop JSON slots absent from parsed txt snapshot for each touched calendar day."""
+    del txt_ts  # block-aware parse is authoritative per day; anchor unused
     new_dates = {e["date"] for e in new_events}
     new_slot_keys = {_slot_key(e) for e in new_events}
     kept: List[Dict] = []
@@ -205,17 +323,7 @@ def _reconcile_existing(
         if _slot_key(ev) in new_slot_keys:
             kept.append(ev)
             continue
-        if export_anchor is None:
-            kept.append(ev)
-            continue
-        start_dt = _event_start_dt(ev)
-        if start_dt is None:
-            kept.append(ev)
-            continue
-        if start_dt >= export_anchor:
-            removed += 1
-            continue
-        kept.append(ev)
+        removed += 1
     return kept, removed
 
 

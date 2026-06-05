@@ -96,6 +96,23 @@ PYTHONPATH = $bot_root:$monorepo_root
 
 Импорты: `from shared.llm import LLMClient`, локальные пакеты бота без установки как pip-пакета.
 
+### Planning LLM facade (deprecation)
+
+| Layer | Role |
+|-------|------|
+| `shared/llm.py` | Transport: chat, JSON, tools; temps/timeouts from `config/agent/models.yaml` |
+| `planning_bot/core/llm_params.py` | Planning-specific role temps from `platform.yaml` |
+| `planning_bot/core/llm.py` | **Legacy** `DeepSeekClient`: `parse_task`, weekly review, recommendations |
+
+New planning code should call `shared.llm.LLMClient` (or agent router), not extend `DeepSeekClient.chat()`.
+`calendar_insights_llm.py` already uses shared transport.
+
+### Host menu detection
+
+Domain button routing (`is_finance_menu`, `is_planning_menu`, `is_knowledge_menu`) reads
+`menu_detection` in `config/ui_capabilities.yaml` (see `.example`). UI string gates use the
+same file (`strings` / `patterns`).
+
 ---
 
 ## Поток obsidian_sync

@@ -181,22 +181,28 @@ python3 scripts/setup/env_tools.py status
 python3 scripts/init_vault_layout.py
 ./scripts/setup.sh
 bash scripts/setup_agent_config.sh
+AGENT_LOCALE="${AGENT_LOCALE:-en}"
+python3 scripts/setup/materialize_locale.py "$AGENT_LOCALE"
+AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
 cp config/vault_paths.yaml.example config/vault_paths.yaml   # if missing; tune folder names
-python3 scripts/setup/env_tools.py set-locale en   # or ru — materializes messages.*.yaml
+python3 scripts/setup/env_tools.py set-locale "$AGENT_LOCALE"   # materializes messages.*.yaml
 ```
 
 Ensure `.env` contains `AGENT_PROMPT_DYNAMIC_SUPPLEMENT=0` (see `.env.example`) — prefer explicit `<!-- @cap -->` blocks in prod prompts.
 
 ---
 
-## Phase 5 — Prompts
+## Phase 5 — Prompts (one pass: stubs → prod .txt)
 
 ```bash
 bash scripts/ensure_bot_prompts.sh
 cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml  # if missing
 python3 scripts/scaffold_personalized_prompts.py
+python3 scripts/seed_planning_prompts.py || true
 bash scripts/ensure_bot_prompts.sh --warn-stubs
 ```
+
+Interview user for **personalized** tiers only; never overwrite existing prod `*.txt` without explicit ask.
 
 | Tier | Your job |
 |------|----------|

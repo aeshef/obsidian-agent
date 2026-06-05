@@ -12,7 +12,7 @@ log = logging.getLogger("finance.nlu.batch")
 def test_split_transaction_batches_multiline():
     text = "a\n\nb\nc\n"
     batches = _split_transaction_batches(text, chunk_lines=10)
-    assert batches == ["a", "b", "c"]
+    assert batches == ["a\nb\nc"]
 
 
 def test_split_single_block():

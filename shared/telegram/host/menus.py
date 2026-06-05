@@ -1,15 +1,13 @@
 """Host-level menu detection: domain buttons vs free text."""
 from __future__ import annotations
 
-from bot.config_loader import get_nlu_config, nlu_exact_commands
-from bot.reply_menu import is_reply_menu_button
-from planning_bot.app.menu_labels import is_planning_menu_button
-
 from shared.telegram.host import labels as L
 from shared.telegram.host.constants import DOMAIN_IDS
-
-from knowledge_bot.app.kb_labels import bulk_off, bulk_on, query_button, query_legacy
-from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON, BTN_QUERY
+from shared.telegram.host.menu_detection import (
+    is_finance_menu_text,
+    is_knowledge_menu_text,
+    is_planning_menu_text,
+)
 
 
 def mode_from_button(text: str) -> str | None:
@@ -41,20 +39,15 @@ def mode_from_button(text: str) -> str | None:
 
 
 def is_finance_menu(text: str) -> bool:
-    if is_reply_menu_button(text):
-        return True
-    cfg = get_nlu_config()
-    return text in nlu_exact_commands(cfg)
+    return is_finance_menu_text(text)
 
 
 def is_planning_menu(text: str) -> bool:
-    if text in L.mode_button_labels():
-        return False
-    return is_planning_menu_button(text)
+    return is_planning_menu_text(text)
 
 
 def is_knowledge_menu(text: str) -> bool:
-    return text in (BTN_QUERY, BTN_BULK_ON, BTN_BULK_OFF, query_legacy())
+    return is_knowledge_menu_text(text)
 
 
 def is_domain_mode(mode: str) -> bool:

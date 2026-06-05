@@ -1,11 +1,13 @@
-"""DeepSeek API: retry and domain helpers (parse_task, weekly review, recommendations)."""
+"""Planning LLM facade — transport via shared.llm; domain helpers below.
+
+Deprecated surface: new code should use ``shared.llm.LLMClient`` directly.
+``DeepSeekClient`` remains for legacy planning handlers (parse_task, weekly review).
+See docs/ARCHITECTURE.md § Planning LLM facade.
+"""
 import re
-import requests
 import json
 import logging
-import traceback
 from typing import Dict, List, Optional
-from time import sleep
 
 from shared.constants import deepseek_base_url
 from shared.llm import LLMClient as _SharedLLMClient
@@ -131,71 +133,21 @@ class DeepSeekClient:
         temperature: float | None = None,
         max_retries: int = 3,
     ) -> str:
+        """Chat completion; retries/timeouts delegated to shared.llm.LLMClient."""
         if temperature is None:
             temperature = planning_llm_temperature("recommendations", 0.7)
-        """   DeepSeek API  retry  ( — shared.llm)."""
-        logger.info("DeepSeek API request")
-        logger.debug("Model: %s, Temperature: %s, messages: %s", self.model, temperature, len(messages))
+        del max_retries  # shared.llm handles retries
+        import requests
 
-        for attempt in range(1, max_retries + 1):
-            try:
-                logger.info("DeepSeek retry %s/%s", attempt, max_retries)
-                content = self._transport.chat_messages(
-                    messages,
-                    temperature=temperature,
-                    timeout=planning_chat_timeout_sec(),
-                    raise_on_error=True,
-                )
-                logger.info("DeepSeek API ok (%s chars)", len(content))
-                logger.debug("Response preview: %s...", content[:200])
-                return content
-
-            except requests.exceptions.Timeout as e:
-                logger.error("DeepSeek timeout attempt %s/%s", attempt, max_retries)
-                logger.error(f"Timeout error: {str(e)}")
-                logger.error(f"URL: {self.api_url}")
-                if attempt < max_retries:
-                    wait_time = attempt * 2
-                    logger.info(f"⏳  {wait_time}   ...")
-                    sleep(wait_time)
-                else:
-                    logger.error(f"❌   .  : {traceback.format_exc()}")
-                    raise APITimeoutError(f"DeepSeek API timeout after {max_retries} attempts")
-                    
-            except requests.exceptions.RequestException as e:
-                logger.error(f"❌     {attempt}/{max_retries}")
-                logger.error(f"Error type: {type(e).__name__}")
-                logger.error(f"Error message: {str(e)}")
-                logger.error(f"URL: {self.api_url}")
-                if hasattr(e, 'response') and e.response is not None:
-                    logger.error(f"Response status: {e.response.status_code}")
-                    logger.error(f"Response length: {len(e.response.text)} chars (body not logged)")
-                logger.error(f"Full traceback:\n{traceback.format_exc()}")
-                
-                if attempt < max_retries:
-                    wait_time = attempt * 2
-                    logger.info(f"⏳  {wait_time}   ...")
-                    sleep(wait_time)
-                else:
-                    raise Exception(f"DeepSeek API request failed after {max_retries} attempts: {e}")
-                    
-            except json.JSONDecodeError as e:
-                logger.error(f"❌   JSON ")
-                logger.error(f"Response length: {len(response.text) if 'response' in locals() else 0} chars (body not logged)")
-                logger.error(f"Full traceback:\n{traceback.format_exc()}")
-                raise Exception(f"DeepSeek API JSON parse error: {e}")
-                
-            except Exception as e:
-                logger.error(f"❌     {attempt}/{max_retries}")
-                logger.error(f"Error type: {type(e).__name__}")
-                logger.error(f"Error message: {str(e)}")
-                logger.error(f"Full traceback:\n{traceback.format_exc()}")
-                if attempt < max_retries:
-                    wait_time = attempt * 2
-                    logger.info(f"⏳  {wait_time}   ...")
-                    sleep(wait_time)
-                else:
-                    raise Exception(f"Unexpected DeepSeek API error: {e}")
+        try:
+            return self._transport.chat_messages(
+                messages,
+                temperature=temperature,
+                timeout=planning_chat_timeout_sec(),
+                raise_on_error=True,
+            )
+        except requests.exceptions.Timeout as e:
+            raise APITimeoutError(str(e)) from e
 
     def parse_task(self, user_message: str, context: Optional[Dict] = None) -> Dict[str, str]:
         """       LLM"""

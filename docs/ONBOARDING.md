@@ -60,6 +60,25 @@ python3 -m pytest tests/test_profile_matrix.py tests/test_ui_bindings.py -q
 
 Telegram: `python -m unified_bot.main` → mode **Planning** → «Мои задачи».
 
+## Golden path: finance only (~20 min)
+
+```bash
+cp .env.example .env
+# VAULT_PATH, TELEGRAM_UNIFIED_BOT_TOKEN, DEEPSEEK_API_KEY
+
+python3 scripts/apply_capabilities_profile.py --only-modules finance --write --patch-env
+python3 scripts/setup/materialize_locale.py "${AGENT_LOCALE:-en}"
+bash scripts/ensure_repo_config.sh
+python3 scripts/init_vault_layout.py
+./scripts/setup.sh
+bash scripts/ensure_bot_prompts.sh
+
+python3 scripts/onboarding_smoke.py --golden-finance --agent-sanity
+python3 scripts/onboarding_smoke.py --verify-all --require-env
+```
+
+Telegram: `python -m unified_bot.main` → mode **Finance** → balance / last ops. Broker API and corporate badge are optional (`--broker-sync`, `--corporate-badge`); UI gates live in `config/ui_capabilities.yaml.example`.
+
 ## Vault layout (not fixed numbering)
 
 Folder names live in `config/vault_paths.yaml` (materialized from `vault_paths.en.yaml.example` or `vault_paths.ru.yaml.example` via `AGENT_LOCALE`). Rename `folders.tasks`, `folders.goals`, etc. to match **your** Obsidian tree — Python reads segments only from YAML. `init_vault_layout.py` creates missing dirs under `VAULT_PATH`.

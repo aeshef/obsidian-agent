@@ -114,7 +114,7 @@ PRIORITY_ORDER = _schema_order("priority_order")
 
 # Canonical labels: kanban_schema.yaml (locale-specific content, not Python).
 # ASCII fallbacks only when schema lists are empty (OSS/CI); with schema present,
-# e.g. AGENT_LOCALE=ru + copied .example → карьера / средний.
+# e.g. AGENT_LOCALE=ru + localized schema from .example.
 DEFAULT_CATEGORY = CATEGORIES[0] if CATEGORIES else "other"
 DEFAULT_PRIORITY = (
     PRIORITIES[1]

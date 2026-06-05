@@ -65,30 +65,57 @@ def dump_yaml(path: Path, data: dict) -> None:
     )
 
 
-stems = ("vault_paths", "domain_messages")
-for stem in stems:
-    example = CFG / f"{stem}.yaml.example"
-    local = CFG / f"{stem}.yaml"
-    if not example.is_file():
-        print(f"  skip {stem}: no example")
+def resolve_locale() -> str:
+    raw = os.environ.get("AGENT_LOCALE", "en").strip().lower()
+    return "ru" if raw.startswith("ru") else "en"
+
+
+def example_chain(stem: str, locale: str) -> list[Path]:
+    names = [f"{stem}.{locale}.yaml.example", f"{stem}.yaml.example"]
+    return [CFG / n for n in names if (CFG / n).is_file()]
+
+
+def merge_examples(paths: list[Path]) -> dict:
+    out: dict = {}
+    for path in paths:
+        data = load_yaml(path)
+        if data:
+            out = deep_merge(out, data)
+    return out
+
+
+locale = resolve_locale()
+targets: list[tuple[str, list[Path]]] = [
+    ("vault_paths", example_chain("vault_paths", locale)),
+    (f"domain_messages.{locale}", example_chain(f"domain_messages.{locale}", locale)),
+    (f"messages.{locale}", example_chain(f"messages.{locale}", locale)),
+]
+legacy_dm = CFG / "domain_messages.yaml.example"
+if legacy_dm.is_file():
+    targets.append(("domain_messages", [legacy_dm]))
+
+for local_stem, examples in targets:
+    if not examples:
+        print(f"  skip {local_stem}: no example")
         continue
-    ex = load_yaml(example)
+    ex = merge_examples(examples)
     if not ex:
-        print(f"  skip {stem}: empty example")
+        print(f"  skip {local_stem}: empty example")
         continue
+    local = CFG / f"{local_stem}.yaml"
     cur = load_yaml(local) if local.is_file() else {}
     if cur is None:
         continue
     merged = deep_merge(ex, cur) if cur else ex
     if merged == cur and local.is_file():
-        print(f"  ok {stem}.yaml")
+        print(f"  ok {local_stem}.yaml")
         continue
     if not local.is_file():
         dump_yaml(local, merged)
-        print(f"  created {stem}.yaml from example")
+        print(f"  created {local_stem}.yaml from example")
     else:
         dump_yaml(local, merged)
-        print(f"  merged {stem}.yaml ← example (missing keys only)")
+        print(f"  merged {local_stem}.yaml <- example (missing keys only)")
 PY
 
 echo "✅ repo config ensured under $CFG"

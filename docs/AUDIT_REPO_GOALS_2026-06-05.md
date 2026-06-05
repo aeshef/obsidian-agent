@@ -47,9 +47,9 @@ python3 planning_bot/tools/calendar_sync.py
 
 | Item | Location | Notes |
 |------|----------|-------|
-| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | Thin wrapper in progress; emoji logs trimmed |
-| Menu labels | `menus.py` still uses NLU/kb constants | OK for detection; dispatch centralized |
-| `ui_bindings.yaml` | not yet | Replace `is_*_menu()` with config table |
+| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | `chat()` thin; deprecation in ARCHITECTURE.md |
+| Menu labels | `menu_detection` in `ui_capabilities.yaml` | `shared/telegram/host/menu_detection.py` |
+| `ui_bindings.yaml` | merged into `ui_capabilities.yaml` | `menu_detection` + `strings`/`patterns` |
 
 ### Git hygiene
 

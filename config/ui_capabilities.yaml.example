@@ -2,6 +2,18 @@
 # Optional local override: ui_capabilities.yaml (gitignored). Example is always merged.
 #
 # Spec: module name | connector alias | feature:name | gate:broker | gate:badge | any:a,b
+#
+# menu_detection: host domain menu routing (shared/telegram/host/menu_detection.py)
+
+menu_detection:
+  finance:
+    reply_menu: true
+    nlu_exact: true
+  planning:
+    planning_menu_labels: true
+    exclude_host_mode_labels: true
+  knowledge:
+    knowledge_buttons: true
 
 strings:
   host.mode_finance: finance
