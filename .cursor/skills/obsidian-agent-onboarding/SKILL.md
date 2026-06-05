@@ -107,6 +107,18 @@ flowchart TD
 
 ---
 
+## One-shot shell wizard (optional)
+
+For non-interactive setup, run from repo root:
+
+```bash
+./scripts/onboarding_wizard.sh --playbook planning   # or finance | full
+```
+
+Same phases as below; user still pastes secrets via `env_tools.py set`. On the **author** machine set `AGENT_LOCALE=ru` in `.env` first so `init_vault_layout` does not create English ghost folders.
+
+---
+
 ## Phase 0 — Detect context
 
 ```bash

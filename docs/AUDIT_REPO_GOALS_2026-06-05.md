@@ -41,15 +41,16 @@ python3 planning_bot/tools/calendar_sync.py
 
 ---
 
-## P1 — open (next iterations)
+## P1 — done (8d8029c + follow-up)
 
-### Architecture / no hardcode (remaining)
-
-| Item | Location | Notes |
-|------|----------|-------|
-| `planning_bot/core/llm.py` facade | domain methods still wrap `shared.llm` | `chat()` thin; deprecation in ARCHITECTURE.md |
-| Menu labels | `menu_detection` in `ui_capabilities.yaml` | `shared/telegram/host/menu_detection.py` |
-| `ui_bindings.yaml` | merged into `ui_capabilities.yaml` | `menu_detection` + `strings`/`patterns` |
+| Item | Status |
+|------|--------|
+| `planning_bot/core/llm_domain.py` | Domain methods extracted; `llm.py` thin facade |
+| CAP keyboards/inline | `ui_capabilities.yaml` + `compact_keyboard_rows`, `test_keyboard_cap_gates.py` |
+| `scripts/onboarding_wizard.sh` | One-shot over onboarding skill |
+| `analyze_vault_report.py` | EN refactor; paths from `vault_paths.yaml` |
+| `calendar_charts.py` | Lazy `pdmsg()` at runtime (fixes EN filenames on RU vault) |
+| Onboarding docs | `ONBOARDING.md` + skill link wizard |
 
 ### Git hygiene
 

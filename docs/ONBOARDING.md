@@ -11,6 +11,18 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 | **features** | Fine-grained flags (nutrition chart, broker IIS, planning cron jobs, …) |
 | **sync.profile** | Mac `obsidian_sync.sh` steps; use `auto` to infer from modules/connectors |
 
+## One-shot wizard (recommended for new clones)
+
+```bash
+./scripts/onboarding_wizard.sh --playbook planning   # or finance | full
+./scripts/onboarding_wizard.sh --modules knowledge --connectors --knowledge-serendipity
+./scripts/onboarding_wizard.sh --dry-run --playbook finance
+```
+
+The wizard runs `apply_capabilities_profile`, `init_vault_layout`, `ensure_bot_prompts`, and `onboarding_smoke.py`. Secrets still require `python3 scripts/setup/env_tools.py set KEY 'value'`. Full interactive flow: Cursor skill `.cursor/skills/obsidian-agent-onboarding/SKILL.md`.
+
+**Author machine:** use `AGENT_LOCALE=ru` in `.env` before the wizard so `vault_paths.yaml` keeps your Cyrillic folder names (`100_Задачи`, not `100_Tasks`).
+
 ## Examples
 
 ```bash

@@ -7,11 +7,31 @@ from typing import Any, Dict, List, Optional, Tuple
 logger = logging.getLogger(__name__)
 
 from planning_bot.core.pdmsg import pdmsg
-# (comment)
-WIKILINK_WEEK = pdmsg("auto_95e2cc8d19")
-WIKILINK_LIFE = pdmsg("auto_fa4234819c")
-PNG_WEEK = pdmsg("auto_ca23d05890")
-PNG_LIFE = pdmsg("auto_10d40715dc")
+
+
+def _wikilink_week() -> str:
+    return pdmsg("auto_95e2cc8d19")
+
+
+def _wikilink_life() -> str:
+    return pdmsg("auto_fa4234819c")
+
+
+def _png_week() -> str:
+    return pdmsg("auto_ca23d05890")
+
+
+def _png_life() -> str:
+    return pdmsg("auto_10d40715dc")
+
+
+def png_week_filename() -> str:
+    """Locale-resolved chart basename (call at runtime, not import time)."""
+    return _png_week()
+
+
+def png_life_filename() -> str:
+    return _png_life()
 
 
 def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> Tuple[Optional[str], Optional[str]]:
@@ -23,7 +43,7 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
         import matplotlib.pyplot as plt
     except ImportError:
         logger.debug(pdmsg("auto_59cced6a72"))
-        return WIKILINK_WEEK, WIKILINK_LIFE
+        return _wikilink_week(), _wikilink_life()
 
     graphics_dir.mkdir(parents=True, exist_ok=True)
     week_wiki: Optional[str] = None
@@ -50,14 +70,14 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
             ax.grid(axis="x", alpha=0.35, linestyle="--")
             ax.set_axisbelow(True)
             fig.tight_layout()
-            out = graphics_dir / PNG_WEEK
+            out = graphics_dir / _png_week()
             fig.savefig(out, bbox_inches="tight", facecolor="white")
             plt.close(fig)
-            week_wiki = WIKILINK_WEEK
+            week_wiki = _wikilink_week()
 
         life = analytics.get("life_hours") or {}
         items = sorted(life.items(), key=lambda kv: -kv[1])[:8]
-        out2 = graphics_dir / PNG_LIFE
+        out2 = graphics_dir / _png_life()
         if items:
             names = [(k[:24] if k else "—") for k, _ in items]
             hours = [v for _, v in items]
@@ -74,7 +94,7 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
             fig.tight_layout()
             fig.savefig(out2, bbox_inches="tight", facecolor="white")
             plt.close(fig)
-            life_wiki = WIKILINK_LIFE
+            life_wiki = _wikilink_life()
         elif out2.exists():
             # (comment)
             out2.unlink()

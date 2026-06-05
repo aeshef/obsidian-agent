@@ -117,6 +117,7 @@ knowledge_bot/scripts/run_vault_audit_report.sh
 knowledge_bot/tools/audit_tags.py
 knowledge_bot/tools/audit_wikilinks.py
 knowledge_bot/tools/analyze_*.py
+!knowledge_bot/tools/analyze_vault_report.py
 knowledge_bot/tools/reprocess_notes.py
 knowledge_bot/tools/retag_notes.py
 knowledge_bot/tools/refill_singleton_tags.py

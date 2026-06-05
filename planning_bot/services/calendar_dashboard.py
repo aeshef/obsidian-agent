@@ -123,9 +123,9 @@ def render_meeting_focus_dashboard(
 
 def _update_companion_md(graphics_dir: Path, now_str: str) -> None:
     'Operation implementation.'
-    from planning_bot.services.calendar_charts import PNG_LIFE
+    from planning_bot.services.calendar_charts import png_life_filename
 
-    life_png = graphics_dir / PNG_LIFE
+    life_png = graphics_dir / png_life_filename()
     for name in (pdmsg("auto_f077724de3"), pdmsg("auto_6799b4f864")):
         p = graphics_dir / name
         if p.exists():

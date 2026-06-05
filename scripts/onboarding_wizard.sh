@@ -7,7 +7,12 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export PYTHONIOENCODING=utf-8
-AGENT_LOCALE="${AGENT_LOCALE:-en}"
+# Prefer .env / author machine locale; EN is OSS default for fresh clones only.
+if [[ -f .env ]]; then
+  _loc="$(grep -E '^AGENT_LOCALE=' .env | tail -1 | cut -d= -f2- | tr -d "\"'" | xargs)"
+  [[ -n "$_loc" ]] && AGENT_LOCALE="$_loc"
+fi
+AGENT_LOCALE="${AGENT_LOCALE:-ru}"
 
 PLAYBOOK=""
 MODULES=""
