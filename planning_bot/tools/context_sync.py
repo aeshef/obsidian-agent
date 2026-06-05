@@ -108,11 +108,44 @@ def _cleanup_old_context_files(mac_dir: Path) -> int:
     return deleted
 
 
+def _rename_legacy_mac_snapshots(mac_dir: Path) -> int:
+    """DD.MM.YYYY, HH:MM.txt → YYYY-MM-DD, HH-MM.txt (Mac Shortcut still emits legacy names)."""
+    from planning_bot.services.action_snapshot_rename import (
+        rename_snapshot_dir,
+        vault_root_from_actions_dir,
+    )
+    from planning_bot.services.context_parser import parse_context_file
+    from planning_bot.services.iphone_snapshot_names import parse_filename_ts
+
+    def _resolve_ts(path: Path) -> datetime | None:
+        snaps = parse_context_file(path)
+        if snaps:
+            try:
+                return datetime.fromisoformat(str(snaps[0]["ts"]))
+            except ValueError:
+                pass
+        return parse_filename_ts(path.name)
+
+    vault = vault_root_from_actions_dir(mac_dir)
+    result = rename_snapshot_dir(
+        snapshot_dir=mac_dir,
+        vault=vault,
+        resolve_ts=_resolve_ts,
+        apply=True,
+        label="mac",
+    )
+    renamed = int(result.get("renamed") or 0)
+    if renamed:
+        logger.info("Renamed %s legacy Mac snapshot file(s) to canonical names", renamed)
+    return renamed
+
+
 def run_context_sync() -> bool:
     try:
         CONTEXT_MAC_DIR.mkdir(parents=True, exist_ok=True)
         data_root = CONTEXT_MAC_DIR.parent.parent  # (comment)
 
+        _rename_legacy_mac_snapshots(CONTEXT_MAC_DIR)
         n_root = _cleanup_data_dir_root(data_root)
         n_mac = _cleanup_mac_misfires(CONTEXT_MAC_DIR)
         n_old = _cleanup_old_context_files(CONTEXT_MAC_DIR)

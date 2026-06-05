@@ -1,61 +1,340 @@
-"""Host-level menu detection: domain buttons vs free text."""
+"""Menu navigation, routines, goals progress, and scheduled alerts."""
 from __future__ import annotations
 
-from bot.config_loader import get_nlu_config, nlu_exact_commands
-from bot.reply_menu import is_reply_menu_button
-from planning_bot.app.menu_labels import is_planning_menu_button
+import logging
+import traceback
+from collections import defaultdict
+from datetime import datetime as dt
+from typing import Dict, List
 
-from shared.telegram.host import labels as L
-from shared.telegram.host.constants import DOMAIN_IDS
+from aiogram import Bot
+from aiogram.types import Message
 
-from knowledge_bot.app.kb_labels import bulk_off, bulk_on, query_button, query_legacy
-from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON, BTN_QUERY
+from planning_bot.app import keyboards
+from planning_bot.app.ui import pmsg
+from planning_bot.core.config import (
+    DONE_COLUMN,
+    IN_WORK_COLUMN,
+    WAITING_DATE_COLUMN,
+    priority_emoji,
+)
+from planning_bot.services.routines_analyzer import (
+    format_statistics_text,
+    get_pending_tasks,
+    get_statistics as get_routines_statistics,
+    should_send_evening_reminder,
+    should_send_morning_reminder,
+)
+
+logger = logging.getLogger(__name__)
 
 
-def mode_from_button(text: str) -> str | None:
-    mode = {
-        L.mode_finance(): "finance",
-        L.mode_planning(): "planning",
-        L.mode_knowledge(): "knowledge",
-        L.mode_auto(): "auto",
-    }.get(text)
-    if not mode or mode == "auto":
-        return mode
-    from shared.capabilities.profile import (
-        MODULE_FINANCE,
-        MODULE_KNOWLEDGE,
-        MODULE_PLANNING,
-        get_capabilities,
+async def show_tasks_menu(self, message: Message):
+    await message.answer(
+        pmsg("tasks_menu_title"),
+        reply_markup=keyboards.get_tasks_filter_keyboard(),
+        parse_mode="Markdown",
     )
 
-    prof = get_capabilities()
-    module_for_mode = {
-        "finance": MODULE_FINANCE,
-        "planning": MODULE_PLANNING,
-        "knowledge": MODULE_KNOWLEDGE,
-    }
-    mod = module_for_mode.get(mode)
-    if mod and not prof.module(mod):
-        return None
-    return mode
+
+async def show_categories_menu(self, message: Message):
+    await message.answer(
+        pmsg("categories_menu_title"),
+        reply_markup=keyboards.get_categories_keyboard(),
+        parse_mode="Markdown",
+    )
 
 
-def is_finance_menu(text: str) -> bool:
-    if is_reply_menu_button(text):
-        return True
-    cfg = get_nlu_config()
-    return text in nlu_exact_commands(cfg)
+async def show_priorities_menu(self, message: Message):
+    await message.answer(
+        pmsg("priorities_menu_title"),
+        reply_markup=keyboards.get_priorities_keyboard(),
+        parse_mode="Markdown",
+    )
 
 
-def is_planning_menu(text: str) -> bool:
-    if text in L.mode_button_labels():
-        return False
-    return is_planning_menu_button(text)
+async def show_statuses_menu(self, message: Message):
+    await message.answer(
+        pmsg("statuses_menu_title"),
+        reply_markup=keyboards.get_statuses_keyboard(),
+        parse_mode="Markdown",
+    )
 
 
-def is_knowledge_menu(text: str) -> bool:
-    return text in (BTN_QUERY, BTN_BULK_ON, BTN_BULK_OFF, query_legacy())
+async def show_routines_menu(self, message: Message):
+    await message.answer(
+        pmsg("routines_menu_title"),
+        reply_markup=keyboards.get_routines_keyboard(),
+        parse_mode="Markdown",
+    )
 
 
-def is_domain_mode(mode: str) -> bool:
-    return mode in DOMAIN_IDS
+async def show_routines_statistics(self, message: Message):
+    try:
+        stats = get_routines_statistics(days=30)
+        text = format_statistics_text(stats)
+        await message.answer(
+            text, parse_mode="Markdown", reply_markup=keyboards.get_routines_keyboard()
+        )
+    except Exception as e:
+        logger.error("Routines stats failed: %s\n%s", e, traceback.format_exc())
+        await message.answer(
+            pmsg("routines_stats_error"),
+            reply_markup=keyboards.get_routines_keyboard(),
+        )
+
+
+async def show_pending_routines(self, message: Message):
+    try:
+        pending = get_pending_tasks()
+        text = pmsg("pending_routines_header")
+        if pending["morning"]:
+            text += pmsg("morning_section") + "".join(f"• {t}\n" for t in pending["morning"]) + "\n"
+        else:
+            text += pmsg("morning_all_done")
+        if pending["day"]:
+            text += pmsg("day_section") + "".join(f"• {t}\n" for t in pending["day"]) + "\n"
+        else:
+            text += pmsg("day_all_done")
+        if pending["evening"]:
+            text += pmsg("evening_section") + "".join(f"• {t}\n" for t in pending["evening"])
+        else:
+            text += pmsg("evening_all_done")
+        await message.answer(
+            text, parse_mode="Markdown", reply_markup=keyboards.get_routines_keyboard()
+        )
+    except Exception as e:
+        logger.error("Pending routines failed: %s", e)
+        await message.answer(
+            pmsg("pending_routines_error"),
+            reply_markup=keyboards.get_routines_keyboard(),
+        )
+
+
+async def show_goals_progress(self, message: Message):
+    try:
+        current_quarter = self.goals_mapper.get_current_quarter()
+        progress_text = self.goals_analyzer.format_progress_text(current_quarter)
+        alerts_text = self.goals_analyzer.format_alerts_text(current_quarter)
+        await message.answer(
+            progress_text + "\n" + alerts_text,
+            parse_mode="Markdown",
+            reply_markup=keyboards.get_main_keyboard(),
+        )
+    except Exception as e:
+        logger.error("Goals progress failed: %s\n%s", e, traceback.format_exc())
+        await message.answer(
+            pmsg("goals_progress_error"),
+            reply_markup=keyboards.get_main_keyboard(),
+        )
+
+
+async def send_morning_routine_reminder(self, bot: Bot):
+    try:
+        if not should_send_morning_reminder() or not self.chat_id:
+            if not self.chat_id:
+                logger.warning("Chat ID not set, skip morning routine reminder")
+            return
+        pending = get_pending_tasks()
+        if not pending["morning"]:
+            return
+        text = pmsg("morning_reminder")
+        text += "".join(f"• {task}\n" for task in pending["morning"][:5])
+        if len(pending["morning"]) > 5:
+            text += pmsg("more_tasks_suffix", count=len(pending["morning"]) - 5)
+        await bot.send_message(chat_id=self.chat_id, text=text, parse_mode="Markdown")
+        logger.info("Sent morning routine reminder")
+    except Exception as e:
+        logger.error("Morning routine reminder failed: %s", e)
+
+
+async def send_evening_routine_reminder(self, bot: Bot):
+    try:
+        if not should_send_evening_reminder() or not self.chat_id:
+            if not self.chat_id:
+                logger.warning("Chat ID not set, skip evening routine reminder")
+            return
+        pending = get_pending_tasks()
+        if not pending["evening"]:
+            return
+        text = pmsg("evening_reminder")
+        text += "".join(f"• {task}\n" for task in pending["evening"][:5])
+        if len(pending["evening"]) > 5:
+            text += pmsg("more_tasks_suffix", count=len(pending["evening"]) - 5)
+        await bot.send_message(chat_id=self.chat_id, text=text, parse_mode="Markdown")
+        logger.info("Sent evening routine reminder")
+    except Exception as e:
+        logger.error("Evening routine reminder failed: %s", e)
+
+
+async def send_weekly_goals_no_tasks(self, bot: Bot):
+    try:
+        if not self.chat_id:
+            return
+        current_quarter = self.goals_mapper.get_current_quarter()
+        problematic = self.goals_analyzer.get_problematic_goals(current_quarter)
+        goals_no_tasks = [p for p in problematic if "no_tasks" in p.get("issues", [])]
+        if not goals_no_tasks:
+            return
+        goal_lines = "\n".join(f"• {p.get('goal', {}).get('text', '?')}" for p in goals_no_tasks)
+        await bot.send_message(
+            chat_id=self.chat_id,
+            text=pmsg("weekly_goals_no_tasks", quarter=current_quarter, goals=goal_lines),
+            reply_markup=keyboards.get_main_keyboard(),
+        )
+        logger.info(
+            "Weekly goals-without-tasks message sent for %s (%s goals)",
+            current_quarter,
+            len(goals_no_tasks),
+        )
+    except Exception as e:
+        logger.error("Weekly goals-without-tasks message failed: %s", e)
+
+
+async def send_goals_alerts(self, bot: Bot):
+    logger.info("Running daily goals alerts")
+    try:
+        if not self.chat_id:
+            logger.warning("Chat ID not set, goals alerts skipped")
+            return
+        current_quarter = self.goals_mapper.get_current_quarter()
+        problematic = self.goals_analyzer.get_problematic_goals(current_quarter)
+        if problematic:
+            alerts_text = self.goals_analyzer.format_alerts_text(current_quarter)
+            await bot.send_message(
+                chat_id=self.chat_id,
+                text=pmsg("goals_alerts_header", quarter=current_quarter, alerts=alerts_text),
+                parse_mode="Markdown",
+            )
+            logger.info("Sent goals alerts for %s goals", len(problematic))
+    except Exception as e:
+        logger.error("Goals alerts failed: %s", e)
+
+
+async def send_deadlines_alerts(self, bot: Bot):
+    logger.info("Running daily deadline alerts")
+    try:
+        if not self.chat_id:
+            logger.warning("Chat ID not set, deadline alerts skipped")
+            return
+        missed = self.kanban.get_tasks_with_missed_deadlines()
+        upcoming = self.kanban.get_tasks_with_deadlines(days_ahead=7)
+        if not missed and not upcoming:
+            return
+        parts: list[str] = []
+        if missed:
+            parts.append(pmsg("missed_deadlines_header"))
+            for task in missed:
+                days_over = task.get("days_overdue", 0)
+                pri = priority_emoji(task.get("priority", ""))
+                column_emoji = "🔄" if task.get("column") == IN_WORK_COLUMN else "📋"
+                parts.append(f"{pri} {column_emoji} {task.get('title', '')[:60]}\n")
+                parts.append(
+                    pmsg(
+                        "deadline_overdue_line",
+                        deadline=task.get("deadline"),
+                        days=days_over,
+                    )
+                )
+            parts.append("\n")
+        if upcoming:
+            by_days: dict[int, list] = defaultdict(list)
+            for task in upcoming:
+                by_days[task.get("days_until_deadline", 0)].append(task)
+            if 1 in by_days:
+                parts.append(pmsg("reminder_one_day", count=len(by_days[1])))
+            parts.append(pmsg("upcoming_deadlines_header"))
+            for days in sorted(by_days.keys()):
+                if days == 0:
+                    parts.append(pmsg("deadline_today"))
+                elif days == 1:
+                    parts.append(pmsg("deadline_tomorrow"))
+                elif days <= 3:
+                    parts.append(pmsg("deadline_in_days", days=days))
+                else:
+                    parts.append(pmsg("deadline_in_days_many", days=days))
+                for task in by_days[days]:
+                    pri = priority_emoji(task.get("priority", ""))
+                    column_emoji = "🔄" if task.get("column") == IN_WORK_COLUMN else "📋"
+                    parts.append(f"{pri} {column_emoji} {task.get('title', '')[:60]}\n")
+                    parts.append(pmsg("deadline_line", deadline=task.get("deadline")))
+        await bot.send_message(
+            chat_id=self.chat_id, text="".join(parts).strip(), parse_mode="Markdown"
+        )
+        logger.info(
+            "Deadline alerts sent: missed=%s upcoming=%s",
+            len(missed),
+            len(upcoming),
+        )
+    except Exception as e:
+        logger.error("Deadline alerts failed: %s", e)
+
+
+def _stuck_task_days() -> int:
+    from shared.agent.platform_config import platform_int
+
+    return platform_int("planning_alerts", "stuck_task_days", default=14)
+
+
+def get_stuck_tasks(self, stuck_days: int | None = None) -> List[Dict]:
+    if stuck_days is None:
+        stuck_days = _stuck_task_days()
+    all_tasks = self.kanban.get_tasks(exclude_today=False, exclude_blocked=True)
+    today = dt.now().date()
+    stuck: list[Dict] = []
+    for task in all_tasks:
+        column = task.get("column") or ""
+        if column in (DONE_COLUMN, WAITING_DATE_COLUMN):
+            continue
+        title = task.get("title", "")
+        if not title:
+            continue
+        last_activity_date = None
+        history = self.logger.get_task_history(task_title=title, task_id=task.get("task_id"))
+        if history:
+            try:
+                last_activity_date = dt.strptime(history[-1]["timestamp"][:10], "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        if last_activity_date is None:
+            created = task.get("created_date")
+            if created:
+                try:
+                    last_activity_date = dt.strptime(created, "%Y-%m-%d").date()
+                except ValueError:
+                    pass
+        if last_activity_date is None:
+            continue
+        days_inactive = (today - last_activity_date).days
+        if days_inactive >= stuck_days:
+            stuck.append({"title": title, "column": column, "days_stuck": days_inactive})
+    stuck.sort(key=lambda x: x["days_stuck"], reverse=True)
+    return stuck
+
+
+async def send_stuck_alerts(self, bot: Bot):
+    logger.info("Running daily stuck-task alerts")
+    try:
+        if not self.chat_id:
+            logger.warning("Chat ID not set, stuck alerts skipped")
+            return
+        days = _stuck_task_days()
+        stuck = get_stuck_tasks(self, stuck_days=days)
+        if not stuck:
+            return
+        lines = [pmsg("stuck_tasks_header", days=days)]
+        for t in stuck:
+            lines.append(
+                pmsg(
+                    "stuck_task_line",
+                    title=t["title"][:60],
+                    column=t.get("column", ""),
+                    days=t["days_stuck"],
+                )
+            )
+        await bot.send_message(
+            chat_id=self.chat_id, text="".join(lines).strip(), parse_mode="Markdown"
+        )
+        logger.info("Stuck-task alerts sent: %s tasks", len(stuck))
+    except Exception as e:
+        logger.error("Stuck alerts failed: %s", e)

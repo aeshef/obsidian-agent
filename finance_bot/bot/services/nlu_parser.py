@@ -75,23 +75,47 @@ class TransactionNLUParser:
 
             if account_names:
                 accounts_list = "\n".join([f"- {name}" for name in account_names])
-                context_parts.append(
-                    dmsg("finance_nlu", "accounts_block", accounts_list=accounts_list)
-                )
+                block = dmsg("finance_nlu", "accounts_block", accounts_list=accounts_list)
+                if not block.strip():
+                    log.error(
+                        "finance_nlu.accounts_block missing in domain_messages — "
+                        "NLU will not see account list (%d accounts)",
+                        len(account_names),
+                    )
+                else:
+                    context_parts.append(block)
 
             if expense_categories:
                 expense_list = "\n".join([f"- {cat}" for cat in expense_categories])
-                context_parts.append(
-                    dmsg("finance_nlu", "expense_categories_block", categories_list=expense_list)
+                block = dmsg(
+                    "finance_nlu", "expense_categories_block", categories_list=expense_list
                 )
+                if not block.strip():
+                    log.error(
+                        "finance_nlu.expense_categories_block missing in domain_messages — "
+                        "NLU will not see expense categories (%d items)",
+                        len(expense_categories),
+                    )
+                else:
+                    context_parts.append(block)
 
             if income_categories:
                 income_list = "\n".join([f"- {cat}" for cat in income_categories])
-                context_parts.append(
-                    dmsg("finance_nlu", "income_categories_block", categories_list=income_list)
+                block = dmsg(
+                    "finance_nlu", "income_categories_block", categories_list=income_list
                 )
+                if not block.strip():
+                    log.error(
+                        "finance_nlu.income_categories_block missing in domain_messages — "
+                        "NLU will not see income categories (%d items)",
+                        len(income_categories),
+                    )
+                else:
+                    context_parts.append(block)
 
-            context_parts.append(dmsg("finance_nlu", "debts_rules"))
+            debts_rules = dmsg("finance_nlu", "debts_rules")
+            if debts_rules.strip():
+                context_parts.append(debts_rules)
 
             return "".join(context_parts)
 

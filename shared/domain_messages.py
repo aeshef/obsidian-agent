@@ -6,7 +6,7 @@ from pathlib import Path
 
 from shared.capabilities.ui_bindings import message_allowed
 from shared.locale import agent_locale
-from shared.yaml_config import deep_merge, load_runtime_config
+from shared.yaml_config import deep_merge, load_runtime_config, load_yaml
 
 _REPO_CONFIG = Path(__file__).resolve().parent.parent / "config"
 
@@ -16,15 +16,30 @@ def _domain_for_stem(stem: str) -> dict:
     return load_runtime_config(str(_REPO_CONFIG), stem)
 
 
+def _ru_domain() -> dict:
+    """RU catalog: domain_messages.ru.yaml → legacy domain_messages.yaml → .ru.example.
+
+    Author prod uses gitignored domain_messages.yaml; do not prefer .example over it.
+    """
+    base = _REPO_CONFIG
+    local_ru = base / "domain_messages.ru.yaml"
+    if local_ru.is_file():
+        return load_yaml(local_ru)
+    legacy = base / "domain_messages.yaml"
+    if legacy.is_file():
+        return load_yaml(legacy)
+    return _domain_for_stem("domain_messages.ru")
+
+
 @lru_cache(maxsize=2)
 def _domain(_locale: str) -> dict:
     if _locale.startswith("en"):
-        ru = _domain_for_stem("domain_messages.ru")
+        ru = _ru_domain()
         en = _domain_for_stem("domain_messages.en")
         if ru and en:
             return deep_merge(ru, en)
         return en or ru
-    return _domain_for_stem("domain_messages.ru")
+    return _ru_domain()
 
 
 def _active_domain() -> dict:

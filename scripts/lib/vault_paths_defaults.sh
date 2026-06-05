@@ -33,7 +33,11 @@ _vault_sanitize_exported_segments() {
   )
   local k v
   for k in "${keys[@]}"; do
-    v="${!k:-}"
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+      v="${(P)k-}"
+    else
+      v="${!k:-}"
+    fi
     if [[ -n "$v" ]] && ! _vault_segment_sane "$v"; then
       echo "vault_paths: drop invalid $k=$v" >&2
       unset "$k"
@@ -50,6 +54,6 @@ vault_paths_load_from_agent() {
     export AGENT_ROOT="$root"
     cap_load_vault_paths 2>/dev/null || true
   fi
-  _vault_sanitize_exported_segments
   vault_paths_apply_defaults
+  _vault_sanitize_exported_segments
 }

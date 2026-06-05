@@ -1,219 +1,298 @@
-#!/usr/bin/env python3
-from planning_bot.core.pdmsg import pdmsg
-import hashlib
-import json
+"""Daily vault maintenance orchestration (config/vault_maintenance.yaml)."""
+from __future__ import annotations
+
 import os
-import re
+import subprocess
 import sys
 import time
+from datetime import date, datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PACKAGE_PARENT = PROJECT_ROOT.parent
-if str(PACKAGE_PARENT) not in sys.path:
-    sys.path.insert(0, str(PACKAGE_PARENT))
+import yaml
 
-# (comment)
-from planning_bot.core.config import (
-    VAULT_PATH, KANBAN_FILE, GOALS_FILE, QUARTERLY_FOCUS_FILE,
-    CATEGORY_ORDER, PRIORITY_ORDER, LOGS_DIR, ACTION_LOGS_DIR,
-    KANBAN_COLUMNS, DONE_COLUMN, GOALS_YEAR,
+from knowledge_bot.core.config import load_config
+from knowledge_bot.services.maintenance_metrics import (
+    append_daily_record,
+    collect_vault_snapshot,
+    extract_step_metrics,
+    render_maintenance_charts,
 )
 
 
-from planning_bot.tools.vault_maintenance.kanban_ids import add_ids_to_tasks
-from planning_bot.tools.vault_maintenance.kanban_sort import sort_kanban_tasks
-from planning_bot.tools.vault_maintenance.kanban_state import (
-    get_kanban_state,
-    get_task_title_by_id,
-    log_task_movements,
-)
-from planning_bot.tools.vault_maintenance.quarterly import sync_quarterly_focus
+def _kb_root() -> Path:
+    return Path(__file__).resolve().parent.parent.parent
 
-def run_all() -> bool:
-    'Operation implementation.'
-    print("=" * 50)
-    print(pdmsg("auto_c27a77b356"))
-    print("=" * 50)
-    print()
-    
-    results = []
-    
-    # (comment)
-    state_file = LOGS_DIR / "kanban_state.json"
-    previous_state = {}
-    if state_file.exists():
-        try:
-            with open(state_file, 'r', encoding='utf-8') as f:
-                previous_state = json.load(f)
-            
-            # (comment)
-            # (comment)
-            if previous_state and any('|' in key or (not key.startswith('h') and len(key) > 8) for key in previous_state.keys()):
-                # (comment)
-                current_state_temp = get_kanban_state()
-                migrated_state = {}
-                
-                # (comment)
-                with open(KANBAN_FILE, 'r', encoding='utf-8') as f:
-                    kanban_content = f.read()
-                
-                for old_key, old_column in previous_state.items():
-                    # (comment)
-                    if len(old_key) == 8 and all(c in '0123456789abcdef' for c in old_key):
-                        migrated_state[old_key] = old_column
-                    elif '|' in old_key:
-                        # (comment)
-                        date, old_name = old_key.split('|', 1)
-                        found = False
-                        for task_id, _ in current_state_temp.items():
-                            task_title = get_task_title_by_id(task_id, kanban_content)
-                            if task_title == old_name:
-                                migrated_state[task_id] = old_column
-                                found = True
-                                break
-                        
-                        if not found:
-                            # (comment)
-                            hash_str = f"{date}|{old_name}"
-                            task_id = hashlib.md5(hash_str.encode('utf-8')).hexdigest()[:8]
-                            migrated_state[task_id] = old_column
-                    else:
-                        # (comment)
-                        found = False
-                        for task_id, _ in current_state_temp.items():
-                            task_title = get_task_title_by_id(task_id, kanban_content)
-                            if task_title == old_key:
-                                migrated_state[task_id] = old_column
-                                found = True
-                                break
-                        
-                        if not found:
-                            # (comment)
-                            task_id = hashlib.md5(old_key.encode('utf-8')).hexdigest()[:8]
-                            migrated_state[task_id] = old_column
-                
-                previous_state = migrated_state
-        except Exception as e:
-            print(pdmsg("auto_6d89225ebc", e={e}))
-            previous_state = {}
-    
-    current_state_before = get_kanban_state()
-    
-    # (comment)
-    results.append((pdmsg("auto_bfafe7b122"), add_ids_to_tasks()))
-    print()
-    
-    # (comment)
-    results.append((pdmsg("auto_46498478d3"), sync_quarterly_focus()))
-    print()
-    
-    # (comment)
-    results.append((pdmsg("auto_28dd89327d"), sort_kanban_tasks()))
-    print()
-    
-    # (comment)
+
+def _load_dotenv() -> None:
+    for p in (_kb_root() / ".env", _kb_root().parent / ".env"):
+        if not p.exists():
+            continue
+        for line in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            os.environ.setdefault(k.strip(), v.strip().strip("'\""))
+        break
+
+
+def load_maintenance_config(agent_config_path: Path) -> dict[str, Any]:
+    p = agent_config_path / "vault_maintenance.yaml"
+    if not p.exists():
+        p = _kb_root() / "config" / "vault_maintenance.yaml"
+    if not p.exists():
+        return {}
+    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+
+
+def _resolve_sync_dir(vault: Path, sync_dir: Path | None) -> Path:
+    if sync_dir is not None and str(sync_dir).strip():
+        return sync_dir
+    envp = (os.environ.get("SYNC_STATE_DIR") or os.environ.get("OBSIDIAN_SYNC_DIR") or "").strip()
+    if envp:
+        return Path(envp)
+    return vault / ".sync"
+
+
+def _marker_path(sync_dir: Path, basename: str) -> Path:
+    return sync_dir / basename
+
+
+def _write_marker(sync_dir: Path, marker_basename: str) -> None:
+    sync_dir.mkdir(parents=True, exist_ok=True)
+    _marker_path(sync_dir, marker_basename).write_text(
+        date.today().isoformat() + "\n", encoding="utf-8"
+    )
+
+
+def _should_run_today(
+    sync_dir: Path, marker_basename: str, force: bool, env_force: bool
+) -> bool:
+    if force or env_force:
+        return True
+    m = _marker_path(sync_dir, marker_basename)
+    if not m.exists():
+        return True
     try:
-        from planning_bot.services.action_logger import ActionLogger
-        logger = ActionLogger(logs_dir=ACTION_LOGS_DIR)
-        log_task_movements(logger, previous_state, current_state_before)
-    except Exception as e:
-        print(pdmsg("auto_a38eb0d300", e={e}))
-    
-    # (comment)
-    try:
-        current_state_after = get_kanban_state()  # (comment)
-        with open(state_file, 'w', encoding='utf-8') as f:
-            json.dump(current_state_after, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(pdmsg("auto_ee4a301644", e={e}))
-    
-    # (comment)
-    # (comment)
-    pass
+        return m.read_text(encoding="utf-8").strip() != date.today().isoformat()
+    except OSError:
+        return True
 
-    # (comment)
-    try:
-        from planning_bot.tools.calendar_sync import run_calendar_sync
-        results.append((pdmsg("auto_a21f528d0e"), run_calendar_sync()))
-    except Exception as e:
-        print(pdmsg("auto_e4fb55b904", e={e}))
-        results.append((pdmsg("auto_a21f528d0e"), False))
 
-    # (comment)
-    try:
-        from planning_bot.tools.context_sync import run_context_sync
-        results.append((pdmsg("auto_ceb999b90b"), run_context_sync()))
-    except Exception as e:
-        print(pdmsg("auto_3e262ecd98", e={e}))
-        results.append((pdmsg("auto_ceb999b90b"), False))
-    print()
+def run_daily_maintenance(
+    *,
+    sync_dir: Path | None = None,
+    force: bool = False,
+) -> dict[str, Any]:
+    _load_dotenv()
+    cfg = load_config()
+    vault = cfg.vault_path
+    sdir = _resolve_sync_dir(vault, sync_dir)
+    mcfg = load_maintenance_config(cfg.agent_config_path)
+    daily = mcfg.get("daily") or {}
+    marker = str(daily.get("marker_basename", "daily_vault_write_maintenance_date.txt"))
+    env_force = os.environ.get("FORCE_VAULT_MAINTENANCE", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    f = force or env_force
 
-    # (comment)
-    # (comment)
-    if os.environ.get("GMAIL_IMAP_USER") and os.environ.get("GMAIL_IMAP_APP_PASSWORD"):
-        try:
-            from planning_bot.tools.iphone_mail_sync import run_iphone_mail_sync
+    if not daily.get("enabled", True) and not f:
+        _write_marker(sdir, marker)
+        return {
+            "skipped": True,
+            "reason": "vault_maintenance.daily.enabled=false",
+            "wrote_marker": True,
+        }
 
-            # (comment)
-            _to = os.environ.get("IPHONE_MAIL_SYNC_TODAY_ONLY", "1").lower() not in (
-                "0",
-                "false",
-                "no",
-                "off",
-            )
-            res = run_iphone_mail_sync(today_only=_to)
-            ok = res.get("ok", False)
-            written = res.get("written", 0)
+    if not _should_run_today(sdir, marker, bool(force), bool(env_force)):
+        return {
+            "skipped": True,
+            "reason": "already_ran_today",
+            "sync_dir": str(sdir),
+        }
+
+    kb = _kb_root()
+    py = sys.executable
+    env = os.environ.copy()
+    env["VAULT_PATH"] = str(vault)
+    env["PYTHONPATH"] = str(kb.parent) + (
+        os.pathsep + env["PYTHONPATH"] if env.get("PYTHONPATH") else ""
+    )
+
+    ts_start = datetime.now().isoformat(timespec="seconds")
+    before = collect_vault_snapshot(vault)
+    out: dict[str, Any] = {
+        "sync_dir": str(sdir),
+        "steps": [],
+        "ok": True,
+        "ts_start": ts_start,
+    }
+
+    def _run(name: str, args: list[str]) -> int:
+        cmd = " ".join(args)
+        print(f"[vault_daily_maintenance] START {name} ({cmd})", flush=True)
+        t0 = time.monotonic()
+        r = subprocess.run(
+            [py, *args],
+            cwd=str(kb),
+            env=env,
+            text=True,
+            capture_output=True,
+        )
+        secs = round(time.monotonic() - t0, 1)
+        rc = int(r.returncode or 0)
+        metrics = extract_step_metrics(name, r.stdout or "", r.stderr or "")
+        out["steps"].append(
+            {
+                "name": name,
+                "returncode": rc,
+                "seconds": secs,
+                "stdout_tail": (r.stdout or "")[-4000:],
+                "stderr_tail": (r.stderr or "")[-2000:],
+                "metrics": metrics,
+            }
+        )
+        print(
+            f"[vault_daily_maintenance] DONE  {name} code={rc} in {secs}s",
+            flush=True,
+        )
+        return rc
+
+    hcfg = mcfg.get("sync_hubs") or {}
+    if hcfg.get("enabled", True):
+        args = ["tools/sync_hubs.py", "--vault", str(vault)]
+        if hcfg.get("write", True):
+            args.append("--apply")
+        if _run("sync_hubs", args) != 0:
+            out["ok"] = False
+
+    wcfg = mcfg.get("apply_wikilinks") or {}
+    if wcfg.get("enabled", True):
+        wargs = [
+            "tools/apply_wikilinks_batch.py",
+            "--vault",
+            str(vault),
+            "--limit",
+            str(int(wcfg.get("limit", 30))),
+        ]
+        if wcfg.get("apply", True):
+            wargs.append("--apply")
+        if _run("apply_wikilinks_batch", wargs) != 0:
+            out["ok"] = False
+
+    fcfg = mcfg.get("refill_singleton_tags") or {}
+    if fcfg.get("enabled", True):
+        fargs = [
+            "tools/refill_singleton_tags.py",
+            "--vault",
+            str(vault),
+            "--limit",
+            str(int(fcfg.get("limit", 30))),
+            "--topic-max-count",
+            str(int(fcfg.get("topic_max_count", 2))),
+        ]
+        if fcfg.get("apply", True):
+            fargs.append("--apply")
+        if _run("refill_singleton_tags", fargs) != 0:
+            out["ok"] = False
+
+    rtcfg = mcfg.get("retag_notes") or {}
+    if rtcfg.get("enabled", True):
+        rtargs = [
+            "tools/retag_notes.py",
+            "--vault",
+            str(vault),
+            "--limit",
+            str(int(rtcfg.get("limit", 35))),
+            "--threshold",
+            str(int(rtcfg.get("threshold", 1))),
+        ]
+        if rtcfg.get("apply", True):
+            rtargs.append("--apply")
+        if rtcfg.get("strip_obsolete_singleton_topics", True):
+            rtargs.append("--strip-singleton-topics")
+        if _run("retag_notes", rtargs) != 0:
+            out["ok"] = False
+
+    rcfg = mcfg.get("reprocess_notes") or {}
+    if rcfg.get("enabled", True):
+        rargs = [
+            "tools/reprocess_notes.py",
+            "--vault",
+            str(vault),
+            "--limit",
+            str(int(rcfg.get("limit", 8))),
+        ]
+        if rcfg.get("apply", True):
+            rargs.append("--apply")
+        if _run("reprocess_notes", rargs) != 0:
+            out["ok"] = False
+
+    dcfg = mcfg.get("apply_duplicates") or {}
+    if dcfg.get("enabled", True):
+        cap = int(dcfg.get("max_delete_per_run", 100))
+        dry_args = ["tools/apply_duplicates_resolution.py"]
+        if _run("apply_duplicates_dryrun", dry_args) != 0:
+            out["ok"] = False
+        else:
+            last = out["steps"][-1] if out["steps"] else {}
+            metrics = last.get("metrics") or {}
+            n_del = int(metrics.get("duplicates_deleted_lines", 0) or 0)
             print(
-                f"   iphone_mail_sync: ok={ok} written={written} today_only={res.get('today_only')}"
-                + (f" errors={res.get('errors')}" if res.get("errors") else ""),
+                f"[vault_daily_maintenance] apply_duplicates: dry-run found {n_del} deletions (cap={cap})",
                 flush=True,
             )
-            results.append(("iPhone mail sync", ok or written == 0))
-        except Exception as e:
-            print(pdmsg("auto_a9432c09f4", e={e}))
-            results.append(("iPhone mail sync", False))
-    else:
-        print(pdmsg("auto_682c2ca2df"), flush=True)
-    print()
+            if n_del > 0:
+                if n_del > cap:
+                    print(
+                        f"[vault_daily_maintenance] apply_duplicates: over cap ({n_del}>{cap}), skip apply",
+                        flush=True,
+                    )
+                    out["ok"] = False
+                else:
+                    apply_args = ["tools/apply_duplicates_resolution.py", "--apply"]
+                    if _run("apply_duplicates", apply_args) != 0:
+                        out["ok"] = False
+            else:
+                print(
+                    "[vault_daily_maintenance] apply_duplicates: nothing to delete",
+                    flush=True,
+                )
 
-    # (comment)
+    scfg = mcfg.get("singleton_tags_report") or {}
+    if scfg.get("enabled", False):
+        sargs = ["tools/strip_singleton_tags.py", "--vault", str(vault)]
+        if scfg.get("apply", True):
+            sargs.append("--apply")
+        if _run("singleton_tags_report", sargs) != 0:
+            out["ok"] = False
+
+    ts_end = datetime.now().isoformat(timespec="seconds")
+    out["ts_end"] = ts_end
+    after = collect_vault_snapshot(vault)
+    out["before"] = before
+    out["after"] = after
     try:
-        from planning_bot.tools.iphone_context_sync import run_iphone_context_sync
-
-        results.append((pdmsg("auto_e89925dc1d"), run_iphone_context_sync()))
+        append_daily_record(
+            vault,
+            before=before,
+            after=after,
+            steps=out["steps"],
+            ok=bool(out.get("ok")),
+            ts_start=ts_start,
+            ts_end=ts_end,
+        )
+        render_maintenance_charts(vault)
     except Exception as e:
-        print(pdmsg("auto_07ef8b5691", e={e}))
-        results.append((pdmsg("auto_e89925dc1d"), False))
-    print()
+        out["history_error"] = str(e)
 
-    # (comment)
-    print("=" * 50)
-    print(pdmsg("auto_04198f3dd8"))
-    print("=" * 50)
-    
-    success_count = sum(1 for _, success in results if success)
-    total_count = len(results)
-    
-    for name, success in results:
-        status = "✅" if success else "❌"
-        print(f"{status} {name}")
-    
-    print()
-    print(pdmsg("auto_a7bcafbceb", success_count={success_count}, total_count={total_count}))
-    
-    return success_count == total_count
-
-
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--ids-only", action="store_true", help=pdmsg("auto_c2c2a91e94"))
-    args = parser.parse_args()
-    if args.ids_only:
-        success = add_ids_to_tasks()
-    else:
-        success = run_all()
-    sys.exit(0 if success else 1)
+    if out.get("ok"):
+        try:
+            _write_marker(sdir, marker)
+        except OSError as e:
+            out["marker_error"] = str(e)
+            out["ok"] = False
+    return out

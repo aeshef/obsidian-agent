@@ -37,3 +37,19 @@ priority_order:
   высокий: 1
   средний: 2
   низкий: 3
+
+# Optional display glyphs for task lists (override in kanban_schema.yaml).
+category_emojis:
+  карьера: "💼"
+  учеба: "📚"
+  развитие: "🚀"
+  дом: "🏠"
+  семья: "👥"
+  здоровье: "💪"
+  инфраструктура: "⚙️"
+  опыт: "🌟"
+
+priority_emojis:
+  высокий: "🔥"
+  средний: "🟡"
+  низкий: "⚪"

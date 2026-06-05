@@ -185,6 +185,9 @@ scripts/public_release_filter_pass2.txt
 scripts/public_release_filter_replacements.txt
 scripts/public_release_mailmap.txt
 scripts/public_release_flatten_callback.py
+scripts/public_release_flatten_*.py
+action_snapshot_renames.json
+iphone_snapshot_renames.json
 knowledge_bot/config/hubs_registry.yaml
 !knowledge_bot/config/hubs_registry.yaml.example
 knowledge_bot/config/tag_translit.yaml

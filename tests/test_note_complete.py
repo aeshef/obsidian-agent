@@ -13,6 +13,14 @@ def test_simple_from_text_extracts_url():
     assert "example.com" in bundle.raw_text
 
 
+def test_extracted_bundle_to_summary():
+    bundle = simple_from_text("hello")
+    summary = bundle.to_summary()
+    assert summary["raw_text"] == "hello"
+    assert "derived" in summary
+    assert set(summary["derived"]) >= {"ocr_text", "asr_text", "url_text", "pdf_text", "vision_text"}
+
+
 def test_collect_urls_from_text_and_entities():
     bundle = simple_from_text("https://example.org/a")
     url_b = "https://example.org/b"

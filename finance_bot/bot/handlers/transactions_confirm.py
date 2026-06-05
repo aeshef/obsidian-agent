@@ -525,12 +525,50 @@ async def set_category_text_cb(callback: types.CallbackQuery, state: FSMContext)
 @router.message(ConfirmTransactionsState.transactions)
 async def handle_transaction_field_input(message: types.Message, state: FSMContext) -> None:
     """Handle text input for missing transaction fields."""
+    from shared.telegram.host import labels as host_labels
+    from shared.telegram.host.keyboards import root_keyboard
+    from shared.telegram.host.menus import is_finance_menu, mode_from_button
+    from shared.telegram.navigation import is_host_navigation
+    from shared.i18n import msg
+
+    text = (message.text or "").strip()
+    if is_host_navigation(text) or text == host_labels.back_home():
+        await state.clear()
+        await message.answer(msg("host", "main_menu"), reply_markup=root_keyboard())
+        return
+
+    new_mode = mode_from_button(text)
+    if new_mode:
+        await state.clear()
+        await state.update_data(ui_mode=new_mode, fixed_domain=new_mode)
+        from shared.telegram.host.dispatch import switch_mode
+
+        await switch_mode(message, state, new_mode)
+        return
+
+    from bot.reply_menu import dispatch_reply_menu_button
+
+    if is_finance_menu(text):
+        await state.set_state(None)
+        await state.update_data(editing_field=None, transactions=None, badge_mode=False)
+        if await dispatch_reply_menu_button(message, state):
+            return
+
     data = await state.get_data()
     editing_field = data.get("editing_field")
     transactions = data.get("transactions", [])
-    
+
     if not editing_field or ":" not in editing_field:
-        # Not editing a field
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+        await message.answer(
+            fmsg("nlu_pending_confirm"),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=common("cancel_button"), callback_data="txn:cancel")]
+                ]
+            ),
+        )
         return
     
     field_name, index_str = editing_field.split(":", 1)

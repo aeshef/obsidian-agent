@@ -23,7 +23,7 @@ class ReflectionManager:
             sunday = today
         else:
             sunday = today + timedelta(days=days_until_sunday)
-        prefix = pdmsg("reflection_file_prefix")
+        prefix = pdmsg("reflection_file_prefix") or pdmsg("auto_9e853157ef") or "Рефлексия_"
         reflection_file = self.reflection_dir / f"{prefix}{sunday.strftime('%Y-%m-%d')}.md"
         content = pdmsg("reflection_md_title", date=sunday.strftime("%d.%m.%Y"))
         content += pdmsg("reflection_md_review_header") + review_text + "\n\n"
@@ -35,9 +35,8 @@ class ReflectionManager:
         reflection_file.write_text(content, encoding="utf-8")
 
     def get_previous_reflections_summary(self, limit: int = 5) -> str:
-        reflections = sorted(
-            self.reflection_dir.glob(pdmsg("reflection_glob")), reverse=True
-        )
+        glob_pat = pdmsg("reflection_glob") or pdmsg("auto_9dc5227b7a") or "Рефлексия_*.md"
+        reflections = sorted(self.reflection_dir.glob(glob_pat), reverse=True)
         if not reflections:
             return ""
         summaries = []

@@ -1,4615 +1,598 @@
-# cp config/domain_messages.ru.yaml.example → config/domain_messages.ru.yaml
-# Russian tool/agent strings. Keys must match domain_messages.en.yaml.example.
-# AGENT_LOCALE=ru uses this catalog; EN default merges EN over RU.
+# cp config/messages.ru.yaml.example → config/messages.ru.yaml
+# Telegram UI strings (Russian). English: messages.en.yaml.example
+# Production copy with your wording: messages.ru.yaml (gitignored).
 
-note_lookup:
-  empty_query: "пустой запрос или индекс"
-  no_exact_match: "нет точного совпадения в индексе"
+common:
+  need_start: "Сначала нажмите /start"
+  need_start_short: "Сначала /start"
+  cancelled: "Отменено."
+  cancel_button: "❌ Отмена"
+  error: "❌ Ошибка: {error}"
+  error_generic: "Ошибка"
+  account_not_found: "Счёт не найден"
+  account_currency_mismatch: "Валюта счёта {account_currency} не совпадает с валютой долга {currency}"
 
-knowledge_llm:
-  default_type: "знание"
-  default_title: "Без названия"
-  type_link: "ссылка"
+host:
+  back_home: "🏠 Главное"
+  mode_auto: "💬 Чат (авто)"
+  mode_finance: "💰 Финансы"
+  mode_planning: "📋 Планирование"
+  mode_knowledge: "📚 База знаний"
+  start_welcome: |
+    👋 Assistant — один бот на всё.
 
-knowledge_render:
-  default_contact_type: "контакт"
-  note_type_video: "видео"
-  line_raw_files_prefix: "- Исходные файлы:"
-  section_images: "\n## Изображения\n"
-  section_files: "\n## Файлы\n"
-  section_links: "\n## Ссылки\n"
-  section_raw_text: "\n\n## Исходный текст\n\n{raw_text}\n"
-  section_asr_summary: "\n\n## Сводка (ASR)\n\n{asr_summary}\n"
-  section_yt_summary: "\n\n## Сводка (YouTube)\n\n{body_yt}\n"
-  section_transcript: "\n\n## Транскрипция\n\n{asr_text}\n"
-  section_vision: "\n\n## Описание сцены\n\n{vision_text}\n"
-  heading_key_theses: "## Ключевые тезисы"
-  heading_insights: "\n## Инсайты"
-  lead_yt_summary: "## сводка (youtube)"
-  lead_key_theses: "## ключевые тезисы"
+    • Выбери режим кнопкой (финансы / план / знания) — появится привычное меню
+    • Или «💬 Чат (авто)» — только переписка, домен сам
+    • /memory — память · /reset — сброс диалога
+  domain_current: "Режим: {mode}. Или кнопками: {finance} / {planning}"
+  domain_invalid: "Допустимо: finance, planning, knowledge, auto"
+  main_menu: "🏠 Главное меню"
+  history_cleared: "🧹 История очищена."
+  planning_unavailable: |
+    ⚠️ Модуль планирования не загрузился (см. unified_bot.log).
+    Попробуйте позже или режим {finance} / {knowledge}.
+  planning_unavailable_short: "⚠️ Модуль планирования недоступен."
+  planning_callback_unavailable: "Планирование недоступно"
+  llm_routing_failed: "❌ LLM недоступен или вернул невалидный ответ: {error}"
+  agent_error: "❌ Ошибка агента: {error}"
+  switch_finance: "💰 Режим финансов. Кнопки — как в finance-боте; свободный текст — расход/доход или вопрос."
+  switch_planning: "📋 Режим планирования. Кнопки — как в planning-боте; текст — задача или вопрос."
+  switch_knowledge: |
+    📚 Режим базы знаний.
+    • «📥 Прогрузка ВКЛ» — пачка видео/фото с автосохранением
+    • «🔍 Вопрос к базе» — поиск по заметкам текстом
+    • Обычное медиа без прогрузки — ревью и «💾 Сохранить»
+  switch_auto: "💬 Авто: домен по смыслу сообщения. Кнопки доменов — через 🏠 Главное."
+  placeholder_root: "Выбери режим или напиши вопрос"
+  placeholder_knowledge: "Прогрузка медиа или вопрос по заметкам"
+  placeholder_auto: "Вопрос — домен выберется сам"
 
-knowledge_agent_tools:
-  bad_path: "Некорректный путь: {rel}"
-  read_failed: "Не удалось прочитать {rel}: {error}"
-  truncated: "\n\n… (обрезано, полный текст в vault)"
-  media_hint: "\n\nВложения ({count}): {names}{extra} — отправляю в чат."
-  path_line: "Путь: {rel}\n"
-  short_body: "Текста в заметке мало (шаблон или короткий ASR). Видео/фото — отдельным сообщением ниже.{media_hint}\n\n{body}"
-  note_header: "=== {title} ===\n"
-  note_header_full: "=== {title} ===\nПуть: {rel}{media_hint}\n\n{body}"
-  note_title_required: "Укажи название или путь заметки."
-  note_not_found: "Заметка не найдена в индексе ({reason}). Попробуй search_knowledge_base."
-  search_error: "Ошибка поиска в базе знаний: {error}"
-  search_empty: "Поиск в базе знаний не вернул результат (пустой ответ пайплайна)."
-  search_kb_prefix: "Поиск KB: {text}"
-  unified_prompt: |
-    Ты — ассистент по vault Obsidian. Отвечай по-русски, только по результатам инструментов.
+wire:
+  voice_transcribing: "🎤 Распознаю речь..."
+  voice_failed: "❌ Не удалось распознать речь."
+  voice_preview: '🎤 Распознал: "{preview}"'
+  voice_llm_failed: "❌ LLM недоступен: {error}"
+  voice_error: "❌ Ошибка обработки голоса:\n\n{error}"
 
-    Конкретная заметка по названию — read_knowledge_note; обзор темы — search_knowledge_base.
+agent:
+  tool_not_allowed: "Инструмент {name} не в списке для этого запроса. Доступны: {allowed}{ellipsis}"
+  tool_error: "Ошибка инструмента {name}: {error}"
+  no_answer: "Не удалось получить ответ."
+  max_iters_reached: "Не удалось завершить анализ за отведённое число шагов."
+  progress_line: "Шаг {step}: {tools}{tail}"
+  progress_empty_tools: "…"
+  date_hint: "Сегодня: {date}."
 
-    Если search_knowledge_base вернул обзор с путями/заметками — перескажи его, не гovори что «ничего не найдено».
+memory:
+  title: "🧠 Память агента"
+  pending_header: "Ожидают подтверждения:"
+  no_pending: "Нет кандидатов на подтверждение."
+  confirmed_header: "Подтверждённые наблюдения:"
+  no_confirmed: "Подтверждённых наблюдений пока нет."
+  confirm_hint: "Подтверди или отклони кандидата кнопками ниже."
+  pending_line: "• [{domain}] #{id}: {text} (×{count})"
+  confirmed_line: "• {text}"
+  confirm_btn: "✅ #{id}"
+  reject_btn: "❌ #{id}"
+  invalid_id: "Некорректный id"
+  saved: "Сохранено в память"
+  not_found: "Не найдено"
+  open_memory: "Открой /memory в чате"
+  rejected: "Отклонено"
 
-    Строка «Поиск KB:» — ошибка пайплайна, передай как есть.
+synth:
+  remember_btn: "✅ Запомнить"
+  reject_btn: "❌ Нет"
+  pattern_ready: |
+    🧠 [{domain}] Паттерн готов к сохранению:
 
-  err_prefix_not_found: "Не нашёл"
-  err_prefix_empty_index: "Индекс пуст"
-  err_prefix_empty_question: "Пустой вопрос"
+    {pattern}
 
-knowledge_billing:
-  alert_header: "⚠️ <b>Баланс или лимит API</b>\n\n"
-  alert_service: "Сервис: <b>{service}</b>\n"
-  alert_body: |
-    Похоже, исчерпана квота или закончились средства на балансе у провайдера.
+    Подтвердить?
 
-    Проверь личный кабинет / пополни баланс.
+memory_context:
+  finance_header: "Домен: finance. Период анализа: последние ~{days} дней (агрегаты ниже)."
+  planning_header: "Домен: planning. Период: последние события и снимок доски."
+  knowledge_header: "Домен: knowledge. Заметок в индексе: {count}. Vault: {vault_name}."
+  recent_dialogue: "Недавний диалог:\n{lines}"
 
+knowledge:
+  query_prompt: "🔍 Напиши следующим сообщением вопрос по базе (только текст, без вложений)."
+  buttons:
+    bulk_on: "📥 Прогрузка ВКЛ"
+    bulk_off: "📤 Прогрузка ВЫКЛ"
+    query: "🔍 Вопрос к базе"
+    query_legacy: "🔍 Спросить базу знаний"
+    preview_save: "💾 Сохранить"
+    preview_type: "🏷 Тип"
+    preview_cancel: "✖️ Отмена"
+  bulk_enabled: |
+    📥 Прогрузка включена.
 
-  alert_detail: "<i>Ответ API (сокр.):</i>\n<pre>{detail}</pre>"
-
-knowledge_ocr:
-  text_absent: "текст отсутствует"
-  text_absent_bracket: "[текст отсутствует]"
-
-knowledge_vision:
-  empty_prompt: |
-    Промпт vision пуст: создайте config/prompts/vision.txt
-
-    (скопируйте из vision.example.txt)
-
-
-    knowledge_routing:
-
+    Шли фото/видео — сохраню автоматически (ASR, тип, теги).
+    Прогресс в чате; выключить: «📤 Прогрузка ВЫКЛ» или /bulk_off.
+  bulk_disabled: |
+    📤 Прогрузка выключена.
+    За сессию: сохранено {saved}, ошибок {failed}.
+    Снова обычный режим — ревью и кнопка «💾 Сохранить».
+  searching: "🧠 Ищу в базе заметок…"
+  access_denied: "⛔️ Доступ запрещён"
+  ingest_hint: |
+    Пришли ссылку, текст или медиа — оформлю заметку.
+    Вопрос по сохранённому — текст без вложений или кнопка «🔍 Вопрос к базе».
+  greeting: |
+    Привет! Вопрос по сохранённым заметкам — сформулируй тему;
+    чтобы сохранить новое — пришли ссылку, текст или медиа.
+  bulk_processing: "⏳ Прогрузка: принял, обрабатываю…"
+  bulk_error: "❌ Ошибка прогрузки: {error}"
+  processing: "⏳ Обрабатываю..."
+  query_error: "Ошибка запроса к базе: {error}"
+  cancelled: "Отменено."
+  pick_type_page: "Выбрать тип (страница {page}):"
+  pick_type_page_total: "Выбрать тип (страница {page}/{total}):"
+  bulk_hint_on: |
+    📥 «Прогрузка ВКЛ» — пачка видео/фото с автосохранением (без ревью на каждый файл).
+  bulk_hint_active: |
+    📥 Сейчас включена прогрузка — шли медиа; выключить: «Прогрузка ВЫКЛ».
+  pending_data_lost: "Нет данных (сообщение вычищено из очереди: лимит {limit}). Перешли файл заново или задай PENDING_LIMIT в .env"
+  save_error: "Ошибка при создании заметки"
+  note_created: "✅ Создано: {path}\nТип: {type}"
+  preview_ready: "Готово к сохранению — тип: {type}\nНазвание: {title}"
+  preview_ready_fallback: "Готово к сохранению — тип: {type}\nНазвание: {title}"
+  type_updated: "Тип обновлён"
+  back_button: "🔙 Назад"
+  bulk_skip_empty: |
+    ❌ Прогрузка: не сохраняю (#{failed}) — видео >20 МБ у Bot API, превью не скачалось или нет подписи/ASR. Перешли как файл (<20 МБ), фото, аудио или ссылку на ролик.
+  bulk_saved_ack: "✅ Прогрузка {saved}: {title}\n{path}"
+  bulk_save_error: "❌ Ошибка сохранения (#{failed}): {error}"
+  untitled: "Без названия"
+  type_undefined: "не определен"
   author_context_line: "Учти личность автора: {context}\n\n"
-
-knowledge_serendipity:
-  note_message: "Загляни в заметку: {title}\n`{rel}`"
-  header_fallback: "Заметка для пересмотра: {title}"
-
-knowledge_tags_inventory:
-  empty: "ИНВЕНТАРЬ ТЕГОВ: пуст (система только что запущена)."
-  header: "ИНВЕНТАРЬ ТЕГОВ: Всего {total_notes} заметок, {notes_with_tags} с тегами."
-  existing_tags: "СУЩЕСТВУЮЩИЕ ТЕГИ (используй их вместо создания похожих):"
-  tag_line: "  - {namespace}/{value} (используется в {count} заметках)"
-  rule: |
-    ПРАВИЛО: Если тема/область похожа на существующий тег — используй его. Создавай новый тег только если это действительно новая уникальная тема.
-
-  empty_min_count: "ИНВЕНТАРЬ ТЕГОВ (только с count>=2): пуст. Добавь хотя бы по 2 заметки с общими тегами."
-  header_min_count: "ИНВЕНТАРЬ ТЕГОВ (только теги с ≥{min_count} заметок — выбирай СТРОГО из этого списка):"
-  existing_strict: "СУЩЕСТВУЮЩИЕ ТЕГИ (используй ТОЛЬКО их, не создавай новых):"
-  rule_strict: |
-    СТРОГО: выбирай теги ТОЛЬКО из списка выше. Не придумывай новых тегов.
-
-  cli_rebuilt: "Inventory rebuilt: {total_notes} notes, {notes_with_tags} tagged"
-  cli_unique: "Unique tags: {count}"
-  cli_namespaces: "Namespaces: {count}"
-
-knowledge_maintenance:
-  chart_suptitle: "Обслуживание 700_База_Данных (ежедневные снимки)"
-  chart_notes_before: "до"
-  chart_notes_after: "после"
-  chart_notes_title: "Заметок .md в 700_"
-  chart_export_title: "Export, МБ (снимок «до»)"
-  chart_queue_title: "Очередь reprocess (eligible, до прогона)"
-  chart_bar_reprocess: "reprocess записано"
-  chart_bar_empty: "reprocess удал.pуст."
-  chart_bar_dup: "дубли МБ"
-  chart_daily_title: "Итоги за день (шаги, сумма если было несколько прогонов)"
-  report_section: "## 4. Динамика обслуживания"
-  report_intro: |
-    История снимков и итогов шагов (`vault_daily_maintenance`): данные в `{history_path}`.
-
-    **Несколько прогонов за день:** снимок «до» — с первого прогона, «после» — с последнего;
-
-    столбцы retag / reprocess / дубли — **сумма** за день; `singleton` в `run` — с последнего прогона.
-
-  report_chart_pending: "*График появится после ≥1 записи в истории и при установленном `matplotlib` в окружении, где генерируется отчёт.*"
-  report_no_history: "*Пока нет записей истории — прогоните обслуживание хотя бы раз.*"
-  report_table_days: "Последние **{days}** дней (новые снизу):"
-  report_table_header: "| Дата | № | Заметок 700_ (до→после) | Export МБ до | Очередь reprocess | retag | reprocess ✓ | пустых уд. | дубли МБ | OK |"
-  regex_retag_total: 'Итого:\s*затронуто=(\d+),\s*пропущено=(\d+)(?:,\s*llm_fallback=(\d+))?'
-  regex_changed: 'Изменено:\s*(\d+)'
-  marker_saved: "✓ Записано:"
-  marker_deleted_empty: "[удалено: нет контента]"
-  regex_deleted_line: '^\s*удалён:'
-  regex_dup_freed: 'Файлов:\s*(\d+),\s*освобождено\s*~([0-9.]+)\s*МБ'
-  regex_refill_total: 'Итого refill: затронуто=(\d+), пропущено=(\d+), llm_errors=(\d+)'
-  regex_singleton_count: 'Заметок, из которых будут/были удалены singleton-теги:\s*(\d+)'
-
-knowledge_vault_runner:
-  llm_offline: |
-    api.deepseek.com unreachable (DNS/network) — wikilinks/retag/reprocess skipped.
-
-    Maintenance continues without LLM (hubs, duplicates, reports).
-
-  dup_delete_marker: "удалить:"
-  dup_cap_exceeded: |
-    ⛔ apply_duplicates: {count} files to delete > limit {max_delete}.
-
-    Auto-apply cancelled — run manually:
-
-    singleton_regex: 'Тегов с 1 заметкой:\s*(\d+)'
-
-    singleton_suggestion: |
-
-    🏷 <b>Singleton tags</b>: found {count} tags used in only 1 note.
-
-    To remove noise from the graph, run:
-
-    refill_ok_line: '^Итого refill:|llm_errors\s*=\s*0'
-
-  slug_skip_substr: "Slug всё ещё в RE_BAD"
-  more_lines_suffix: "\n… and {n} more lines"
-  maintenance_warnings_header: "🔧 <b>Vault maintenance</b> finished with warnings:\n\n"
-
-knowledge_config:
-  agent_path_fallback_log: "AGENT_CONFIG_PATH=%s — no types.yaml, using %s"
-
-knowledge_brain_query:
-  empty_question: "Пустой вопрос."
-  empty_index: "Индекс пуст — заметок в {subdir!r} не найдено."
-  history_none: "(нет)"
-  prompt_question: "ВОПРОС:\n{question}\n\n"
-  prompt_history: "ИСТОРИЯ ДИАЛОГА:\n{history}\n\n"
-  prompt_all_notes: "ВСЕ ЗАМЕТКИ (формат: путь|название|теги):\n{catalog}"
-  prompt_candidates: "КАНДИДАТЫ С ОПИСАНИЯМИ:\n{catalog}"
-  prompt_note_count: "Заметок для ответа: {count}.\n\n"
-  prompt_full_texts: "ПОЛНЫЕ ТЕКСТЫ ЗАМЕТОК:\n\n"
-  preselect_none: "Preselect не выбрал заметок ({count} в индексе). Переформулируй запрос или укажи название заметки — read_knowledge_note."
-  select_truncated_json: "Поиск KB: LLM вернул обрезанный JSON (увеличь KNOWLEDGE_QUERY_SELECT_MAX_TOKENS или сузь каталог). Повтори вопрос."
-  no_matching_notes: "Не нашёл подходящих заметок.{reason_suffix}"
-  notes_unreadable: "Выбранные заметки не читаются с диска."
-  answer_generation_error: "Ошибка при генерации ответа."
-  empty_model_answer: "Пустой ответ модели."
-  history_turn: "[{index}] Question: {question}\nAnswer (short): {answer}"
-
-knowledge_tags_prompt:
-  json_append: |
-    Ответ — **только валидный JSON** (без markdown и пояснений), объект с ключом `tags` — массив строк:
-
-    {"tags": ["domain/...", "topic/..."]}
-
-
-    Используй только теги из инвентаря и controlled namespaces; не придумывай новые topic/* с count=1.
-
-    tags_starter: |
-
-    # tags.txt — full tag ontology (not committed to git).
-
-    # Copy your prompt here: domain/topic rules, few-shot, inventory.
-
-    # Minimum for JSON-mode API — block below (word json required).
-
-
-    You are an Obsidian note tagging assistant. Given JSON input, suggest tags.
-
-
-    finance:
-
-  uncategorized: "Без категории"
-  misc: "Прочее"
-  transfer_substring: "перевод"
-  debts_category: "Долги"
-  default_counterparty: "Контрагент"
-  debt_return_description: "Возврат долга от {counterparty}"
-  debt_issue_description: "Долг для {counterparty}"
-  broker_topup: "Пополнение брокера"
-  broker_withdraw: "Вывод с брокера"
-  broker_fee: "Комиссия брокера"
-
-finance_txn_query:
-  expenses_total: "Всего расходов: {total:,.0f} RUB"
-  no_expenses_in_period: "(нет расходов в периоде)"
-  debts_empty: "Долги: (нет счетов долгов)"
-  debts_header: "Долги (балансы external_balance на счетах-контрагентах):"
-  receivable_line: "  Мне должны — {name}: {balance} {currency}"
-  payable_line: "  Я должен — {name}: {balance} {currency}"
-  all_zero: "  (все нулевые)"
-  broker_empty: "Брокер/инвест-счета: (нет)"
-  broker_header: "Брокер и внешние балансы:"
-  balance_unset: "  {name} ({acct_type}): баланс не задан"
-
-budget:
-  no_data: "(нет данных)"
-  truncated: "... ещё {count} строк"
-  no_transactions: "(нет транзакций)"
-  summary: "{label}: операций {count}, потребление {exp_sum}₽, доходы {inc_sum}₽ (без переводов между счетами и выводов с брокера)"
-  top_categories: "Топ категорий потребления:"
-  large_expenses: "Крупные расходы:"
-  no_operations: "(нет операций)"
-  txn_type_expense: "расход"
-  txn_type_income: "доход"
-  txn_type_transfer: "перевод"
-  recent_header: "Последние {n} операций:"
-
-memory_tools:
-  unknown_domain: "Неизвестный домен: {dom}. Допустимо: {allowed}."
-  empty_history: "(история диалога [{dom}] пуста)"
-  history_header: "Последние реплики [{dom}] (до {count} сообщений):"
-  history_from_domain: " (запрошено из домена {domain})"
-
-memory_layers:
-  profile_unset: "(профиль не задан)"
-  global_prefix: "Глобальные:"
-  no_confirmed: "(подтверждённых наблюдений нет)"
-  global_observations: "Глобальные наблюдения:"
-  no_global: "(глобальных наблюдений нет)"
-  unknown_scope: "Неизвестный scope/domain: {scope}. Допустимо: current, global, all, finance, planning, knowledge."
-  observations: "Наблюдения [{dom}]:"
-  no_domain_confirmed: "(подтверждённых наблюдений для {dom} нет)"
-  pending_line: "  • [{domain}] {text} (кандидат, подтверждений {count}; /memory)"
-  pending_header: "Кандидаты (ещё не в промпте, подтверди в /memory):"
-
-memory_insights:
-  global_header: "## Общие наблюдения о пользователе"
-  domain_header: "## Наблюдения ({domain})"
-
-charts:
-  no_data: "Нет данных"
-  insufficient_data: "Недостаточно данных для графика «{title}»."
-  y_label_sum: "Сумма"
-
-asr:
-  not_installed: "ASR недоступен: установите faster-whisper: pip install faster-whisper"
-  recognition_failed: "Не удалось распознать речь. Запишите сообщение ещё раз, чуть дольше и чётче."
-
-relative_calendar:
-  days_ago: "(?:^|\\s)(\\d{1,3})\\s*(?:дн(?:я|ей)?|day|days)\\s*(?:назад|ago)(?:\\s|$|[?.!,])"
-  yesterday: "(?:^|\\s)(?:вчера|yesterday)(?:\\s|$|[?.!,])"
-  day_before_yesterday: "(?:^|\\s)(?:позавчера)(?:\\s|$|[?.!,])"
-
-invest_report:
-  total_line: "Итого: {total} RUB\n"
-
-finance_tinkoff:
-  total_line: "Итого: {total} RUB"
-  no_accounts: "No accounts from API or all excluded via TINKOFF_IGNORE_ACCOUNT_IDS"
-  no_portfolio_data: "No portfolio data. Check TINKOFF_API_TOKEN and API availability. Debug: {keys}"
-  token_missing: "TINKOFF_API_TOKEN is not set in .env"
-  total_fmt: "Total: {total:,.2f} RUB"
-  portfolio_total_rub: "Portfolio total: {total:,.0f} RUB"
-  api_accounts_count: "API accounts in response: {count}"
-  no_positions: "(no position data)"
-  no_portfolio: "No portfolio data."
-  errors_prefix: "Errors: {errors}"
-
-finance_agent:
-  user_not_found: "User not found."
-  range_all_time: "all time"
-  range_last_days: "last {days} days"
-  transactions_label: "Transactions ({range})"
-  monthly_header: "Monthly:\n"
-  spending_by_category: "Expenses by category ({range})"
-  balances_header: "Account balances:"
-  no_nonzero_accounts: "  (no non-zero accounts)"
-  planned_empty: "Planned expenses ({status}): (none)"
-  planned_header: "Planned expenses ({status}):"
-  planned_line: "  {name}: {amount:,.0f} {currency} (due {due})"
-  subscriptions_empty: "Subscriptions: (file empty or not configured)"
-  subscriptions_header: "Subscriptions (recurring):"
-  subscription_line: "  {name}: {amount} {currency}/{period}, next {next_charge}"
-  summary_label: "Summary ({range})"
-  baselines: "Baselines (median of past months): {baselines}"
-  date_hint: "Today: {today}. Current month: {month}."
-  prompt_suffix: |
-    Always call tools for any amounts, balances, operations and summaries.
-
-    Set intervals via from_date/to_date (YYYY-MM-DD) or days.
-
-    Do not invent numbers.
-
-
-    finance_scripts:
-
-  reset_start: "Starting data cleanup..."
-  reset_tx_deleted: "Deleted transactions: {count}"
-  reset_balances: "Reset balances for {count} accounts"
-  reset_done: "Done! All transactions deleted, balances reset."
-  reset_external_hint: "External balances (broker accounts) unchanged."
-  init_config_missing: "Config not found: {path}"
-  init_config_hint: "cp config/initial_accounts.yaml.example config/initial_accounts.yaml and fill in"
-  init_no_telegram_id: "telegram_id not set in config"
-  init_no_accounts: "No accounts in config"
-  init_accounts_found: "Accounts in config: {count}"
-  init_user_missing: "User with telegram_id={telegram_id} not found"
-  init_user_hint: "Send /start to the bot first to create the user"
-  init_skip_no_name: "Skipped account without name"
-  init_updated: "Updated: {name} = {balance:,.2f} {currency} (external={external})"
-  init_created: "Created: {name} = {balance:,.2f} {currency}"
-  init_done: "Done!"
-  init_created_count: "  Created: {count}"
-  init_updated_count: "  Updated: {count}"
-  init_total: "  Total processed: {count}"
-  import_badge_yaml_object: "Expected YAML object in {path}"
-  import_badge_year_month: "File must contain year_month: YYYY-MM"
-  import_badge_transactions: "File must contain non-empty transactions list"
-  import_badge_file_missing: "File not found: {path}"
-  import_badge_db_missing: "DB not found: {path}"
-  import_badge_account_created: "Created account {name} id={id}"
-  import_badge_cleared: "Deleted for {year_month}: {count} rows"
-  import_badge_done: "Import ({mode}) {file} -> {db}"
-  import_badge_replaced: "   Period: {year_month}, replaced old rows: {count}"
-  import_badge_skipped: "   Skipped duplicates: {count}"
-  import_badge_inserted: "   Added: {count} ops totaling {total} RUB"
-  import_txn_done: "{db}: added {added}, skipped {skipped}, max_id={max_id}, total={total}"
-  import_default_account: "Яндекс Банк"
-  show_txn_db_missing: "DB not found: {path}"
-  show_txn_usage: "Usage: python scripts/show_recent_txns.py [path/to/finance.db]"
-  show_txn_recent_header: "=== Recent transactions ==="
-  show_txn_transfers_header: "=== Transfer transactions ==="
-  show_txn_balances_header: "=== Account balances ==="
-  show_txn_balance_external: "external_balance = {balance:,.2f} (transactions ignored)"
-  show_txn_balance_computed: "({base:,.2f} + txn sum {computed:,.2f}) = {total:,.2f}"
-  show_txn_dupes_header: "=== Possible duplicate transactions ==="
-  show_txn_no_dupes: "=== No duplicates by (date, type, amount, account, description) ==="
-  show_txn_account_header: "=== All transactions for account «{name}» ==="
-  show_txn_account_total: "  Total (income - expense): {total:,.2f}"
-  transfer_category_legacy: "Переводы"
-
-planning_forecast:
-  user_not_found: "User not found"
-  current_date: "CURRENT DATE: {date} ({day} {month_name} {year})"
-  balance_planned: "RUB balance (cards/wallets — for plans): {amount:,.0f}"
-  balance_all: "RUB balance total (incl. broker): {amount:,.0f}"
-  avg_income_3m: "Avg income 3 mo: {amount:,.0f}"
-  avg_expense_3m: "Avg expenses 3 mo: {amount:,.0f}"
-  planned_header: "PLANNED EXPENSES:"
-  planned_line: "- {name}: {amount:,.0f} {currency} (due {due})"
-  planned_empty: "(none)"
-  no_due: "no due date"
-  subscriptions_header: "SUBSCRIPTIONS (recurring):"
-  subscription_line: "- {name}: {amount} {currency}/{period}"
-  prompt_missing: "planning_prompt.txt is not configured (copy config/prompts/planning_prompt.example.txt)."
-  forecast_failed: "Could not generate forecast."
-  month_names: ",,January,February,March,April,May,June,July,August,September,October,November,December"
-
-finance_summary:
-  user_not_found: "User not found. Tap /start first."
-  period_user: "Period: {period}"
-  llm_empty: "LLM returned empty response for summary."
-  prompt_period: "Period: {from_date} - {to_date}"
-  income_line: "Income (excl. transfers/broker withdraw): {amount:,.0f} RUB"
-  expense_line: "Spending (excl. transfers/broker top-ups): {amount:,.0f} RUB"
-  balance_line: "Balance: {amount:,.0f} RUB"
-  top_categories: "Top spending categories:"
-  category_line: "- {category}: {amount:,.0f} RUB ({pct:.1f}%)"
-  expense_change: "Spending change vs previous period: {change:+.1f}%"
-
-badge:
-  line_keyword_pattern: "бейдж"
-  line_over_limit: "Сверх лимита: {amount} RUB (удержат из ЗП)."
-  input_prompt_fallback: "🍽 Badge spend (account: {account}, category: {category}, limit: {limit} RUB/day)\n\n{prompt}"
-  post_save_header: "✅ {amount} RUB badge{desc}"
-  llm_after_spend_user: "Advice right after new spend."
-  today_alert_spent: "🍽 Badge: spent {spent} RUB of {limit} today."
-  today_alert_remaining: "Remaining {remaining} RUB — quota expires at midnight."
-  day_off: "Today is a day off — no daily badge quota."
-  day_spent_line: "📊 Today: {spent} / {limit} RUB"
-  day_remaining: "Remaining {remaining} RUB (expires today)"
-  day_over: "Over limit: {over} RUB"
-  month_spent_line: "📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned} RUB"
-  month_title: "🍽 Badge for {month:02d}.{year}"
-  month_working_days: "Working days: {working_days}, with spend: {days_with_spend}"
-  month_spent_total: "Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)"
-  month_burned: "Burned quota: {burned} RUB"
-  month_ndfl: "Estimated income tax on spend: ~{ndfl} RUB"
-  month_zero_days: "Days without spend (full burn): {days}"
-  month_over_limit: "Over daily limit: {over} RUB"
-  dash_none: "—"
+  pick_type_page_one: "Выбрать тип (страница 1):"
+  preview_ready_typed: "Готово к сохранению — тип: {type}\nНазвание: {title}"
+  ingest:
+    tg_video_too_big: "Telegram Bot API не отдал файл видео (>20 МБ)."
+    asr_needed: "ASR по ролику не выполнялся — нужен файл <20 МБ или ссылка youtu.be."
+    add_youtube_link: "Для полного ролика добавь ссылку в подпись."
+  review:
+    type_line: "📋 Тип: {type}"
+    title_line: "📝 Название: {title}"
+    media_photo: "🖼️ фото"
+    media_video: "🎥 видео"
+    media_document: "📄 документ"
+    media_file: "📎 файл"
+    media_summary: "📎 Медиа: {count} файл(ов) - {kinds}"
+    links_summary: "🔗 Ссылки: {count}"
+    ocr_header: "📸 OCR (семпл):"
+    asr_header: "🎤 ASR (семпл):"
+    vision_header: "👁 Vision (сцена):"
+    youtube_header: "📺 YouTube (сводка):"
+    tags_line: "🏷️ Теги: {tags}"
+    tags_more: "   ... и ещё {count}"
+    fields_line: "📊 Поля: {fields}"
+    fields_more: "   ... и ещё {count}"
+    field_steps: "📋 Шаги"
+    field_status: "📊 Статус"
+    field_cuisine: "🍕 Кухня"
+    field_kind: "🍽 Тип блюда"
+    field_category: "📂 Категория"
+    field_city: "📍 Город"
+    field_nsfw: "🔞 NSFW"
+    field_subtype: "🏷 Подтип"
 
 planning:
-  routines_problematic_line: "• {task} ({section}): отказ {fail_rate}%"
-  routines_no_problematic: "Проблемных рутин не найдено."
-  routines_uncompleted_morning: "🌅 Утро (не сделано): {tasks}"
-  routines_uncompleted_day: "☀️ День (не сделано): {tasks}"
-  routines_uncompleted_evening: "🌙 Вечер (не сделано): {tasks}"
-  routines_all_done: "Все рутины на сегодня выполнены."
-  routines_patterns: "Паттерны за {days} из {total_days} дней анализа."
-  routines_recommendations_user: "Дай рекомендации по рутинам на основе системного контекста выше."
-  calendar_life_chart_missing_callout: "> [!info] Нет данных по секциям жизни в текущем окне календаря.\n\n"
-  calendar_companion_updated: "_Обновлено: {now}_"
-  calendar_attendance_context: |
-    Слоты в календаре не равны по «стоимости внимания». Настрой свой режим (офис/удалёнка/гибрид) в этом ключе — это шаблон для владельца vault, не факты о конкретном человеке.
-    События на весь день (отпуск, поездка) могут отменять рабочую нагрузку.
-  kanban_sort_skip_no_columns: "kanban_sort: пропуск — в planning_bot/config/kanban_schema.yaml нет columns (скопируйте из kanban_schema.yaml.example)."
-  kanban_sort_recent_warning: "⚠️ Файл канбана изменён {seconds:.0f} с назад (< {window} с), пропускаем сортировку."
-  auto_2710b69820: "📝 Обнаружено изменение файла канбана: {_p1}"
-  auto_528da68a5f: "👀 Запуск watcher для файла: {_p1}"
-  auto_5a124c5386: "Главная функция watcher'а"
-  auto_7b67d98846: "  {_p1}: исправлено записей {_p3}"
-  auto_7f98d0831e: |
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    ### Б/Ж/У (г) и % жира
-
-
-
-  auto_9310c794b6: "❌ Файл канбана не найден: {_p1}"
-  auto_94f191654e: "📁 Родительская директория: {_p1}"
-  auto_9c8cf414d2: "Будет исправлено записей: {_p1}. Запусти без --dry-run."
-  auto_a2aa7d905f: "❌ Ошибка при периодическом добавлении ID: {_p1}"
-  auto_ab99e18b4c: |
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    ### Таблица Б/Ж/У
-
-
-
-  auto_be3a11fa77: "  [dry-run] {_p1}: исправить {_p3} записей"
-  auto_c8ebd8fb48: "{_p0}:{_p2}/300_Дашборды/Логи/"
-  auto_cb8aff6c9e: "❌ Ошибка при добавлении ID: {_p1}"
-  auto_e99f342cc0: "Отправка логов на сервер: rsync ... {_p1} -> {_p3}"
-  auto_f5f94578f3: "Итого исправлено записей: {_p1}"
-  auto_07438bbfa5: "  удалён: {_p1}"
-  auto_1c5bcdbfbc: "  ⚠ Не удалось прочитать {_p1}: {_p3}"
-  auto_31860f67b5: "Итого: записей до слияния {_p1}, после дедупа {_p3}"
-  auto_3199a9f58d: |
-    # 🥗 Питание (КБЖУ)
-
-
-    > [!info] Данных для графика нет
-
-    > Когда в [[Данные/Действия/IPhone|снапшотах iPhone]] появятся белки, жиры и углеводы, при следующем дневном пересчёте синка построится столбчатая диаграмма (ккал; стек снизу вверх: Б→Ж→У).
-
-
-    _Обновлено: {_p1}_ · скрипт: `planning_bot/scripts/build_iphone_nutrition_chart.py` · частота: день с локальным `obsidian_sync` (маркер `daily_iphone_nutrition_date.txt` в `.sync/`, или `FORCE_CHARTS=1`).
-
-
-
-  auto_3b3be71533: |
-
-    Нет данных: завершения есть, но категории не попали в список.
-
-
-    _Обновлено: {_p1} | без категории: {_p3}_
-
-
-  auto_3ee371495b: |
-
-    Дневная динамика завершений по категориям (completion-события из action-логов).
-
-
-    ![Завершено по категориям](Завершено_по_категориям_дни.png)
-
-
-    _Обновлено: {_p1} | без категории: {_p3}_
-
-
-  auto_6df97175ce: |
-
-    Дневная динамика по action-логам, начиная с момента, когда в логах появился `task_id`.
-
-    Счётчики по дням включают **все** события после этой даты (в т.ч. без `task_id`).
-
-
-    **Панель «Активность по приоритетам»:** приоритет берётся из тега `#приоритет/высокий`, `#приоритет/средний` или `#приоритет/низкий` на доске `100_Задачи/📋 Доска_Задач.md`. **«Удалено»** — события по `task_id`, которые раньше двигались по доске (`task_moved`), но сейчас отсутствуют на текущей доске (полезно как индикатор чисток). **«Неизвестно»** — остальные события без определяемого приоритета: без `task_id`, не найденные по названию, или без тега приоритета.
-
-
-    ![Активность по дням](Активность_за_день.png)
-
-
-    _Обновлено: {_p1}_
-
-
-  auto_706f8573d0: |
-
-    Нет снимков в истории.
-
-
-    _Обновлено: {_p1}_
-
-
-  auto_737bdc69e5: |
-
-    Данных достаточно, но не загрузились `matplotlib`/`numpy` (часто из‑за чужого `PYTHONPATH` от другого venv; у `obsidian_sync` шаг 5d уже без него). Или установи: `pip install matplotlib`.
-
-
-    _Обновлено: {_p1}_
-
-
-  auto_97aa50a756: "  [dry-run] удалить: {_p1}"
-  auto_a5e97b8a01: "Всего добавлено: {_p1}"
-  auto_a76864c8ac: |
-    Нет каталога [[Данные/Действия/IPhone]].
-
-
-    _({_p1})_
-
-
-  auto_a9cfe5780b: "Каталог не найден: {_p1}"
-  auto_aeb265d6f5: |
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    # (comment)
-
-
-    {_p1}
-
-    _Обновлено: {_p3}_
-
-
-  auto_c01ff6fe9b: |
-
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    # (comment)
-
-
-    {_p1}
-
-    _Обновлено: {_p3}_ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_c936bb9e6f: "Записано: {_p1} (пусто)"
-  auto_cecea1f4cb: "SoC: {_p1} (добавлено с датой: {_p3})"
-  auto_d0388c87f5: "Записано: {_p1} (данных нет)"
-  auto_d3584c2c1a: |
-    Нет данных: в action-логах пока нет событий с `task_id`.
-
-
-    _Обновлено: {_p1}_
-
-
-  auto_d49528ed48: |
-
-    Нет данных: после даты начала нет завершений с категорией.
-
-
-    _Обновлено: {_p1}_
-
-
-  auto_d4de75d14b: "Записано: {_p1} (нет категорий)"
-  auto_d5796e610d: " Задач без распознанной колонки (не вошли): {_p1}."
-  auto_daa59085ad: |
-    # 🥗 Питание (КБЖУ)
-
-
-    _Нет {_p1}. Запусти `iphone_context_sync` или `obsidian_sync`._
-
-
-  auto_eae7dbddcc: |
-
-    Пока нет дней с данными `proteins_g` / `fats_g` / `carbs_g` в iPhone-снапшотах. Проверь, что письмо/шорткат шлёт КБЖУ.
-
-
-    _Источник: [[Данные/Действия/IPhone|IPhone/*.txt]] (вся история) · обновлено: {_p1}_
-
-
-  auto_f68669948a: |
-
-    **Тип:** {_p1}
-
-
-
-  auto_f7b5fc7eda: "Записано: {_p1} (sorted_cats пуст, PNG не трогаем)"
-  auto_0579aaf570: |
-    🌙 Вечерние: {_p1}% ({_p3}/{_p5})
-
-
-
-  auto_061500b24f: " (нет на доске: {_p1})"
-  auto_0f04ccc82a: "  ⚠️ {_p1}: {_p3} → {_p5} (после дедупликации)"
-  auto_10748013ee: |
-    📊 Статистика рутин за {_p1} дней:
-
-
-
-  auto_1586e06edc: "  {_p1}: было {_p3} записей, после слияния {_p5}"
-  auto_18964e6f62: "(ошибка чтения: {_p1})"
-  auto_1a09008344: |
-
-    ✅ Готово. Добавлено маппингов: {_p1}/{_p3}
-
-
-  auto_1d0008adcd: "Записано: {_p1}, {_p3} (просрочено {_p5}, в горизонте {_p7}, категорий: {_p9})"
-  auto_1d0bd0c01c: "Записано: {_p1} (нет данных для графика)"
-  auto_2163b8b245: "- [{_p1}] {_p3} | {_p5} | цель={_p7} | приоритет={_p9} | дедлайн={_p11} | done={_p13}"
-  auto_258b01eb13: "Создана задача id={_p1}: {_p3}"
-  auto_2620f8935c: |
-    Невыполненные задачи в колонках: **Бэклог**, **Ждёт даты**, **Отложено**, **В работе**, **Заблокировано** (без **Сделано**). Категория — тег `#цель/…` на доске; без тега — «без категории». Один столбик на день — последний снимок за день.{_p1}
-
-
-    Сейчас на доске (не Сделано): **{_p3}**.
-
-
-    ![Открыто по категориям по дням]({_p5})
-
-
-    _Обновлено: {_p7} | снимков в истории: {_p9}_
-
-
-  auto_27211ab75c: "⚠️ Файл изменился снова (проверка {_p1}/3), ждем..."
-  auto_2753bba2b1: "- Событий всего (парсер): **{_p1}**"
-  auto_2884b09c5a: "Записано: {_p1}, {_p3}, {_p5} (сегодня: {_p7} открытых, категорий: {_p9})"
-  auto_2a09b23885: "{_p0}: добавлено бы записей task_completed: {_p2}"
-  auto_2aeef4eeab: "  - содержимое: `{_p1}`"
-  auto_301215a223: "Ни один id не на доске: {_p1}"
-  auto_31eabb5043: |
-    # Логи действий {_p1}
-
-
-
-  auto_326f701285: "Итого [{_p1}]: rename={_p3}, dup_removed={_p5}, errors={_p7}"
-  auto_336c8eadcd: "🔄 Найдено {_p1} задач без ID, добавляем..."
-  auto_350cb8f834: |
-    История действий за последние {_p1} дней (с {_p3}):
-
-
-
-  auto_35b72136ce: "✅ Всего найдено {_p1} задач в {_p3} колонках"
-  auto_3d9d657bf4: "✅ Календарь обновлён: +{_p1} новых, ~{_p3} обновлённых, {_p5} всего"
-  auto_401a7ed2d6: "_sync {_p1}_ · окно **{_p3}** дн. · всего **{_p5}** ч · тяжёлых дней **{_p7}** · `{_p9}`"
-  auto_401e01315d: "Колонка не из списка ({_p1}):"
-  auto_40a629d2ad: "(нет Mac-снапшотов за {_p1} … {_p3})"
-  auto_4414441f2a: "{_p0}: добавлено записей task_completed: {_p2}"
-  auto_4c1afa777b: "Удалено файлов: {_p1}"
-  auto_4d06a83211: "(мало дней для корреляций: {_p1})"
-  auto_5277544ed2: "[{_p1}] Изменений нет (всего задач в мониторинге: {_p3})"
-  auto_549b646b63: |
-
-    📋 Целей в базе: {_p1} | Задач к маппингу: {_p3}
-
-
-  auto_5941923973: "Просрочено: {_p1} | в горизонте: {_p3}"
-  auto_5a82d75eb3: " | дедлайн {_p1}"
-  auto_5b2d10d70b: "Записано: {_p1}, {_p3} (дней: {_p5}, старт: {_p7})"
-  auto_5fb8885df4: "[{_p1}] 📊 Обнаружено {_p3} изменений в канбан-доске"
-  auto_643e1025d1: "Health / Watch — ряд по дням ({_p1} … {_p3}), {_p5} дн. с данными; одна точка на календарный день:"
-  auto_c4e8b1a293: "text_fields (строковые метрики, не в числовой таблице):"
-  auto_67bb82cf89: "День (с {_p1})"
-  auto_690e1f6cab: "[dry-run] Создать задачу «{_p1}» в {_p3}, #цель/{_p5} #приоритет/{_p7}"
-  auto_6bb22dd815: "На доске {_p1} задач с таким названием: {_p3}"
-  auto_6c1a634d85: "(нет Health-снапшота за {_p1})"
-  auto_6e1b3d9af2: "- **Доска:** `{_p1}` — {_p3}, размер {_p5} байт"
-  auto_6f07b0b6d6: "   Задач: {_p1} | "
-  auto_708c565f7e: |
-
-    Задач с дедлайном **после** {_p1}: **{_p3}** (вне текущего горизонта графика).
-
-
-  auto_72a8adc6af: |
-
-
-    Итого: rename={_p1}, dup_removed={_p3}, errors={_p5}, manifest={_p7}
-
-
-  auto_75c42fc423: "   iphone_context_sync: сегодня {_p1} снапш. / неделя {_p3} → iphone_today.json, iphone_week.json"
-  auto_9c3e1a7b42: "   iphone_context_sync: удалено {_p1} невалидных IPhone/*.txt"
-  auto_8b2d0f6a91: "iphone_context_sync: удалён невалидный снапшот %s"
-  auto_7a1c9e5b80: "iphone_context_sync: не удалось удалить %s: %s"
-  auto_6f0b8d4c71: "iphone_mail_sync: отклонено письмо без Health %s"
-  auto_5e9a7c3b62: "iphone_mail_sync: отклонено (не Health): {_p1}"
-  auto_4d8b6a2c51: "iphone_mail_sync: нет ts в теле: {_p1}"
-  auto_3c7a592b40: "iphone_mail_sync: не удалось распарсить письмо {_p1}"
-  auto_2b69581a2f: "[dry-run] iphone_mail_sync: записать {_p1}\n{_p3}"
-  auto_76473f45d3: "День: {_p1}. событий: {_p3} (в файле за день было {_p5})."
-  auto_78daa6c5ee: "📋 Задач для перемаппинга: {_p1}"
-  auto_7981ffecb7: "Health — отклонения от твоей базы за {_p1}д (z ≥ {_p3}; день {_p5} vs история; в базе {_p7} календарных дн. с данными):"
-  auto_7ea002a857: |
-    ![Дедлайны по горизонту]({_p1})
-
-
-  auto_7febd7379d: "  {_p1}: объединено {_p3} → {_p5} записей → {_p7}; удалён устаревший файл в корне 300_"
-  auto_86fa86c8e2: "Завершена {_p1}"
-  auto_89cfc4dd5c: "Mac — ряд {_p1} … {_p3} (последний снапшот за день):"
-  auto_8a2af899de: "- Ошибка подсчёта событий: `{_p1}`"
-  auto_8a47e8e90c: "Контекст Mac за неделю ({_p1} снапшотов):"
-  auto_8a67c27e56: "✅ Добавлено ID к {_p1} задачам"
-  auto_8fe3e14bf5: "   Последний парсинг: {_p1}"
-  auto_94eac10a67: "Health — сводка за период ({_p1} дн.):"
-  auto_a1946a7069: "- Файлов логов: **{_p1}**"
-  auto_a32082552e: "(мало дней для аномалий: {_p1}, нужно ≥5)"
-  auto_a53c12baf5: "За последние {_p1} дней действий не было."
-  auto_a6bcf071b8: "Health / Watch — сводка {_p1} … {_p3} ({_p5} дн. с данными):"
-  auto_a833116be6: "  {_p1}: {_p3} задач"
-  auto_a86efaa406: "Создана {_p1}"
-  auto_a871c05054: "  ! … {_p1} ошибок (первые 5):"
-  auto_a909b8ae11: "(нет Health-данных за {_p1} … {_p3})"
-  auto_ae400127c8: "  health_day: {_p1}  (календарный день метрик)"
-  auto_affcfe833c: "- **kanban_state.json** — ошибка разбора: {_p1}"
-  auto_b4eebb2539: "  время: {_p1}"
-  auto_b6a51df9b7: |
-
-    … обрезано ({_p1} символов всего)
-
-
-  auto_c2c1bb23fc: |
-
-    🌅 Утренние: {_p1}% ({_p3}/{_p5})
-
-
-  auto_c32df46433: |
-
-    Нет невыполненных задач с тегом `#дедлайн/YYYY-MM-DD` в открытых колонках доски (вне «{_p1}»).
-
-
-    _Обновлено: {_p3}_
-
-
-  auto_c3a0060b1b: "# Встречи · {_p1}"
-  auto_c7006e9059: "  {_p1}: объединено {_p3} → {_p5} записей → {_p7}"
-  auto_ca50e0ca98: |
-    Источник: [[100_Задачи/📋 Доска_Задач|Доска задач]] — только строки с `#дедлайн/YYYY-MM-DD`, без галочки выполнения, колонки кроме «{_p1}». Ось X: **{_p3}** … **{_p5}** ({_p7} дн.). Высота столбца = число задач с дедлайном в этот день; сегменты = `#цель/…` (без тега — «без категории»).
-
-
-
-  auto_cae59f782b: " | позже горизонта: {_p1}"
-  auto_cd400107dc: "Найдено: {_p1}"
-  auto_cee6069b3a: "За {_p1} в логах действий нет событий task_moved / task_completed / task_created. Каталог: {_p3}"
-  auto_cf57392f53: "   context_sync: сегодня в окне {_p1} снапш. / неделя в окне {_p3} (всего за 7 дн.: {_p5}) → context_today.json, context_week.json"
-  auto_cfb539ba67: "- **kanban_state.json** — записей о задачах: **{_p1}**, mtime {_p3}"
-  auto_d0350b047b: "Несколько совпадений ({_p1}); взята последняя по дате создания: {_p3}."
-  auto_da3d8e8365: "Сгенерировано: **{_p1}** (локальное время машины, где запущен скрипт)."
-  auto_db93289bfb: |
-    ☀️ Дневные: {_p1}% ({_p3}/{_p5})
-
-
-  auto_e0255e0574: "Health — корреляции Пирсона {_p1} … {_p3} ({_p5} дн.; |r|≥{_p7}; не причинность):"
-  auto_e352150d1f: "  батарея: {_p1}%"
-  auto_e3dd0ca3fe: |
-
-    _Обновлено: {_p1} | горизонт: {_p3} дн._
-
-
-  auto_e68aede2a2: "Каталог состояния: `{_p1}`"
-  auto_e85c431c3c: "Записано: {_p1}"
-  auto_e9398dd445: |
-    Снимков: {_p1}, категории пусты.
-
-
-    _Обновлено: {_p3}_
-
-
-  auto_ebdd9825e3: "Записано: {_p1}, {_p3} (категорий: {_p5}, без категории: {_p7})"
-  # Legacy key: prefer format_log_entry() in action_log_format.py (pdmsg .strip() broke --- separators).
-  auto_ebf7357951: |
-    **Данные:**
-    ```json
-    {_p1}
-    ```
-
-
-
-  auto_f09ac8e22c: "⚠️ Файл изменился (попытка {_p1}/3), ждем стабилизации..."
-  auto_f4e3922200: "- `{_p1}` — {_p3}, размер {_p5} байт"
-  auto_f7a1b08720: "Дедлайны по дням — {_p1}"
-  auto_fd3ee3c714: "(нет Mac-контекста за {_p1})"
-  auto_ffbd805644: "📋 Всего активных задач с ID: {_p1}, без маппинга: {_p3}"
-  auto_04e81e19c5: "❌ Ошибка при добавлении ID: "
-  auto_0f20afd8cf: "👀 Запуск watcher для файла: "
-  auto_13764b16ea: |
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    # (comment)
-
-
-    {table_md}
-
-    _Обновлено: {ts}_
-
-
-  auto_458bcb1d20: "❌ Ошибка при добавлении ID: {e}"
-  auto_484ea042d1: "❌ Ошибка при периодическом добавлении ID: {e}"
-  auto_55a686b009: "👀 Запуск watcher для файла: {kanban_path}"
-  auto_79f1ece2c7: "❌ Ошибка при периодическом добавлении ID: "
-  auto_9fffbf94b5: |
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    # (comment)
-
-
-
-  auto_af192ec97d: "❌ Файл канбана не найден: {kanban_path}"
-  auto_bcff861308: |
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    # (comment)
-
-
-    {table_md}
-
-    _Обновлено: {ts}_ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_bf6863b165: |
-
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    # (comment)
-
-
-
-  auto_d8f4118b93: "📝 Обнаружено изменение файла канбана: "
-  auto_db494d0851: "❌ Файл канбана не найден: "
-  auto_eabc4de58f: "📁 Родительская директория: "
-  auto_f56ebc6a46: "📁 Родительская директория: {parent}"
-  auto_fbabb9c30f: "📝 Обнаружено изменение файла канбана: {src_path}"
-  auto_697b5d90d2: "📋 Задач для перемаппинга: "
-  auto_90e2fd10f3: "📋 Всего активных задач с ID: "
-  auto_fa268e8f77: ", без маппинга: "
-  auto_00573c3ebe: "⚠️ Канбан-доска не найдена: {p1}"
-  auto_1078726108: "   Путь: {p1}"
-  auto_114f5d2712: "⚠️ Файл изменился снова (проверка {p1}/3), ждем..."
-  auto_149d577e20: "⚠️ Ошибка при сохранении состояния: {p1}"
-  auto_171fc5d5f1: "Календарь (МСК, {p1}–{p3}):"
-  auto_1d6719e150: "⚠️ Файл был изменен после чтения (timestamp изменился с {p1} на {p3})"
-  auto_2457713b8f: "  Прошедшие по времени ({p1}):"
-  auto_2a940195a2: "## 🎯 Q1 {p1} (Январь - Март)"
-  auto_2d6780c504: "Итого исправлено записей: {p1}"
-  auto_30c06288ec: |
-    ## Мои мысли
-
-
-    {p1}
-
-
-
-  auto_314ca5ab7b: |
-
-    - [ ] Пример внешнего дедлайна (июнь {p1}) #цель/учеба #дедлайн/Q2
-
-
-  auto_31f6101377: "⚠️ Ошибка при iPhone mail sync: {p1}"
-  auto_334885fc94: "  ⚠️ {p1}: {p3} → {p5} (после дедупликации)"
-  auto_34e7f1cf67: "Будет исправлено записей: {p1}. Запусти без --dry-run."
-  auto_372b13b3e6: "(нет событий в календаре на {p1})"
-  auto_3a283fb50c: "Отправка логов на сервер: rsync ... {p1} -> {p3}"
-  auto_44e038f2b2: "  {p1}: {p3} задач"
-  auto_473fba5f54: ", отменено по времени: {p1}"
-  auto_4882f333fc: "⚠️ Файл {p1} не найден, пропускаю"
-  auto_490d4a4c0d: "⚠️ Не удалось прочитать календарь: {p1}"
-  auto_4a3e2b7d60: "	📅 Создано: {p1}"
-  auto_4bf6a229b2: " | дедлайн {p1} (сегодня)"
-  auto_4fa929777d: "#фокус/{p1}"
-  auto_5dddfabf0e: |
-
-    ✅ Готово. Добавлено маппингов: {p1}/{p3}
-
-
-  auto_5fbf125d81: "⚠️ Ошибка загрузки состояния из markdown: {p1}"
-  auto_61f9244112: "## 🎯 Q3 {p1} (Июль - Сентябрь)"
-  auto_622e98bc2c: |
-    (нет событий в календаре)
-
-    {p1}
-
-
-  auto_6a39b972ec: "## 🎯 Q4 {p1} (Октябрь - Декабрь)"
-  auto_6ba9f40a0f: "⚠️ Ошибка чтения .kanban_monitor_state.json: {p1}"
-  auto_760ff8cb05: "	#цель/{p1} #приоритет/{p3}"
-  auto_7ad254bdde: "[{p1}] 📊 Обнаружено {p3} изменений в канбан-доске"
-  auto_8067bf4eb8: "  • {p1} (весь день) {p3}{p4}{p5}"
-  auto_8489e3c981: "⚠️ Ошибка при iphone_context_sync: {p1}"
-  auto_8748f78a2f: "⚠️ Ошибка сохранения .kanban_monitor_state.json: {p1}"
-  auto_8986107d91: "Health — сводка за период ({p1} дн.):"
-  auto_92474d141f: "⚠️ Ошибка при логировании перемещений: {p1}"
-  auto_978ab64feb: "  {p1}: исправлено записей {p3}"
-  auto_990081c655: " | дедлайн {p1} (просрочено)"
-  auto_a3ba53a9d0: |
-    # Еженедельная рефлексия {p1}
-
-
-
-  auto_a4f7f3ccb2: ", отменено: {p1}"
-  auto_a55cff26c3: |
-    # 📊 История выполнения рутин
-
-
-    > Автоматически записывается каждый день. Не редактируй вручную.
-
-
-    ---
-
-
-    {p1}
-
-
-  auto_a77c63300f: "🔄 Найдено {p1} задач без ID, добавляем..."
-  auto_ae895ad09f: "  Предстоящие по времени ({p1}):"
-  auto_b086553522: "[{p1}] ❌ Ошибка при проверке: {p3}"
-  auto_b25bcc6a50: "Задача {p1}"
-  auto_b58b89da62: "✅ Добавлено ID к {p1} задачам"
-  auto_bb3d2c7473: "📋 Всего активных задач с ID: {p1}, без маппинга: {p3}"
-  auto_bbf7ddb3ec: "⚠️ Ошибка при синхронизации календаря: {p1}"
-  auto_bd6c47c281: "   context_sync: удалено файлов {p1} (Данные/: {p3}, Mac/: {p5}, по TTL: {p7})"
-  auto_bda0f62bfb: "⚠️ Всего найдено {p1} задач, после дедупликации: {p3}"
-  auto_bee21f3a5e: "Успешно: {p1}/{p3}"
-  auto_c280bda5ca: "  [dry-run] {p1}: исправить {p3} записей"
-  auto_c61f252c31: |
-    ---
-
-
-    *Создано: {p1}*
-
-
-  auto_c71257ace6: "[{p1}] Проверка изменений kanban..."
-  auto_c82f64c61c: "⚠️ Файл изменился (попытка {p1}/3), ждем стабилизации..."
-  auto_c8a05e5b5b: "    (показаны последние {p1} по времени из {p3})"
-  auto_cb179471ae: "## 🎯 Q2 {p1} (Апрель - Июнь)"
-  auto_cc0fce24bf: "Календарь на {p1} (МСК):"
-  auto_d11bd20e95: "  health_day: {p1}  (календарный день метрик)"
-  auto_d359b4b96e: "⚠️ Ошибка при загрузке состояния: {p1}"
-  auto_d4a2685e67: "Ошибка загрузки маппинга: {p1}"
-  auto_d7f27dd096: "  {p1}: {p3} целей"
-  auto_d9b4286376: "⚠️ Ошибка при синхронизации контекста: {p1}"
-  auto_db87ea546e: "    (показаны первые {p1} из {p3})"
-  auto_db97459f76: "✅ Всего найдено {p1} задач в {p3} колонках"
-  auto_dd0a28e814: "⚠️ Ошибка сохранения kanban_state.json: {p1}"
-  auto_dd46a2b912: "Колонка '{p1}' не найдена"
-  auto_e0caa7c8d3: |
-    ## Ревью от ассистента
-
-
-    {p1}
-
-
-
-  auto_e185e3021d: |
-
-
-    📋 Целей в базе: {p1} | Задач к маппингу: {p3}
-
-
-  auto_e196d2c0d0: "{p0}:{p2}/300_Дашборды/Логи/"
-  auto_e66a7a64ac: "(нет Mac-контекста за {p1})"
-  auto_eba484d5fe: "📋 Задач для перемаппинга: {p1}"
-  auto_ee54c8c67f: "Рефлексия_{p1}.md"
-  auto_ef879a3e9b: |
-    **Дата:** {p1}
-
-
-  auto_f446e17f13: "[{p1}] Изменений нет (всего задач в мониторинге: {p3})"
-  auto_f486bae7fc: "(нет Mac-снапшотов за {p1} … {p3})"
-  auto_fb0503abfd: "❌ Файл {p1} не найден!"
-  auto_ff168a7bf9: "Канбан-доска не найдена: {p1}"
-  auto_07692189c8: "❌ Файл канбана не найден: {p1}"
-  auto_2c5852ad43: "❌ Ошибка при периодическом добавлении ID: {p1}"
-  auto_3c53bd1661: "Итого: записей до слияния {p1}, после дедупа {p3}"
-  auto_43d14b9393: "  [dry-run] удалить: {p1}"
-  auto_5b3cbc553f: "📝 Обнаружено изменение файла канбана: {p1}"
-  auto_679caaf2f8: "📁 Родительская директория: {p1}"
-  auto_751f9244e2: "Удалено файлов: {p1}"
-  auto_8e3602e8f1: "  {p1}: объединено {p3} → {p5} записей → {p7}; удалён устаревший файл в корне 300_"
-  auto_a4830683bc: "❌ Ошибка при добавлении ID: {p1}"
-  auto_a4f1a48611: "  {p1}: было {p3} записей, после слияния {p5}"
-  auto_d2bd175512: "  удалён: {p1}"
-  auto_e44244e0c6: "SoC: {p1} (добавлено с датой: {p3})"
-  auto_e7f4c774a0: "👀 Запуск watcher для файла: {p1}"
-  auto_ee0ce62740: "  ⚠ Не удалось прочитать {p1}: {p3}"
-  auto_f54cf1c240: "  {p1}: объединено {p3} → {p5} записей → {p7}"
-  auto_0ba10bc24f: "Аналитика встреч"
-  auto_15f0bbcc7f: "События по задачам"
-  auto_29630f9469: "Поиск задач"
-  auto_9b0ae0c6bb: "Экспорт дневного"
-  auto_9b6110f961: "Рутины из"
-  auto_a1bb557c33: "Mac-контекст"
-  auto_fbab6b314b: "Изменение доски"
-  auto_1d8e2e4de0: |
-    📊 **Прогресс по целям {p1} {p3}:**
-
-
-
-  auto_2bc55885d8: "Несколько совпадений ({p1}); взята последняя по дате создания: {p3}."
-  auto_4b9cadcc16: "Задача id={p1} не найдена на доске"
-  auto_73d11081e4: |
-    {p0}
-
-    (нет задач по фильтру)
-
-
-  auto_7ca8d89b8a: "  ! … {p1} ошибок (первые 5):"
-  auto_7eaa9a928d: "{p0}: нужен task_id (8 hex из create/search_tasks) или title"
-  auto_8090c95ae4: " (нет на доске: {p1})"
-  auto_8216d32eb3: "   Новый timestamp: {p1}"
-  auto_83e6250972: "   Последний парсинг: {p1}"
-  auto_85560c5497: "Для VPS cleanup (1a-remote): {p1} старых путей"
-  auto_9afe964c41: "Ни один id не на доске: {p1}"
-  auto_a8ae275dc6: "   Задач: {p1} | "
-  auto_a8c69f9e42: "✅ Календарь обновлён: +{p1} новых, ~{p3} обновлённых, {p5} всего"
-  auto_bea8df9e30: |
-
-    Манифест: {p1}
-
-
-  auto_c3797c1c84: "Найдено: {p1}"
-  auto_c6322492b8: "   Дашборд: {p1}"
-  auto_d1d2f445b9: "Создана задача id={p1}: {p3}"
-  auto_d8e43cafd6: "_Обновлено: {p1}_"
-  auto_e4e382db10: "   Источник: {p1}"
-  auto_ede4d4dee3: "На доске {p1} задач с таким названием: {p3}"
-  auto_0214266e72: "\"\"\"Health/Watch: ряд по дням"
-  auto_05e12a3f7f: "base = \"Ты — персональный ассистент по планированию. Отвечай по-русски, кратко и по делу.\""
-  auto_06de20035e: "\"\"\"Снимок канбан-доски (все колонки или одна). column — название колонки.\"\"\""
-  auto_0fb9120781: "(\"День\", day_t, \"day\")"
-  auto_1190275992: |
-    f"Сегодня: {now.strftime('%Y-%m-%d (%A)')}. "
-
-    "Дедлайны сравнивай с этой датой; в выводе get_kanban уже есть просрочено/сегодня."
-
-
-  auto_199d96891e: "return \"(лог недоступен)\""
-  auto_1b6d6d9a4b: "parts.append(\"Пиши обычным текстом, без квадратных скобок и мета-инструкций.\")"
-  auto_1be32e08ed: |
-    "Факты — только из инструментов и памяти; не выдумывай расписание и метрики. "
-
-    "Mac — get_mac_context; календарь — get_calendar(day=YYYY-MM-DD); проверяй meta last_updated в ответе. "
-
-    "Лог задач — get_activity_events (фильтры task_id, task_title, event_type, from/to) или get_action_log(day). "
-
-    "Не подтягивай здоровье и календарь, если вопрос о них не касается."
-
-
-  auto_304f014fe8: "f\"{col} ({len(all_col)}, показаны {done_preview} последних по дате создания):\""
-  auto_3538b5a6d1: "f\"Календарь {anchor_d.isoformat()} +{horizon} дн.\""
-  auto_38490539fb: "return chain or \"(в логе нет недавних событий)\""
-  auto_3896cb813c: "\"\"\"Рутины из 400_Рутины"
-  auto_43a8e761c1: "\"\"\"Mac-контекст: ряд снапшотов"
-  auto_43aa6d6f78: "\"\"\"Mac-контекст (фокус"
-  auto_587b0c0cd9: "return \"(Календарь недоступен — нужен sync с Mac)\""
-  auto_67fb178b5c: "\"\"\"Аналитика встреч за интервал"
-  auto_68a6e4b723: "return \"(нет событий за период с заданными фильтрами)\""
-  auto_7105a6d731: "\"\"\"Health/Watch: один вечерний снапшот"
-  auto_7bd45878d8: "lines.append(\"Теги (часы): \" + \", \".join(f\"{t[0]}:{t[1]}\" for t in tags[:5]))"
-  auto_7ffa627640: "\"\"\"Экспорт дневного Health-датасета"
-  auto_83274e696f: "\"\"\"Health/Watch: метрики последнего дня"
-  auto_88b45f0f38: "lines = [f\"События action-log: {len(entries)} из {n_raw} в окне\"]"
-  auto_8c843b4ec6: "\"\"\"Изменение доски"
-  auto_8f4945be0c: "\"\"\"Календарь: day=YYYY-MM-DD — события дня; иначе ближайшие hours_ahead часов (+ сводка недели).\"\"\""
-  auto_a33c87b8b0: "lines.append(\"Секции: \" + \", \".join(f\"{a}:{b}ч\" for a, b in life[:5]))"
-  auto_a93850272d: "(\"Вечер\", evening, \"evening\")"
-  auto_b7d549057b: "f\"Встреч (мин): {analytics.get('totals', {}).get('window_meeting_minutes', 0)}\""
-  auto_c37c67c4a3: "\"\"\"Health/Watch: корреляции Пирсона"
-  auto_df41cb6a92: "(\"Утро\", morning, \"morning\")"
-  auto_f48dab0020: "\"\"\"Годовые цели, квартальные фокусы и блок «что нужно сделать».\"\"\""
-  auto_f683f54733: "\"\"\"Поиск задач на канбане"
-  auto_f74f8954a6: "lines = [\"Рутины (чеклист сегодня):\"]"
-  auto_f95059dd74: "\"\"\"События по задачам из action-логов"
-  auto_a26be263ec: "День: {p1}. событий: {p3} (в файле за день было {p5})."
-  auto_fc1ae7ef20: "За {p1} в логах действий нет событий task_moved / task_completed / task_created. Каталог: {p3}"
-  auto_243c451318: |
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    ### // ()  % 
-
-
-
-  auto_62c361bc48: |
-
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    ###  //
-
-
-    {table_md}
-
-    _Обновлено: {ts}_ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_bdef9c2e2f: |
-
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    ###  //
-
-
-
-  auto_fcdc4f3181: |
-
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    ### // ()  % 
-
-
-    {table_md}
-
-    _Обновлено: {ts}_
-
-
-  auto_016ed27a65: "done = \" | выполнено\" if t.get(\"completed\") else \"\""
-  auto_0c88f7b3f4: "За {day} в логах действий нет событий task_moved / task_completed / task_created. Каталог: {logs_dir}"
-  auto_0e51ea37a4: |
-    **Тип:** {action_type}
-
-
-
-  auto_11222db4c9: "entry += f\"**Тип:** {action_type}\\n\\n\""
-  auto_265f7aff56: "return \"\\n\\n\".join(parts) or \"(цели не заданы)\""
-  auto_2d9d57ac85: |
-    return False, (
-
-    "В хранилище нет файлов лога действий за этот период.\n\n"
-
-    "Проверь VAULT_PATH и что maintenance/бот пишут логи в vault."
-
-    )
-
-
-  auto_2f0b08ab71: "category: str = \"личное\""
-  auto_2fac145f39: "entry += f\"**Данные:**\\n```json\\n{json.dumps(data, ensure_ascii=False, indent=2)}\\n```\\n\\n---\\n\\n\""
-  auto_2fe8e6141b: "f\"Сегодня (эталон для дедлайнов): {today}.\""
-  auto_33104fbe41: "movement_chain.append(f\"Завершена {entry['timestamp']}\")"
-  auto_39fb98c88f: "День: {day}. событий: {count} (в файле за день было {raw})."
-  auto_41dc6f5998: "return f\"Экспорт: {n} дней → {path}\""
-  auto_4de56706da: |
-    # Логи действий {month}
-
-
-
-  auto_4dfb20eec4: "result = f\"История действий за последнюю неделю (с {week_start_str}):\\n\\n\""
-  auto_5e1deaac02: |
-    Нет доступа к папке с логами ({error}).
-
-
-    Проверь права доступа и VAULT_PATH на сервере.
-
-
-  auto_670a5968e3: |
-
-    return False, (
-
-    "Папка с логами действий не найдена.\n\n"
-
-    "Проверь VAULT_PATH на сервере — корень хранилища Obsidian."
-
-    )
-
-
-  auto_6c9ffb926e: |
-
-    История действий за последние {days} дней (с {period_start}):
-
-
-
-  auto_725302e026: "За последние ~{hours:.0f} ч. в логах действий нет событий task_moved / task_completed / task_created (или файл логов недоступен). Каталог логов: {logs_dir}"
-  auto_75e8a41ed9: "(Урезано до последних {max_events} событий — в окне было больше.)"
-  auto_7a2e9c6854: "\"Доска задач:\""
-  auto_87c1c955c5: "return \"(календарь недоступен)\""
-  auto_8844479596: "movement_chain.append(f\"Создана {entry['timestamp']}\")"
-  auto_8b5d65e49a: "Создана {timestamp}"
-  auto_8b7416725c: "result = f\"История действий за последние {max(1, days)} дней (с {period_start_str}):\\n\\n\""
-  auto_8c5461b914: "header=\"Задачи по фильтру:\""
-  auto_8df809afd7: "priority: str = \"средний\""
-  auto_938f3bd7e3: "\"Не называй «сегодня» дату из дедлайна задачи — только эту строку.\""
-  auto_a04aad87cd: "Окно: с {start} по {end} (~{hours:.0f} ч.). событий в цепочке: {count} (в файле за окно было {raw})."
-  auto_abaef4786e: "f.write(f\"# Логи действий {today.strftime('%B %Y')}\\n\\n\")"
-  auto_b5ee6f713e: "(Урезано до последних {limit} событий — слишком длинная цепочка.)"
-  auto_b6305582e1: "parts.append(\"Квартальные фокусы:\\n\" + \"\\n\".join(f\"— {g}\" for g in qf))"
-  auto_b8e0623080: "\"\"\"Инструменты planning для shared agent core.\"\"\""
-  auto_b9110a7230: "parts.append(\"Годовые цели:\\n\" + \"\\n\".join(f\"— {g}\" for g in goals))"
-  auto_bb5b2ea1a2: |
-    **Данные:**
-
-    ```json
-
-    {payload}
-
-    ```
-
-
-    ---
-
-
-
-  auto_d10b64d331: "Завершена {timestamp}"
-  auto_d239680162: |
-    return False, (
-
-    f"Нет доступа к папке с логами ({e}).\n\n"
-
-    "Проверь права доступа и VAULT_PATH на сервере."
-
-    )
-
-
-  auto_d2e76c190f: "lines.append(\"  (пусто)\")"
-  auto_d9c845f4f3: |
-    return False, (
-
-    "Путь к логам действий настроен неверно.\n\n"
-
-    "Проверь VAULT_PATH на сервере."
-
-    )
-
-
-  auto_e6a8d06fee: "parts.append(\"Что нужно сделать (контекст целей):\\n\" + gc)"
-  auto_e6a99a185b: "За последние {days} дней действий не было."
-  auto_e9c5140f6d: "return f\"За последние {max(1, days)} дней действий не было.\""
-  auto_fcc9ff423a: |
-    История действий за последнюю неделю (с {week_start}):
-
-
-
-  history_day_empty: "За {day} в логах действий нет событий task_moved / task_completed / task_created. Каталог: {logs_dir}"
-  history_day_line: "День: {day}. событий: {count} (в файле за день было {raw})."
-  history_days_empty: "За последние {days} дней действий не было."
-  history_days_header: |
-    История действий за последние {days} дней (с {period_start}):
-
-  history_hours_empty: "За последние ~{hours:.0f} ч. в логах действий нет событий task_moved / task_completed / task_created (или файл логов недоступен). Каталог логов: {logs_dir}"
-  history_truncated_events: "(Урезано до последних {max_events} событий — в окне было больше.)"
-  history_truncated_safety: "(Урезано до последних {limit} событий — слишком длинная цепочка.)"
-  history_week_header: |
-    История действий за последнюю неделю (с {week_start}):
-
-  history_window_line: "Окно: с {start} по {end} (~{hours:.0f} ч.). событий в цепочке: {count} (в файле за окно было {raw})."
-  kanban_snapshot_hint: "Снимок канбана в контексте — текущее состояние файла; если расходится с логом, для «что произошло» опирайся на лог, для «где задача сейчас» — на доску."
-  log_entry_data: |
-    **Данные:**
-
-    ```json
-
-    {payload}
-
-    ```
-
-
-    ---
-
-  log_entry_regex: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* (.+?)\\n\\n\\*\\*Данные:\\*\\*\\n```json\\n(.+?)\\n```"
-  log_entry_legacy_regex: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* \\{'(task_\\w+)'\\}\\*\\*Данные:\\*\\*\\n```json\\n(.+?)\\n```"
-  log_entry_type: |
-    **Тип:** {action_type}
-
-    log_month_header: |
-
-    # Логи действий {month}
-
-    logs_dir_access_denied: |
-
-    Нет доступа к папке с логами ({error}).
-
-
-    Проверь права доступа и VAULT_PATH на сервере.
-
-    logs_dir_empty: |
-
-    В хранилище нет файлов лога действий за этот период.
-
-
-    Проверь VAULT_PATH и что maintenance/бот пишут логи в vault.
-
-    logs_dir_missing: |
-
-    Папка с логами действий не найдена.
-
-
-    Проверь VAULT_PATH на сервере — корень хранилища Obsidian.
-
-    logs_dir_not_dir: |
-
-    Путь к логам действий настроен неверно.
-
-
-    Проверь VAULT_PATH на сервере.
-
-  movement_completed: "Завершена {timestamp}"
-  movement_created: "Создана {timestamp}"
-  auto_0c3f97a4b3: "(Урезано до последних {p1} событий — слишком длинная цепочка; сузь окно PLANNING_CHAT_LOG_CHAIN_HOURS.)"
-  auto_54fe27645f: "(Урезано до последних {p1} событий — в окне было больше.)"
-  auto_8562d1d6c2: "Создана {p1}"
-  auto_a44ff7bd46: |
-    **Данные:**
-
-    ```json
-
-    {p1}
-
-    ```
-
-
-    ---
-
-
-
-  auto_c602f30b45: "За последние {p1} дней действий не было."
-  auto_d864f467b2: |
-    История действий за последнюю неделю (с {p1}):
-
-
-
-  auto_fb266e5c5d: "Завершена {p1}"
-  auto_ff3acc3649: |
-    История действий за последние {p1} дней (с {p3}):
-
-
-
-  auto_00a096ec1c: |
-
-    **Тип:** {p1}
-
-
-
-  auto_02d35a89f7: |
-
-    ☀️ Дневные: {p1}
-
-
-  auto_089418f20a: "- **kanban_state.json** — записей о задачах: **{p1}**, mtime {p3}"
-  auto_0dcbd34bf2: "(мало дней для аномалий: {p1}, нужно ≥5)"
-  auto_0f8e5d99c5: "- **Доска:** `{p1}` — {p3}, размер {p5} байт"
-  auto_129ff7bb58: "Календарь {p1} +{p3} дн."
-  auto_14ed20793e: "Всего добавлено: {p1}"
-  auto_15e9b068ff: "Записано: {p1}"
-  auto_1dbba84a22: "Сгенерировано: **{p1}** (локальное время машины, где запущен скрипт)."
-  auto_1dcfba9088: "Записано: {p1} (sorted_cats пуст, PNG не трогаем)"
-  auto_1f96333170: "{p0}: добавлено записей task_completed: {p2}"
-  auto_1fa3de6b46: |
-
-    _Обновлено: {p1} | горизонт: {p3} дн._
-
-
-  auto_211ee9a83c: "(нет Health-данных за {p1} … {p3})"
-  auto_28e21ede72: |
-    ☀️ Дневные: {p1}% ({p3}/{p5})
-
-
-  auto_29ff345b1d: "- Файлов логов: **{p1}**"
-  auto_2a0d058cb7: |
-    # 🥗 Питание (КБЖУ)
-
-
-    _Нет {p1}. Запусти `iphone_context_sync` или `obsidian_sync`._
-
-
-  auto_2c66079663: "(мало дней для корреляций: {p1})"
-  auto_30ee8c9da0: " Задач без распознанной колонки (не вошли): {p1}."
-  auto_3139247af8: "Просрочено: {p1} | в горизонте: {p3}"
-  auto_31805672fe: "Контекст Mac за неделю ({p1} снапшотов):"
-  auto_32bf508d5c: " | дедлайн {p1}"
-  auto_43a2ea84a5: "  время: {p1}"
-  auto_4972696708: "Каталог не найден: {p1}"
-  auto_4a239c6964: "# Встречи · {p1}"
-  auto_51995c6e85: "Записано: {p1} (пусто)"
-  auto_5bd719a578: "{p0} ({p2}, показаны {p4} последних по дате создания):"
-  auto_62c2cdeda6: "Health / Watch — сводка {p1} … {p3} ({p5} дн. с данными):"
-  auto_68d7d88fbc: |
-    🌙 Вечерние: {p1}% ({p3}/{p5})
-
-
-
-  auto_6e7829878c: |
-
-    💡 **Рекомендации по рутинам:**
-
-
-    {p1}
-
-
-  auto_6f0a8ee69a: "Health — отклонения от твоей базы за {p1}д (z ≥ {p3}; день {p5} vs история; в базе {p7} календарных дн. с данными):"
-  auto_72ab7994b5: "Health — корреляции Пирсона {p1} … {p3} ({p5} дн.; |r|≥{p7}; не причинность):"
-  auto_73f109b640: "Сегодня (эталон для дедлайнов): {p1}."
-  auto_7450be60ec: "Записано: {p1}, {p3} (категорий: {p5}, без категории: {p7})"
-  auto_74dfed9e92: "Записано: {p1} (данных нет)"
-  auto_7841bbde51: |
-
-    … обрезано ({p1} символов всего)
-
-
-  auto_7cda7268bc: "Дедлайны по дням — {p1}"
-  auto_7d4374e924: |
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    ### Б/Ж/У (г) и % жира
-
-
-    {p1}
-
-    _Обновлено: {p3}_
-
-
-  auto_8033594ab1: |
-
-    🌅 Утренние: {p1}
-
-
-  auto_83d88b74a8: "{p0}:{p2}ч"
-  auto_88bf715456: |
-
-    Задач с дедлайном **после** {p1}: **{p3}** (вне текущего горизонта графика).
-
-
-  auto_8dd6fb2670: "Записано: {p1} (нет данных для графика)"
-  auto_8fecdc418c: "Health / Watch — ряд по дням ({p1} … {p3}), {p5} дн. с данными; одна точка на календарный день:"
-  auto_903b69bb5a: "- Ошибка подсчёта событий: `{p1}`"
-  auto_954c9ccb64: "❌ Ошибка: {p1}"
-  auto_9e3ca699f6: |
-    # 🥗 Питание (КБЖУ)
-
-
-    > [!info] Данных для графика нет
-
-    > Когда в [[Данные/Действия/IPhone|снапшотах iPhone]] появятся белки, жиры и углеводы, при следующем дневном пересчёте синка построится столбчатая диаграмма (ккал; стек снизу вверх: Б→Ж→У).
-
-
-    _Обновлено: {p1}_ · скрипт: `planning_bot/scripts/build_iphone_nutrition_chart.py` · частота: день с локальным `obsidian_sync` (маркер `daily_iphone_nutrition_date.txt` в `.sync/`, или `FORCE_CHARTS=1`).
-
-
-
-  auto_9e6f7008a2: "Записано: {p1}, {p3} (дней: {p5}, старт: {p7})"
-  auto_a0cebd861e: "Записано: {p1} (нет категорий)"
-  auto_a3ce20fc3b: "(нет Health-снапшота за {p1})"
-  auto_a600531be8: "Анализ за {p1} дней, всего дней с данными: {p3}"
-  auto_a7169e0beb: "Колонка не из списка ({p1}):"
-  auto_ab35177ff5: |
-    # Логи действий {p1}
-
-
-
-  auto_ae420ba47f: "(ошибка чтения: {p1})"
-  auto_b4ea57a911: |
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    ### Таблица Б/Ж/У
-
-
-    {p1}
-
-    _Обновлено: {p3}_ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_b77c8fce34: "Встреч (мин): {p1}"
-  auto_c2fd801ff8: "События action-log: {p1} из {p3} в окне"
-  auto_c7d3b2a6f2: "  - содержимое: `{p1}`"
-  auto_c801eec070: |
-
-    Итого: rename={p1}, dup_removed={p3}, errors={p5}, manifest={p7}
-
-
-  auto_c8e86a13d7: "Экспорт: {p1} дней → {p3}"
-  auto_c8fde1940a: "  батарея: {p1}%"
-  auto_cce5b93204: "День (с {p1})"
-  auto_cf1913a5dd: "{p0}: добавлено бы записей task_completed: {p2}"
-  auto_d04d8458f7: |
-    ![Дедлайны по горизонту]({p1})
-
-
-  auto_d2d1fdaa04: "- `{p1}` — {p3}, размер {p5} байт"
-  auto_d37350eae9: "- Событий всего (парсер): **{p1}**"
-  auto_d3740f43b3: "_sync {p1}_ · окно **{p3}** дн. · всего **{p5}** ч · тяжёлых дней **{p7}** · `{p9}`"
-  auto_e6c12a34a1: |
-    📊 Статистика рутин за {p1} дней:
-
-
-
-  auto_ec027b476a: |
-
-    Нет каталога [[Данные/Действия/IPhone]].
-
-
-    _({p1})_
-
-
-  auto_f4702e178e: |
-
-    🌙 Вечерние: {p1}
-
-
-  auto_f8f26b13df: "Каталог состояния: `{p1}`"
-  auto_fb55d1371a: " | позже горизонта: {p1}"
-  auto_fcb90c599e: "- **kanban_state.json** — ошибка разбора: {p1}"
-  auto_ffbbab79fc: |
-    🌅 Утренние: {p1}% ({p3}/{p5})
-
-
-  auto_c6a42c1eb4: "За последние ~{hours} ч. в логах действий нет событий task_moved / task_completed / task_created (или файл логов недоступен). Каталог логов: {logs_dir}"
-  auto_03583c8246: " (дней: "
-  auto_16aad06a50: |
-    Пока нет дней с данными `proteins_g` / `fats_g` / `carbs_g` в iPhone-снапшотах. Проверь, что письмо/шорткат шлёт КБЖУ.
-
-
-    _Источник: [[Данные/Действия/IPhone|IPhone/*.txt]] (вся история) · обновлено: 
-
-
-  auto_196a9ec2b8: |
-
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    # // ()  %
-
-
-    {table_md}
-
-    _Обновлено: {ts}_
-
-
-  auto_250f23f942: |
-
-    Пока нет дней с данными `proteins_g` / `fats_g` / `carbs_g` в iPhone-снапшотах. Проверь, что письмо/шорткат шлёт КБЖУ.
-
-
-    _Источник: [[Данные/Действия/IPhone|IPhone/*.txt]] (вся история) · обновлено: {ts}_
-
-
-  auto_30ef7a9029: |
-
-    Столбцы = ккал (Б→Ж→У), линии = вес и шаги. **Граммы и % жира** — в таблице ниже.
-
-
-    ![Питание КБЖУ по дням](Питание_КБЖУ_по_дням.png)
-
-
-    # // ()  %
-
-
-
-  auto_50645e4438: ", старт: "
-  auto_579cf0368d: |
-    # 🥗 Питание (КБЖУ)
-
-
-    _Нет 
-
-
-  auto_6ca6683660: |
-
-    Данных достаточно, но не загрузились `matplotlib`/`numpy` (часто из‑за чужого `PYTHONPATH` от другого venv; у `obsidian_sync` шаг 5d уже без него). Или установи: `pip install matplotlib`.
-
-
-    _Обновлено: 
-
-
-  auto_6ebfcc7d28: |
-
-    . Запусти `iphone_context_sync` или `obsidian_sync`._
-
-
-  auto_705d0f2090: |
-
-    # 🥗 Питание (КБЖУ)
-
-
-    > [!info] Данных для графика нет
-
-    > Когда в [[Данные/Действия/IPhone|снапшотах iPhone]] появятся белки, жиры и углеводы, при следующем дневном пересчёте синка построится столбчатая диаграмма (ккал; стек снизу вверх: Б→Ж→У).
-
-
-    _Обновлено: 
-
-
-  auto_707b33aa29: |
-
-    Дневная динамика по action-логам, начиная с момента, когда в логах появился `task_id`.
-
-    Счётчики по дням включают **все** события после этой даты (в т.ч. без `task_id`).
-
-
-    **Панель «Активность по приоритетам»:** приоритет берётся из тега `#приоритет/высокий`, `#приоритет/средний` или `#приоритет/низкий` на доске `100_Задачи/📋 Доска_Задач.md`. **«Удалено»** — события по `task_id`, которые раньше двигались по доске (`task_moved`), но сейчас отсутствуют на текущей доске (полезно как индикатор чисток). **«Неизвестно»** — остальные события без определяемого приоритета: без `task_id`, не найденные по названию, или без тега приоритета.
-
-
-    ![Активность по дням](Активность_за_день.png)
-
-
-    _Обновлено: 
-
-
-  auto_81f4e6cb4d: |
-
-    _ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_96885ff2f3: |
-
-    Нет каталога [[Данные/Действия/IPhone]].
-
-
-    _(
-
-
-  auto_a8148b066f: |
-
-    # 🥗 Питание (КБЖУ)
-
-
-    _Нет {iphone_dir}. Запусти `iphone_context_sync` или `obsidian_sync`._
-
-
-  auto_a85ef6ebbc: |
-
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    # //
-
-
-
-  auto_c118654f2a: |
-
-    _ · скрипт: `planning_bot/scripts/build_iphone_nutrition_chart.py` · частота: день с локальным `obsidian_sync` (маркер `daily_iphone_nutrition_date.txt` в `.sync/`, или `FORCE_CHARTS=1`).
-
-
-
-  auto_c45e19733d: |
-
-    Данных достаточно, но не загрузились `matplotlib`/`numpy` (часто из‑за чужого `PYTHONPATH` от другого venv; у `obsidian_sync` шаг 5d уже без него). Или установи: `pip install matplotlib`.
-
-
-    _Обновлено: {ts}_
-
-
-  auto_d5f093983f: |
-
-    # 🥗 Питание (КБЖУ), по дням
-
-
-    > [!tip] На графике — только ккал и линии. **Б, Ж, У в граммах** и **% жира** — в таблице под картинкой.
-
-
-    ![[Графики/Питание_КБЖУ_по_дням]]
-
-
-    # //
-
-
-    {table_md}
-
-    _Обновлено: {ts}_ · `FORCE_CHARTS=1` при `obsidian_sync`
-
-
-  auto_edbed27ae5: |
-
-    # 🥗 Питание (КБЖУ)
-
-
-    > [!info] Данных для графика нет
-
-    > Когда в [[Данные/Действия/IPhone|снапшотах iPhone]] появятся белки, жиры и углеводы, при следующем дневном пересчёте синка построится столбчатая диаграмма (ккал; стек снизу вверх: Б→Ж→У).
-
-
-    _Обновлено: {ts}_ · скрипт: `planning_bot/scripts/build_iphone_nutrition_chart.py` · частота: день с локальным `obsidian_sync` (маркер `daily_iphone_nutrition_date.txt` в `.sync/`, или `FORCE_CHARTS=1`).
-
-
-
-  auto_f48c310430: |
-
-    Дневная динамика по action-логам, начиная с момента, когда в логах появился `task_id`.
-
-    Счётчики по дням включают **все** события после этой даты (в т.ч. без `task_id`).
-
-
-    **Панель «Активность по приоритетам»:** приоритет берётся из тега `#приоритет/высокий`, `#приоритет/средний` или `#приоритет/низкий` на доске `100_Задачи/📋 Доска_Задач.md`. **«Удалено»** — события по `task_id`, которые раньше двигались по доске (`task_moved`), но сейчас отсутствуют на текущей доске (полезно как индикатор чисток). **«Неизвестно»** — остальные события без определяемого приоритета: без `task_id`, не найденные по названию, или без тега приоритета.
-
-
-    ![Активность по дням](Активность_за_день.png)
-
-
-    _Обновлено: {updated_at}_
-
-
-  auto_f8e5b1891e: |
-
-    Нет каталога [[Данные/Действия/IPhone]].
-
-
-    _({ts})_
-
-
-  auto_0c4cf81b24: "LOG_PREFIX = \"📊 Логи_Действий_\""
-  auto_0cd3bfa81e: "Новый timestamp"
-  auto_154e568914: "Манифест"
-  auto_343c693925: "ошибок"
-  auto_34a6ddf8f0: "всего"
-  auto_4733918d4d: "новых"
-  auto_47460316bd: "Удалить файлы"
-  auto_4922ea013f: "Дашборд"
-  auto_7a1120532a: "Источник"
-  auto_86c44445b5: "обновлённых"
-  auto_c5eac5d980: "Последний парсинг"
-  auto_d8a3418708: "to='✅ Сделано'"
-  auto_e56e8f7067: "Календарь обновлён"
-  auto_edcf39209f: "Итого"
-  auto_148265c11e: "❌ watchdog is not set. Установите: pip install watchdog"
-  auto_cf5cca0339: "⚠️ Failed to добавить ID (файл не найден или ошибка)"
-  misc_uncategorized: "без категории"
-  auto_04891ad442: "SoC: {soc_path} (добавлено с датой: {n})"
-  auto_1bb6f445e5: |
-    Дневная динамика завершений по категориям (completion-события из action-логов).
-
-
-    ![Завершено по категориям](Завершено_по_категориям_дни.png)
-
-
-    _Обновлено: 
-
-
-  auto_1fcd02b7a6: |
-
-    Нет данных: после даты начала нет завершений с категорией.
-
-
-    _Обновлено: {updated_at}_
-
-
-  auto_2eb85f501a: |
-
-    Нет данных: завершения есть, но категории не попали в список.
-
-
-    _Обновлено: {updated_at} | без категории: {skipped}_
-
-
-  auto_33d6b049b5: |
-
-    Дневная динамика завершений по категориям (completion-события из action-логов).
-
-
-    ![Завершено по категориям](Завершено_по_категориям_дни.png)
-
-
-    _Обновлено: {updated_at} | без категории: {skipped}_
-
-
-  auto_391727b562: |
-
-    Нет данных: в action-логах пока нет событий с `task_id`.
-
-
-    _Обновлено: 
-
-
-  auto_6271d45aa1: " (sorted_cats пуст, PNG не трогаем)"
-  auto_6daf9802e9: "Записано: {md_path} (sorted_cats пуст, PNG не трогаем)"
-  auto_6e6e2381a4: " (добавлено с датой: "
-  auto_7bc1b324bb: " (данных нет)"
-  auto_90b158d84f: |
-    Нет данных: завершения есть, но категории не попали в список.
-
-
-    _Обновлено: 
-
-
-  auto_92a2312274: " | без категории: "
-  auto_9b9c38f437: |
-    Нет данных: после даты начала нет завершений с категорией.
-
-
-    _Обновлено: 
-
-
-  auto_ae266414d0: "Записано: {md_path} (данных нет)"
-  auto_b51e094e1c: |
-    Нет данных: в action-логах пока нет событий с `task_id`.
-
-
-    _Обновлено: {updated_at}_
-
-
-  auto_d50f527ace: " (категорий: "
-  auto_e98cea11a8: ", без категории: "
-  auto_f80e78457a: "День (с "
-  auto_1148ce4607: " (сегодня: "
-  auto_11c85914b6: "Итого исправлено записей: {fixed_count}"
-  auto_1338c53266: "** (локальное время машины, где запущен скрипт)."
-  auto_1343e84d7c: "Невыполненные задачи в колонках: **Бэклог**, **Ждёт даты**, **Отложено**, **В работе**, **Заблокировано** (без **Сделано**). Категория — тег `#цель/…` на доске; без тега — «без категории». Один столбик на день — последний снимок за день."
-  auto_1365ebf7db: " записей"
-  auto_152cc9a5e3: "Каталог не найден: {logs_dir}"
-  auto_169023d416: "Будет исправлено записей: "
-  auto_1727994366: " (нет категорий)"
-  auto_1ddc51371c: "Итого: записей до слияния {total_before}, после дедупа {total_after}"
-  auto_1eaca887f0: ", после дедупа "
-  auto_254ecdbbec: "Итого: записей до слияния "
-  auto_2782d1a49d: ": объединено "
-  auto_330a3604b4: " записей → "
-  auto_3356115707: "- Ошибка подсчёта событий: `{e}`"
-  auto_3ec19ec6ed: ": было "
-  auto_4117adfe1c: |
-    Нет снимков в истории.
-
-
-    _Обновлено: 
-
-
-  auto_41331d7b07: " | снимков в истории: "
-  auto_4219b8bec0: |
-    # Логи действий {month_title}
-
-
-
-  auto_43ddfcda4e: "  - содержимое: `"
-  auto_465922e81f: "- Файлов логов: **"
-  auto_4a046b179e: "Записано: {out}"
-  auto_50b3326117: "- **kanban_state.json** — ошибка разбора: {e}"
-  auto_54787b9fe5: "  [dry-run] {name}: исправить {changed} записей"
-  auto_59f41575c5: |
-
-    … обрезано (
-
-
-  auto_5c9278a965: "Будет исправлено записей: {fixed_count}. Запусти без --dry-run."
-  auto_5dfbcdc413: |
-    **.
-
-
-    ![Открыто по категориям по дням](
-
-
-  auto_6148c93056: ": добавлено бы записей task_completed: "
-  auto_65a20ed9db: "Итого исправлено записей: "
-  auto_6bd88c0570: " символов всего)"
-  auto_759878781c: ": добавлено записей task_completed: "
-  auto_78b63c57c1: |
-    )
-
-
-    _Обновлено: 
-
-
-  auto_7e91d8559c: |
-
-    , категории пусты.
-
-
-    _Обновлено: 
-
-
-  auto_7e97d0be9d: "(ошибка чтения: "
-  auto_80cfdbf9f2: ": исправлено записей "
-  auto_8abc986bb3: "/300_Дашборды/Логи/"
-  auto_8f94630af6: "; удалён устаревший файл в корне 300_"
-  auto_8fcdd75cba: "- Ошибка подсчёта событий: `"
-  auto_9351591e7a: ". Запусти без --dry-run."
-  auto_94d697c31f: "Отправка логов на сервер: rsync ... {src} -> {dst}"
-  auto_9b55f24d44: "Всего добавлено: {total_added}"
-  auto_9bc7641ddc: "Каталог состояния: `"
-  auto_9c65292420: |
-    Нет снимков в истории.
-
-
-    _Обновлено: {now_iso}_
-
-
-  auto_a181f7612c: |
-
-    **Тип:** {typ}
-
-
-
-  auto_a2eb9d90a3: "Всего добавлено: "
-  auto_a4cf4f9b9e: "Сгенерировано: **"
-  auto_a92c7fbc85: |
-
-
-    Сейчас на доске (не Сделано): **
-
-
-  auto_b161d993ba: ", размер "
-  auto_b2d03ac3a6: "{server}:{server_vault}/300_Дашборды/Логи/"
-  auto_b6d89624a3: " байт"
-  auto_b7b5912376: "  ⚠ Не удалось прочитать {root_file}: {ex}"
-  auto_b7d9a8c97b: ": исправить "
-  auto_b80b5e3aa5: " Задач без распознанной колонки (не вошли): {skipped_no_column}."
-  auto_b82468d545: " Задач без распознанной колонки (не вошли): "
-  auto_c13e93d51d: "- **kanban_state.json** — ошибка разбора: "
-  auto_c23f159181: " открытых, категорий: "
-  auto_c7bec65a2a: "  ⚠ Не удалось прочитать "
-  auto_c924b0deda: "Снимков: "
-  auto_cb31625605: "- Событий всего (парсер): **"
-  auto_d6feda35fd: "Записано: {md_path} (пусто)"
-  auto_d8cbca199a: " записей, после слияния "
-  auto_dad222ba2d: "  {name}: исправлено записей {changed}"
-  auto_dd48185cf8: " (пусто)"
-  auto_ddf7a17708: "  ⚠ Не удалось прочитать {out_file}: {ex}"
-  auto_ea1fe1e85b: "(ошибка чтения: {e})"
-  auto_eef876021f: "Отправка логов на сервер: rsync ... "
-  auto_ef1fa5ff79: "- **kanban_state.json** — записей о задачах: **"
-  auto_f73cc03324: "Каталог состояния: `{sync_dir}`"
-  auto_f9ac95cb4c: "- **Доска:** `"
-  auto_fdd24edd13: "Записано: {md_path} (нет категорий)"
-  auto_1f5b6553b0: "». Ось X: **"
-  auto_286d494572: |
-    ![Дедлайны по горизонту]({PNG_NAME})
-
-
-  auto_2e5eb0dccf: "Записано: {md_path} (нет данных для графика)"
-  auto_38f10007cf: "  удалён: "
-  auto_3b4273eb78: |
-    дн._
-
-
-  auto_5a83ca0394: " | позже горизонта: "
-  auto_5f3cbde258: |
-
-    _Обновлено: 
-
-
-  auto_629fb36bb5: "  удалён: {f}"
-  auto_62b2495ad2: ", категорий: "
-  auto_79e1060941: "![Дедлайны по горизонту]("
-  auto_7c5abc19f1: "Просрочено: "
-  auto_7fa8f3362a: "Дедлайны по дням — {title_suffix}"
-  auto_8153fec622: "Дедлайны по дням — "
-  auto_85ec3c6533: |
-    ** (вне текущего горизонта графика).
-
-
-  auto_8665d2551d: " | горизонт: "
-  auto_8764be84be: " (просрочено "
-  auto_881b465f70: "Просрочено: {overdue_total} | в горизонте: {future_total}"
-  auto_8ebce42b23: "Источник: [[100_Задачи/📋 Доска_Задач|Доска задач]] — только строки с `#дедлайн/YYYY-MM-DD`, без галочки выполнения, колонки кроме «"
-  auto_943a7073cc: "[А-Яа-яЁё]"
-  auto_94a1fd0a71: "Каталог не найден: {dash}"
-  auto_954f4ac486: " (нет данных для графика)"
-  auto_9f7cf3bdea: |
-    дн.). Высота столбца = число задач с дедлайном в этот день; сегменты = `#цель/…` (без тега — «без категории»).
-
-
-
-  auto_b4a6e60007: "Каталог не найден: "
-  auto_b6887dabf1: " | позже горизонта: {beyond}"
-  auto_b761c9a28e: "Удалено файлов: "
-  auto_bba162ae11: |
-
-    Задач с дедлайном **после** 
-
-
-  auto_bede082a83: |
-
-
-    _Обновлено: {now_iso} | горизонт: {horizon} дн._
-
-
-  auto_c0aea5f14f: |
-
-    Нет невыполненных задач с тегом `#дедлайн/YYYY-MM-DD` в открытых колонках доски (вне «{DONE_COLUMN}»).
-
-
-    _Обновлено: {now_iso}_
-
-
-  auto_c2d11dfb23: "  [dry-run] удалить: {f}"
-  auto_d05256cf6a: |
-    »).
-
-
-    _Обновлено: 
-
-
-  auto_e476ee44e3: "Записано: "
-  auto_e606624d3b: "Нет невыполненных задач с тегом `#дедлайн/YYYY-MM-DD` в открытых колонках доски (вне «"
-  auto_f0ada7e5b3: ", в горизонте "
-  auto_f348da5838: " | в горизонте: "
-  auto_fc66118946: "  [dry-run] удалить: "
-  auto_076f60cae2: "Ошибка в"
-  auto_07f896db01: "Превышено время ожидания"
-  auto_0b1035ecc5: "не установлен"
-  auto_2f01d4cb57: "обработке задачи"
-  auto_48fe01ea37: "генерации рекомендаций"
-  auto_4aa652bf5f: "Отправка запроса"
-  auto_4aabd73fb8: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* (.+?)\\n\\n\\*\\*Данные:\\*\\*\\n```json\\n(.+?)\\n```\\n\\n---\\n\\n"
-  auto_4ac560a242: "##\\s*✅\\s*Сделано\\s*\\n\\n(.+?)(?=\\n##\\s|\\n%%|$)"
-  auto_5c161ba333: "добавлении задачи"
-  auto_5e0da09d2f: "попыток"
-  auto_8dd2b69669: "символов"
-  auto_af791ab4ed: "Попробуй"
-  auto_b1fb87ebaf: "Не удалось"
-  auto_b2045f1030: "показе прогресса"
-  auto_b478b20217: "распознать голос"
-  auto_b6d91c445e: "генерации еженедельного ревью"
-  auto_ba47a286f1: "Генерация"
-  auto_bfdf831103: "не отвечает"
-  auto_cc2e3dfd19: "Таймаут при"
-  auto_ccaa89f9bc: "секунд"
-  auto_ce38c17f13: "Неожиданная ошибка при"
-  auto_da0bc1e050: "генерации ревью"
-  auto_f4052b9948: "Ошибка при"
-  auto_fab46c6730: "получении статистики"
-  auto_fb62f61ff5: "Успешный ответ"
-  auto_0b921163bd: "Error while запросе к DeepSeek API: {e}"
-  auto_12767af241: "Unexpected error while запросе к DeepSeek API: {e}"
-  auto_35db169d64: |
-    Error while получении рекомендаций по рутинам: %s
-
-    %s
-
-
-  auto_4e3bdf5b2e: "Timeout while запросе к DeepSeek API после {max_retries} attempts. API did not respond в течение 90 seconds."
-  auto_5d279451f7: "Error while запросе к DeepSeek API: "
-  auto_78fd8c29f2: " attempts. API did not respond в течение 90 seconds."
-  auto_eab42f0cd7: "Timeout while запросе к DeepSeek API после "
-  auto_f8f3f10cf7: "Unexpected error while запросе к DeepSeek API: "
-  auto_000d7591d3: |
-    ❌ Ошибка при обработке задачи: %s
-
-    %s
-
-
-  auto_016645d4d1: ", отменено по времени: "
-  auto_017d7f6215: |
-    ## Ревью от ассистента
-
-
-
-  auto_02315f314b: "События action-log: "
-  auto_026269f337: "# Встречи · "
-  auto_0300453f06: "Задача "
-  auto_0468313f98: "_Обновлено: "
-  auto_0672d5ba92: " | дедлайн {deadline} (сегодня)"
-  auto_0686c32824: " | ⚠️ Дедлайн: "
-  auto_078a67a3db: " (нет на доске: "
-  auto_07edcdadaa: |
-
-
-    Контекст целей (почему они важны):
-
-
-  auto_07ef8b5691: "⚠️ Ошибка при iphone_context_sync: {e}"
-  auto_07f7ef03cf: "(нет Mac-снапшотов за "
-  auto_0871eeafdf: "дня"
-  auto_0925a55ec4: "⚠️ Ошибка при синхронизации контекста: "
-  auto_092b18a9bf: ". событий: "
-  auto_0a2e85f545: |
-
-
-    Актуальные цели:
-
-
-  auto_0a5a93f7f6: "✅ Да, добавить"
-  auto_0a79af6705: " | Приоритет: "
-  auto_0a98cea7c8: "#фокус/{quarter}"
-  auto_0b1e0c3997: "⚠️ Ошибка при iPhone mail sync: "
-  auto_0b7b3c6e4b: " ч.). событий в цепочке: "
-  auto_0b8f9c7f1c: "(Урезано до последних "
-  auto_0bccac45ac: "ч"
-  auto_0c2ad39d16: "⚠️ Ошибка при синхронизации календаря: "
-  auto_0cc630883e: "; не причинность):"
-  auto_0dc483fc62: " (весь день) "
-  auto_0ed0aa0280: " не найдена на доске"
-  auto_0f021d7e79: |
-    Календарь в контексте: да — в промпт ушла сводка (полный список встреч в чат не дублируем):
-
-
-  auto_0f7a0f9480: "  время: "
-  auto_11757cfc8b: "⚠️ Канбан-доска не найдена: {KANBAN_FILE}"
-  auto_11df4c23e2: "⚠️ Ошибка сохранения .kanban_monitor_state.json: {e}"
-  auto_124c5c9e1d: "   context_sync: сегодня в окне "
-  auto_12640f1b52: " ошибок (первые 5):"
-  auto_126f419e03: " попыток. API не отвечает в течение 90 секунд."
-  auto_13b550c9b2: ", нужно ≥5)"
-  auto_14387dbd14: ", отменено: "
-  auto_152cc3aaf2: "Активных задач всего: "
-  auto_1546d66668: |
-    ID: {goal_id} | {goal_text} | Категория: {goal_category} | Квартал: {goal_quarter} | Приоритет: {goal_priority}
-
-
-  auto_158a4bbd63: |
-
-
-    🔥 **Приоритет:** 
-
-
-  auto_159011fc9f: "Экспорт: "
-  auto_15fcbb5e9f: "Анализ за "
-  auto_16089b0e55: |
-    задач
-
-    - Колонка «📅 Ждёт даты»: 
-
-
-  auto_166e6398c1: |
-
-
-
-    КАЛЕНДАРЬ (реальные встречи; учитывай свободные окна и перегруз по времени):
-
-
-  auto_16cf06c628: " | дедлайн="
-  auto_17d924d3af: "⚠️ Ошибка чтения .kanban_monitor_state.json: {e}"
-  auto_1804506fb3: |
-    задач.
-
-
-
-  auto_19b25a5e56: "Ближайшие события в календаре:"
-  auto_19db83b02c: "✅ Выполнено за неделю: "
-  auto_19e68dc856: |
-    💡 **Рекомендации по рутинам:**
-
-
-
-  auto_1a4ef75bc1: "м |"
-  auto_1b673a2e70: " календарных дн. с данными):"
-  auto_1bd726250e: "❌ LLM недоступен: {e}"
-  auto_1c6067d0b4: " новых, ~"
-  auto_1e1e683205: "(нет событий в календаре на "
-  auto_1ebd3c9e8a: " задач, после дедупликации: "
-  auto_2023798733: "📊 **Прогресс по целям "
-  auto_20f37a23c6: "): пропущено "
-  auto_211a753e41: "{a}:{b}ч"
-  auto_2166f4f598: "Задача id="
-  auto_21f5066119: "move: неизвестная колонка "
-  auto_221f4fc76b: "Нет доступа к папке с логами ("
-  auto_222afc6aa3: "   Дедлайн: "
-  auto_2325f9d448: "... и ещё "
-  auto_250cdadd97: |
-
-
-    Недавние задачи пользователя:
-
-
-  auto_2670126d1e: "Календарь на "
-  auto_26af8b0a27: "** дн. · всего **"
-  auto_26b01598d7: ", #цель/"
-  auto_26d1f06804: "(мало дней для корреляций: "
-  auto_26f4ce8479: "(мало дней для аномалий: "
-  auto_26f9884391: "Задача id={task_id} не найдена на доске"
-  auto_27165bdcae: " из "
-  auto_27363fb627: |
-    📅 **Через {days} дней:**
-
-
-  auto_27be31b07b: " (МСК):"
-  auto_28ebe753d0: "📋 Цели {current_quarter} без задач на доске"
-  auto_29b6ab6fff: "Колонка '"
-  auto_2b7c0a5903: |
-    📋 **Твои задачи**{filter_text}:
-
-
-
-  auto_2b98da5436: " (в файле за день было "
-  auto_2c26d493b3: |
-
-
-    Контекст целей (почему они важны):
-
-    {goals_context}
-
-
-  auto_2cd462f105: ") — нужен calendar_sync на сервере/Mac."
-  auto_2d0ff93fbd: " | Категория: "
-  auto_2d3ecb632f: "КАЛЕНДАРЬ:"
-  auto_2d980c18dc: "# Логи действий "
-  auto_2e4842c5ec: "Ошибка загрузки маппинга: {e}"
-  auto_2ed8ae4ffc: |
-    задач
-
-    - Всего активных (только Бэклог + В работе): 
-
-
-  auto_31a23d0c3d: "Колонка '{BACKLOG_COLUMN}' не найдена"
-  auto_3206c79bc8: "Как учитывать встречи: см. planning.calendar_attendance_context (настраивается владельцем vault). Не все слоты одинаково блокируют работу. События на весь день могут отменять нагрузку."
-  auto_3284298d7e: "(Урезано до последних {_SAFETY_MAX} событий — слишком длинная цепочка; сузь окно PLANNING_CHAT_LOG_CHAIN_HOURS.)"
-  auto_32eef007ea: |
-
-
-    Контекст из предыдущих рефлексий:
-
-
-  auto_335b50b2fb: ", Приоритет: "
-  auto_33dc1c66b1: "⚠️ Календарь недоступен — нужен sync (obsidian_sync / calendar_sync)."
-  auto_342732147c: "⚠️ Не удалось прочитать календарь: "
-  auto_342cf0065d: "    (показаны первые "
-  auto_342f677b61: "Health — отклонения от твоей базы за "
-  auto_344ecd37fb: " в окне"
-  auto_34b7fdf9e2: " секунд)"
-  auto_35a38b4343: " (Апрель - Июнь)"
-  auto_3605d8e67c: " (в файле за окно было "
-  auto_378a7934ce: "✅ Всего найдено "
-  auto_37da18a6fb: |
-    Ошибка в show_tasks_by_status: %s
-
-    %s
-
-
-  auto_37f3209968: "⚠️ Ошибка при загрузке состояния: "
-  auto_38123c5c9a: "⚠️ Файл изменился снова во время обработки! Пропускаем запись."
-  auto_3842c288c3: " vs история; в базе "
-  auto_3925f9d283: "; допустимы: "
-  auto_3979f7ebc5: "(неверная дата: "
-  auto_3a0f48bc0f: " (Данные/: "
-  auto_3a5fb70a98: " (просрочено на "
-  auto_3aff4059af: "[dry-run] Создать задачу «"
-  auto_3c524e4161: |
-
-
-    ---
-
-
-    Сообщение пользователя:
-
-
-  auto_3c8435f529: "	#цель/"
-  auto_3d22b9f77a: "Health — сводка за период ("
-  auto_3de58feb16: "⚠️ Файл "
-  auto_3e262ecd98: "⚠️ Ошибка при синхронизации контекста: {e}"
-  auto_3e5a8657a9: "🌅 Утренние: "
-  auto_3e8b3d84fc: "🌙 Вечерние: "
-  auto_3f6fe2ff62: |
-    📊 **Прогресс по целям {quarter} {GOALS_YEAR}:**
-
-
-
-  auto_405c926db9: |
-
-
-
-    История действий за неделю (создания, перемещения, завершения):
-
-    {weekly_logs}
-
-
-  auto_40677c2388: "**Дата:** "
-  auto_41a482073b: " (всего за 7 дн.: "
-  auto_41ba5a12a3: |
-
-
-    ## Мои мысли
-
-
-
-  auto_41ce885c43: "Ошибка: "
-  auto_41ec009823: |
-    {column}
-
-
-    📭 Нет задач.
-
-
-  auto_4298a2604a: "⚠️ Ошибка загрузки состояния из markdown: {e}"
-  auto_432a520980: |
-
-    … (сокращено)
-
-
-  auto_433e79aa3e: |
-
-
-
-    Контекст целей:
-
-    {goals_context}
-
-
-  auto_458944641f: "✏️ Изменить"
-  auto_4597f5c4a2: " | История: "
-  auto_45cebbfff9: " снапш. / неделя "
-  auto_469a9dd887: |
-    ---
-
-
-    *Создано: 
-
-
-  auto_472ed76ccb: " дней, всего дней с данными: "
-  auto_475e0ed513: |
-
-
-    ## Мои мысли
-
-
-    {user_message}
-
-
-    ---
-
-
-  auto_4794dff53c: " ч. в логах действий нет событий task_moved / task_completed / task_created (или файл логов недоступен). Каталог логов: "
-  auto_48a0022821: |
-    # 📊 История выполнения рутин
-
-
-    > Автоматически записывается каждый день. Не редактируй вручную.
-
-
-    ---
-
-
-
-  auto_48e438a146: "день"
-  auto_494b0b3261: "## 🎯 Q2 {GOALS_YEAR} (Апрель - Июнь)"
-  auto_49634a2216: " задач."
-  auto_49979bf2cb: "  (календарный день метрик)"
-  auto_4a6c8f3606: "Успешно: "
-  auto_4c2e13a6d8: |
-    КАЛЕНДАРЬ (для вопросов про время, встречи, загрузку дня):
-
-
-  auto_4c37031bbf: "⚠️ Ошибка сохранения kanban_state.json: {e}"
-  auto_4e007ef4d4: " событий — слишком длинная цепочка; сузь окно PLANNING_CHAT_LOG_CHAIN_HOURS.)"
-  auto_4ea62366d1: |
-
-    Задач в работе: 
-
-
-  auto_4eae6de0bb: " по категории '"
-  auto_50242b38a4: |
-    ## Мои мысли
-
-
-    {user_response}
-
-
-
-  auto_509ccee1f5: " базы; z="
-  auto_511f20c26e: " старых путей"
-  auto_524fcedc1f: "» в "
-  auto_526354ee5e: "   context_sync: удалено файлов "
-  auto_5285e25670: "⚠️ Файл изменился (попытка "
-  auto_54283f8071: "⚠️ Ошибка при сохранении состояния: "
-  auto_545ebf022c: " [Категория: "
-  auto_54c5da6b2d: |
-    Ошибка в show_tasks: %s
-
-    %s
-
-
-  auto_561c20c167: "## 🎯 Q1 {GOALS_YEAR} (Январь - Март)"
-  auto_571a41ffaf: |
-
-
-    Контекст идентичности: 
-
-
-  auto_5744cde6ae: |
-
-    + дней без изменений):**
-
-
-
-  auto_57b0a0b98c: |
-
-
-
-    КАЛЕНДАРЬ (реальные встречи; учитывай свободные окна и перегруз по времени):
-
-    {calendar_context}
-
-
-  auto_58f00ac8ad: "(нет Health-снапшота за "
-  auto_598d77367f: "   Новый timestamp: "
-  auto_5b3cb9798c: "❌ Ошибка: "
-  auto_5b5dcd0293: "Таймаут при запросе к DeepSeek API после "
-  auto_5b9aaac758: |
-    (ВЫСШИЙ ПРИОРИТЕТ - уже начаты!)
-
-    Задач в бэклоге: 
-
-
-  auto_5c1499c060: "[ОТМЕНА] "
-  auto_5c5a094a9f: "За последние ~"
-  auto_5d79f106d9: " — воскресенье "
-  auto_5dc1ad68ef: "Таймаут при запросе к DeepSeek API после {max_retries} попыток. API не отвечает в течение 90 секунд."
-  auto_5dee8dde03: |
-    🔶 **Застряли в одном статусе ({days}+ дней без изменений):**
-
-
-
-  auto_5e1d98f0b8: "Mac — ряд "
-  auto_5f0c96e62f: "Задача id={tid} не найдена на доске"
-  auto_5f0d40ec34: "Для VPS cleanup (1a-remote): {total_unlink} старых путей"
-  auto_5f187c0b33: "⚠️ Файл {GOALS_FILE} не найден, пропускаю"
-  auto_5f41fe2a8c: |
-
-
-    Контекст целей:
-
-
-  auto_5f55b37cbc: "{act}: нужен task_id (8 hex из create/search_tasks) или title"
-  auto_5fd9722f09: "  События на весь день: активных "
-  auto_6191344ff1: " по приоритету '{priority}'"
-  auto_6215d1acd4: ", по TTL: "
-  auto_6250f4ac42: "❌ Отмена"
-  auto_630e6e4ccb: "✅ Календарь обновлён: +"
-  auto_63ce9622cc: |
-    # 📊 История выполнения рутин
-
-
-    > Автоматически записывается каждый день. Не редактируй вручную.
-
-
-    ---
-
-
-    {history_entry}
-
-
-  auto_6453336a1d: " обновлённых, "
-  auto_6481673c17: |
-    Задача: {task_title}
-
-    Категория: {task_category}
-
-
-  auto_651ef330bf: " дней (с "
-  auto_664a5c082d: |
-    дн.
-
-
-
-  auto_6666bb4eb2: " колонках"
-  auto_6706e58e39: "] ❌ Ошибка при проверке: "
-  auto_688a1115c3: "**Тип:** "
-  auto_688ec37051: "Сегодня (эталон для дедлайнов): "
-  auto_695f5ce7ae: "⚠️ Ошибка сохранения kanban_state.json: "
-  auto_696c21fdfe: "Ошибка: {e}"
-  auto_6b5c72462f: " — без изменений "
-  auto_6b79dd1ab6: |
-
-
-    ЦЕЛИ: 
-
-
-  auto_6b9523d57b: " | дедлайн "
-  auto_6d89225ebc: "⚠️ Ошибка при загрузке состояния: {e}"
-  auto_7087352852: "⚠️ Ошибка при логировании перемещений: "
-  auto_72adb33c16: "⚠️ Файл изменился снова (проверка "
-  auto_7358480261: " задач с таким названием: "
-  auto_743c193451: "	#цель/{category} #приоритет/{priority}"
-  auto_74dad63984: "/3), ждем стабилизации..."
-  auto_74f0d88aef: "   Источник: "
-  auto_7601d8b376: |
-
-
-    СТАТИСТИКА ЗА НЕДЕЛЮ: 
-
-
-  auto_76e8641be7: " не найден, пропускаю"
-  auto_779ae56025: "   Источник: {CALENDAR_TXT_FILE}"
-  auto_78ca981dd2: "Канбан-доска не найдена: "
-  auto_7913558c6a: ", показаны "
-  auto_79a4278b0b: "📋 **Продолжение** ("
-  auto_7a5d395dfd: "📊 Найдено задач по колонкам:"
-  auto_7cac1541d2: "Неизвестное action="
-  auto_7d32a3ca49: "Неожиданная ошибка при запросе к DeepSeek API: "
-  auto_7de3d1332b: "[{timestamp}] Проверка изменений kanban..."
-  auto_7e31f320a9: "Окно: с "
-  auto_7e3f4a4e30: ". ⚠️ Календарь.txt новее JSON (txt={txt_ts}, json={parsed}) — нужен calendar_sync на сервере/Mac."
-  auto_7eb795f06a: " (сегодня)"
-  auto_8012b69368: " задачам"
-  auto_8054e4d120: ". Сверяй поля «⚠️ Дедлайн:» с датой "
-  auto_808c6c53ac: "Итого ["
-  auto_815a1b316a: "⚠️ Ошибка сохранения .kanban_monitor_state.json: "
-  auto_81a548769a: "   Новый timestamp: {txt_ts}"
-  auto_81c5e0b1de: "Для VPS cleanup (1a-remote): "
-  auto_822ebb7c86: |
-    - [ ] Пример внешнего дедлайна (июнь {GOALS_YEAR}) #цель/учеба #дедлайн/Q2
-
-
-  auto_82b9cced9c: " по приоритету '"
-  auto_82cc77faf6: "☀️ Дневные: "
-  auto_84ec5a4adf: "Неожиданная ошибка при запросе к DeepSeek API: {e}"
-  auto_84fd036a89: " | дедлайн {deadline} (просрочено)"
-  auto_8699aff100: "Запись отключена (KANBAN_AGENT_WRITES≠1). Нельзя выполнить "
-  auto_878a03de96: "  Прошедшие по времени ("
-  auto_87e5fbbd3a: |
-    История действий за последнюю неделю (с {week_start_str}):
-
-
-
-  auto_881f6b3ff4: |
-
-    задач
-
-
-  auto_88ac624913: |
-
-    {anchor_hint}
-
-
-    Дай рекомендации на основе:
-
-    {context}
-
-
-  auto_88aface429: |
-
-    💡 **Рекомендации по рутинам:**
-
-
-    {recommendations}
-
-
-  auto_88bf6cc926: "Не удалось прочитать Календарь.json: %s"
-  auto_89aa9252bb: "📋 Цели "
-  auto_8a1e64ddc5: "   Дашборд: "
-  auto_8a3c4713ca: " (просрочено)"
-  auto_8a86abf3ec: "❌ Файл "
-  auto_8a8e71c5a2: " не найден!"
-  auto_8b1dc6529e: "] Изменений нет (всего задач в мониторинге: "
-  auto_8b1f811e32: "Контекст Mac за неделю ("
-  auto_8b23271e60: "    (показаны последние "
-  auto_8b5b6cd95b: "(нет Mac-контекста за "
-  auto_8be16f3d09: |
-    ⚠️ **Алерты по целям {current_quarter}:**
-
-
-    {alerts_text}
-
-
-  auto_8bec6b9137: |
-
-    📭 Нет активных задач{filter_text}!
-
-
-    Измени фильтр или добавь задачи.
-
-
-  auto_8c6f8ab4a3: |
-
-    ## Ревью от ассистента
-
-
-    {review_text}
-
-
-
-  auto_8c858a03d9: "/3), ждем..."
-  auto_8d3942076b: "] Проверка изменений kanban..."
-  auto_8e44dcce79: "   context_sync: удалено файлов {n_del} (Данные/: {n_root}, Mac/: {n_mac}, по TTL: {n_old})"
-  auto_8e4c340dbc: |
-    Нет доступа к папке с логами ({e}).
-
-
-    Проверь права доступа и VAULT_PATH на сервере.
-
-
-  auto_8f1e4be6b0: |
-
-    .
-
-    Дата и время формирования: 
-
-
-  auto_8f4746fd0a: "   Путь: {path_to_use}"
-  auto_8faf2b0eee: " (последний снапшот за день):"
-  auto_902db319d1: " задач без ID, добавляем..."
-  auto_90845dcdf6: "	📅 Создано: {created_date}"
-  auto_90857e8a76: " | дедлайн {deadline}"
-  auto_90c1be20a5: "Несколько совпадений ("
-  auto_9168e47a25: "📅 **Через "
-  auto_91cf50ab08: " дн. с данными; одна точка на календарный день:"
-  auto_92ad6a89e9: |
-    ТЕКУЩИЕ ЗАДАЧИ (ВСЕ активные задачи):
-
-
-  auto_9308f3798b: |
-
-
-
-    Доступные цели:
-
-    {goals_text}
-
-
-  auto_94c505f3a9: "  Предстоящие по времени ("
-  auto_9529d6a2b5: "📋 **Задача:** "
-  auto_95c596eae6: "Встреч (мин): "
-  auto_9604d3e155: "Календарь (МСК, "
-  auto_967a5baffd: "⚠️ Ошибка при iphone_context_sync: "
-  auto_968011438a: "; допустимо: create, move, complete"
-  auto_96d5efcef1: "; день "
-  auto_972d47955e: " по "
-  auto_97cc3bc1d5: "🎤 Распознал: «{text}»"
-  auto_97ce893e8c: "Сегодня (эталон для дедлайнов): {today}."
-  auto_97f32dd62a: " (после дедупликации)"
-  auto_99ad3a24e1: " | цель="
-  auto_99eeb9f6c8: " дн."
-  auto_9a7110bd2c: "' не найдена"
-  auto_9aa3680238: |
-    задач
-
-    - Колонка «🔄 В работе»: 
-
-
-  auto_9abacbb0c7: " г."
-  auto_9b8cfe7614: |
-    {header}
-
-    (нет задач по фильтру)
-
-
-  auto_9bac5628db: "   Дедлайн был: "
-  auto_9ccbc39874: "❌ Ошибка при добавлении задачи: {error_msg}"
-  auto_9dbd4636a9: "[{timestamp}] ❌ Ошибка при проверке: {e}"
-  auto_9df38f364b: |
-    ).
-
-
-    Проверь права доступа и VAULT_PATH на сервере.
-
-
-  auto_9e77cbad39: "На доске "
-  auto_9e853157ef: "Рефлексия_"
-  auto_9edbf15be8: |
-    Данные для ревью (используй ТОЛЬКО эти числа и списки в анализе).
-
-
-    Неделя: понедельник 
-
-
-  auto_9ef6373c03: "✅ Добавлено ID к "
-  auto_9f2c081146: " целей"
-  auto_9f5c887e54: "❌ Ошибка: {error_msg}"
-  auto_a05be86f73: |
-    Еженедельное ревью, которое ты только что отправил пользователю:
-
-
-  auto_a088bf8c2e: "Ошибка при запросе к DeepSeek API: {e}"
-  auto_a38eb0d300: "⚠️ Ошибка при логировании перемещений: {e}"
-  auto_a3ae5d6d3e: "⚠️ Файл был изменен после чтения (timestamp изменился с "
-  auto_a3c43d253c: "; история avg="
-  auto_a559d99a87: |
-
-    Разбивка выполненных по приоритетам: 
-
-
-  auto_a55e4eac08: "Health / Watch — сводка "
-  auto_a58d6cde1a: " дн.; |r|≥"
-  auto_a590c10764: |
-
-
-    История действий за неделю:
-
-
-  auto_a5cb538780: "	📅 Создано: "
-  auto_a5d0877f79: "📋 Активных задач: "
-  auto_a624950fac: "Ошибка при запросе к DeepSeek API: "
-  auto_a7bcafbceb: "Успешно: {success_count}/{total_count}"
-  auto_a841694d4c: "⚠️ Всего найдено "
-  auto_a89385b994: "⚠️ Файл был изменен после чтения (timestamp изменился с {initial_mtime} на {current_mtime})"
-  auto_a909f1b98e: "Запись отключена (KANBAN_AGENT_WRITES≠1). Нельзя выполнить {act} id={task_id} → {target_col}."
-  auto_a9432c09f4: "⚠️ Ошибка при iPhone mail sync: {e}"
-  auto_a97f4e4e14: "Ошибка загрузки маппинга: "
-  auto_aa6dcec718: "Health / Watch — ряд по дням ("
-  auto_aaa9da396d: |
-    Вот JSON со срезом встреч на скользящее окно от anchor. Учитывай planning.calendar_attendance_context.
-
-
-    {payload}
-
-
-  auto_aaef6886a9: "Найдено: "
-  auto_aaf65af50a: |
-
-    Манифест: 
-
-
-  auto_ab71fc234f: "  батарея: "
-  auto_ad2bda5811: |
-    ❌ Не удалось распознать голос:
-
-    {err}
-
-
-  auto_ad3257c437: "Показываю задачи... category=%s, priority=%s"
-  auto_b04af5f6ed: |
-
-
-    История действий за неделю:
-
-    {weekly_logs}
-
-
-  auto_b05f36a1e1: "⚠️ Ошибка чтения .kanban_monitor_state.json: "
-  auto_b116f7923e: |
-    ) #цель/учеба #дедлайн/Q2
-
-
-  auto_b11c841559: "Задача не найдена на доске ("
-  auto_b27e2db934: " снапш. / неделя в окне "
-  auto_b2fbfdd31f: |
-    дн.)
-
-
-
-  auto_b4511362a6: " не найдены; используй точные ключи, напр. "
-  auto_b5f659428d: "День: "
-  auto_b70cd4c957: |
-    дней:
-
-
-
-  auto_b721c96f91: |
-
-    ⏱️ Таймаут при обработке задачи: %s
-
-    %s
-
-
-  auto_b7f135d571: |
-
-    задач
-
-    - Колонка «⏸ Отложено»: 
-
-
-  auto_b8ec9b77e3: "⚠️ Всего найдено {total_before} задач, после дедупликации: {total_after}"
-  auto_b91166a199: " | → Цели: {goals_text}"
-  auto_b934d90ede: " дн. с данными):"
-  auto_b942ff34cf: "📊 Статистика рутин за "
-  auto_b9d88c60f8: "д (z ≥ "
-  auto_bb707e8f76: "❌ LLM недоступен: "
-  auto_bbc5df3b4a: " записей (всего "
-  auto_bc27514a7c: " в логах действий нет событий task_moved / task_completed / task_created. Каталог: "
-  auto_bc6eedc6f6: " (Июль - Сентябрь)"
-  auto_bc70e0eacf: |
-    (нет событий в календаре)
-
-    {meta_line}
-
-
-  auto_bcfa1c11d2: " задач"
-  auto_bd967c92c8: "мин"
-  auto_bdc501c622: "   Путь: "
-  auto_bdfb1267e3: |
-    Календарь в контексте: нет.
-
-    Календарь пуст или не синхронизирован — встреч в контексте нет, только доска и логи. На сервере проверь синк vault с мака (obsidian_sync).
-
-
-  auto_be0e5b9409: |
-
-
-
-    Важно: «В работе» — только колонка «🔄 В работе». Активные для планирования — только «📋 Бэклог» и «🔄 В работе». «📅 Ждёт даты», «⏸ Отложено», «🚫 Заблокировано» — отдельные колонки. Ссылайся на конкретные задачи из списка завершённых и из перемещений — это делает ревью живым и полезным.
-
-
-  auto_bf01e033f0: "📌 **Напоминание за день:** завтра дедлайн у "
-  auto_bf23c57d66: "Колонка не из списка ("
-  auto_bfb5ce4761: |
-
-
-    История действий за неделю (создания, перемещения, завершения):
-
-
-  auto_c07d07f8e8: |
-
-    ✅ Задача добавлена в бэклог!
-
-
-    📋 
-
-
-  auto_c092016f3e: " | Квартал: "
-  auto_c0b0040769: |
-
-    Категория: 
-
-
-  auto_c0c9514fe9: "📭 Нет активных задач"
-  auto_c19e05028c: |
-    . Все упоминания «сегодня», «завтра», «вечер» — относительно этой даты и времени.
-
-
-    Текущее состояние доски (на момент формирования):
-
-    - Колонка «📋 Бэклог»: 
-
-
-  auto_c1e6adfbb5: |
-
-
-    Итого: rename=
-
-
-  auto_c247af40e5: |
-
-
-
-    Дай рекомендации на основе:
-
-
-  auto_c442de6f66: |
-
-
-
-    📭 Нет задач.
-
-
-  auto_c59800f391: "- [ ] Пример внешнего дедлайна (июнь "
-  auto_c5a4776d46: |
-
-
-    ## Мои мысли
-
-
-    {user_message}
-
-
-
-  auto_c62ef742f9: "_Обновлено: {now_str}_"
-  auto_c63b5689a0: |
-
-    ✅ Готово. Добавлено маппингов: 
-
-
-  auto_c70cc98448: "🔶 **Застряли в одном статусе ("
-  auto_c8271f6114: ", нужен YYYY-MM-DD)"
-  auto_c8449c845a: "❌ Файл {path_to_use} не найден!"
-  auto_c84aad3495: "🎤 Распознал: «"
-  auto_c84fd8b379: "   Последний парсинг: "
-  auto_c8bc043d29: "   Задач: "
-  auto_ca71a85d7c: "** ч · тяжёлых дней **"
-  auto_caf1078fc5: " событий — в окне было больше.)"
-  auto_cb5689df93: |
-
-
-    Доступные цели:
-
-
-  auto_cbb499d1da: "Календарь "
-  auto_cbb6fafc87: |
-    ## Мои мысли
-
-
-
-  auto_cc2630657e: "Экспорт: {n} дней → {path}"
-  auto_cc39ac0ed0: " на "
-  auto_cd0a1537ac: " без задач на доске"
-  auto_cd8305ae8e: "#фокус/"
-  auto_cdffe3f839: "] 📊 Обнаружено "
-  auto_ce4994d33b: " всего"
-  auto_ce8c39dd46: " по категории '{category}'"
-  auto_cebdf9d649: ", суммарно "
-  auto_cfea2a4df8: |
-    !
-
-
-    Измени фильтр или добавь задачи.
-
-
-  auto_cfea410571: "⚠️ Не удалось прочитать календарь: {e}"
-  auto_d053db1e35: "⚠️ **Алерты по целям "
-  auto_d106bd9573: "История действий за последние "
-  auto_d1b087a4ea: " секунд назад (менее "
-  auto_d2465227ea: "🔄 Найдено "
-  auto_d3a8727860: " последних по дате создания):"
-  auto_d3ab22a5fd: "Якорная дата и время (МСК), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: "
-  auto_d4265558af: " (Январь - Март)"
-  auto_d4b5061954: "⚠️ Файл {QUARTERLY_FOCUS_FILE} не найден, пропускаю"
-  auto_d511a35283: |
-
-    📋 Целей в базе: 
-
-
-  auto_d54f11eb7a: "Ни один id не на доске: "
-  auto_d726484e0e: |
-
-    Манифест: {manifest}
-
-
-  auto_d72aab85bf: |
-
-    дней:**
-
-
-  auto_d85a84c75b: "Завершена "
-  auto_d9bbd7c0e5: " изменений в канбан-доске"
-  auto_dae16ca270: |
-    Вот JSON со срезом встреч на скользящее окно от anchor. Учитывай planning.calendar_attendance_context.
-
-
-
-  auto_db1538eef2: " задач в "
-  auto_dd74549385: |
-
-    ... и ещё 
-
-
-  auto_ddc9cb588a: |
-
-
-
-    Всё верно?
-
-
-  auto_df00129d50: "Задача: "
-  auto_df06b9096a: "За "
-  auto_e0478bd76b: "_ · окно **"
-  auto_e1efee7b97: |
-
-
-    За неделю (пн–вс) по логам:
-
-    - Выполнено за неделю: 
-
-
-  auto_e295d3175c: " | Задач к маппингу: "
-  auto_e338b1142d: " | Создана: "
-  auto_e3512a0201: "🤔 Анализирую задачу..."
-  auto_e41b0580e9: " дней действий не было."
-  auto_e4fb55b904: "⚠️ Ошибка при синхронизации календаря: {e}"
-  auto_e62906a060: "Создана задача id="
-  auto_e656cfaad5: "## 🎯 Q4 {GOALS_YEAR} (Октябрь - Декабрь)"
-  auto_e67b200200: |
-
-    - Записей о перемещениях в списке ниже: 
-
-
-  auto_e693b7b2fb: "Задача {task_id}"
-  auto_e6c249c359: |
-    (нет событий в календаре)
-
-
-  auto_e6cc3a6706: ": нужен task_id (8 hex из create/search_tasks) или title"
-  auto_e8ae11acc7: "❌ Ошибка при добавлении задачи: "
-  auto_e8ccd17309: "(Урезано до последних {max_events} событий — в окне было больше.)"
-  auto_e92721a62b: "⚠️ Канбан-доска не найдена: "
-  auto_e979e60331: " снапшотов):"
-  auto_e9a3073457: "# Еженедельная рефлексия "
-  auto_e9a49746a9: " дн.):"
-  auto_ea7a315fcc: "❌ Ошибка: {e}"
-  auto_ea81e1f039: "Создана "
-  auto_ebc9a090bc: "Сегодня: "
-  auto_ec8197498e: " | → Цели: "
-  auto_ec8296d300: "📋 **Твои задачи**"
-  auto_ecc8bbb6fa: |
-    📋 **Твои задачи:**
-
-
-
-  auto_ed0ead534c: ". ⚠️ Календарь.txt новее JSON (txt="
-  auto_ed6093d307: " #приоритет/"
-  auto_edd3857202: |
-
-    (нет задач по фильтру)
-
-
-  auto_ee4a301644: "⚠️ Ошибка при сохранении состояния: {e}"
-  auto_ef1ac6610e: "(колонки "
-  auto_eff456da3f: "ч "
-  auto_f03fda2028: "❌ Ошибка при загрузке задач. Попробуй ещё раз."
-  auto_f0b068a6e7: " | приоритет="
-  auto_f0cf0b41cc: "никогда"
-  auto_f10b5ee281: |
-
-
-    Разбивка выполненных по категориям: 
-
-
-  auto_f14784b1b5: " (Октябрь - Декабрь)"
-  auto_f1a2415e4c: "Канбан-доска не найдена: {file_path}"
-  auto_f2964bb97c: "   Дашборд: {CALENDAR_DASHBOARD_MD}"
-  auto_f2dc86fc16: "История действий за последнюю неделю (с "
-  auto_f338e7c132: " по времени из "
-  auto_f4acd5ebf5: "🟡 **Через "
-  auto_f532df1052: "За последние "
-  auto_f55677027e: " дней → "
-  auto_f64bd06a7a: "Якорная дата и время (МСК), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: {current_date_ru} ({current_date_iso}), {current_time_msk}. Сверяй поля «⚠️ Дедлайн:» с датой {current_date_iso}."
-  auto_f6630539d9: "❌ Что-то пошло не так. Попробуй ещё раз или опиши задачу по-другому."
-  auto_f73e5591d7: "(нет Health-данных за "
-  auto_f7f863ac31: "  Встреч по времени: "
-  auto_f902ff94b9: "## 🎯 Q3 {GOALS_YEAR} (Июль - Сентябрь)"
-  auto_f9049c1ad5: "  {quarter}: {count} целей"
-  auto_faa308bb79: "⚠️ Файл был изменен "
-  auto_fbb193f1d3: "**Тип:** {action_type}"
-
-  auto_fbb9c4a14f: |
-
-    ❌ Не удалось распознать голос:
-
-
-  auto_fce47333e3: "⚠️ Ошибка загрузки состояния из markdown: "
-  auto_fcfc2e8629: "Health — корреляции Пирсона "
-  auto_fd80c573c7: "   iphone_context_sync: сегодня "
-  auto_fd8874fb7a: "); взята последняя по дате создания: "
-  auto_fdcaa6c39c: |
-    # 📅 Рутины на сегодня
-
-
-    > Просто поставь галочки `[x]` для выполненных задач. Завтра файл обновится автоматически.
-
-
-    ---
-
-
-    ## 🌅 Утренние рутины
-
-
-
-  auto_fe5552a605: |
-
-    Еженедельное ревью, которое ты только что отправил пользователю:
-
-    {excerpt}
-
-
-  auto_feaf23e287: ". Дедлайны сравнивай с этой датой; в выводе get_kanban уже есть просрочено/сегодня."
-  auto_ff07fa1675: |
-    задач (только эта колонка = «в работе», не путай с другими)
-
-    - Колонка «🚫 Заблокировано»: 
-
-
-  auto_ff252e4511: |
-
-
-    📂 **Категория:** 
-
-
-  auto_01182d875e: "_фрагм. — доля встреч ≤35м._"
-  auto_011aa6614f: "## ✅ Выполнено"
-  auto_012b8c0513: "#приоритет/низкий"
-  auto_0279805565: "  (сильных отклонений нет по порогу z)"
-  auto_036b47583e: |
-    Ошибка при получении рекомендаций по рутинам: %s
-
-    %s
-
-
-  auto_039a644d8a: "📋 высокий"
-  auto_04198f3dd8: "📊 Итоги:"
-  auto_04f3888a7d: "📅 Создано:\\s*(\\d{4}-\\d{2}-\\d{2})"
-  auto_0530da4c36: "Утро"
-  auto_05a5c6be34: "Доска задач (полный снимок, все колонки):"
-  auto_05a6fc3b0f: "Среда"
-  auto_06b0f2a4a5: "сб"
-  auto_06f0d86b12: "🤔 Анализирую задачи и даю рекомендации..."
-  auto_0702fd04ef: "Январь - Март"
-  auto_07107b94ed: "(лог недоступен)"
-  auto_07798786fa: |
-    Что нужно сделать (контекст целей):
-
-
-  auto_081837d14d: |
-
-    Ошибка в handle_chat_message: %s
-
-    %s
-
-
-  auto_0848da3bdb: "✅ Все задачи уже привязаны к целям."
-  auto_08b2df1cfd: "Ошибка в handle_text_message: %s"
-  auto_0900d1f798: "ср"
-  auto_0a4f9871d3: "🚀 Запуск planning_bot (aiogram)"
-  auto_0f1e39b138: "## 🌙 Вечерние рутины"
-  auto_10d40715dc: "Встречи_секции_жизни.png"
-  auto_1134e4c855: "📅 Создано: \\d{4}-\\d{2}-\\d{2}"
-  auto_119431b274: "Ошибка при отправке алертов по дедлайнам: %s"
-  auto_11ddb1ba39: "❌ Критическая ошибка: не удалось отправить сообщение: %s"
-  auto_12612553ed: "➕ Добавить задачу"
-  auto_16086131c5: "За эту неделю действий не было."
-  auto_1772d0120c: "#приоритет/высокий"
-  auto_17b28e5992: "📅 Запуск ежедневных алертов по застрявшим задачам"
-  auto_1af4a81bc6: "Бот запущен..."
-  auto_1b3ad4edf5: "context_sync: удалён старый %s"
-  auto_1c178f6429: "📊 История_Рутин.md"
-  auto_1cf2476692: "Нагрузка по дням"
-  auto_1d4d51075a: "📅 Запуск запланированного еженедельного ревью (логи: %s)"
-  auto_20fca4691c: "без тега"
-  auto_212943a8f4: "Отправлены алерты по дедлайнам: пропущенных %s, приближающихся %s"
-  auto_217da0a1be: "✅ Ежедневная задача: добавление ID выполнено"
-  auto_248aa6015e: "Июль - Сентябрь"
-  auto_24a40f8990: "iphone_mail_sync: записан %s"
-  auto_24f969f593: "context_sync: ошибка %s"
-  auto_259951b2bb: "\\s*#дедлайн/[^\\s#]+.*"
-  auto_25cfcbabfe: "Макс. файлов на target (0 = все)"
-  auto_25f95323d0: "(цели не заданы)"
-  auto_27c8e8e900: "сбросить контекст"
-  auto_28dd89327d: "Сортировка задач"
-  auto_29940f450a: "Неизвестная задача"
-  auto_29ccc91950: "декабря"
-  auto_29e747c3bc: "## Мои мысли"
-  auto_2a78f31ef3: "Голос распознан для chat_id=%s: %.120s"
-  auto_2b5a296bbf: "апреля"
-  auto_2cc3b7c2af: "📅 Сегодня.md"
-  auto_2dcf53791f: "пятница"
-  auto_2dda70193b: "Где посмотреть маппинг: кнопка «Прогресс по целям» в меню."
-  auto_2e5c2308f3: "🤔 Генерирую еженедельный ревью..."
-  auto_31a4ed5e78: "цель"
-  auto_322fab4a99: "сброс контекста"
-  auto_32368b0b33: "июля"
-  auto_32ec6c2753: "📊 Статистика"
-  auto_363af5eecd: |
-    ⏱️ Таймаут при добавлении задачи: %s
-
-    %s
-
-
-  auto_364715af2c: "⚠️ Не найдено секций в файле, пропускаем добавление ID"
-  auto_36b91eccd8: |
-    👋 Привет! Я твой помощник по планированию.
-
-
-    Задачи, статистика, цели, рутины — свободным текстом или голосом (агент и тулы).
-
-    Кнопка «📋 Мои задачи» — быстрый фильтр по канбану. Еженедельная рефлексия приходит по расписанию.
-
-    Если диалог с LLM «залип» — /reset_context или фраза «сброс контекста».
-
-
-  auto_379c6bd711: "📋 низкий"
-  auto_37a7379e0b: "пн"
-  auto_382edf03c4: "move/complete: нужен task_id (8 hex из create) или title"
-  auto_38c97b7149: "Только письма с датой «сегодня» в IPHONE_SYNC_TZ (перекрывает env)"
-  auto_3a199272bb: "\\s*#приоритет/[^\\s#]+.*"
-  auto_3aad5b7e54: "📅 Запуск ежедневных алертов по целям"
-  auto_3af7e7b965: "💭 Напиши свои мысли в ответ, и я сохраню их в рефлексию."
-  auto_3b493405b6: "Ошибка при отправке алертов по застрявшим: %s"
-  auto_3e5b0bed8a: "**Вечерние:**"
-  auto_3e88f5cb5b: "чт"
-  auto_3ed8660b4d: "## ☀️ Дневные рутины"
-  auto_3fd05bbd6b: "📅 Запуск ежедневных алертов по дедлайнам"
-  auto_408a9152e4: "Печатать каждый rename"
-  auto_41a1403fc4: "context_sync: удалён мусор в Данные/ — %s"
-  auto_4533bd0f6b: "Рутины (чеклист сегодня):"
-  auto_46498478d3: "Синхронизация квартальных фокусов"
-  auto_4772666fa2: "Ты — персональный ассистент по планированию. Отвечай по-русски, кратко и по делу."
-  auto_478b778ab1: "Получен сигнал остановки (Ctrl+C)"
-  auto_47fe23162e: |
-    Ошибка при получении статистики рутин: %s
-
-    %s
-
-
-  auto_4891d2a0be: "❌ Ошибка синхронизации kanban_state.json: %s"
-  auto_490eaee14c: |
-    🔴 **Пропущенные дедлайны:**
-
-
-
-  auto_495e73e684: "🎯 Прогресс по целям"
-  auto_499df715b7: "Контекст_IPhone"
-  auto_49b159f4e7: "^_Обновлено:.*_$"
-  auto_4a22958c6e: |
-    💬 Просто напиши задачу, и я её добавлю!
-
-
-    Например: 'Купить молоко' или 'Подготовиться к собеседованию в Яндексе'
-
-
-  auto_4a4555ed47: "Теги (часы): "
-  auto_4a795a89ed: "(в логе нет недавних событий)"
-  auto_4b9557a6cd: |
-
-    ## 🌙 Вечерние рутины
-
-
-
-  auto_4bb06468f6: "суббота"
-  auto_4c89a52010: |
-    📋 **Мои задачи**
-
-
-    Фильтруй по целям или приоритетам:
-
-
-  auto_4d250494e9: "блок today — снапшоты за сегодня и вчера (локальная дата ts), не «только сегодня»"
-  auto_4d3cb13616: "❌ Ошибка при загрузке прогресса по целям."
-  auto_4dbb6a1af4: "мая"
-  auto_4e30ce6f86: "ℹ️ без целей"
-  auto_4efdd9fcfd: "🌙 **Вечерние:** ✅ Все выполнены!"
-  auto_4f3c0a9a48: "**Ритмы:** "
-  auto_4f6bd2f69f: "#дедлайн/(\\d{4}-\\d{2}-\\d{2})"
-  auto_4ff2af9dec: "✅ Все цели имеют активные задачи или прогресс!"
-  auto_500c1d0683: "create: нужен title"
-  auto_50d9f5d932: "Отправлено утреннее напоминание о рутинах"
-  auto_50fdb61cba: "#приоритет/[^\\s#]+"
-  auto_54123611a6: "Все задачи выполнены!"
-  auto_544fde8ad3: "📋 **Выбери категорию:**"
-  auto_55500c9703: "✅ Рутины обновлены при запуске"
-  auto_55744c9550: "iphone_context_sync: ошибка %s"
-  auto_56012e66af: "context_sync: не удалось удалить %s: %s"
-  auto_56c162fb97: "Октябрь - Декабрь"
-  auto_5777c551af: "Часы по секциям жизни"
-  auto_57b62b0175: "❌ Ошибка при загрузке статистики рутин."
-  auto_57bd906864: "calendar insights: нет промпта %s"
-  auto_58b2a8d2f2: "Не удалось записать дашборд календаря: %s"
-  auto_59cced6a72: "matplotlib не установлен — PNG не обновляем, wikilinks всё равно валидны"
-  auto_5a1c921e96: "ЛОГ СОБЫТИЙ ПО ЗАДАЧАМ (полная цепочка за окно; факты; смотри первым — доска ниже может расходиться):"
-  auto_5a2b075f4b: "\\*\\*Что нужно сделать:\\*\\*\\s*\\n(.*?)(?=\\n---|\\n###\\s+|\\Z)"
-  auto_5a54a0d67c: "воскресенье"
-  auto_5b5ba648c9: "🔄 Запуск ежедневной задачи: добавление ID к задачам без ID..."
-  auto_5bae9513a0: "Ошибка при добавлении ID к задачам: %s"
-  auto_5d0a9b9ab5: "Ошибка при получении невыполненных рутин: %s"
-  auto_5df1002492: "📊 Распределение: %s в работе, %s в бэклоге"
-  auto_5ee6823986: "Вторник"
-  auto_60cb1c1b5d: "✏️ Напиши исправленную задачу, и я её добавлю."
-  auto_6123f35713: "Снимок канбана в контексте — текущее состояние файла; если расходится с логом, для «что произошло» опирайся на лог, для «где задача сейчас» — на доску."
-  auto_62c09faad3: "ниже"
-  auto_62d2694709: "#цель/[^\\s#]+"
-  auto_644f4feb02: "часов во встречах"
-  auto_6571da9ad7: "Ошибка при отправке утреннего напоминания: %s"
-  auto_66627633a9: |
-
-    Список завершённых за неделю (название и категория):
-
-
-  auto_66bb7d7ca9: "✅ Все задачи уже имеют ID"
-  auto_67451380c2: "[^\\wа-яё\\s\\-]+"
-  auto_6799b4f864: "Встречи_секции_жизни.md"
-  auto_6818e3b6ff: "Дай рекомендации по моим рутинам."
-  auto_682c2ca2df: "   iphone_mail_sync: пропуск (GMAIL_IMAP_* не заданы в корневом .env)"
-  auto_6904ca703c: "таймаут"
-  auto_6a24aa43fc: |
-    ❌ Ошибка при генерации рекомендаций: %s
-
-    %s
-
-
-  auto_6b1d122450: "ℹ️ Канбан-доска уже отсортирована (sha1 совпадает) — запись пропущена."
-  auto_6b600fff04: "ЛОГ СОБЫТИЙ ПО ЗАДАЧАМ за календарный день (факты; доска может расходиться):"
-  auto_6da80c2907: "пт"
-  auto_6e7888a6b6: "ноября"
-  auto_6ef8e6f330: "🔄 Режим --remap-all: очистка и перемаппинг всех задач с доски..."
-  auto_71b34d96a7: "✅ Твои мысли сохранены в рефлексию!"
-  auto_71fa76afac: "Не ограничивать «сегодня»; брать новые письма за окно --since-days (бэкфилл)"
-  auto_7232542930: "Chat ID не установлен, пропускаю напоминание"
-  auto_72350732c3: "Chat ID не установлен, алерты по дедлайнам не отправлены"
-  auto_724c437831: "Какую папку обработать"
-  auto_72a0e6d8a7: "🎤 Распознаю речь..."
-  auto_7336f91797: "**Утренние:**"
-  auto_73ffe6575a: |
-    Ошибка при показе прогресса по целям: %s
-
-    %s
-
-
-  auto_75245119cf: "🔄 Сортировка задач в канбан-доске..."
-  auto_790f41adf3: "#приоритет/средний"
-  auto_7a4a4c1791: "📋 Невыполненные сегодня"
-  auto_7abd98a26d: "октября"
-  auto_7bd2faab56: "⚠️ Ежедневная задача: добавление ID не выполнено"
-  auto_7c8b041fe4: "Доска задач:"
-  auto_7dbfc07fcf: "Ошибка в process_user_text: %s"
-  auto_7edf6f7d8b: "⚠️ Перечитываем файл и пересобираем структуру..."
-  auto_7f205447e5: |
-
-
-    Годовые цели:
-
-
-  auto_7fb7df2d18: "Пустой результат распознавания"
-  auto_80593794b5: "📅 Календарь.txt без изменений — только обновляю дашборд из JSON"
-  auto_807b370f5c: "  (пар с достаточным |r| не найдено)"
-  auto_80c02bf46b: "🔙 Вернулся в главное меню"
-  auto_81e7619691: "День"
-  auto_827cc0f384: "#фокус/(Q[1-4])"
-  auto_82d4f9e020: "📋 **Выбери статус:**"
-  auto_84e6286b8c: "⚠️ Рекомендуется запустить скрипт позже, когда файл не будет редактироваться"
-  auto_85f9559eb7: "context_sync: удалён мусор в Mac/ — %s"
-  auto_8648bdde21: "Chat ID не установлен, ревью не отправлено"
-  auto_86a3ff42a2: "^Контекст_(.+)\\.txt$"
-  auto_8771b735cb: "📋 Приоритеты"
-  auto_87b10eda1f: "## 🌅 Утренние рутины"
-  auto_890cdb3fae: "четверг"
-  auto_89455308a1: "(Календарь недоступен — нужен sync с Mac)"
-  auto_8a47bf6956: "📅 Создано:"
-  auto_8b4d1b1996: "Запланированное ревью отменено: %s"
-  auto_8c0f1e0292: "вс"
-  auto_8c8f5c1299: "Пиши обычным текстом, без квадратных скобок и мета-инструкций."
-  auto_8cda5a4132: |
-    ❌ Ошибка при добавлении задачи: %s
-
-    %s
-
-
-  auto_8d7e383ebe: "#цель/([^\\s#]+)"
-  auto_8ea4816885: "Апрель - Июнь"
-  auto_8ea5aae503: "❌ Произошла ошибка при обработке сообщения. Попробуй ещё раз."
-  auto_8ebed9299d: "Контекст_*.txt"
-  auto_8f21b30c31: "(нет событий за период с заданными фильтрами)"
-  auto_8f87b9acbe: "\\s*#цель/[^\\s#]+.*"
-  auto_8fc4290293: "📊 Найдено %s задач 'В работе'"
-  auto_90c14f279f: "(нет Health-снапшотов в IPhone/)"
-  auto_90d840cbf5: "приложение"
-  auto_912c5ee296: "#дедлайн/\\S+"
-  auto_913449b759: "ActionLogger: логи действий в %s"
-  auto_937e1c141e: "  (пусто)"
-  auto_95291e7d4f: "move: укажи column (название колонки с доски)"
-  auto_95e2cc8d19: "300_Дашборды/Графики/Встречи_нагрузка_недели"
-  auto_95e4a8ee6e: "Chat ID не установлен, алерты по целям не отправлены"
-  auto_96c8692fb9: "Ошибка при отправке алертов по целям: %s"
-  auto_974c1b28ea: "Секции жизни (часы)"
-  auto_97aef5c590: "✅ Файл квартальных фокусов обновлен!"
-  auto_97b341fbd1: |
-    === Mac / iPhone (факты о дне и неделе; не календарь) ===
-
-
-  auto_98a71d4f27: "  режим фокуса: "
-  auto_9943c12ad5: "\\s*📅 Создано:.*"
-  auto_998a57e2c2: "📋 средний"
-  auto_9b872e78bd: "## Графики"
-  auto_9bbda555e6: "❌ Ошибка при генерации рекомендаций."
-  auto_9c9e642e6b: "❌ Задача не найдена. Попробуй ещё раз."
-  auto_9d4f2e369f: |
-
-    ## ☀️ Дневные рутины
-
-
-
-  auto_9dc5227b7a: "Рефлексия_*.md"
-  auto_9e515fb7c8: "400_Рутины"
-  auto_9f886df28c: "Не удалось обновить дашборд календаря: %s"
-  auto_9fe8ab9a04: "Health / Watch (снапшот):"
-  auto_a00653034c: "Будний день"
-  auto_a0b7b44b3f: "📋 Статусы"
-  auto_a14602ee4d: "сентября"
-  auto_a1ae242882: "Нет проблемных задач"
-  auto_a1fb4d656a: "#приоритет/(высокий|средний|низкий)"
-  auto_a21f528d0e: "Синхронизация календаря"
-  auto_a2c21be9af: |
-    🟠 **ЗАВТРА (дедлайн через день):**
-
-
-  auto_a55f781b6a: "По этим целям сейчас нет ни одной задачи. Предложение: создать по одной мелкой задаче для каждой — тогда на неделе будет с чего начать."
-  auto_a60b6ad52e: "🔄 Обновление рутин при запуске..."
-  auto_a671ee6acb: "Не удалось обновить рутины при запуске: %s"
-  auto_a677743480: "iphone_mail_sync: %d новых писем для обработки"
-  auto_a6fa08ca70: |
-
-
-    === КАЛЕНДАРЬ (фактические встречи в окне дат; не выдумывай встреч сверх этого блока) ===
-
-
-  auto_a7cb204f3b: "💡 Что делать дальше?"
-  auto_a82e24634a: "iPhone (последние данные о здоровье):"
-  auto_a84ca0473b: "📅 Создано: (\\d{4}-\\d{2}-\\d{2})"
-  auto_a962aee89e: "| День | ч | № | 🌙 | фрагм. | max |"
-  auto_aa0b458eec: "часов"
-  auto_aa48fa26be: "Воскресенье"
-  auto_aa763f2047: "> [!abstract]- Таблица метрик · секции жизни (Mermaid) · ритмы"
-  auto_aae9f1f89c: "Понедельник"
-  auto_abaf3bc4f8: "Отправлено еженедельное сообщение: цели %s без задач — %s шт."
-  auto_ad0cb79a0a: "Метрики относятся к health_day; captured_at — когда отправлено письмо/шорткат."
-  auto_ad2a96d8e8: "⚠️ Нет целей для маппинга."
-  auto_adb9a2ca8d: "calendar insights: без LLM (%s)"
-  auto_adcb8e521d: "июня"
-  auto_af0f6aa432: "Календарь-2.txt"
-  auto_afc65037bf: "Четверг"
-  auto_b01c8bed70: "🔗 Запуск маппинга задач без привязки к целям..."
-  auto_b198725f3a: "Календарь.txt не найден, пропускаем (%s)"
-  auto_b1a77f5def: "приоритет"
-  auto_b1e0a2e96e: "Получено сообщение от %s: %s"
-  auto_b29e4dc901: " (тест на копии)"
-  auto_b2e7f23f14: "Не называй «сегодня» дату из дедлайна задачи — только эту строку."
-  auto_b4eccdbaa4: "Ревью отменён: %s"
-  auto_b517d84574: "## Коротко (LLM)"
-  auto_b633a94c7f: "Health — сводка за период"
-  auto_b6b32200b7: "💡 Рекомендации по рутинам"
-  auto_b6eccaacca: "Mac (снапшот):"
-  auto_b7e115e6e2: "📝 Добавление задачи в канбан: %s..."
-  auto_bb7777d42f: "марта"
-  auto_bbd6d4d0d8: "✅ Задача добавлена в канбан, ID: %s"
-  auto_bd48343e5a: "Логи за эту неделю отсутствуют."
-  auto_be51bd94d7: |
-    ❌ Ревью не сформирован: путь к логам действий недоступен или неверный.
-
-
-
-  auto_be55594766: "(календарь недоступен)"
-  auto_bfafe7b122: "Добавление ID к задачам"
-  auto_c066446854: "❌ Нет голосового вложения."
-  auto_c0c9e46d0b: "#дедлайн/Q\\d+\\s*"
-  auto_c24be15722: "Парсинг Календарь.txt: %d строк → %d событий (%d дублей убрано)"
-  auto_c256f47cac: "📋 Найдено %s активных задач для рекомендаций"
-  auto_c27a77b356: "🚀 Обслуживание vault"
-  auto_c2c2a91e94: "Только добавить ID к задачам без ID"
-  auto_c34d1b44cf: "Не удалось сохранить PNG графиков календаря: %s"
-  auto_c3aaa0dd62: "#фокус/Q\\d+\\s*"
-  auto_c57cc79aba: "❌ Не смог ответить. Попробуй ещё раз."
-  auto_c6b727bd72: "Chat ID не установлен, алерты по застрявшим не отправлены"
-  auto_c8396189f5: |
-    ⚠️ Часто пропускаются:
-
-
-  auto_c8a1e8f8bb: "📅 Синхронизация календаря..."
-  auto_c8b13387a4: "⚠️ В kanban_state.json нет задач 'В работе'"
-  auto_c9ee65efdc: "**Дневные:**"
-  auto_ca15d9d2aa: "📋 Мои задачи"
-  auto_ca23d05890: "Встречи_нагрузка_недели.png"
-  auto_cad9e33632: "Факты — только из инструментов и памяти; не выдумывай расписание и метрики. Mac — get_mac_context; календарь — get_calendar(day=YYYY-MM-DD); проверяй meta last_updated в ответе. Лог задач — get_activity_events (фильтры task_id, task_title, event_type, from/to) или get_action_log(day). Не подтягивай здоровье и календарь, если вопрос о них не касается."
-  auto_ce3f58a5f2: |
-    Ошибка в handle_voice_message: %s
-
-    %s
-
-
-  auto_ce717860c4: "❌ Не удалось очистить историю. Проверь логи бота."
-  auto_ceac255734: "📊 Получена история для %s задач"
-  auto_ceb999b90b: "Синхронизация контекста"
-  auto_cee58b7423: "Суббота"
-  auto_cfe93f439d: "Задачи по фильтру:"
-  auto_cff5465cec: "Выходной"
-  auto_d02628f663: |
-    🌅 **Утренние рутины**
-
-
-    Не забудь выполнить:
-
-
-  auto_d0380493a0: |
-
-    ❌ Ошибка при генерации еженедельного ревью: %s
-
-    %s
-
-
-  auto_d0edfc7fdc: "[ОТМЕНА]"
-  auto_d0f9e078ba: "Удалён устаревший %s (life_hours пуст)"
-  auto_d115c89bf2: "Chat ID сохранен: %s"
-  auto_d181ca26fd: "Отправлены алерты по %s застрявшим задачам"
-  auto_d18a00e42d: "#фокус/[^\\s#]+"
-  auto_d2cb155a7f: "прочее"
-  auto_d387920393: |
-
-
-    Перемещения за неделю (хронологический порядок; опирайся только на эти строки):
-
-
-  auto_d4ae7a30be: "личное"
-  auto_d4d8652207: "Агрегаты"
-  auto_d57ba6e9b8: "погода"
-  auto_d636adf14a: "📋 Бэклог"
-  auto_d6da6552a2: "Ревью: данные из логов в %s"
-  auto_d80d7e46b1: " | выполнено"
-  auto_d861a323de: "января"
-  auto_db56dcef25: "Календарь.txt не изменился (ts=%s), пропускаем парсинг"
-  auto_dc2316c590: "Окно логирования шортката 10:00–02:00 может отсутствовать вне сессии."
-  auto_dc232d1607: "🔙 Назад"
-  auto_dc94a42dc6: "Секции: "
-  auto_dcbd7ce054: "понедельник"
-  auto_dda971dafe: |
-    📋 **Невыполненные рутины на сегодня:**
-
-
-
-  auto_ddb5670c27: "Ошибка при отправке еженедельного сообщения по целям без задач: %s"
-  auto_de473a4dde: "Предупреждение при обновлении рутин: %s"
-  auto_de9b647e8c: "🔄 В работе"
-  auto_e01807b972: "#дедлайн"
-  auto_e15dc6de8c: |
-    ⏰ **Приближающиеся дедлайны:**
-
-
-
-  auto_e161d71627: "Вечер"
-  auto_e184960639: |
-    Опиши задачу конкретнее: что сделать, срок или приоритет.
-
-    Пример: «Подготовить слайды к встрече в пятницу, высокий приоритет».
-
-
-  auto_e1ceb75da5: |
-
-    ⚠️ Нет задач в работе
-
-
-  auto_e22ad436a7: "Пятница"
-  auto_e327185f5c: "Напиши задачу в чат — добавлю на доску и привяжу к цели."
-  auto_e3939e1bdb: "Не удалось прочитать %s: %s"
-  auto_e3aa9825ef: "августа"
-  auto_e3bbb7b586: "🔄 Рутины"
-  auto_e4fc5fe6f8: "⚠️ Обнаружена сломанная структура файла (только одна секция), восстанавливаем..."
-  auto_e69e379c01: |
-    🌙 **Вечерние рутины**
-
-
-    Не забудь выполнить:
-
-
-  auto_e89925dc1d: "Синхронизация iPhone JSON"
-  auto_e9917f3011: "📋 Все задачи"
-  auto_ea28978ee2: "❌ Ошибка при загрузке рутин."
-  auto_eac0b04cb9: "Не удалось записать CHAT_ID в %s: %s"
-  auto_eb22b2c9df: "Контекст_{"
-  auto_eda21b093c: "✅ Канбан-доска отсортирована!"
-  auto_edc1040220: "📋 Цели"
-  auto_edc37c37f7: |
-
-
-    Квартальные фокусы:
-
-
-  auto_ee9440c3a1: "Отправлены алерты по %s целям"
-  auto_ef06566baf: "вт"
-  auto_ef15359bca: "Ошибка при отправке вечернего напоминания: %s"
-  auto_efa0d4abc7: "среда"
-  auto_efc3150d05: "#дедлайн/[^\\s#]+"
-  auto_f0090fc55e: "вторник"
-  auto_f075219b3c: "⚠️ Пропускаем сортировку, чтобы не потерять недавние изменения пользователя"
-  auto_f077724de3: "Встречи_нагрузка_недели.md"
-  auto_f0bc732b56: "🧹 сброс контекста"
-  auto_f0e8a4e7f8: |
-    Сгенерируй еженедельный ревью по данным ниже. Все цифры в анализе должны совпадать с блоком «Данные для ревью»; при описании перемещений используй только строки из списка «Перемещения за неделю». Если есть блок «КАЛЕНДАРЬ» — обязательно вплети его в анализ: назови 1–2 самых плотных дня по датам и встречам из этого блока и свяжи с глубокой работой/отдыхом; не описывай календарь, которого нет во входе.
-
-
-
-  auto_f1cace2956: "🔄 Синхронизация квартальных фокусов..."
-  auto_f1d3acb4fc: "фокус"
-  auto_f1f96ad214: "выше"
-  auto_f29cdbd785: "Метрики:"
-  auto_f2deb0d2f1: "iphone_mail_sync: ошибка при обработке письма %s"
-  auto_f317ab8f35: "📊 Статистика рутин"
-  auto_f365930c0e: |
-    ❌ Ошибка при генерации ревью: %s
-
-    %s
-
-
-  auto_f4000b502c: "\\*\\*Дата:\\*\\*\\s*(\\d{4}-\\d{2}-\\d{2})"
-  auto_f45e4e69c5: "Контекст Mac (последний снапшот):"
-  auto_f467c12287: "iphone_mail_sync: не удалось распарсить письмо %s"
-  auto_f471ac35df: |
-    ❌ Нет задач на доске
-
-
-  auto_f4bb82be36: "📋 **Выбери приоритет:**"
-  auto_f884ed9745: "## 📅 Дедлайны.*?(?=## |```|$)"
-  auto_f895d3042c: "💭 Рефлексия"
-  auto_f9a9071bae: "📋 Конфиг_Задач.md"
-  auto_fa4234819c: "300_Дашборды/Графики/Встречи_секции_жизни"
-  auto_fae9682263: "  топ приложений: "
-  auto_fc906f665b: "📅 Рутины"
-  auto_fc9b9f09f7: "✅ kanban_state.json синхронизирован: %s задач"
-  auto_fcd2d22356: "🤔 Анализирую твои рутины и готовлю рекомендации..."
-  auto_fcf94428fb: "февраля"
-  auto_fdc9366d83: "❌ Ошибка при отправке сообщения об ошибке: %s"
-  auto_fe57b75eea: "(нет Mac-контекста)"
-  auto_ff21682066: "Отправлено вечернее напоминание о рутинах"
-  auto_fffc9ef315: "❌ Отменено."
-  auto_03a7292162: "После нормализации отправить Логи/ на сервер (ground truth)"
-  auto_041245f927: "Категория из тега #цель/...; если тега нет — None (на графике такие задачи не показываются)."
-  auto_0502850db6: "🛑 Остановка watcher..."
-  auto_05876aac49: |
-
-    Бэкфилл: для записей task_moved с to='✅ Сделано', у которых в логе нет task_completed,
-
-    добавляем запись task_completed с тем же timestamp и данными (title, task_id, category).
-
-    Графики «Завершено по категориям» и «Активность за день» учитывают оба типа; после бэкфилла
-
-    старые дни перестанут показывать 0.
-
-
-    Запуск из корня vault:
-
-    python3 800_Автоматизация/Agent/planning_bot/scripts/backfill_task_completed.py [--vault PATH] [--month 2026-03] [--dry-run]
-
-
-  auto_07696bf4f3: "**«Удалено»** — события по `task_id`, которые раньше двигались по доске (`task_moved`), но сейчас отсутствуют на текущей доске (полезно как индикатор чисток). "
-  auto_0785c86cb9: "100_Задачи"
-  auto_07e5ddc10d: "Год-месяц, например 2026-03; иначе все найденные"
-  auto_0882f1bcd1: "🔄 Периодическая проверка: добавление ID к задачам без ID..."
-  auto_0a7a5da0e4: |
-    Высота столбца = число задач с дедлайном в этот день; сегменты = `#цель/…` (без тега — «без категории»).
-
-
-
-  auto_0ab47247bd: "Ошибка rsync (проверь SSH и путь на сервере)."
-  auto_0bc4320486: "4 / 9 / 4 ккал на грамм."
-  auto_0eaab64de2: |
-
-    Read-only сводка состояния «системы» Obsidian + planning: синк, логи, доска, графики.
-
-    Ничего в vault не меняет кроме перезаписи этого отчёта.
-
-
-    Выход по умолчанию: 300_Дашборды/Аудит_системы_отчет.md
-
-
-    Запуск (как в obsidian_sync):
-
-    PYTHONPATH=... python3 scripts/build_system_audit_report.py --vault /path/to/vault
-
-
-  auto_11d24a3ae3: "Добавить task_completed для task_moved→Сделано без пары"
-  auto_13d6c8eea4: "удалено"
-  auto_13eed18124: "корень Obsidian vault"
-  auto_145f378b1a: "Данные"
-  auto_14cbadfca6: "Путь к vault"
-  auto_15777d8a91: |
-    Нет данных: завершения есть, но категории не попали в список.
-
-
-
-  auto_17bf3030a3: "Только показать, что будет добавлено"
-  auto_1945da1fe5: "без категории"
-  auto_1a11daffe4: |
-    ![Завершено по категориям](Завершено_по_категориям_дни.png)
-
-
-
-  auto_1b8672ee77: "Одноразовая утилита: убрать точные дубликаты блоков в файле лога. Путь к файлу обязателен."
-  auto_1c1e363097: "здоровье"
-  auto_1c7277d3a5: "300_Дашборды"
-  auto_1f311a1964: "📋 Доска_Задач.md"
-  auto_1f4101e6f4: "Графики"
-  auto_24ee34f4ca: "Исправить to/from в данных события."
-  auto_24ef2f9854: |
-    Нет данных: после даты начала нет завершений с категорией.
-
-
-
-  auto_26f181c8b7: "🔄 Первоначальная проверка и добавление ID..."
-  auto_27ff33587d: "## 2. Planning: доска и состояние канбана"
-  auto_2bf5f2190c: "❌ watchdog не установлен. Установите: pip install watchdog"
-  auto_2cdb199719: "(пусто)"
-  auto_2ce6c30bbb: "Активность_за_день.png"
-  auto_30046e92e3: "Активность по приоритетам (создано/перемещено/завершено)"
-  auto_305d1caee7: "Нет файлов логов."
-  auto_325bd190b9: |
-
-    Горизонт дедлайнов канбана: по каждому календарному дню (с сегодня) — сколько
-
-    невыполненных задач с тегом #дедлайн/YYYY-MM-DD попадает на этот день, с разбивкой
-
-    по категории (#цель/…). Просроченные (дедлайн < сегодня) — отдельная сводка в тексте.
-
-
-    Выход (по умолчанию в 300_Дашборды/Графики/):
-
-    Дедлайны_горизонт.png
-
-    Дедлайны_горизонт.md
-
-
-    Запуск: obsidian_sync.sh вместе с остальными графиками задач.
-
-
-    Параметры окружения (опционально):
-
-    DEADLINE_CHART_HORIZON_DAYS — горизонт вперёд в днях (по умолчанию 120).
-
-
-    Ручной запуск из терминала (подставь свой путь к vault; переменная VAULT_PATH не обязательна):
-
-
-    V="$VAULT_PATH"
-
-    cd "$V/800_Автоматизация/Agent/planning_bot"
-
-    PYTHONPATH="$(cd .. && pwd)" python3 scripts/build_deadline_horizon_chart.py --vault "$V"
-
-
-    # 90 :
-
-    # PYTHONPATH="$(cd .. && pwd)" python3 scripts/build_deadline_horizon_chart.py --vault "$V" --days 90
-
-
-  auto_336f1921b8: "Пока нет дней с данными `proteins_g` / `fats_g` / `carbs_g` в iPhone-снапшотах. "
-  auto_34b1e2b3f5: "ккал"
-  auto_350dfab14d: |
-
-    Синхронизирует SoC с доской. Возвращает число добавленных записей с ненулевой датой.
-
-    today — YYYY-MM-DD (по умолчанию сегодня).
-
-
-
-  auto_3520ab2a19: "высокий"
-  auto_36493c9df7: |
-    _Просроченных задач с дедлайном нет._
-
-
-  auto_37c636a135: "Записать файл в формате action_logger."
-  auto_3813f80a11: "Активность задач по дням (все события после появления task_id в логах)"
-  auto_388c7d6edd: "развитие"
-  auto_392fcdc649: |
-
-    Завершено по категориям по дням (по action-логам).
-
-
-    Старт: с даты первого появления task_id в логах (точка «устойчивых цепочек»).
-
-    Счёт: только task_completed (одна запись на завершение; бэкфилл добавляет task_completed для старых task_moved→Сделано).
-
-
-    Категория:
-
-    - берём из события (data.category), если есть,
-
-    - иначе маппим по текущей доске `📋 Доска_Задач.md` (task_id -> #цель/<категория>),
-
-    а если task_id нет — пробуем маппинг по title.
-
-
-    Выход:
-
-    300_Дашборды/Графики/Завершено_по_категориям_дни.png
-
-    300_Дашборды/Графики/Завершено_по_категориям_дни.md
-
-
-  auto_39f88b49b8: "✅ ID добавлены к задачам (если были задачи без ID)"
-  auto_3bba8862bb: "Например 2026-03; иначе все файлы в Логи/"
-  auto_3d853f908d: "Только показать, что будет удалено"
-  auto_3edbaef9fc: |
-    Проверь, что письмо/шорткат шлёт КБЖУ.
-
-
-
-  auto_402d37af44: "Дата дедлайна (календарь)"
-  auto_406ba62c6f: "⚠️ watchdog не установлен. Установите: pip install watchdog"
-  auto_411f35068d: "Нормализация не потребовалась (to/from уже однострочные)."
-  auto_4361cbfc1e: "### health.log (хвост)"
-  auto_443f6eab29: "Питание_КБЖУ_по_дням.md"
-  auto_449f623f15: |
-    В выбранном горизонте нет дедлайнов
-
-    (см. блок «Просрочено» в заметке ниже)
-
-
-  auto_4b3bd9bf5f: "Нормализовать to/from в логах (оставить только имя колонки)"
-  auto_4d8f0fd70f: |
-    Дедлайны по дням (невыполненные, открытые колонки)
-
-
-  auto_4f9eed73b9: "📊 Логи_Действий_*.md"
-  auto_5200f068de: |
-
-    Ищем корень vault по наличию папок 100_Задачи и 300_Дашборды.
-
-    Работает даже если config.py не импортируется (нет токенов в env).
-
-
-
-  auto_54c1c811e9: |
-
-
-    Удаление устаревших файлов логов из корня 300_Дашборды (не из Логи/).
-
-
-    Почему файл появляется в корне:
-
-    - В текущем коде все пишут только в ACTION_LOGS_DIR = 300_Дашборды/Логи/ (action_logger, vault_maintenance, bot).
-
-    - Файл в корне — остаток старой структуры. Он снова появляется, потому что при push 300_ мы отправляем
-
-    всё из локальной папки; если локально лежит 📊 Логи_Действий_*.md в корне 300_, он уезжает на сервер.
-
-    В obsidian_sync.sh при push исключён корневой /📊 Логи_Действий_*.md — после удаления он не будет переотправлен.
-
-
-    Запуск:
-
-    Из корня vault: python 800_Автоматизация/Agent/planning_bot/scripts/remove_root_action_logs.py [--vault PATH]
-
-    Или из planning_bot: python scripts/remove_root_action_logs.py
-
-
-    После запуска выведется команда для удаления на сервере (если есть).
-
-
-  auto_5d68ea6ce6: "## 1. Синхронизация и маркеры (`.sync/`)"
-  auto_5e38749e48: |
-    Счётчики по дням включают **все** события после этой даты (в т.ч. без `task_id`).
-
-
-
-  auto_5f3adcf92b: "# Аудит системы (Obsidian + planning)"
-  auto_60e40eeec9: "(без **Сделано**). Категория — тег `#цель/…` на доске; без тега — «без категории». "
-  auto_615dc34700: "Оставить только первую строку (имя колонки)."
-  auto_61dda2a897: |
-
-    Source of Truth по выполненным задачам: JSON-лог, который строится по доске задач.
-
-
-    - Читает колонку «✅ Сделано» с доски.
-
-    - Добавляет в SoC только задачи, которых ещё не было (completed_at = дата запуска).
-
-    - При первом запуске (файл пустой) все текущие в «Сделано» записываются с completed_at = null,
-
-    чтобы не создавать всплеск на графике — в график попадают только новые завершения после этого.
-
-    - Запускать с адекватным интервалом (раз в день или при vault_maintenance).
-
-
-    Файл: 300_Дашборды/Графики/completed_tasks_soc.json
-
-
-  auto_630d75801e: "Завершено_по_категориям_дни.png"
-  auto_640721bf8d: "Шаги"
-  auto_6553160aec: |
-    **Данные:**
-
-    ```json
-
-
-  auto_65f0a19bbc: "завершено"
-  auto_6bcee8c814: "🔄 Запуск добавления ID к задачам без ID..."
-  auto_6e6c2c3517: |
-    Дневная динамика завершений по категориям (completion-события из action-логов).
-
-
-
-  auto_704cc97621: "**Просрочено** (дедлайн раньше сегодня), по категориям:"
-  auto_70fbbd050e: "Аудит системы (read-only, один .md отчёт)"
-  auto_73f5ba424f: "Дедлайны_горизонт.md"
-  auto_77bc971bec: "  ssh \"$SERVER\" \"rm -f ${SERVER_VAULT:-/opt/obsidian-vault}/300_Дашборды/📊 Логи_Действий_*.md\""
-  auto_7c6ed2eb98: "Только чтение метаданных и подсчёты; задачи/заметки **не** изменяются."
-  auto_audit_dates_legend: |
-    **Как читать даты (это не один «вчера/сегодня»):**
-    - **`mtime`** у маркеров `.sync/` — когда файл перезаписан на диске.
-    - **`содержимое`** маркера — время/дата последней *успешной* операции (может быть раньше mtime).
-    - **`health.log`**: слева `[…]` — когда сработала проверка; `sync=` / `charts=` / `finance=` внутри строки — снимок маркеров на тот момент (пока джоба не обновила маркер, значение «застывает» на часах).
-    - **Action-логи** в §3: дата у имени файла — месяц событий; после тире — mtime файла на диске (старые месяцы часто не менялись с миграции vault).
-    - Всё ниже — снимок на момент **«Сгенерировано»** в шапке; после инцидентов перегенерируй (`obsidian_sync` шаг 5b.1 или `FORCE_SYSTEM_AUDIT=1`).
-  auto_7df5d9ef7a: "Открытые задачи (не «Сделано») по категориям — снимок доски по дням"
-  auto_7e0aa97634: "шаги"
-  auto_803ea94e62: |
-    Нет данных: в action-логах пока нет событий с `task_id`.
-
-
-
-  auto_8140d3db06: |
-
-
-    Для каждой календарной даты — последний по `ts` снапшот, где `key` задан.
-
-    (Идут по возрастанию ts; последняя перезапись = последний вечер снимок.)
-
-
-
-  auto_83b3dbbe43: "Обработчик изменений файла канбана"
-  auto_841cda8c29: "Ключ для дедупликации: одинаковые события дают один ключ."
-  auto_84521de53b: "кг"
-  auto_84649c1ec7: "неизвестно"
-  auto_87d95d80a6: "✅ Watcher запущен. Нажмите Ctrl+C для остановки."
-  auto_89b569b67a: "Жиры"
-  auto_8a59ef2159: "опыт"
-  auto_8aa8bea4df: "- **kanban_state.json** — нет файла (нормально, если ещё не создавался)"
-  auto_8c1573ec79: |
-
-    Нормализация полей to/from в логах действий: если в них попал многострочный текст
-
-    (баг get_kanban_state с re.DOTALL), оставляем только первую строку — имя колонки.
-
-
-    После нормализации нужно один раз отправить исправленные логи на сервер (--push-to-server),
-
-    чтобы при следующем синке серверная версия не перезаписала локальную: ground truth будет на сервере.
-
-
-    Запуск из корня vault:
-
-    python3 .../normalize_action_logs.py [--vault PATH] [--month 2026-03] [--dry-run] [--push-to-server]
-
-
-  auto_8c60238010: "Задач на дату дедлайна"
-  auto_8d338de227: |
-    ![Активность по дням](Активность_за_день.png)
-
-
-
-  auto_8dd54c67eb: "Завершено по категориям (по дням)"
-  auto_95f57d852f: "задана"
-  auto_96001db447: "учеба"
-  auto_97dfb4f966: "Нет файлов логов для слияния."
-  auto_97efefad77: "Графики/open_tasks_by_day_history.json"
-  auto_981ac4d96c: "Завершено задач"
-  auto_98abdac51a: "семья"
-  auto_99fde1f766: "Путь к vault (по умолчанию из config)"
-  auto_9a07a218df: "Белки"
-  auto_9e49e9ba8b: "## 4. Дашборды: вспомогательные файлы"
-  auto_9e55a1e51c: |
-
-    Watcher для автоматического добавления ID к задачам при изменении канбан-доски.
-
-
-    Запускается в фоне и отслеживает изменения файла канбана.
-
-    При сохранении файла автоматически добавляет ID к задачам без ID.
-
-
-    Использование:
-
-    python scripts/watch_and_add_ids.py
-
-
-    Или через launchd (macOS):
-
-    Шаблон scripts/com.example.planning_bot.add_ids.plist.example; установка: scripts/setup_watcher.sh
-
-
-  auto_a0815d49a8: "В корне 300_Дашборды файлов логов не найдено."
-  auto_a0a35957f0: "инфраструктура"
-  auto_a0d9fab4a6: "Задач в пайплайне"
-  auto_a4a1bedea1: |
-
-    Снимок доски: сколько невыполненных задач вне «✅ Сделано», по категориям (#цель/…).
-
-
-    Колонки: Бэклог, Ждёт даты, Отложено, В работе, Заблокировано (как в KANBAN_COLUMNS без последней).
-
-
-    История: один снимок на календарный день (последний прогон дня перезаписывает точку).
-
-    Файл истории: 300_Дашборды/Графики/open_tasks_by_day_history.json
-
-
-    Выход:
-
-    300_Дашборды/Графики/Открыто_по_категориям_дни.png
-
-    300_Дашборды/Графики/Открыто_по_категориям_дни.md
-
-
-    Запуск вместе с остальными графиками: obsidian_sync.sh (после build_daily_completions_by_category_chart.py).
-
-
-  auto_a4b61b85dc: "График распределения дедлайнов канбана по дням и категориям"
-  auto_a59c33b98b: "создано"
-  auto_a605043d53: "Углеводы"
-  auto_a7c14af2a8: "Дедлайны_горизонт.png"
-  auto_a7eaeaeabc: "Открыто_по_категориям_дни.png"
-  auto_a83ae93d8e: "✅ Watcher остановлен"
-  auto_a94bea83e7: "Таблица граммов Б/Ж/У + ккал + % жира для заметки под графиком."
-  auto_a9e6f3071c: "🥗 Питание_КБЖУ.md"
-  auto_ab7068555f: "Аудит_системы_отчет.md"
-  auto_abbea6bcae: "_При проблемах смотри `planning_bot/logs/charts.log` (графики) и логи бота в `planning_bot/logs/`._"
-  auto_ac1b3fb421: "Только показать, что будет исправлено"
-  auto_af6c672379: "Логи отправлены на сервер; при следующем синке подтянется уже исправленная версия."
-  auto_afb75353db: "Пишет файл лога в формате action_logger (заголовок + блоки ## ts, Тип, Данные)."
-  auto_afd5098f44: "КБЖУ по дням"
-  auto_b4ddb23f75: "Периодически запускает add_ids_to_tasks (подстраховка, если события сохранения не сработали)."
-  auto_b5a8823167: "На сервере выполни один раз (подставь свой vault на сервере при необходимости):"
-  auto_b6cb5a5ad5: "Сколько календарных дней вперёд от сегодня включительно показывать на оси X"
-  auto_b8b38381f5: "Удалить файлы 📊 Логи_Действий_*.md из корня 300_Дашборды (не из Логи/)"
-  auto_bb65b56717: "Завершено_по_категориям_дни.md"
-  auto_bc733d7c17: "| Дата | ккал | Б, г | Ж, г | У, г | % жира |"
-  auto_bcc4709278: "Логи"
-  auto_be2e0b5e3b: |
-
-    Args:
-
-    kanban_path: путь к файлу канбана
-
-    debounce_seconds: задержка перед обработкой (чтобы избежать множественных срабатываний)
-
-
-
-  auto_be6d1e38eb: |
-
-    **«Неизвестно»** — остальные события без определяемого приоритета: без `task_id`, не найденные по названию, или без тега приоритета.
-
-
-
-  auto_bfa1a61232: "перемещено"
-  auto_c35a11643f: "Активность_за_день.md"
-  auto_c3a5c7374d: "**Панель «Активность по приоритетам»:** приоритет берётся из тега `#приоритет/высокий`, `#приоритет/средний` или `#приоритет/низкий` на доске `100_Задачи/📋 Доска_Задач.md`. "
-  auto_c3ff3f87d0: "Только показать, что будет сделано"
-  auto_c40dda98e9: "День снимка"
-  auto_c55ab2c2b1: "График нагрузки: открытые задачи по категориям (снимки доски по дням)"
-  auto_c71e81f23c: "Источник: [[100_Задачи/📋 Доска_Задач|Доска задач]] — только строки с `#дедлайн/YYYY-MM-DD`, "
-  auto_c9691441d3: "карьера"
-  auto_c97fee364c: |
-    Нет снимков в истории.
-
-
-
-  auto_ca7b1482d8: "✅ Выполнено"
-  auto_cb488f816a: "Слияние логов действий из корня 300_Дашборды и Логи/"
-  auto_cbc7c75467: "✅ Периодическая проверка каждые 5 мин включена."
-  auto_cc9b118a9e: "Открыто_по_категориям_дни.md"
-  auto_cda40eda88: |
-
-    Слияние логов действий из двух мест: корень 300_Дашборды и 300_Дашборды/Логи.
-
-    Используется после расхождения синка (локальные правки + события с сервера через бота).
-
-    Объединяет события по месяцам, дедупликация по (timestamp, type, data).
-
-    Результат пишется в 300_Дашборды/Логи/.
-
-
-  auto_cf60f878ea: |
-
-
-    Возвращает (cat_by_id, cat_by_title) из `100_Задачи/📋 Доска_Задач.md`.
-
-
-
-  auto_d07c3c68b2: "не задана"
-  auto_d1c54a0134: "Для столбца дня d — `fat_pct` со снапшота на d+1 (как линия веса)."
-  auto_d38ecce4e3: "Нет невыполненных задач с тегом `#дедлайн/YYYY-MM-DD` в открытых колонках доски "
-  auto_d3919865a6: "Путь к 📊 Логи_Действий_YYYY-MM.md"
-  auto_d3ec3004d3: |
-
-    Возвращает (prio_by_id, prio_by_title) из `100_Задачи/📋 Доска_Задач.md`.
-
-
-
-  auto_d5add81d24: "- Папка `Графики/` не найдена"
-  auto_d821e337dd: "низкий"
-  auto_d8d6341939: "Вызывается при изменении файла"
-  auto_db0ffe0472: |
-
-    Дневная активность задач по action-логам (устойчивые цепочки = только события с task_id).
-
-
-    Строит линейный график по дням:
-
-    - Панель 1: количество событий по типам (task_created / task_moved / task_completed)
-
-    - Панель 2: количество событий по приоритетам (высокий/средний/низкий)
-
-
-    Диапазон: с даты первого появления `task_id` в логах (точка, после которой цепочки становятся устойчивыми).
-
-    При подсчёте событий учитываются ВСЕ события после этой даты (в т.ч. без `task_id`) — чтобы график
-
-    отражал реальную активность, а не только «устойчивые» записи.
-
-
-    Выход:
-
-    300_Дашборды/Графики/Активность_за_день.png
-
-    300_Дашборды/Графики/Активность_за_день.md
-
-
-  auto_dd0051d65d: "## 5. Переменные окружения (только имена)"
-  auto_e05b321307: "Питание_КБЖУ_по_дням.png"
-  auto_e2b7028db6: "- Каталог `300_Дашборды/Логи/` не найден"
-  auto_e6c2510b8c: "### Графики (ключевые файлы)"
-  auto_e7612cb7b0: |
-
-    Для позиции столбца (день d):
-
-    - вес: последнее взвешивание **на следующем** календарном дне (d+1), т.е. ориентир «как
-
-    утро после питания за d»; если d+1 нет — NaN;
-
-    - шаги: значение **за d** (как в полосе).
-
-
-
-  auto_e7eb0224f4: "800_Автоматизация"
-  auto_e8b081156a: "Завершено по категориям по дням (action-логи)"
-  auto_e9e498371d: "Вес, кг (d+1)"
-  auto_eaf25a8237: |
-    Дневная динамика по action-логам, начиная с момента, когда в логах появился `task_id`.
-
-
-  auto_eb3c99a9ef: "Файлов логов не найдено."
-  auto_eb9adf78be: "Дневная активность задач по типам/приоритетам (устойчивые цепочки)"
-  auto_ebf057fb07: "⚠️ Не удалось добавить ID (файл не найден или ошибка)"
-  auto_ec1658d332: "(нет файла)"
-  auto_ee3219e98d: "📊 Логи_Действий_"
-  auto_ef984a86d2: "Синк SoC по выполненным задачам с доски"
-  auto_f0eb35f14d: "Файл отчёта (по умолчанию: vault/300_Дашборды/Аудит_системы_отчет.md)"
-  auto_f1b1aa03e1: |
-
-    (date YYYY-MM-DD, p_kcal, f_kcal, c_kcal, label dd.mm, p_g, f_g, c_g) по одному снимку на день
-
-    (последняя в день, где есть хотя бы один макро).
-
-
-
-  auto_f4fa42bf13: "100_Задачи/📋 Доска_Задач.md"
-  auto_f596df73e0: "## 3. Action-логи и события"
-  auto_f6a4b9e30c: |
-
-    Объединяет логи за year_month из корня 300_Дашборды и из Логи/.
-
-    Возвращает (число событий до слияния из обоих, число после дедупа).
-
-
-
-  auto_f8b2271a3b: "300_Дашборды/Графики/completed_tasks_soc.json"
-  auto_fb3df31bf5: "Действия"
-  auto_fb7e9a26a9: "Событий"
-  auto_fbca700a5c: "Невыполненные задачи в колонках: **Бэклог**, **Ждёт даты**, **Отложено**, **В работе**, **Заблокировано** "
-  auto_ffadef9ce3: "Список { task_id, category } для задач в колонке «✅ Сделано»."
-  auto_fffea79fc4: |
-
-    Stacked bar chart: калории за день = сумма ккал из КБЖУ; стек снизу вверх: **белки → жиры → углеводы**.
-
-    Поверх — линии веса (d+1) и шагов. На графике: столбцы + сумма ккал.
-
-    Точные **Б/Ж/У в граммах** и **% жира** — в таблице под графиком в заметке (не на PNG).
-
-    На каждом цветном сегменте столбца — **граммы** Б / Ж / У снизу вверх (если сегмент достаточно высокий в ккал).
-
-    Источник: все 300_Дашборды/Данные/Действия/IPhone/*.txt (после iphone_context_sync).
-
-    iphone_week.json — только 7 дней для LLM; график строится по полной истории.
-
-    По одному снимку на календарный день: при нескольких точках в день — последняя с заполненными P/F/C;
-
-    для шагов/веса внутри дня — последняя ненулевая точка (как в конце дня).
-
-
-    Выход:
-
-    300_Дашборды/Графики/Питание_КБЖУ_по_дням.png
-
-    300_Дашборды/Графики/Питание_КБЖУ_по_дням.md
-
-    300_Дашборды/🥗 Питание_КБЖУ.md (короткий дашборд, перезаписывается)
-
-
-  auto_00efa126bb: |
-
-    ⚠️ **Цели без прогресса:**
-
-
-
-  auto_04dfebe9c9: |
-
-    🌅 **Утренние:** ✅ Все выполнены!
-
-
-
-  auto_093409046f: |
-
-    ❌ Нет tasks на доске
-
-
-  auto_0a989cc886: |
-
-    Квартальные фокусы:
-
-
-  auto_0c7f667d38: |
-
-    Опиши tasksу конкретнее: что сделать, срок или приоритет.
-
-    Пример: «Подготовить слайды к встрече в пятницу, высокий приоритет».
-
-
-  auto_0e67b21bb1: |
-
-    ☀️ **Дневные:** ✅ Все выполнены!
-
-
-
-  auto_14799d4b83: |
-
-    Error while получении статистики routines: %s
-
-    %s
-
-
-  auto_15c102cdad: |
-
-    ⏱️ Timeout при обработке tasksи: %s
-
-    %s
-
-
-  auto_167a91551c: |
-
-
-
-    💡 Используй меню для изменения фильтров
-
-
-  auto_1708d23066: |
-
-    Цели — что нужно сделать:
-
-
-  auto_1f1234de12: |
-
-    🧹 История диалога очищена (единое хранилище session). Следующие сообщения — без старых реплик.
-
-
-    Команды: /reset_context или /clear_chat
-
-
-  auto_2a863a5e3a: |
-
-    Годовые цели:
-
-
-  auto_303069f39a: "Факты — только из инструментов и памяти; не выдумывай расписание и метрики. Mac — get_mac_context; календарь — get_calendar(day=YYYY-MM-DD); проверяй meta last_updated в ответе. Лог tasks — get_activity_events (фильтры task_id, task_title, event_type, from/to) или get_action_log(day). Не подтягивай здоровье и календарь, если вопрос о них не касается."
-  auto_3115f27a90: |
-    Ошибка LLM-ответа на рефлексию: %s
-
-    %s
-
-
-  auto_3a1032872f: |
-
-    📊 **Статистика:**
-
-
-
-  auto_3b35e003f9: |
-
-    ⏰ **Приближающиеся deadlineы:**
-
-
-
-  auto_43c0808e1f: |
-
-    Что нужно сделать (контекст goals):
-
-
-  auto_47c28acbd9: |
-
-    Error while получении рекомендаций по routinesам: %s
-
-    %s
-
-
-  auto_47f77c74fd: |
-
-    ☀️ **Дневные:**
-
-
-  auto_4ada2d85ec: |
-
-    📋 **Невыполненные routinesы на сегодня:**
-
-
-
-  auto_53ad34e2bf: |
-
-    ❌ Error while генерации ревью: %s
-
-    %s
-
-
-  auto_578ef77f4c: |
-
-    ⚠️ Нет tasks in work
-
-
-  auto_670acc4b48: |
-
-    ## 📅 Дедлайны (не зависят от тебя)
-
-
-
-  auto_678cec3c94: |
-
-    Путь к логам действий настроен неверно.
-
-
-    Проверь VAULT_PATH на сервере.
-
-
-  auto_75f4edf197: |
-
-    ⚠️ Часто skippingтся:
-
-
-  auto_77245b49b2: |
-
-    📉 Нет прогресса за неделю
-
-
-  auto_78893c2c3a: |
-
-    ❌ Error while генерации рекомендаций: %s
-
-    %s
-
-
-  auto_7a1844149f: |
-
-    🔴 **СЕГОДНЯ:**
-
-
-  auto_806e09aed0: |
-
-    Папка с логами действий не найдена.
-
-
-    Проверь VAULT_PATH на сервере — корень хранилища Obsidian.
-
-
-  auto_866dffd6b4: |
-
-    🌅 **Утренние:**
-
-
-  auto_8be1b77a9e: |
-
-    ❌ Error while генерации еженедельного ревью: %s
-
-    %s
-
-
-  auto_90ec9e09e4: |
-
-    **По категориям:**
-
-
-  auto_9105976fe5: "Запись на доску отключена: KANBAN_AGENT_WRITES≠1 в .env бота. Добавь KANBAN_AGENT_WRITES=1 и перезапусти unified_bot."
-  auto_9158eed63e: "## (\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\n\\n\\*\\*Тип:\\*\\* (.+?)\\n+\\*\\*Данные:\\*\\*\\n+```json\\n+(.+?)\\n+```"
-  auto_93d0c33a86: "_Блок инсайтов недоступен: нет `DEEPSEEK_API_TOKEN` на этой машине или ошибка API. Цифры и графики ниже всё равно обновляются._"
-  auto_98320201f5: |
-    📋 **Твои tasksи:**
-
-
-
-  auto_99fd3dff46: |
-
-    🟠 **ЗАВТРА (deadline через день):**
-
-
-  auto_9b7b66ce15: |
-
-
-
-    _…обрезано (слишком длинный ответ модели)._
-
-
-  auto_a0d4164711: |
-
-    ❌ Error while обработке tasksи: %s
-
-    %s
-
-
-  auto_a123843896: |
-
-
-
-    💭 Напиши свои мысли в ответ, и я сохраню их в рефлексию.
-
-
-  auto_a2192403ad: |
-
-    ❌ Еженедельный ревью не сформирован: путь к логам действий недоступен или неверный.
-
-
-
-  auto_a31f04b3e5: |
-
-    🔄 **Рутины**
-
-
-    Выбери действие:
-
-
-  auto_a848b34d53: "Снимок канбана в контексте — текущее состояние файла; если расходится с логом, для «что произошло» опирайся на лог, для «где tasksа сейчас» — на доску."
-  auto_aaac1e34fe: |
-
-    ## 🌙 Вечерние routinesы
-
-
-
-  auto_af6b7cc1c4: |
-
-    Error while показе прогресса по целям: %s
-
-    %s
-
-
-  auto_b6d662b80f: |
-
-    💬 Просто напиши tasksу, и я её добавлю!
-
-
-    Например: 'Купить молоко' или 'Подготовиться к собеседованию в Яндексе'
-
-
-  auto_bb0ebd3152: |
-
-    🌅 **Утренние routinesы**
-
-
-    Не забудь выполнить:
-
-
-  auto_bc3b7d1f73: |
-
-    📋 **Мои tasksи**
-
-
-    Фильтруй по целям или приоритетам:
-
-
-  auto_c0e66a7f03: |
-
-    ⏱️ Timeout при добавлении tasksи: %s
-
-    %s
-
-
-  auto_c39155a1b8: |
-
-    ❌ Review не сформирован: путь к логам действий недоступен или неверный.
-
-
-
-  auto_c55b497318: |
-
-    ⏱️ Превышено время ожидания ответа от AI.
-
-
-    Возможные причины:
-
-    • Проблемы с подключением к интернету
-
-    • Перегрузка сервера DeepSeek API
-
-
-    Попробуй ещё раз через несколько секунд.
-
-
-  auto_c6fcbf7914: |
-
-    В хранилище нет файлов лога действий за этот период.
-
-
-    Проверь VAULT_PATH и что maintenance/бот пишут логи в vault.
-
-
-  auto_d31da72474: |
-
-
-    ## ☀️ Дневные routinesы
-
-
-
-  auto_d46167a00b: |
-
-    👋 Привет! Я твой помощник по планированию.
-
-
-    Я помогу тебе:
-
-    • Добавлять tasksи через естественный язык
-
-    • Анализировать прогресс и давать рекомендации
-
-    • Проводить еженедельные рефлексии
-
-
-    Просто напиши мне что-нибудь, отправь голосовое — или используй кнопки ниже.
-
-    Если диалог с LLM «залип» — /reset_context или фраза «сброс контекста».
-
-
-  auto_dd9f1316a9: |
-
-    ❌ Error while добавлении tasksи: %s
-
-    %s
-
-
-  auto_ef429b94e3: |
-
-    🌙 **Вечерние routinesы**
-
-
-    Не забудь выполнить:
-
-
-  auto_fc984f9f67: |
-
-    ⏱️ Превышено время ожидания ответа от AI.
-
-
-    Попробуй ещё раз через несколько секунд.
-
-
-  auto_feb3380cef: |
-
-    🔴 **Пропущенные deadlineы:**
-
-
-
-  auto_ff0c1d2943: |
-
-    🌙 **Вечерние:**
-
-
-  auto_0d063ed658: "⏱️ Таймаут DeepSeek API после %s попыток"
-  auto_0d5e670659: |
-    Доступные цели (используй ТОЛЬКО эти ID!):
-
-
-  auto_1039496542: "Время МСК: %s, дата якорь: %s, День: %s, %s"
-  auto_16916c0f4c: "средний"
-  auto_32cddb1bd5: "=== ЗАДАЧИ В РАБОТЕ (приоритет!) ==="
-  auto_392ad7831d: "Health-контекст для ревью недоступен: %s"
-  auto_45b408e226: "📋 Ревью контекст: system=%d | calendar=%s | goals_context=%s | previous_reflections=%s | weekly_logs=%s | user=%d символов"
-  auto_490ffc85a0: "=== ЗАДАЧИ В БЭКЛОГЕ ==="
-  auto_5adc7894dc: "Добавлен контекст календаря в парсинг задачи"
-  auto_6fd1e9fa36: "Контекст Mac для ревью недоступен: %s"
-  auto_81c9dad102: "да"
-  auto_93c5de950a: "Ошибка парсинга"
-  auto_9f0b0c78ae: "📤 Отправка запроса к DeepSeek API"
-  auto_a06f2f20eb: "DEEPSEEK_API_TOKEN не установлен в переменных окружения"
-  auto_aff66fb77a: "дом"
-  auto_b5b7b97f47: "❌ Ошибка запроса DeepSeek API: %s"
-  auto_c7db73bf32: "✅ Успешный ответ от API (длина: %s символов)"
-  auto_d6dcbba6e1: "Календарь в ревью: да (%d символов)"
-  auto_d822aee65d: "❌ Неожиданная ошибка DeepSeek API: %s"
-  auto_df28b6f9df: "нет"
-  auto_f61e904259: "📝 Генерация еженедельного ревью"
-  auto_f6622f8d0d: "Добавлен контекст календаря в рекомендации"
-  auto_f6d046868d: "Контекст Mac в ревью: %d снапшотов"
+  menu:
+    my_tasks: "📋 Мои задачи"
+    add_task: "➕ Добавить задачу"
+    what_next: "💡 Что делать дальше?"
+    stats: "📊 Статистика"
+    routines: "🔄 Рутины"
+    reflection: "💭 Рефлексия"
+    goals_progress: "🎯 Прогресс по целям"
+    goals: "📋 Цели"
+    priorities: "📋 Приоритеты"
+    statuses: "📋 Статусы"
+    all_tasks: "📋 Все задачи"
+    routines_stats: "📊 Статистика рутин"
+    routines_recommendations: "💡 Рекомендации по рутинам"
+    routines_today: "📋 Невыполненные сегодня"
+    back: "🔙 Назад"
+    reset_context: "сброс контекста"
+    reset_context_alt: "сбросить контекст"
+    reset_context_emoji: "🧹 сброс контекста"
+    category_prefix: "📋 "
+    priority_prefix: "📋 "
+    priority_high: "📋 высокий"
+    priority_medium: "📋 средний"
+    priority_low: "📋 низкий"
+  messages:
+    welcome: |
+      👋 Привет! Я твой помощник по планированию.
+
+      Я помогу тебе:
+      • Добавлять задачи через естественный язык
+      • Анализировать прогресс и давать рекомендации
+      • Проводить еженедельные рефлексии
+
+      Просто напиши мне что-нибудь, отправь голосовое — или используй кнопки ниже.
+      Если диалог с LLM «залип» — /reset_context или фраза «сброс контекста».
+    reset_context_ok: |
+      🧹 История диалога очищена (единое хранилище session). Следующие сообщения — без старых реплик.
+
+      Команды: /reset_context или /clear_chat
+    reset_context_fail: "❌ Не удалось очистить историю. Проверь логи бота."
+    handle_error: "❌ Произошла ошибка при обработке сообщения. Попробуй ещё раз."
+    llm_unavailable: "❌ LLM недоступен: {error}"
+    chat_error: "❌ Не смог ответить. Попробуй ещё раз."
+    add_task_hint: |
+      💬 Просто напиши задачу, и я её добавлю!
+
+      Например: 'Купить молоко' или 'Подготовиться к собеседованию в Яндексе'
+    back_to_main: "🔙 Вернулся в главное меню"
+    task_too_vague: |
+      Опиши задачу конкретнее: что сделать, срок или приоритет.
+      Пример: «Подготовить слайды к встрече в пятницу, высокий приоритет».
+    analyzing_task: "🤔 Анализирую задачу..."
+    task_confirm: |
+      📋 **Задача:** {title}
+      📂 **Категория:** {category}
+      🔥 **Приоритет:** {priority}
+
+      Всё верно?
+    confirm_yes: "✅ Да, добавить"
+    confirm_edit: "✏️ Изменить"
+    confirm_cancel: "❌ Отмена"
+    task_cancelled: "❌ Добавление задачи отменено."
+    timeout_error: |
+      ⏱️ Превышено время ожидания ответа от AI.
+
+      Возможные причины:
+      • Проблемы с подключением к интернету
+      • Перегрузка сервера DeepSeek API
+
+      Попробуй ещё раз через несколько секунд.
+    timeout_error_short: |
+      ⏱️ Превышено время ожидания ответа от AI.
+
+      Попробуй ещё раз через несколько секунд.
+    task_process_error: "❌ Что-то пошло не так. Попробуй ещё раз или опиши задачу по-другому."
+    no_tasks_in_column: "{column}\n\n📭 Нет задач."
+    column_batch_header: "{column} ({start}-{end} из {total}):\n\n"
+    no_active_tasks: "📭 Нет активных задач{filter}!\n\nИзмени фильтр или добавь задачи."
+    tasks_header: "📋 **Твои задачи**{filter}:\n\n"
+    tasks_header_plain: "📋 **Твои задачи:**\n\n"
+    tasks_continuation: "📋 **Продолжение** ({start}-{end} из {total}):\n\n"
+    filter_change_hint: "\n\n💡 Используй меню для изменения фильтров"
+    filter_by_category: " по категории '{category}'"
+    filter_by_priority: " по приоритету '{priority}'"
+    load_tasks_error: "❌ Ошибка при загрузке задач. Попробуй ещё раз."
+    stats_header: "📊 **Статистика:**\n\n"
+    stats_completed: "✅ Выполнено за неделю: {count} задач\n"
+    stats_active: "📋 Активных задач: {count}\n\n"
+    stats_by_category: "**По категориям:**\n"
+    stats_category_line: "• {category}: {count}\n"
+    task_added_backlog: |
+      ✅ Задача добавлена в бэклог!
+
+      📋 {title}
+      📂 {category}
+      🔥 {priority}
+    voice_transcribing: "🎤 Распознаю речь..."
+    voice_no_attachment: "❌ Нет голосового вложения."
+    voice_preview: "🎤 Распознал: «{text}»"
+    voice_failed: "❌ Не удалось распознать голос:\n{error}"
+    task_not_found: "❌ Задача не найдена. Попробуй ещё раз."
+    edit_task_prompt: "✏️ Напиши исправленную задачу, и я её добавлю."
+    task_added: "✅ Задача добавлена!"
+    reflection_generating: "🤔 Генерирую еженедельный ревью..."
+    reflection_logs_unavailable: |
+      ❌ Ревью не сформирован: путь к логам действий недоступен или неверный.
+
+      {error}
+    reflection_thoughts_prompt: "💭 Напиши свои мысли в ответ, и я сохраню их в рефлексию."
+    reflection_error: "❌ Ошибка: {error}"
+    reflection_thoughts_saved: "✅ Твои мысли сохранены в рефлексию!"
+    weekly_review_failed: |
+      ❌ Еженедельный ревью не сформирован: путь к логам действий недоступен или неверный.
+
+      {error}
+    recommendations_analyzing: "🤔 Анализирую задачи и даю рекомендации..."
+    routines_recommendations_analyzing: "🤔 Анализирую твои рутины и готовлю рекомендации..."
+    routines_recommendations_header: "💡 **Рекомендации по рутинам:**\n\n{recommendations}"
+    routines_recommendations_error: "❌ Ошибка при генерации рекомендаций."
+    tasks_menu_title: "📋 **Мои задачи**\n\nФильтруй по целям или приоритетам:"
+    categories_menu_title: "📋 **Выбери категорию:**"
+    priorities_menu_title: "📋 **Выбери приоритет:**"
+    statuses_menu_title: "📋 **Выбери статус:**"
+    routines_menu_title: "🔄 **Рутины**\n\nВыбери действие:"
+    routines_stats_error: "❌ Ошибка при загрузке статистики рутин."
+    pending_routines_header: "📋 **Невыполненные рутины на сегодня:**\n\n"
+    morning_section: "🌅 **Утренние:**\n"
+    morning_all_done: "🌅 **Утренние:** ✅ Все выполнены!\n\n"
+    day_section: "☀️ **Дневные:**\n"
+    day_all_done: "☀️ **Дневные:** ✅ Все выполнены!\n\n"
+    evening_section: "🌙 **Вечерние:**\n"
+    evening_all_done: "🌙 **Вечерние:** ✅ Все выполнены!"
+    pending_routines_error: "❌ Ошибка при загрузке рутин."
+    goals_progress_error: "❌ Ошибка при загрузке прогресса по целям."
+    morning_reminder: "🌅 **Утренние рутины**\n\nНе забудь выполнить:\n"
+    evening_reminder: "🌙 **Вечерние рутины**\n\nНе забудь выполнить:\n"
+    more_tasks_suffix: "\n... и ещё {count} задач"
+    weekly_goals_no_tasks: |
+      📋 Цели {quarter} без задач на доске
+
+      По этим целям сейчас нет ни одной задачи. Предложение: создать по одной мелкой задаче для каждой — тогда на неделе будет с чего начать.
+
+      {goals}
+
+      Напиши задачу в чат — добавлю на доску и привяжу к цели.
+
+      Где посмотреть маппинг: кнопка «Прогресс по целям» в меню.
+    goals_alerts_header: "⚠️ **Алерты по целям {quarter}:**\n\n{alerts}"
+    missed_deadlines_header: "🔴 **Пропущенные дедлайны:**\n\n"
+    deadline_overdue_line: "   Дедлайн был: {deadline} (просрочено на {days} дн.)\n\n"
+    reminder_one_day: "📌 **Напоминание за день:** завтра дедлайн у {count} задач.\n\n"
+    upcoming_deadlines_header: "⏰ **Приближающиеся дедлайны:**\n\n"
+    deadline_today: "🔴 **СЕГОДНЯ:**\n"
+    deadline_tomorrow: "🟠 **ЗАВТРА (дедлайн через день):**\n"
+    deadline_in_days: "🟡 **Через {days} дня:**\n"
+    deadline_in_days_many: "📅 **Через {days} дней:**\n"
+    deadline_line: "   Дедлайн: {deadline}\n\n"
+    stuck_tasks_header: "🔶 **Застряли в одном статусе ({days}+ дней без изменений):**\n\n"
+    stuck_task_line: "• {title}\n  {column} — без изменений {days} дн.\n\n"
+    column_header: "{column} ({total}):\n\n"
+
+finance:
+  menu:
+    add_expense: "➖ Добавить расход"
+    add_expense_short: "➖ Расход"
+    add_income: "➕ Добавить доход"
+    add_income_short: "➕ Доход"
+    transfer: "↔️ Перевод"
+    debts: "💼 Долги"
+    invest: "📈 Инвестиции"
+    balance: "📊 Баланс"
+    last_ops: "🧾 Последние операции"
+    summary: "📊 Суммаризация"
+    plan: "📋 План/Прогноз"
+    sync: "🔄 Синхронизация"
+    badge: "🍽 Бейдж"
+  placeholder_main: "Введите транзакцию или выберите действие"
+  default_wallet_name: "Кошелек"
+  sync_menu_title: "🔄 Синхронизация"
+  sync_menu_choose: "Выберите действие:"
+  add_account_title: "💳 <b>Добавление счета</b>\n\n"
+  sync_broker_button: "🔄 Тинькофф Брокер"
+  sync_add_account_button: "💳 Добавить карту/счет"
+  sync_list_accounts_button: "📋 Мои счета"
+  sync_back_button: "⬅️ Назад"
+  exact_command_broker_sync: "Синк Тинькофф"
+  start_greeting: "Привет! 👋 Финансы: текстом через агента или кнопки ниже (баланс, операции, инвестиции, план)."
+  sync_broker_progress: "⏳ Синхронизирую Тинькофф..."
+  sync_broker_error: "❌ Ошибка синхронизации Тинькофф:\n\n{error}"
+  accounts_empty: "📋 У вас пока нет счетов.\n\nДобавьте первый счет через \"💳 Добавить карту/счет\""
+  accounts_header: "📋 <b>Ваши счета:</b>\n"
+  account_balance_suffix: " (баланс: {balance:,.0f} {currency})"
+  account_portfolio_suffix: " (портфель API)"
+  add_account_name_prompt: "Введите название счета (например: \"Сбербанк\", \"Тинькофф\", \"Кошелек\"):"
+  add_account_name_invalid: "❌ Название должно быть от 1 до 64 символов. Попробуйте еще раз:"
+  add_account_balance_prompt: "Введите начальный баланс (число, например: 5000 или 0):"
+  add_account_balance_invalid: "❌ Неверный формат. Введите число (например: 5000 или 0):"
+  add_account_currency_prompt: "💰 Введите валюту (RUB, USD, EUR, GBP, CNY) или нажмите /skip для RUB:"
+  add_account_currency_invalid: "❌ Неподдерживаемая валюта. Используйте: RUB, USD, EUR, GBP, CNY"
+  account_updated: "✅ Обновлен счет: {name} (баланс: {balance:,.0f} {currency})"
+  account_added: "✅ Добавлен счет: {name} (баланс: {balance:,.0f} {currency})"
+  nlu_pending_confirm: "⏳ Сначала подтверди или отмени текущие транзакции кнопками под сообщением «Транзакция N из M»."
+  nlu_parse_error: "❌ Ошибка при распознавании транзакции:\n\n{error}\n\nТекст: {text}"
+  nlu_not_recognized: |
+    ❌ Не удалось распознать транзакцию из текста:
+
+    {text}
+
+    Попробуйте переформулировать или отправьте транзакции по одной.
+  nlu_check_error: "❌ Ошибка при проверке транзакции {index} из {total} ({detail}). Попробуйте отправить пачку меньшими частями или по одной строке."
+  nlu_confirm_error: "❌ Распознано {count} транзакций, но не удалось показать подтверждение:\n\n{error}"
+  finance_llm_unavailable: "❌ LLM недоступен: {error}"
+  finance_no_answer: "❌ Не удалось получить ответ по финансам."
+  finance_agent_missing: "❌ Finance agent не зарегистрирован в unified."
+  finance_thinking: "🔍 Смотрю данные..."
+  finance_data_no_answer: "❌ Не удалось получить ответ по данным."
+  badge_disabled: "Бейдж отключён в config/badge.yaml"
+  badge_prompt: |
+    Введите свободным текстом — сумма, место и опционально дата:
+  invest_title: "Инвестиции:"
+  invest_topup_recorded: "{category} записано ✅"
+  invest_invalid_amount: "Некорректная сумма. Повторите: "
+  invest_invalid_fee: "Некорректная комиссия. Повторите: "
+  invest_select_card: "Выберите карту для списания:"
+  invest_topup_amount: "Введите сумму пополнения:"
+  invest_target_card: "Куда зачислить (карта):"
+  invest_amount_no_fee: "Введите сумму зачисления на карту (без учёта комиссии):"
+  invest_broker_fee: "Комиссия брокера?"
+  invest_fee_amount: "Введите сумму комиссии:"
+  invest_details: "Подробности (REST):\n{text}"
+  invest_select_account: "Выберите счёт:"
+  invest_sync_error: "❌ Ошибка синка: {error}"
+  invest_withdraw_recorded: "{category} записан ✅"
+  invest_sdk_unavailable: "SDK недоступен — детали по позициям не поддерживаются.\nИспользуйте «Синк портфеля» для обновления балансов."
+  transfer_done: "Перевод выполнен ✅"
+  transfer_no_fx: "Пока без конвертации валют"
+  transfer_select_from: "Выберите счет ИЗ:"
+  transfer_select_to: "Выберите счет В:"
+  transfer_amount_prompt: "Введите сумму перевода:"
+  transfer_invalid_amount: "Некорректная сумма. Повторите:"
+  transfer_fee_prompt: "Комиссия?"
+  transfer_fee_zero: "0 комиссия"
+  transfer_fee_custom: "Ввести комиссию"
+  transfer_invalid_fee: "Некорректная комиссия. Повторите:"
+  transfer_confirm: |
+    Подтвердите перевод:
+
+    Из: {from_name} ({from_currency})
+    В:  {to_name} ({to_currency})
+    Сумма: {amount} {from_currency}
+    Комиссия: {fee} {from_currency}
+  debts_menu: "Долги: выберите действие"
+  debts_select_counterparty: "Выберите контрагента или создайте нового:"
+  debts_amount_prompt: "Введите сумму:"
+  debts_invalid_amount: "Некорректная сумма. Можно: 135 или 135 GBP"
+  debts_counterparty_name_prompt: "Введите имя контрагента:"
+  debts_account_error: "Ошибка счёта"
+  debts_amount_for: "{counterparty}\nВведите сумму:"
+  debts_recv_select_from: "Кому: {counterparty}\nСумма: {amount} {currency}\n\nВыберите счёт, с которого выдали в долг:"
+  debts_settle_recv_select_to: "Кто погасил: {counterparty}\nСумма: {amount} {currency}\n\nНа какой счёт поступило погашение?"
+  debts_recorded_recv: "Записал: мне должны {counterparty} +{amount} {currency} (списано с {account})"
+  debts_settled_recv: "Погашено: мне вернули {counterparty} {amount} {currency} (зачислено на {account})"
+  debts_recorded_pay: "Записал: я должен {counterparty} +{amount} {currency}"
+  debts_settled_pay: "Погашено: мой долг {counterparty} -{amount} {currency}"
+  debts_no_accounts_out: "❌ Нет счетов для списания. Сначала добавьте карту/кошелёк через «Синхронизация»."
+  debts_no_accounts_in: "❌ Нет счёта в валюте долга для зачисления. Добавьте карту/кошелёк через «Синхронизация»."
+  summary_progress: "⏳ Генерирую суммаризацию..."
+  summary_error: "❌ Ошибка генерации суммаризации:\n\n{error}"
+  summary_period_prompt: "Выберите период для суммаризации:"
+  summary_week: "📅 Неделя"
+  summary_month: "📅 Месяц"
+  summary_back: "⬅️ Назад"
+  recent_no_ops: "Нет операций."
+  recent_no_ops_account: "Нет операций по выбранному счёту."
+  recent_all_accounts: "📋 Все счета"
+  recent_export_json: "📤 Экспорт JSON"
+  recent_default_account: "Счёт"
+  recent_export_caption: "Экспорт операций: {count} записей"
+  plan_progress: "⏳ Считаю прогноз..."
+  plan_parse_hint: "Напиши подробнее, например: «надо 50 000 на ремонт к марту»"
+  plan_parse_fail: "Не удалось разобрать. Попробуй формулировку вроде: «надо 50 000 на ремонт к марту»"
+  plan_added: "План добавлен!"
+  plan_forecast_error: "❌ Ошибка: {error}\n\nПроверь, что добавлены счета и есть запланированные расходы."
+  plan_list_empty: "📋 Планов пока нет.\n\nНапиши, например: «надо 50 000 на ремонт к марту»"
+  plan_list_header: "📋 Запланированные расходы:\n"
+  plan_list_line: "• {name}: {amount:,.0f} {currency} (к {due})"
+  plan_add_prompt: |
+    📝 Напиши запланированный расход.
+
+    Примеры:
+    • надо 50 000 на ремонт к марту
+    • планирую купить ноут за 150к в апреле
+    • отложить 30к на отпуск
+  plan_confirm_create: |
+    ✅ Создать план?
+
+    • {name}: {amount:,.0f} {currency} (к {due})
+  plan_added_detail: "✅ Добавлено: {name} — {amount:,.0f} {currency}"
+  plan_list_btn: "📋 Планы"
+  plan_add_btn: "➕ Добавить план"
+  plan_forecast_btn: "📊 Прогноз"
+  plan_back: "« Назад"
+  plan_menu_back: "« Меню"
+  plan_confirm_yes: "✅ Да"
+  plan_confirm_no: "❌ Нет"
+  plan_due_none: "без срока"
+  confirm_debt_recorded_recv: "✅ Долг записан: {counterparty} +{amount} {currency} (списано с {account})"
+  confirm_debt_recorded_simple: "✅ Долг записан: {counterparty} +{amount} {currency}"
+  confirm_counterparty_prompt: "👤 Введите имя контрагента:"
+  confirm_amount_prompt: "💰 Введите сумму:"
+  confirm_category_prompt: "🏷 Введите категорию:"
+  confirm_account_updated_name: "✅ Счет {name} обновлен"
+  confirm_tx_error: "❌ Ошибка: транзакция не найдена"
+  wizard_expense_amount: "Введите сумму расхода (например: 500.00):"
+  wizard_income_amount: "Введите сумму дохода (например: 1500.00):"
+  wizard_select_account: "Выберите счет:"
+  wizard_category_text: "Введите категорию текстом:"
+  wizard_cat_text_btn: "📝 Ввести текстом"
+  wizard_confirm_header: "{emoji} <b>Подтвердите транзакцию:</b>\n\n"
+  wizard_confirm_type: "Тип: {txn_type}\n"
+  wizard_confirm_amount: "Сумма: {amount:,.2f} {currency}\n"
+  wizard_confirm_category: "Категория: {category}\n"
+  wizard_confirm_account: "Счет: {account}"
+  wizard_confirm_btn: "✅ Подтвердить"
+  wizard_no_category: "Без категории"
+  confirm_all_done: "✅ Все транзакции записаны!"
+  confirm_cancelled: "❌ Подтверждение транзакций отменено"
+  confirm_recorded: "✅ Транзакция записана"
+  confirm_tx_not_found: "Ошибка: транзакция не найдена"
+  confirm_user_not_found: "Ошибка: пользователь не найден"
+  confirm_next_error: "❌ Ошибка при переходе к следующей транзакции"
+  confirm_invalid_amount: "❌ Неверный формат суммы. Попробуйте еще раз."
+  confirm_account_updated: "✅ Счет {name} обновлен"
+  confirm_broker_withdraw: "✅ Вывод с брокера записан"
+  confirm_no_credit_account: "❌ Не выбран счёт для зачисления"
+  confirm_no_debit_account: "❌ Не выбран счёт списания"
+  confirm_debt_recorded: "✅ Погашение записано: {counterparty} {amount} {currency} на {to_account}"
+  wizard_account_forbidden: "Нельзя выбрать этот счет"
+  wizard_account_missing: "Ошибка: счет не выбран"
+  wizard_account_not_found: "Ошибка: счет не найден"
+  confirm_preview_batch: "📋 <b>Транзакция {index} из {total}</b>\n"
+  confirm_preview_title: "{emoji} <b>Транзакция:</b>"
+  confirm_preview_amount: "💰 Сумма: {amount:,.0f} {currency}"
+  confirm_preview_amount_missing: "💰 Сумма: ❌ не распознана"
+  confirm_preview_type: "📊 Тип: {type_name}"
+  confirm_preview_category: "🏷 Категория: {category}"
+  confirm_preview_category_missing: "🏷 Категория: ❌ не распознана"
+  confirm_preview_account: "💳 Счет: {account}"
+  confirm_preview_account_missing: "💳 Счет: ❌ не распознан"
+  confirm_preview_from: "⬅️ Откуда: {account}"
+  confirm_preview_from_missing: "⬅️ Откуда: ❌ не распознан"
+  confirm_preview_to: "➡️ Куда: {account}"
+  confirm_preview_to_missing: "➡️ Куда: ❌ не распознан"
+  confirm_preview_broker_fee: "🏦 Комиссия брокера: {fee:,.0f} {currency}"
+  confirm_preview_broker_fee_none: "🏦 Комиссия брокера: нет"
+  confirm_preview_broker_fee_raw: "🏦 Комиссия брокера: {fee}"
+  confirm_preview_counterparty: "👤 Контрагент: {counterparty}"
+  confirm_preview_counterparty_missing: "👤 Контрагент: ❌ не распознан"
+  confirm_preview_description: "📝 Описание: {description}"
+  confirm_preview_date: "📅 Дата: {date}"
+  confirm_preview_date_today: "📅 Дата: сегодня"
+  confirm_btn_set_amount: "💰 Указать сумму"
+  confirm_btn_set_category: "📝 Ввести категорию"
+  confirm_btn_set_counterparty: "👤 Указать контрагента"
+  confirm_btn_prev: "⬅️ Предыдущая"
+  confirm_btn_next: "➡️ Следующая"
+  txn_type_expense: "Расход"
+  txn_type_income: "Доход"
+  txn_type_transfer: "Перевод"
+  txn_type_debt_receivable: "Мне должны"
+  txn_type_debt_payable: "Я должен"
+  txn_type_debt_settle_receivable: "Погашение долга (мне вернули)"
+  txn_type_broker_withdraw: "Вывод с брокера"
+  txn_type_account_balance: "Баланс счета"
+  balance_title: "📊 Баланс"
+  balance_section_cards: "💳 Карты"
+  balance_section_cash: "💵 Наличные"
+  balance_section_invest: "📈 Инвестиции"
+  balance_section_crypto: "🪙 Крипто"
+  balance_section_debts: "🏦 Долги"
+  balance_debt_receivable_label: "{name} (мне должны)"
+  balance_debt_payable_label: "{name} (я должен)"
+  balance_all_zero: "Все балансы равны нулю"
+  balance_no_accounts: "Нет активных счетов"
+  balance_add_account_hint: "Добавьте счет через:"
+  balance_add_account_path: "🔄 Синхронизация → 💳 Добавить карту/счет"
+  scheduler_subscriptions_header: "🔔 Ближайшие списания (≤ 3 дня):"
+  scheduler_daily_reminder: "Напоминание: добавьте операции за сегодня ✍️"
+  scheduler_weekly_title: "📊 Итоги недели\n\n{text}"
+  scheduler_monthly_title: "📅 Итоги месяца\n\n{text}"
+  scheduler_badge_llm_prompt: "Дай краткий разбор."
+  planning_default_name: "План"
+  wizard_back_menu: "⬅️ Назад"
+  summary_user_not_found: "❌ Пользователь не найден. Сначала нажмите /start"
+  badge_menu_hint: |
+    🍽 Badge expense (account: {account}, category: {category}, limit: {limit} RUB/day)
+
+    {prompt}
+  badge_recorded: "✅ {amount} RUB badge{desc}"
+  badge_coaching_header: ""
+  badge_evening_title: "🍽 Badge: spent {spent} of {limit} today."
+  badge_evening_remain: "{remaining} RUB left — quota burns at midnight."
+  badge_evening_over: "⚠️ Over limit: {over} RUB (deducted from salary)."
+  badge_weekend: "Today is a day off — no daily badge quota."
+  badge_today_line: "📊 Today: {spent} / {limit} RUB"
+  badge_today_remain: "{remaining} RUB left (burns today)"
+  badge_today_over: "Over limit: {over} RUB"
+  badge_month_line: "📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned} RUB"
+  badge_month_title: "🍽 Badge for {month:02d}.{year}"
+  badge_month_working: "Working days: {working}, with spend: {with_spend}"
+  badge_month_spent: "Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)"
+  badge_month_burned: "Quota burned: {burned} RUB"
+  badge_month_ndfl: "Estimated income tax on spend: ~{ndfl} RUB"
+  badge_month_zero_days: "Days without spend (full burn): {days}"
+  badge_month_over: "Over daily limit: {over} RUB"

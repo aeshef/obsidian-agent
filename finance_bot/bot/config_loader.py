@@ -10,7 +10,7 @@ from shared.yaml_config import load_merged_config, load_yaml
 
 log = logging.getLogger("finance.config")
 
-[REDACTED]
+CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 _config_cache: Dict[str, Union[dict, str]] = {}
 
 
@@ -63,10 +63,8 @@ def nlu_menu_buttons(cfg: Optional[dict] = None) -> set[str]:
 
     t = finance_menu_texts()
     return {
-        t["invest"],
         t["balance"],
         t["last_ops"],
-        t["plan"],
     }
 
 
@@ -75,6 +73,13 @@ def nlu_exact_commands(cfg: Optional[dict] = None) -> set[str]:
     from shared.capabilities.finance_gates import filter_finance_exact_commands
 
     return filter_finance_exact_commands(set(cfg.get("exact_commands") or []))
+
+
+def nlu_cancel_texts(cfg: Optional[dict] = None) -> frozenset[str]:
+    """Lowercase aliases that cancel pending transaction confirm (nlu_config.cancel_text_aliases)."""
+    cfg = cfg or get_nlu_config()
+    raw = cfg.get("cancel_text_aliases") or []
+    return frozenset(str(x).strip().lower() for x in raw if str(x).strip())
 
 
 def get_summary_config() -> dict:

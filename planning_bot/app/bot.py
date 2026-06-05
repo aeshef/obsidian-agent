@@ -32,7 +32,7 @@ def configure_logging() -> None:
     logger.info('=' * 50)
 
 class PlanningBot:
-    """Planning bot module."""
+    """Facade wiring handlers and services for the planning Telegram bot."""
     start = commands.start
     cmd_reset_context = commands.cmd_reset_context
     handle_text_message = commands.handle_text_message

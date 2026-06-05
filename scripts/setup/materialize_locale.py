@@ -7,7 +7,7 @@ import shutil
 import sys
 from pathlib import Path
 
-[REDACTED]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def materialize(locale: str | None = None) -> None:

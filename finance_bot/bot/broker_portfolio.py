@@ -1,5 +1,5 @@
 """
-[REDACTED]
+Broker portfolio account type helpers (T-Invest API sync vs manual broker YAML).
 
 Only type == broker_portfolio — account from Invest API sync (snapshots, broker line in dashboard).
 

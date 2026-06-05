@@ -44,7 +44,16 @@ DEPLOYED_COMPONENTS=()
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --component) COMPONENTS+=("$2"); shift 2;;
+    --component)
+      IFS=',' read -r -a _comp_parts <<< "$2"
+      for _cp in "${_comp_parts[@]}"; do
+        _cp="${_cp#"${_cp%%[![:space:]]*}"}"
+        _cp="${_cp%"${_cp##*[![:space:]]}"}"
+        [ -n "$_cp" ] && COMPONENTS+=("$_cp")
+      done
+      unset _comp_parts _cp
+      shift 2
+      ;;
     --no-restart) NO_RESTART=1; shift;;
     --install-deps) INSTALL_DEPS=1; shift;;
     --dry-run) DRYRUN=1; shift;;
@@ -92,18 +101,30 @@ KNOWLEDGE_PROMPT_RULES=(
 
 # Файлы, чья контрольная сумма сверяется после deploy (относительно $SERVER_BOTS)
 DEPLOY_VERIFY_PATHS=(
+  shared/capabilities/profile.py
+  shared/constants.py
+  shared/llm.py
+  knowledge_bot/services/extract/__init__.py
+  knowledge_bot/core/llm.py
+  planning_bot/core/llm.py
+  planning_bot/app/keyboards.py
   knowledge_bot/app/agent_tools.py
   knowledge_bot/app/save_note.py
   knowledge_bot/app/handlers/modes.py
+  knowledge_bot/services/query/__init__.py
   knowledge_bot/services/query/brain_query.py
   knowledge_bot/services/query/note_lookup.py
   shared/agent/app.py
+  shared/agent/router.py
   shared/telegram/kb_media.py
+  shared/telegram/host/constants.py
   shared/telegram/host/knowledge_dispatch.py
   shared/telegram/host/wire.py
   knowledge_bot/app/register_handlers.py
   finance_bot/bot/services/transactions/core.py
   finance_bot/bot/services/nlu_parser.py
+  finance_bot/bot/handlers/transactions/__init__.py
+  finance_bot/bot/handlers/transactions/states.py
   finance_bot/bot/handlers/transactions/nlu.py
 )
 
@@ -420,6 +441,9 @@ _agent_deployed=0
 for c in "${COMPONENTS[@]}"; do
   case "$c" in
     all) _deploy_all=1 ;;
+    config)
+      # config/ уже синхронизирован выше (sync_repo_config_remote); отдельный rsync не нужен
+      ;;
     shared|finance_bot|knowledge_bot|planning_bot|unified_bot) ;;
     *) echo "Неизвестный компонент: $c"; exit 2 ;;
   esac
@@ -451,12 +475,17 @@ if [ "$_deploy_all" = 1 ]; then
   deploy_agent_platform_paths
   _want_verify=1
 else
+  _legacy_restart_mode="auto"
+  if { [ "$PROD" = 1 ] || [ "$RESTART_UNIFIED" = 1 ]; } && [ "$LEGACY_BOTS" = 0 ]; then
+    _legacy_restart_mode="skip"
+    echo "ℹ️ partial deploy: legacy bot restarts skipped (unified host; use --legacy-bots to enable)"
+  fi
   for c in "${COMPONENTS[@]}"; do
     case "$c" in
       shared)        deploy_one shared; _want_verify=1 ;;
-      finance_bot)   deploy_one finance_bot; _want_verify=1 ;;
-      knowledge_bot) deploy_one knowledge_bot; _want_verify=1 ;;
-      planning_bot)  deploy_one planning_bot ;;
+      finance_bot)   deploy_one finance_bot "$_legacy_restart_mode"; _want_verify=1 ;;
+      knowledge_bot) deploy_one knowledge_bot "$_legacy_restart_mode"; _want_verify=1 ;;
+      planning_bot)  deploy_one planning_bot "$_legacy_restart_mode" ;;
       unified_bot)
         if [ "$_agent_deployed" = 0 ]; then
           deploy_agent_platform_paths
@@ -500,6 +529,10 @@ fi
 verify_bots
 
 if [ "$RESTART_UNIFIED" = 1 ] && [ "$NO_RESTART" = 0 ] && [ "$DRYRUN" = 0 ]; then
-  restart_unified_bot_remote
+  _stop_legacy=0
+  if [ "$_deploy_all" = 1 ] || [ "$LEGACY_BOTS" = 1 ]; then
+    _stop_legacy=1
+  fi
+  restart_unified_bot_remote "$_stop_legacy"
   verify_unified_bot_remote
 fi

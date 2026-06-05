@@ -85,17 +85,61 @@ def collect_vault_snapshot(vault: Path) -> dict[str, Any]:
 
 
 def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[str, Any]:
-    """Module helper (user strings in YAML)."""
+    """Parse numeric totals from maintenance step stdout/stderr."""
+    from knowledge_bot.i18n.domain_text import maintenance as mm
+
+    text = stdout or ""
+    if not text.strip() and not (stderr or "").strip():
+        return {}
+    out: dict[str, Any] = {}
+    if step_name == "retag_notes":
+        m = re.search(mm("regex_retag_total"), text)
+        if m:
+            out["retag_touched"] = int(m.group(1))
+            out["retag_skipped"] = int(m.group(2))
+            if m.lastindex and m.lastindex >= 3 and m.group(3) is not None:
+                out["retag_llm_fallbacks"] = int(m.group(3))
+    elif step_name == "refill_singleton_tags":
+        m = re.search(mm("regex_refill_total"), text)
+        if m:
+            out["refill_touched"] = int(m.group(1))
+            out["refill_skipped"] = int(m.group(2))
+            out["refill_llm_errors"] = int(m.group(3))
+    elif step_name in ("apply_wikilinks_batch", "apply_wikilinks"):
+        m = re.search(mm("regex_changed"), text)
+        if m:
+            out["wikilinks_changed"] = int(m.group(1))
+    elif step_name == "reprocess_notes":
+        out["reprocess_saved"] = len(re.findall(r"✓ Записано:", text))
+        out["reprocess_deleted_empty"] = len(
+            re.findall(r"\[удалено: нет контента\]", text)
+        )
+    elif step_name in ("apply_duplicates", "apply_duplicates_dryrun"):
+        out["duplicates_deleted_lines"] = len(
+            re.findall(mm("regex_deleted_line"), text, re.MULTILINE)
+        )
+        m = re.search(mm("regex_dup_freed"), text)
+        if m:
+            out["duplicates_export_files"] = int(m.group(1))
+            out["duplicates_mb_freed"] = float(m.group(2))
+    elif step_name == "singleton_tags_report":
+        m = re.search(mm("regex_singleton_count"), text)
+        if m:
+            out["singleton_tag_notes_reported"] = int(m.group(1))
+    elif step_name == "sync_hubs":
+        out["hubs_writes"] = len(re.findall(r"write:", text))
+    return out
+
+
+def _flatten_run_metrics(steps: list[dict[str, Any]]) -> dict[str, Any]:
+    """Merge per-step metrics from one maintenance run."""
     merged: dict[str, Any] = {}
     for s in steps:
         m = s.get("metrics") or {}
         if not isinstance(m, dict):
             continue
         for k, v in m.items():
-            if isinstance(v, list):
-                existing = merged.get(k)
-                merged[k] = (existing if isinstance(existing, list) else []) + v
-            elif isinstance(v, (int, float)) and k not in {
+            if isinstance(v, (int, float)) and k not in {
                 "duplicates_mb_freed",
                 "duplicates_export_files",
                 "duplicates_deleted_lines",

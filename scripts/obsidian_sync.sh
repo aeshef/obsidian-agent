@@ -110,6 +110,20 @@ fi
 # shellcheck source=scripts/lib/vault_knowledge_dir.sh
 source "${AGENT_ROOT}/scripts/lib/vault_knowledge_dir.sh"
 KNOWLEDGE_SUBDIR="$(vault_knowledge_subdir)"
+# Planning/knowledge: bare python3 often lacks PyYAML → context_sync / iphone_* fail in logs.
+_py_imports_yaml() { "$1" -c "import yaml" 2>/dev/null; }
+PLAN_PYTHON=""
+for _candidate in \
+  "$AGENT_ROOT/finance_bot/.venv/bin/python" \
+  "$AGENT_ROOT/planning_bot/venv/bin/python" \
+  "/opt/homebrew/bin/python3" \
+  python3; do
+  if command -v "$_candidate" >/dev/null 2>&1 && _py_imports_yaml "$_candidate"; then
+    PLAN_PYTHON="$_candidate"
+    break
+  fi
+done
+unset _candidate _py_imports_yaml
 RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
@@ -209,7 +223,7 @@ if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PL
   touch "$_PLANNING_BOT/logs/context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/context_sync.py) >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/context_sync.py) >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
 fi
 
 # 1c. iPhone: удалить невалидные IPhone/*.txt + пересобрать iphone_*.json ДО push (канон Mac → VPS)
@@ -217,7 +231,7 @@ if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PL
   touch "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/iphone_context_sync.py) >> "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_context_sync.py) >> "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
 fi
 unset _PLANNING_BOT
 
@@ -284,15 +298,17 @@ fi
 _pb_venv="$AGENT_ROOT/planning_bot/venv"
 _pb_sp="$(ls -d "$_pb_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
 _chart_py_ok() { "$1" -c "import yaml" 2>/dev/null; }
-CHART_PYTHON=""
-if ! [ -t 0 ] && [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
-  CHART_PYTHON="/opt/homebrew/bin/python3"
-elif [ -x "$_pb_venv/bin/python" ] && _chart_py_ok "$_pb_venv/bin/python"; then
-  CHART_PYTHON="$_pb_venv/bin/python"
-elif [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
-  CHART_PYTHON="/opt/homebrew/bin/python3"
-elif command -v python3 >/dev/null 2>&1 && _chart_py_ok python3; then
-  CHART_PYTHON=python3
+CHART_PYTHON="${PLAN_PYTHON:-}"
+if [ -z "$CHART_PYTHON" ]; then
+  if ! [ -t 0 ] && [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
+    CHART_PYTHON="/opt/homebrew/bin/python3"
+  elif [ -x "$_pb_venv/bin/python" ] && _chart_py_ok "$_pb_venv/bin/python"; then
+    CHART_PYTHON="$_pb_venv/bin/python"
+  elif [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
+    CHART_PYTHON="/opt/homebrew/bin/python3"
+  elif command -v python3 >/dev/null 2>&1 && _chart_py_ok python3; then
+    CHART_PYTHON=python3
+  fi
 fi
 if [ -n "$_pb_sp" ]; then
   CHART_PYTHONPATH="${AGENT_ROOT}:${_pb_sp}"
@@ -662,7 +678,7 @@ if cap_step_enabled SYNC_GMAIL_HEALTH && [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLA
     # Защита от «вечного» зависания IMAP: если шаг висит слишком долго, убиваем и продолжаем цикл синка.
     _IMAP_TIMEOUT="${IPHONE_MAIL_SYNC_TIMEOUT_SECS:-480}"
     (
-      cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/iphone_mail_sync.py
+      cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_mail_sync.py
     ) >> "$PLANNING_BOT/logs/iphone_mail_sync.log" 2>&1 &
     _imap_pid=$!
     (
@@ -694,7 +710,7 @@ if cap_step_enabled SYNC_MAC_IPHONE && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING
   touch "$PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/iphone_context_sync.py) >> "$PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
+  (cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_context_sync.py) >> "$PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
 fi
 
 # 5d. График КБЖУ — после 5b.4 + 5b.4b. Раз в сутки по маркеру, НО также если появился новый IPhone/*.txt

@@ -7,8 +7,7 @@ from shared.domain_messages import dmsg
 from shared.locale import agent_locale
 from shared.yaml_config import load_yaml_list_runtime
 
-
-[REDACTED]
+ROOT = Path(__file__).resolve().parent.parent.parent
 _CONFIG_DIR = str(ROOT / "config")
 
 

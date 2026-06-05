@@ -19,15 +19,10 @@ def _build_handler_map() -> dict[str, Handler]:
 
     t = finance_menu_texts()
     # Reply keyboard only for kept actions; wizard labels route via agent/NLU.
-    from shared.capabilities.finance_ui import invest_menu_visible
-
     canonical: dict[str, Handler] = {
         t["balance"]: h.handle_balance_button,
         t["last_ops"]: h.handle_last_button,
-        t["plan"]: h.handle_plan_button,
     }
-    if invest_menu_visible():
-        canonical[t["invest"]] = h.handle_investments_button
     cfg = get_nlu_config()
     configured = nlu_menu_buttons(cfg)
     if configured:

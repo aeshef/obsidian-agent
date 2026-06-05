@@ -13,15 +13,15 @@ def test_finance_reply_menu_slim():
     t = finance_menu_texts()
     handlers = reply_menu_handlers()
     assert set(handlers) >= {
-        t["invest"],
         t["balance"],
         t["last_ops"],
-        t["plan"],
     }
-    assert t["add_expense"] not in handlers
-    assert t["summary"] not in handlers
-    assert t["sync"] not in handlers
-    assert not is_reply_menu_button(t["add_expense"])
+    assert t["invest"] not in handlers
+    assert t["plan"] not in handlers
+    for legacy in ("add_expense", "summary", "sync"):
+        if legacy in t:
+            assert t[legacy] not in handlers
+            assert not is_reply_menu_button(t[legacy])
     assert is_reply_menu_button(t["balance"])
     assert nlu_menu_buttons(get_nlu_config()) <= set(handlers)
 

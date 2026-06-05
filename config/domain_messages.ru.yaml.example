@@ -1,6 +1,6 @@
 # cp config/domain_messages.ru.yaml.example → config/domain_messages.ru.yaml
-# Russian tool/agent strings. Keys must match domain_messages.en.yaml.example.
-# AGENT_LOCALE=ru uses this catalog; EN default merges EN over RU.
+# Russian domain/tool strings (dmsg). Keys must match domain_messages.en.yaml.example.
+# Prod overrides: domain_messages.ru.yaml (gitignored). Telegram UI: messages.*.yaml.
 
 note_lookup:
   empty_query: "пустой запрос или индекс"
@@ -351,7 +351,7 @@ finance_agent:
   import_badge_skipped: "   Skipped duplicates: {count}"
   import_badge_inserted: "   Added: {count} ops totaling {total} RUB"
   import_txn_done: "{db}: added {added}, skipped {skipped}, max_id={max_id}, total={total}"
-  import_default_account: "Яндекс Банк"
+  import_default_account: "Основной счёт"
   show_txn_db_missing: "DB not found: {path}"
   show_txn_usage: "Usage: python scripts/show_recent_txns.py [path/to/finance.db]"
   show_txn_recent_header: "=== Recent transactions ==="
@@ -425,6 +425,78 @@ planning:
   routines_all_done: "Все рутины на сегодня выполнены."
   routines_patterns: "Паттерны за {days} из {total_days} дней анализа."
   routines_recommendations_user: "Дай рекомендации по рутинам на основе системного контекста выше."
+  calendar_day_header: "Календарь {day}:"
+  calendar_day_empty: "Нет событий в календаре за {day}."
+  calendar_range_header: "Календарь {start} — {end}: событий {shown} (всего {total})."
+  calendar_range_empty: "Нет событий в календаре за {start} — {end}."
+  calendar_range_truncated: "Показаны первые {max} из {total} (см. planning_calendar.range_max_events)."
+  calendar_event_timed: "{date} {start}–{end} {cancelled}{tag}{title}"
+  calendar_event_allday: "{date} (весь день) {cancelled}{tag}{title}"
+  calendar_event_cancelled_prefix: "[отменено] "
+  calendar_upcoming_header: "Ближайшие встречи:"
+  calendar_week_header: "Календарь {start}–{end}:"
+  calendar_week_timed_stats: "Встречи с временем: {count} ({hours}ч {mins}м){cancelled_note}"
+  calendar_week_cancelled_note: " (отменённых с временем: {n})"
+  calendar_week_allday_stats: "События на весь день: {active}{cancelled_note}"
+  calendar_week_allday_cancelled_note: " (отменённых: {n})"
+  calendar_week_allday_truncated: "… ещё all-day событий: {total}, показано {max}"
+  calendar_week_past_header: "Прошедшие ({count}):"
+  calendar_week_past_truncated: "… прошедших: {total}, показано {max}"
+  calendar_week_future_header: "Предстоящие ({count}):"
+  calendar_week_future_truncated: "… предстоящих: {total}, показано {max}"
+  calendar_meta_missing: "meta: calendar.json отсутствует"
+  calendar_meta_read_error: "meta: ошибка чтения ({error})"
+  calendar_meta_txt_newer: ". ⚠️ calendar.txt новее JSON — нужен calendar_sync."
+  calendar_invalid_day: "Некорректная дата: {day} (ожидается YYYY-MM-DD)"
+  calendar_tool_prefix: "Календарь (день):"
+  calendar_tool_empty: "Календарь пуст или недоступен. [{meta}]"
+  calendar_truncated_suffix: " …(обрезано)"
+  agent_calendar_unavailable: "Календарь недоступен (ошибка чтения)."
+  agent_calendar_analytics_unavailable: "Аналитика календаря недоступна (нет calendar.json)."
+  agent_calendar_analytics_header: "Календарь, аналитика: anchor={anchor}, horizon={horizon} дн."
+  agent_calendar_analytics_minutes: "Минут встреч в окне: {minutes}"
+  agent_calendar_analytics_tags: "Теги: {tags}"
+  agent_calendar_analytics_sections: "Секции жизни: {sections}"
+  agent_calendar_analytics_daily_header: "По дням (встречи с временем):"
+  agent_calendar_analytics_daily_columns: "date\tweekday\tmeetings\tminutes"
+  agent_calendar_analytics_daily_row: "{date}\t{weekday}\t{meetings}\t{minutes}"
+  agent_action_log_unavailable: "Лог действий недоступен."
+  agent_action_log_no_events: "Событий по фильтру нет."
+  agent_action_log_period: "Период лога: {start} … {end}"
+  agent_action_log_summary: "Лог задач: строк {shown}/{total}. По типам: completed={completed}, moved={moved}, created={created}."
+  agent_action_log_summary_filtered: "Лог задач ({event_type}): строк {shown}/{total}."
+  agent_action_log_hour_header: "Завершения по часу (n={n}):"
+  agent_action_log_hour_columns: "hour\tcount"
+  agent_action_log_hour_row: "{hour}\t{count}"
+  agent_action_log_tail_truncated: "Показаны последние {shown} из {total}; limit=0 для полного периода."
+  agent_action_log_no_recent: "Нет недавних событий в логе."
+  agent_action_log_chain_period: "Период: {start} — {end}. Событий: {count} (в файле {raw})."
+  agent_action_log_range_empty: "За {start} — {end} в логе нет событий task_*."
+  agent_routines_header: "Рутины ({day}):"
+  agent_mac_series_hint: "Сводка: последний Mac-снимок на день. Лента → get_mac_snapshots(from_ts, to_ts)."
+  agent_mac_snapshots_need_range: "Укажи from_ts и/или to_ts (ISO: YYYY-MM-DD или YYYY-MM-DDTHH:MM)."
+  agent_mac_snapshots_empty: "Нет Mac-снапшотов за {start} … {end}."
+  agent_mac_snapshots_header: "Mac-снапшоты {start} … {end}: показано {shown}/{total}"
+  agent_mac_snapshots_columns: "ts\tapp\tfocus\tbattery_pct\tsafari"
+  agent_mac_snapshots_truncated: "… последние {shown} из {total}; сузь интервал или limit=0"
+  agent_mac_snapshots_row: "{ts}\t{app}\t{focus}\t{battery_pct}\t{safari}"
+  agent_kanban_today_anchor: "Канбан (дата-якорь: {today})."
+  agent_kanban_today_hint: "Колонка «Сегодня» — статус канбана, не календарный день."
+  agent_kanban_board_header: "Доска:"
+  agent_kanban_col_truncated: "{col}: показано {preview} из {total}."
+  agent_kanban_col_count: "{col} ({count}):"
+  agent_kanban_empty: "  (пусто)"
+  agent_task_done_suffix: " ✓"
+  agent_goals_year_header: "Цели года:\n"
+  agent_goals_quarter_header: "Фокус квартала:\n"
+  agent_goals_context_header: "Контекст целей:\n"
+  agent_goals_empty: "Цели не заданы."
+  agent_tasks_filter_header: "Задачи по фильтру:"
+  agent_health_export: "Экспорт health: {n} дней → {path}"
+  agent_system_prompt_base: "Ты — ассистент по планированию. Отвечай по результатам инструментов."
+  agent_system_prompt_today: "Сегодня: {today}."
+  agent_system_prompt_tools: "Вызывай инструменты для фактов; не выдумывай данные."
+  agent_system_prompt_format: "Формат: кратко, по делу."
   calendar_life_chart_missing_callout: "> [!info] Нет данных по секциям жизни в текущем окне календаря.\n\n"
   calendar_companion_updated: "_Обновлено: {now}_"
   calendar_attendance_context: |
@@ -4613,3 +4685,43 @@ planning:
   auto_f61e904259: "📝 Генерация еженедельного ревью"
   auto_f6622f8d0d: "Добавлен контекст календаря в рекомендации"
   auto_f6d046868d: "Контекст Mac в ревью: %d снапшотов"
+
+finance:
+  uncategorized: "Без категории"
+  misc: "Прочее"
+  categories_file_missing: "Файл категорий не найден: {path}"
+  transfer_category: "Перевод"
+  transfer_out_description: "Перевод на {account}"
+  transfer_in_description: "Перевод с {account}"
+  transfer_to_description: "Перевод на {account}"
+  transfer_from_description: "Перевод с {account}"
+  transfer_substring: "перевод"
+  debts_category: "Долги"
+  default_counterparty: "Контрагент"
+  unknown_counterparty: "Контрагент"
+  debt_return_description: "Возврат долга от {counterparty}"
+  debt_issue_description: "Долг для {counterparty}"
+  broker_topup: "Пополнение брокера"
+  broker_withdraw: "Вывод с брокера"
+  broker_fee: "Комиссия брокера"
+  subscriptions_file_invalid: "Неверный subscriptions.yaml: {type}"
+
+finance_nlu:
+  accounts_block: |
+    ДОСТУПНЫЕ СЧЕТА ПОЛЬЗОВАТЕЛЯ (поле account — только из этого списка, строка целиком):
+    {accounts_list}
+
+  expense_categories_block: |
+    ДОСТУПНЫЕ КАТЕГОРИИ РАСХОДОВ (поле category для type=expense — только из этого списка, строка целиком, включая «Группа/Подкатегория»):
+    {categories_list}
+
+  income_categories_block: |
+    ДОСТУПНЫЕ КАТЕГОРИИ ДОХОДОВ (поле category для type=income — только из этого списка):
+    {categories_list}
+
+  debts_rules: ""
+
+  date_today: "Сегодня: {date} ({weekday})\n\n"
+  batch_hint: "Пакет транзакций: фрагмент {index} из {total}.\n"
+  empty_llm_txns: "LLM не вернул транзакции: {response}"
+  not_list_txns: "Поле transactions не список: {type_name}"

@@ -27,7 +27,7 @@ def repair_remote(month: str, vault: str | None) -> int:
 
     server = os.environ.get("OBSIDIAN_SERVER", "obsidian-server")
     remote_vault = vault or os.environ.get("SERVER_VAULT", "/root/obsidian-vault")
-    agent = os.environ.get("OBSIDIAN_AGENT_DIR", "/root/obsidian-agent")
+    agent = os.environ.get("OBSIDIAN_AGENT_DIR", "/root/bots")
     month_arg = f" --month {shlex.quote(month)}" if month else ""
     vault_arg = f" --vault {shlex.quote(remote_vault)}"
     cmd = (

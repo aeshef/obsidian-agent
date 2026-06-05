@@ -121,6 +121,45 @@ PRIORITY_ORDER = _schema_order("priority_order")
 DEFAULT_CATEGORY = CATEGORIES[0] if CATEGORIES else "прочее"
 DEFAULT_PRIORITY = "средний" if "средний" in PRIORITIES else (PRIORITIES[1] if len(PRIORITIES) > 1 else "средний")
 
+_DEFAULT_CATEGORY_EMOJIS: dict[str, str] = {
+    "карьера": "💼",
+    "учеба": "📚",
+    "развитие": "🚀",
+    "дом": "🏠",
+    "семья": "👥",
+    "здоровье": "💪",
+    "инфраструктура": "⚙️",
+    "опыт": "🌟",
+}
+_DEFAULT_PRIORITY_EMOJIS: dict[str, str] = {
+    "высокий": "🔥",
+    "средний": "🟡",
+    "низкий": "⚪",
+}
+
+
+def _emoji_map_from_schema(key: str, defaults: dict[str, str]) -> dict[str, str]:
+    raw = _kanban_schema().get(key)
+    if not isinstance(raw, dict):
+        return dict(defaults)
+    out = dict(defaults)
+    for name, glyph in raw.items():
+        if isinstance(name, str) and isinstance(glyph, str) and name.strip():
+            out[name.strip().lower()] = glyph.strip()
+    return out
+
+
+_CATEGORY_EMOJIS = _emoji_map_from_schema("category_emojis", _DEFAULT_CATEGORY_EMOJIS)
+_PRIORITY_EMOJIS = _emoji_map_from_schema("priority_emojis", _DEFAULT_PRIORITY_EMOJIS)
+
+
+def category_emoji(name: str) -> str:
+    return _CATEGORY_EMOJIS.get((name or "").strip().lower(), "📌")
+
+
+def priority_emoji(name: str) -> str:
+    return _PRIORITY_EMOJIS.get((name or "").strip().lower(), "⚪")
+
 
 def validate_bot_tokens() -> None:
     if not DEEPSEEK_API_TOKEN:

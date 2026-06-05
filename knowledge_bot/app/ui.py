@@ -1,10 +1,10 @@
-"""Short helpers for UI strings (config/messages.ru.yaml)."""
+"""Knowledge UI strings (config/messages.ru.yaml)."""
 from __future__ import annotations
 
 from shared.i18n import msg, msgf
 
 
-def common(key: str, default: str = "", **kwargs: object) -> str:
+def kmsg(*keys: str, default: str = "", **kwargs: object) -> str:
     if kwargs:
-        return msgf("common", key, default=default, **kwargs)
-    return msg("common", key, default=default)
+        return msgf("knowledge", *keys, default=default, **kwargs)
+    return msg("knowledge", *keys, default=default)

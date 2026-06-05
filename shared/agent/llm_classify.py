@@ -111,7 +111,7 @@ async def classify_host_domain_llm(
     if not enabled:
         raise LLMClassificationError("classify_host_domain: no enabled domains")
 
-    allowed = {"finance", "planning", "knowledge", "general"}
+    allowed = set(enabled) | {"general"}
     if len(enabled) >= 2:
         allowed.add("unified")
 

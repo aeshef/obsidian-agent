@@ -1,4 +1,8 @@
-"""Single-bot host: orchestrates domain bots behind one Telegram process."""
-from shared.telegram.host.bootstrap import run_host_bot
+from __future__ import annotations
 
-__all__ = ["run_host_bot"]
+from knowledge_bot.services.vault_maintenance.runner import (
+    load_maintenance_config,
+    run_daily_maintenance,
+)
+
+__all__ = ["run_daily_maintenance", "load_maintenance_config"]

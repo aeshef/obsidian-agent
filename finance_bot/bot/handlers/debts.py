@@ -92,7 +92,7 @@ async def debts_route(callback: types.CallbackQuery, state: FSMContext) -> None:
     async with AsyncSessionLocal() as session:
         tg_id = callback.from_user.id
         user = (await session.execute(select(User).where(User.telegram_id == tg_id))).scalar_one()
-        [REDACTED]
+        kind_type = "debt_receivable" if data in ("recv", "settle_recv") else "debt_payable"
         accs = (
             await session.execute(
                 select(Account).where(Account.user_id == user.id, Account.type == kind_type)

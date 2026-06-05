@@ -71,7 +71,30 @@ async def process_transactions(
 
     current_state = await state.get_state()
     if current_state and str(current_state).startswith("ConfirmTransactionsState"):
-        await message.answer(fmsg("nlu_pending_confirm"))
+        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+        from bot.config_loader import nlu_cancel_texts
+        from shared.telegram.host import labels as host_labels
+        from shared.telegram.host.keyboards import root_keyboard
+        from shared.i18n import msg as host_msg
+        from shared.ui import common
+
+        if is_host_navigation(text) or text == host_labels.back_home():
+            await state.clear()
+            await message.answer(host_msg("host", "main_menu"), reply_markup=root_keyboard())
+            return
+        cancel_lbl = common("cancel_button")
+        if text == cancel_lbl or text.strip().lower() in nlu_cancel_texts():
+            await state.clear()
+            await message.answer(fmsg("confirm_cancelled"))
+            return
+        await message.answer(
+            fmsg("nlu_pending_confirm"),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text=cancel_lbl, callback_data="txn:cancel")]
+                ]
+            ),
+        )
         return
 
     parser = TransactionNLUParser()
@@ -104,9 +127,20 @@ async def process_transactions(
             merge_write_context(parsed, ctx, enforce=enforce)
 
     if badge_mode:
-        from bot.handlers.badge import ensure_badge_account
+        from bot.handlers.badge import ensure_badge_account, resolve_account_from_user_text
 
         await ensure_badge_account(message.from_user.id)
+        for parsed in parsed_list:
+            if await resolve_account_from_user_text(parsed, message.from_user.id, text):
+                badge_mode = False
+                enforce = False
+                await state.update_data(badge_mode=False)
+                log.info(
+                    "badge_mode cleared: account %r from user text for user=%s",
+                    parsed.get("account"),
+                    message.from_user.id,
+                )
+                break
 
     for i, parsed in enumerate(parsed_list):
         try:
@@ -139,8 +173,6 @@ async def process_transactions(
             log.warning("  need to fill: %s", ", ".join(missing.keys()))
         else:
             log.info("  all fields recognized")
-
-    badge_mode = current_data.get("badge_mode", False)
 
     await state.set_state(ConfirmTransactionsState.transactions)
     await state.update_data(

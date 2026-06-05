@@ -29,3 +29,8 @@ def resolve_domain(text: str, *, enabled: list[Domain] | None = None) -> Domain:
     if enabled:
         return enabled[0]
     raise RuntimeError("AGENT_DOMAIN not set and no enabled domains")
+
+
+from knowledge_bot.services.note_routing import route_and_fill  # noqa: E402
+
+__all__ = ["deploy_mode", "resolve_domain", "route_and_fill"]

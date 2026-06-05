@@ -66,6 +66,21 @@ def _as_bool(val: Any, default: bool = True) -> bool:
     return default
 
 
+_CONNECTOR_YAML_ALIASES: dict[str, str] = {
+    "manual_broker_accounts": CONNECTOR_MANUAL_BROKER,
+}
+
+
+def _normalize_connectors_block(raw: Any) -> Any:
+    if not isinstance(raw, dict):
+        return raw
+    merged = dict(raw)
+    for alias, canonical in _CONNECTOR_YAML_ALIASES.items():
+        if alias in merged and canonical not in merged:
+            merged[canonical] = merged[alias]
+    return merged
+
+
 def _parse_bool_map(raw: Any, keys: tuple[str, ...], *, default: bool) -> dict[str, bool]:
     if not isinstance(raw, dict):
         return {k: default for k in keys}
@@ -95,6 +110,11 @@ class CapabilityProfile:
 
     def any_module(self, *names: str) -> bool:
         return any(self.module(n) for n in names)
+
+    def feature(self, name: str) -> bool:
+        from shared.capabilities.features import feature_enabled
+
+        return feature_enabled(name, self)
 
 
 def _default_document() -> dict:
@@ -133,23 +153,51 @@ def _apply_env_overrides(modules: dict[str, bool], connectors: dict[str, bool]) 
         raw = os.environ.get(env_name)
         if raw is not None and str(raw).strip() != "":
             connectors[key] = _as_bool(raw, connectors[key])
+    # Legacy env name from capabilities.yaml.example (manual_broker_accounts).
+    legacy_manual = os.environ.get("CAP_CONNECTOR_MANUAL_BROKER_ACCOUNTS")
+    if legacy_manual is not None and str(legacy_manual).strip() != "":
+        connectors[CONNECTOR_MANUAL_BROKER] = _as_bool(
+            legacy_manual, connectors[CONNECTOR_MANUAL_BROKER]
+        )
+
+
+def profile_from_document(doc: dict[str, Any]) -> CapabilityProfile:
+    """Build profile from a manifest dict (tests, onboarding checks). No env overrides."""
+    defaults = _default_document()
+    merged = deep_merge(defaults, doc) if isinstance(doc, dict) and doc else defaults
+    modules = _parse_bool_map(merged.get("modules"), _ALL_MODULES, default=True)
+    connectors = _parse_bool_map(
+        _normalize_connectors_block(merged.get("connectors")),
+        _ALL_CONNECTORS,
+        default=True,
+    )
+    sync_block = merged.get("sync") if isinstance(merged.get("sync"), dict) else {}
+    profile = str((sync_block or {}).get("profile") or SYNC_PROFILE_FULL).strip() or SYNC_PROFILE_FULL
+    feature_overrides: dict[str, bool] = {}
+    feat_raw = merged.get("features")
+    if isinstance(feat_raw, dict):
+        for key, val in feat_raw.items():
+            feature_overrides[str(key)] = _as_bool(val, True)
+    return CapabilityProfile(
+        modules=modules,
+        connectors=connectors,
+        sync_profile=profile,
+        feature_overrides=feature_overrides,
+    )
 
 
 def load_capabilities() -> CapabilityProfile:
     defaults = _default_document()
-    doc = deep_merge(defaults, _load_yaml_document()) if _load_yaml_document() else defaults
-    modules = _parse_bool_map(doc.get("modules"), _ALL_MODULES, default=True)
-    connectors = _parse_bool_map(doc.get("connectors"), _ALL_CONNECTORS, default=True)
+    raw = _load_yaml_document()
+    doc = deep_merge(defaults, raw) if raw else defaults
+    base = profile_from_document(doc)
+    modules = dict(base.modules)
+    connectors = dict(base.connectors)
     _apply_env_overrides(modules, connectors)
-    sync_block = doc.get("sync") if isinstance(doc.get("sync"), dict) else {}
-    profile = str((sync_block or {}).get("profile") or SYNC_PROFILE_FULL).strip() or SYNC_PROFILE_FULL
+    profile = base.sync_profile
     if os.environ.get("CAPABILITIES_SYNC_PROFILE", "").strip():
         profile = os.environ["CAPABILITIES_SYNC_PROFILE"].strip()
-    feature_overrides: dict[str, bool] = {}
-    feat_raw = doc.get("features")
-    if isinstance(feat_raw, dict):
-        for key, val in feat_raw.items():
-            feature_overrides[str(key)] = _as_bool(val, True)
+    feature_overrides = dict(base.feature_overrides)
     from shared.capabilities.features import apply_feature_env_overrides
 
     apply_feature_env_overrides(feature_overrides)

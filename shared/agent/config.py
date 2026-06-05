@@ -41,6 +41,15 @@ def load_tools_config() -> dict:
 
 
 @lru_cache(maxsize=1)
+def load_health_parse_config() -> dict:
+    cfg_dir = agent_config_dir()
+    path = cfg_dir / "health_parse.yaml"
+    if not path.is_file():
+        path = cfg_dir / "health_parse.yaml.example"
+    return load_yaml(path, default={})
+
+
+@lru_cache(maxsize=1)
 def load_routing_config() -> dict:
     return load_yaml(
         agent_config_dir() / "routing.yaml",

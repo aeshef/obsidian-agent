@@ -126,13 +126,13 @@ def include_planning_aux(dp: Dispatcher) -> None:
         await planning.button_callback(callback, state)
 
     @aux.message(_PlanningMode(), F.voice)
-    async def _voice(message: Message, state: FSMContext, planning=None):
+    async def _voice(message: Message, state: FSMContext, planning=None, agent_app=None):
         if planning is None:
             from shared.i18n import msg
 
             await message.answer(msg("host", "planning_unavailable_short"))
             return
-        await planning.handle_voice_message(message, state)
+        await planning.handle_voice_message(message, state, agent_app=agent_app)
 
     @aux.message(StateFilter(ReflectionState.waiting), F.text)
     async def _reflection(message: Message, state: FSMContext, planning=None):

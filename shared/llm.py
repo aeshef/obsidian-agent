@@ -24,7 +24,7 @@ from typing import Any, Callable, Iterator, Optional
 
 import requests
 
-from shared.constants import deepseek_base_url, deepseek_model
+from shared.constants import deepseek_base_url, deepseek_chat_completions_url, deepseek_model
 from shared.json_parse import LLMJsonParseError, parse_json_object
 from shared.llm_reachable import deepseek_api_reachable
 
@@ -349,7 +349,7 @@ class LLMClient:
         *,
         on_text_delta: Callable[[str], None] | None,
     ) -> tuple[str | None, list[dict[str, Any]]]:
-        url = f"{self.base_url}/chat/completions"
+        url = deepseek_chat_completions_url(override=self.base_url)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -443,7 +443,7 @@ class LLMClient:
 
     # ── Internal ──────────────────────────────────────────────────────────────
     def _post(self, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
-        url = f"{self.base_url}/chat/completions"
+        url = deepseek_chat_completions_url(override=self.base_url)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",

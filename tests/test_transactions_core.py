@@ -27,7 +27,7 @@ async def test_get_missing_fields_expense_category_no_import_error(finance_db):
         "type": "expense",
         "amount": 508,
         "category": sample_cat,
-        "account": "Т-Банк",
+        "account": "Savings",
         "description": "завтрак",
     }
     # Unknown tg_id → account flagged missing, but must not crash on category import

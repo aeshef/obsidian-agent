@@ -8,10 +8,8 @@ import yaml
 
 from shared.domain_messages import dmsg
 
-from ..config import get_settings
-
-
-[REDACTED]
+ROOT = Path(__file__).resolve().parent.parent.parent
+_CONFIG_DIR = ROOT / "config"
 
 
 def _subscriptions_path() -> Path:
@@ -22,9 +20,6 @@ def _subscriptions_path() -> Path:
     if example.exists():
         return example
     return p
-
-
-from shared.domain_messages import dmsg
 
 
 @dataclass

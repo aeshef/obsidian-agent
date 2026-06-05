@@ -141,12 +141,36 @@ exit 1
 REMOTE
 }
 
+stop_legacy_bots_remote() {
+  local bots="${SERVER_BOTS:?}"
+  echo "🛑 stop legacy polling bots (unified host only) on $SERVER"
+  common_ssh "bash -s" <<REMOTE
+set -euo pipefail
+bots="${bots}"
+for b in finance_bot knowledge_bot planning_bot; do
+  wd="\$bots/\$b/logs/watchdog.pid"
+  if [ -f "\$wd" ]; then
+    kill "\$(cat "\$wd")" 2>/dev/null || true
+    rm -f "\$wd"
+  fi
+done
+pkill -f "\$bots/finance_bot/.venv/bin/python -m bot.main" 2>/dev/null || true
+pkill -f "\$bots/knowledge_bot/.venv/bin/python start_bot.py" 2>/dev/null || true
+pkill -f "\$bots/planning_bot/.venv/bin/python -m planning_bot.app.main" 2>/dev/null || true
+sleep 1
+REMOTE
+}
+
 restart_unified_bot_remote() {
+  local stop_legacy="${1:-0}"
   local bots="${SERVER_BOTS:?}"
   local py="${bots}/finance_bot/.venv/bin/python"
   local log="${bots}/logs/unified_bot.log"
 
   ensure_unified_host_deps_remote
+  if [ "$stop_legacy" = 1 ]; then
+    stop_legacy_bots_remote
+  fi
 
   echo "🔄 restart unified_bot on $SERVER"
   common_ssh "bash -s" <<REMOTE

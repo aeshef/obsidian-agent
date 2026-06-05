@@ -60,25 +60,16 @@ def main_menu_inline() -> InlineKeyboardMarkup:
 
 
 def main_menu_reply() -> ReplyKeyboardMarkup:
-    from shared.capabilities.finance_ui import invest_menu_visible
-
     keyboard: list[list[KeyboardButton]] = []
     badge = _badge_reply_row()
     if badge:
         keyboard.append(badge)
-    body: list[list[KeyboardButton]] = []
-    if invest_menu_visible():
-        body.append([KeyboardButton(text=fin_menu("invest"))])
-    body.extend(
+    keyboard.append(
         [
-            [
-                KeyboardButton(text=fin_menu("balance")),
-                KeyboardButton(text=fin_menu("last_ops")),
-            ],
-            [KeyboardButton(text=fin_menu("plan"))],
+            KeyboardButton(text=fin_menu("balance")),
+            KeyboardButton(text=fin_menu("last_ops")),
         ]
     )
-    keyboard.extend(body)
     return ReplyKeyboardMarkup(
         keyboard=keyboard,
         resize_keyboard=True,

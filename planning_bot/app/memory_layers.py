@@ -1,9 +1,9 @@
-"""Planning bot module."""
+"""Planning-specific agent memory layer (recent action log chain)."""
 from __future__ import annotations
 from shared.agent.types import AgentContext, AgentMessage
 
 class PlanningActionLogLayer:
-    """Planning bot module."""
+    """Inject recent kanban/action events into the agent context."""
 
     async def read(self, ctx: AgentContext) -> str:
         bot = ctx.extras.get('bot')

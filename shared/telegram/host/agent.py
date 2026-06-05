@@ -50,7 +50,11 @@ def build_host_agent_app(planning_bot=None) -> AgentApp:
             _host_planning_bot = pb
             adapters.append(PlanningAdapter(pb))
         except Exception as e:
-            log.warning("planning adapter unavailable: %s", e)
+            log.error(
+                "planning module enabled but adapter failed (auto-routing will not offer planning): %s",
+                e,
+                exc_info=True,
+            )
     if prof.module(MODULE_KNOWLEDGE):
         try:
             from knowledge_bot.app.agent_tools import KnowledgeAdapter

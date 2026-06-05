@@ -1,4 +1,4 @@
-"""Planning bot module."""
+"""Planning bot config path and ASR/prompt loaders."""
 from pathlib import Path
 from functools import lru_cache
 from shared.prompts import load_prompt

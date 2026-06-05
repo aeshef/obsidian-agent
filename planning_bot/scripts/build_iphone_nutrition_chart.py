@@ -363,8 +363,6 @@ def main() -> int:
         )
         return 0
     rows = _pick_per_day(snapshots)
-    import os
-
     body_on = os.environ.get("CAP_FEATURE_HEALTH_BODY_METRICS", "1") == "1"
     w_by = _last_numeric_by_day(snapshots, "weight_kg") if body_on else {}
     s_by = _last_numeric_by_day(snapshots, "steps") if body_on else {}

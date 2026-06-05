@@ -15,13 +15,17 @@ broker_categories:
 
 min_text_length: 3
 
+# Текст отмены pending confirm (помимо common.cancel_button из messages)
+cancel_text_aliases:
+  - отмена
+  - cancel
+
 # Точные команды, которые не должны обрабатываться NLU (должны совпадать с handlers)
 exact_commands:
   - "Синк Тинькофф"
 
-# Кнопки reply-меню (опционально; по умолчанию — invest, balance, last_ops, plan)
+# Кнопки reply-меню (опционально; по умолчанию — balance, last_ops)
+# invest/plan — через агента и свободный текст
 # menu_buttons:
-#   - "📈 Инвестиции"
 #   - "📊 Баланс"
 #   - "🧾 Последние операции"
-#   - "📋 План/Прогноз"

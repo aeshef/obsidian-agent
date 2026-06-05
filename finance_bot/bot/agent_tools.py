@@ -1,492 +1,329 @@
-"""Planning agent tools for shared agent core."""
+"""Инструменты finance для shared agent core."""
 from __future__ import annotations
 
-from planning_bot.core.config import DEFAULT_CATEGORY, DEFAULT_PRIORITY
-from planning_bot.core.pdmsg import pdmsg
+from datetime import date
+from decimal import Decimal
+from typing import TYPE_CHECKING, Optional
 
-import logging
-from typing import TYPE_CHECKING, List, Optional
+from sqlalchemy import func, select
 
 from shared.agent.app import DomainAdapter
+from shared.agent.budget import format_txn_recent, format_txn_summary
 from shared.agent.tools import ToolRegistry, tool
 from shared.agent.types import AgentContext, ModelRole
-from shared.memory import InsightsMemory, ProfileMemory
+from shared.finance.txn_query import (
+    fetch_transaction_rows,
+    format_broker_overview,
+    format_debts_summary,
+    format_spending_by_category,
+)
+from shared.parsing.date_range import resolve_date_range
 
 if TYPE_CHECKING:
-    from planning_bot.app.bot import PlanningBot
+    from bot.services.financial_analyst import FinancialAnalyst
 
-log = logging.getLogger("planning.agent_tools")
+from bot.db import AsyncSessionLocal
+from bot.models import Account, PlannedExpense, Transaction, User
+from bot.services.badge_tracker import BadgeTracker, is_badge_account_name
+from bot.services.subscriptions import load_subscriptions
 
-PLANNING_DOMAIN = "planning"
-
-
-def _bot(ctx: AgentContext) -> "PlanningBot":
-    bot = ctx.extras.get("bot")
-    if bot is None:
-        raise RuntimeError("planning bot missing in AgentContext.extras")
-    return bot
+FINANCE_DOMAIN = "finance"
 
 
-@tool(category="tasks", always=True)
-async def get_kanban(ctx: AgentContext, column: Optional[str] = None) -> str:
-    """Kanban board snapshot (all columns or one)."""
-    from planning_bot.core.config import KANBAN_COLUMNS, DONE_COLUMN
+def _analyst(ctx: AgentContext) -> "FinancialAnalyst":
+    a = ctx.extras.get("analyst")
+    if a is None:
+        raise RuntimeError("analyst missing in AgentContext.extras")
+    return a
 
-    bot = _bot(ctx)
-    from shared.agent.platform_config import platform_int
 
-    bot.kanban.load()
-    tasks = bot.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-    done_preview = max(1, platform_int("planning", "kanban_done_preview_max", default=1000))
+async def _telegram_id(ctx: AgentContext) -> int:
+    return int(ctx.extras.get("telegram_id") or ctx.user_id)
 
-    from planning_bot.services.reference_date import format_deadline_hint, reference_today_iso
 
-    today = reference_today_iso()
+async def _user_id(ctx: AgentContext) -> Optional[int]:
+    return await _analyst(ctx)._get_user_id(await _telegram_id(ctx))
 
-    def fmt(t: dict) -> str:
-        tid = t.get("task_id") or "—"
-        pri = t.get("priority") or "—"
-        cat = t.get("category") or "—"
-        dl = format_deadline_hint(t.get("deadline"), today)
-        done = pdmsg("agent_task_done_suffix") if t.get("completed") else ""
-        return f"  [{tid}] [{pri}] {t.get('title', '')} | {cat}{dl}{done}"
 
-    from planning_bot.services.kanban_agent import resolve_column_name
+def _range_label(dr, *, days: int = 0) -> str:
+    if dr.start and dr.end:
+        return f"{dr.start.isoformat()} … {dr.end.isoformat()}"
+    if days:
+        return f"последние {days} дн."
+    return "всё время"
 
-    if column:
-        resolved = resolve_column_name(column)
-        cols = [resolved] if resolved else KANBAN_COLUMNS
+
+async def _fetch_rows(ctx: AgentContext, **kwargs) -> tuple[Optional[int], list]:
+    from shared.parsing.date_range import DateRange
+
+    uid = await _user_id(ctx)
+    if not uid:
+        return None, []
+    fd = kwargs.get("from_date", "")
+    td = kwargs.get("to_date", "")
+    days = int(kwargs.get("days") or 0)
+    default_days = kwargs.get("default_days")
+    anchor = _analyst(ctx)._now().date()
+    if default_days is None and not fd and not td and not days:
+        dr = DateRange(None, None)
     else:
-        cols = KANBAN_COLUMNS
-    lines: list[str] = [
-        pdmsg("agent_kanban_today_anchor", today=today),
-        pdmsg("agent_kanban_today_hint"),
-        pdmsg("agent_kanban_board_header"),
-    ]
-    for col in cols:
-        all_col = [t for t in tasks if t.get("column") == col]
-        col_tasks = all_col
-        if col == DONE_COLUMN and len(all_col) > done_preview:
-            col_tasks = sorted(
-                all_col,
-                key=lambda t: (t.get("created_date") or "", t.get("task_id") or ""),
-                reverse=True,
-            )[:done_preview]
-            lines.append(
-                pdmsg("agent_kanban_col_truncated", col=col, total=len(all_col), preview=done_preview)
-            )
-        else:
-            lines.append(pdmsg("agent_kanban_col_count", col=col, count=len(col_tasks)))
-        lines.extend(fmt(t) for t in col_tasks) if col_tasks else lines.append(pdmsg("agent_kanban_empty"))
-    return "\n".join(lines)
+        dr = resolve_date_range(
+            from_date=fd,
+            to_date=td,
+            days=days,
+            default_days=default_days if default_days is not None else 30,
+            anchor=anchor,
+        )
+    async with AsyncSessionLocal() as session:
+        rows = await fetch_transaction_rows(
+            session,
+            uid,
+            dr=dr,
+            category=kwargs.get("category"),
+            txn_type=kwargs.get("txn_type"),
+        )
+    return uid, rows
 
 
-@tool(category="goals")
-async def get_goals(ctx: AgentContext) -> str:
-    """Year goals, quarterly focus, and goals context."""
-    bot = _bot(ctx)
-    parts: list[str] = []
-    try:
-        goals = bot.goals_manager.get_goals()
-        if goals:
-            parts.append(pdmsg("agent_goals_year_header") + "\n".join(f"- {g}" for g in goals))
-    except Exception as e:
-        log.debug("goals failed: %s", e)
-    try:
-        qf = bot.goals_manager.get_quarterly_focus()
-        if qf:
-            parts.append(pdmsg("agent_goals_quarter_header") + "\n".join(f"- {g}" for g in qf))
-    except Exception as e:
-        log.debug("quarterly failed: %s", e)
-    try:
-        gc = bot.goals_manager.get_goals_context_what_to_do_only()
-        if gc:
-            parts.append(pdmsg("agent_goals_context_header") + gc)
-    except Exception as e:
-        log.debug("goals_context failed: %s", e)
-    return "\n\n".join(parts) or pdmsg("agent_goals_empty")
-
-
-@tool(category="calendar")
-async def get_calendar(
+@tool(category="transactions", always=True)
+async def get_transactions(
     ctx: AgentContext,
-    day: str = "",
     from_date: str = "",
     to_date: str = "",
     days: int = 0,
-    hours_ahead: int = 48,
-) -> str:
-    """Calendar events: day=YYYY-MM-DD; or from_date/to_date/days list; else upcoming hours_ahead."""
-    from planning_bot.core.config import CALENDAR_JSON_FILE
-    from planning_bot.services.calendar_service import get_calendar_for_tool
-
-    try:
-        return get_calendar_for_tool(
-            CALENDAR_JSON_FILE,
-            day=day,
-            from_date=from_date,
-            to_date=to_date,
-            days=days,
-            hours_ahead=hours_ahead,
-        )
-    except Exception as e:
-        log.debug("calendar failed: %s", e)
-        return pdmsg("agent_calendar_unavailable")
-
-
-@tool(category="health")
-async def get_health_snapshot(ctx: AgentContext, day: str = "") -> str:
-    """Health/Watch (IPhone/*.txt): one evening snapshot. day=YYYY-MM-DD; empty = latest."""
-    from planning_bot.services.health_data import format_health_snapshot
-
-    return format_health_snapshot(day)
-
-
-@tool(category="health")
-async def get_health_series(
-    ctx: AgentContext,
-    from_date: str = "",
-    to_date: str = "",
-    fields: Optional[List[str]] = None,
-    days: int = 14,
-) -> str:
-    """Health/Watch: daily series: numeric table + text_fields table when present. from/to YYYY-MM-DD or days if dates empty."""
-
-    from planning_bot.services.health_data import format_health_series
-
-    default_days = max(1, min(int(days or 14), 90))
-    return format_health_series(from_date, to_date, fields, default_days=default_days)
-
-
-@tool(category="health")
-async def get_health_summary(
-    ctx: AgentContext,
-    from_date: str = "",
-    to_date: str = "",
-) -> str:
-    """Health/Watch: avg/min/max over period + text_fields table (from/to YYYY-MM-DD)."""
-    from planning_bot.services.health_data import format_health_summary
-
-    return format_health_summary(from_date, to_date)
-
-
-@tool(category="health")
-async def get_health_anomalies(ctx: AgentContext, lookback_days: int = 30) -> str:
-    """Health/Watch: latest day vs baseline over lookback_days (z-score)."""
-    from planning_bot.services.health_data import format_health_anomalies
-
-    return format_health_anomalies(lookback_days=lookback_days)
-
-
-@tool(category="health")
-async def get_health_correlations(
-    ctx: AgentContext,
-    from_date: str = "",
-    to_date: str = "",
-    fields: Optional[List[str]] = None,
-) -> str:
-    """Health/Watch: Pearson correlations between metrics (not causation)."""
-    from planning_bot.services.health_data import format_health_correlations
-
-    return format_health_correlations(from_date, to_date, fields)
-
-
-@tool(category="health")
-async def export_health_dataset(ctx: AgentContext, max_days: int = 0) -> str:
-    """Export daily health dataset to CSV under dashboards data/actions."""
-    from planning_bot.core.config import IPHONE_CONTEXT_DIR
-    from planning_bot.services.health_data import export_health_daily_csv
-
-    out = IPHONE_CONTEXT_DIR.parent / "health_daily.csv"
-    n, path = export_health_daily_csv(out, max_days=max_days or None)
-    return pdmsg("agent_health_export", n=n, path=path)
-
-
-@tool(category="context")
-async def get_mac_context(ctx: AgentContext, day: str = "") -> str:
-    """Mac: one snapshot (latest or day=YYYY-MM-DD). For a time range use get_mac_snapshots."""
-    from planning_bot.services.mac_context_query import format_mac_snapshot
-
-    return format_mac_snapshot(day)
-
-
-@tool(category="context")
-async def get_mac_series(ctx: AgentContext, from_date: str = "", to_date: str = "") -> str:
-    """Mac: one row per calendar day (last snap that day). Timeline → get_mac_snapshots(from_ts, to_ts)."""
-    from planning_bot.services.mac_context_query import format_mac_series
-
-    return format_mac_series(from_date, to_date)
-
-
-@tool(category="context")
-async def get_mac_snapshots(
-    ctx: AgentContext,
-    from_ts: str = "",
-    to_ts: str = "",
-    limit: int = 120,
-    on_app_change_only: bool = False,
-) -> str:
-    """Mac snapshots in interval: from_ts/to_ts ISO (date or YYYY-MM-DDTHH:MM). ~5 min cadence; limit≤500, 0=all."""
-    from planning_bot.services.mac_context_query import format_mac_snapshots
-
-    return format_mac_snapshots(
-        from_ts,
-        to_ts,
-        limit=limit,
-        on_app_change_only=on_app_change_only,
-    )
-
-
-@tool(category="tasks", always=True)
-async def search_tasks(
-    ctx: AgentContext,
-    query: str = "",
-    column: str = "",
     category: str = "",
-    priority: str = "",
-    deadline_from: str = "",
-    deadline_to: str = "",
-    completed: Optional[bool] = None,
-    limit: int = 25,
 ) -> str:
-    """Search kanban tasks: text, column, category tag, priority, deadline, completed."""
-    from planning_bot.services.kanban_agent import filter_tasks, format_task_list
-
-    bot = _bot(ctx)
-    bot.kanban.load()
-    tasks = bot.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-    matched = filter_tasks(
-        tasks,
-        query=query,
-        column=column,
-        category=category,
-        priority=priority,
-        deadline_from=deadline_from,
-        deadline_to=deadline_to,
-        completed=completed,
-        limit=limit,
+    """Транзакции за интервал: from_date/to_date YYYY-MM-DD или days. category: точное имя или префикс «Еда/»."""
+    analyst = _analyst(ctx)
+    uid, rows = await _fetch_rows(
+        ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
     )
-    return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
-
-
-@tool(category="tasks", always=True)
-async def apply_kanban_task(
-    ctx: AgentContext,
-    action: str,
-    dry_run: bool = False,
-    task_id: str = "",
-    title: str = "",
-    category: str = DEFAULT_CATEGORY,
-    priority: str = DEFAULT_PRIORITY,
-    column: str = "",
-    all_matching: bool = False,
-) -> str:
-    """Board mutation: create | move | complete (KANBAN_AGENT_WRITES=1)."""
-    from planning_bot.services.kanban_agent import apply_kanban_action
-
-    bot = _bot(ctx)
-    logger = bot.logger
-    return apply_kanban_action(
-        bot.kanban,
-        action=action,
-        dry_run=dry_run,
-        task_id=task_id,
-        title=title,
-        category=category,
-        priority=priority,
-        column=column,
-        all_matching=all_matching,
-        logger=logger,
+    if uid is None:
+        return "Пользователь не найден."
+    dr = resolve_date_range(
+        from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
     )
+    label = f"Транзакции ({_range_label(dr, days=days)})"
+    monthly = analyst._monthly_summary_text(rows) if rows else ""
+    body = format_txn_summary(rows, label=label)
+    if monthly:
+        body += "\n\nПомесячно:\n" + monthly
+    return body
 
 
-@tool(category="calendar")
-async def get_calendar_analytics(
+@tool(category="transactions")
+async def get_spending_by_category(
     ctx: AgentContext,
     from_date: str = "",
     to_date: str = "",
-    anchor: str = "",
+    days: int = 0,
 ) -> str:
-    """Calendar analytics: totals, tags, and per-day meetings/minutes table (from/to, anchor)."""
-    from datetime import date as date_cls
+    """Расходы по категориям (только потребление) за интервал (from/to или days)."""
+    uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
+    if uid is None:
+        return "Пользователь не найден."
+    dr = resolve_date_range(from_date=from_date, to_date=to_date, days=days, default_days=30)
+    return format_spending_by_category(rows, label=f"Расходы по категориям ({_range_label(dr, days=days)})")
 
-    from planning_bot.core.config import CALENDAR_JSON_FILE
-    from planning_bot.services.calendar_analytics import compute_week_analytics
-    from shared.parsing.date_range import resolve_date_range
 
-    if not CALENDAR_JSON_FILE.exists():
-        return pdmsg("agent_calendar_analytics_unavailable")
-    import json
+@tool(category="balance")
+async def get_balance(ctx: AgentContext) -> str:
+    """Текущие балансы по счетам (компактно)."""
+    tg_id = await _telegram_id(ctx)
+    async with AsyncSessionLocal() as session:
+        user = (
+            await session.execute(select(User).where(User.telegram_id == tg_id))
+        ).scalar_one_or_none()
+        if user is None:
+            return "Пользователь не найден."
 
-    data = json.loads(CALENDAR_JSON_FILE.read_text(encoding="utf-8"))
-    events = data.get("events") or []
-    dr = resolve_date_range(
-        from_date=from_date,
-        to_date=to_date,
-        days=0,
-        default_days=7,
-        anchor=date_cls.today(),
-    )
-    anchor_d = date_cls.fromisoformat(anchor[:10]) if (anchor or "").strip() else (dr.start or date_cls.today())
-    if dr.end and dr.start:
-        horizon = max(1, min(90, (dr.end - anchor_d).days + 1))
-    else:
-        horizon = 7
-    analytics = compute_week_analytics(events, anchor_d, horizon_days=horizon)
-    lines = [
-        pdmsg("agent_calendar_analytics_header", anchor=anchor_d.isoformat(), horizon=horizon),
-        pdmsg("agent_calendar_analytics_minutes", minutes=analytics.get("totals", {}).get("window_meeting_minutes", 0)),
-    ]
-    tags = analytics.get("tags_top5") or []
-    if tags:
-        lines.append(pdmsg("agent_calendar_analytics_tags", tags=", ".join(f"{t[0]}:{t[1]}" for t in tags[:5])))
-    life = analytics.get("life_top5") or []
-    if life:
-        lines.append(pdmsg("agent_calendar_analytics_sections", sections=", ".join(f"{a}:{b}h" for a, b in life[:5])))
-    day_rows = analytics.get("days") or []
-    if day_rows:
-        lines.append(pdmsg("agent_calendar_analytics_daily_header"))
-        lines.append(pdmsg("agent_calendar_analytics_daily_columns"))
-        for row in day_rows:
-            lines.append(
-                pdmsg(
-                    "agent_calendar_analytics_daily_row",
-                    date=row.get("date", ""),
-                    weekday=row.get("weekday", ""),
-                    meetings=row.get("meeting_count", 0),
-                    minutes=row.get("meeting_minutes", 0),
+        accounts = (
+            await session.execute(select(Account).where(Account.user_id == user.id))
+        ).scalars().all()
+
+        lines = ["Балансы по счетам:"]
+        for acc in accounts:
+            if is_badge_account_name(acc.name):
+                continue
+            inc = (
+                await session.execute(
+                    select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+                        Transaction.account_id == acc.id, Transaction.type == "income"
+                    )
                 )
-            )
+            ).scalar_one()
+            exp = (
+                await session.execute(
+                    select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+                        Transaction.account_id == acc.id, Transaction.type == "expense"
+                    )
+                )
+            ).scalar_one()
+            if acc.is_external_balance and acc.external_balance is not None:
+                bal = Decimal(acc.external_balance)
+            else:
+                base = Decimal(acc.external_balance) if acc.external_balance is not None else Decimal(0)
+                bal = base + Decimal(inc) - Decimal(exp)
+            if bal == 0 and acc.type not in ("crypto",):
+                continue
+            lines.append(f"  {acc.name}: {bal:,.2f} {acc.currency} ({acc.type})")
+        if len(lines) == 1:
+            lines.append("  (нет ненулевых счетов)")
+        return "\n".join(lines)
+
+
+@tool(category="transactions")
+async def get_recent(
+    ctx: AgentContext,
+    n: int = 10,
+    from_date: str = "",
+    to_date: str = "",
+) -> str:
+    """Последние N операций (опционально в интервале from/to)."""
+    uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, default_days=None)
+    if uid is None:
+        return "Пользователь не найден."
+    if not rows and not (from_date or to_date):
+        rows = await _analyst(ctx)._fetch_transactions(uid, days=None)
+    return format_txn_recent(rows, n=max(1, min(int(n), 50)))
+
+
+@tool(category="summary")
+async def compute_summary(
+    ctx: AgentContext,
+    from_date: str = "",
+    to_date: str = "",
+    days: int = 0,
+) -> str:
+    """Сводка доходов/расходов за интервал (from/to YYYY-MM-DD или days)."""
+    analyst = _analyst(ctx)
+    uid, subset = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
+    if uid is None:
+        return "Пользователь не найден."
+    all_rows = await analyst._fetch_transactions(uid, days=None)
+    dr = resolve_date_range(
+        from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
+    )
+    label = f"Сводка ({_range_label(dr, days=days)})"
+    baselines = analyst._compute_baselines(all_rows)
+    monthly = analyst._monthly_summary_text(all_rows)
+    parts = [
+        format_txn_summary(subset, label=label),
+        f"Базлайны (медиана прошлых месяцев): {baselines}" if baselines else "",
+        f"Помесячно:\n{monthly}" if monthly else "",
+    ]
+    return "\n\n".join(p for p in parts if p)
+
+
+@tool(category="planning")
+async def get_planned_expenses(ctx: AgentContext, status: str = "active") -> str:
+    """Запланированные расходы (status: active | done | cancelled | all)."""
+    tg_id = await _telegram_id(ctx)
+    st = (status or "active").strip().lower()
+    async with AsyncSessionLocal() as session:
+        user = (
+            await session.execute(select(User).where(User.telegram_id == tg_id))
+        ).scalar_one_or_none()
+        if not user:
+            return "Пользователь не найден."
+        q = select(PlannedExpense).where(PlannedExpense.user_id == user.id)
+        if st != "all":
+            q = q.where(PlannedExpense.status == st)
+        plans = (await session.execute(q.order_by(PlannedExpense.due_date.asc().nullslast()))).scalars().all()
+    if not plans:
+        return f"Запланированные расходы ({st}): (нет)"
+    lines = [f"Запланированные расходы ({st}):"]
+    for p in plans:
+        due = p.due_date.strftime("%Y-%m-%d") if p.due_date else "без срока"
+        lines.append(f"  {p.name}: {float(p.amount):,.0f} {p.currency} (к {due})")
     return "\n".join(lines)
 
 
-@tool(category="routines")
-async def get_routines_status(ctx: AgentContext, day: str = "") -> str:
-    """Routines checklist: day=YYYY-MM-DD (today file or history); empty = today."""
-    from planning_bot.services.routines_status_query import format_routines_status
+@tool(category="planning")
+async def get_finance_forecast(ctx: AgentContext) -> str:
+    """LLM-прогноз: хватает ли денег на планы (контекст из БД + subscriptions.yaml)."""
+    from bot.services.planning_forecast import generate_forecast
 
-    return format_routines_status(day)
-
-
-@tool(category="reflection")
-async def get_activity_events(
-    ctx: AgentContext,
-    from_date: str = "",
-    to_date: str = "",
-    days: int = 0,
-    event_type: str = "",
-    task_id: str = "",
-    task_title: str = "",
-    limit: int = 40,
-) -> str:
-    """Action log: ISO timestamp per line. event_type=completed|created|moved; limit=0 full window, else ≤1000 (default 40)."""
-    from planning_bot.services.activity_log_query import (
-        clamp_activity_limit,
-        fetch_activity_events,
-        format_activity_events_block,
-    )
-    from shared.query.agent_interval import IntervalMode, resolve_agent_interval
-
-    bot = _bot(ctx)
-    if bot.logger is None:
-        return pdmsg("agent_action_log_unavailable")
-
-    lim = clamp_activity_limit(limit)
-    interval = resolve_agent_interval(
-        from_date=from_date,
-        to_date=to_date,
-        days=days,
-        default_days=30,
-    )
-    dr = interval.date_range if interval.mode == IntervalMode.DATE_RANGE else None
-    if dr is None:
-        from shared.parsing.date_range import resolve_date_range
-
-        dr = resolve_date_range(default_days=30)
-    et_raw = (event_type or "").strip().lower()
-    event_types = {et_raw if et_raw.startswith("task_") else f"task_{et_raw}"} if et_raw else None
-    filtered_label = next(iter(event_types)) if event_types else None
-
-    entries, all_entries, n_raw, type_counts = fetch_activity_events(
-        bot.logger,
-        from_date=dr.start,
-        to_date=dr.end,
-        event_types=event_types,
-        task_id=(task_id or "").strip() or None,
-        task_title=(task_title or "").strip() or None,
-        limit=lim,
-    )
-    if not entries and n_raw == 0:
-        return pdmsg("agent_action_log_no_events")
-
-    return format_activity_events_block(
-        entries,
-        all_entries,
-        n_raw=n_raw,
-        type_counts=type_counts,
-        filtered_type=filtered_label,
-        period_start=dr.start,
-        period_end=dr.end,
-    )
+    tg_id = await _telegram_id(ctx)
+    return await generate_forecast(tg_id)
 
 
-@tool(category="log", always=True)
-async def get_action_log(
-    ctx: AgentContext,
-    day: str = "",
-    from_date: str = "",
-    to_date: str = "",
-    days: int = 0,
-    limit: int = 0,
-) -> str:
-    """Action log chain: day=YYYY-MM-DD; or from_date/to_date/days; else recent window. Filtered stats → get_activity_events."""
-    from planning_bot.services.action_log_tool import format_action_log
-
-    bot = _bot(ctx)
-    if bot.logger is None:
-        return pdmsg("agent_action_log_unavailable")
-    try:
-        out = format_action_log(
-            bot.logger,
-            day=day,
-            from_date=from_date,
-            to_date=to_date,
-            days=days,
-            limit=limit,
-        )
-        return out or pdmsg("agent_action_log_no_recent")
-    except Exception as e:
-        log.debug("action log failed: %s", e)
-        return pdmsg("agent_action_log_unavailable")
+@tool(category="subscriptions")
+async def get_subscriptions(ctx: AgentContext) -> str:
+    """Регулярные подписки из config/subscriptions.yaml."""
+    subs = load_subscriptions()
+    if not subs:
+        return "Подписки: (файл пуст или не настроен)"
+    lines = ["Подписки (регулярные):"]
+    for s in subs:
+        lines.append(f"  {s.name}: {s.amount} {s.currency}/{s.period}, след. {s.next_charge}")
+    return "\n".join(lines)
 
 
-def build_planning_registry() -> ToolRegistry:
-    from shared.capabilities.registry import filter_planning_tools, register_tools
+@tool(category="debts")
+async def get_debts_summary(ctx: AgentContext) -> str:
+    """Сводка долгов (счета receivable / liability_payable)."""
+    uid = await _user_id(ctx)
+    if not uid:
+        return "Пользователь не найден."
+    async with AsyncSessionLocal() as session:
+        return await format_debts_summary(session, uid)
+
+
+@tool(category="investments")
+async def get_broker_overview(ctx: AgentContext) -> str:
+    """Брокерские и внешние балансы счетов."""
+    uid = await _user_id(ctx)
+    if not uid:
+        return "Пользователь не найден."
+    async with AsyncSessionLocal() as session:
+        return await format_broker_overview(session, uid)
+
+
+@tool(category="badge")
+async def get_badge_status(ctx: AgentContext, day: str = "") -> str:
+    """Статус бейджа питания: day=YYYY-MM-DD или сегодня."""
+    tg_id = await _telegram_id(ctx)
+    target = date.today()
+    if (day or "").strip():
+        from shared.parsing.iso_date import parse_iso_calendar_day
+
+        parsed = parse_iso_calendar_day(day)
+        if parsed:
+            target = parsed
+    async with AsyncSessionLocal() as session:
+        user = (
+            await session.execute(select(User).where(User.telegram_id == tg_id))
+        ).scalar_one_or_none()
+        if not user:
+            return "Пользователь не найден."
+        tracker = BadgeTracker()
+        acc = await tracker.get_or_create_badge_account(session, user.id)
+        ds = await tracker.day_stats(session, user.id, target, acc.id)
+        ms = await tracker.month_stats(session, user.id, target.year, target.month)
+        return tracker.format_day_status(ds, ms)
+
+
+def build_finance_registry() -> ToolRegistry:
+    from shared.capabilities.registry import filter_finance_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
 
     reg = ToolRegistry()
     register_tools(
         reg,
-        filter_planning_tools(
+        filter_finance_tools(
             [
-                get_kanban,
-                search_tasks,
-                apply_kanban_task,
-                get_goals,
-                get_calendar,
-                get_calendar_analytics,
-                get_health_snapshot,
-                get_health_series,
-                get_health_summary,
-                get_health_anomalies,
-                get_health_correlations,
-                export_health_dataset,
-                get_mac_context,
-                get_mac_series,
-                get_mac_snapshots,
-                get_routines_status,
-                get_activity_events,
-                get_action_log,
+                get_transactions,
+                get_spending_by_category,
+                get_balance,
+                get_recent,
+                compute_summary,
+                get_planned_expenses,
+                get_finance_forecast,
+                get_subscriptions,
+                get_debts_summary,
+                get_broker_overview,
+                get_badge_status,
             ]
         ),
     )
@@ -494,64 +331,35 @@ def build_planning_registry() -> ToolRegistry:
     return reg
 
 
-class PlanningAdapter(DomainAdapter):
-    domain = PLANNING_DOMAIN
+class FinanceAdapter(DomainAdapter):
+    domain = FINANCE_DOMAIN
     role = ModelRole.ANALYZE
 
-    def __init__(self, bot: "PlanningBot") -> None:
-        self._bot = bot
+    def __init__(self, analyst: "FinancialAnalyst") -> None:
+        self._analyst = analyst
 
     def build_registry(self) -> ToolRegistry:
-        return build_planning_registry()
+        return build_finance_registry()
 
     async def base_prompt(self, ctx: AgentContext) -> str:
-        from planning_bot.core.settings import get_config_path, load_prompt
-        from shared.agent.platform_config import agent_config_dir
+        from bot.services.financial_analyst import _load_prompt
 
-        from planning_bot.services.reference_date import reference_now
-
-        try:
-            base = load_prompt(get_config_path(), "conversation")
-        except Exception:
-            base = pdmsg("agent_system_prompt_base")
-        prompts_dir = agent_config_dir()
-        from shared.capabilities.profile import (
-            CONNECTOR_APPLE_HEALTH,
-            CONNECTOR_MAC_CONTEXT,
-            get_capabilities,
-        )
-
-        prof = get_capabilities()
-        health_hint = ""
-        if prof.connector(CONNECTOR_APPLE_HEALTH):
-            health_hint = load_prompt(
-                prompts_dir, "health_tools", subdir="prompts", required=False
-            )
-        context_hint = ""
-        if prof.connector(CONNECTOR_MAC_CONTEXT):
-            context_hint = load_prompt(
-                prompts_dir, "context_tools", subdir="prompts", required=False
-            )
-        now = reference_now()
+        base = _load_prompt("query_prompt.txt")
+        now = self._analyst._now()
         date_hint = (
-            pdmsg("agent_system_prompt_today", today=now.strftime("%Y-%m-%d (%A)"))
+            f"Сегодня: {now.strftime('%Y-%m-%d')}. Текущий месяц: {now.strftime('%B %Y')}."
         )
-        tools_hint = (
-            pdmsg("agent_system_prompt_tools")
+        return (
+            f"{base}\n\n{date_hint}\n"
+            "Обязательно вызывай инструменты для любых сумм, балансов, операций и сводок. "
+            "Интервалы задавай through from_date/to_date (YYYY-MM-DD) или days. "
+            "Не выдумывай цифры."
         )
-        parts = [base, date_hint, tools_hint]
-        if health_hint.strip():
-            parts.append(health_hint.strip())
-        if context_hint.strip():
-            parts.append(context_hint.strip())
-        parts.append(pdmsg("agent_system_prompt_format"))
-        return "\n\n".join(parts)
 
     def memory_layers(self, ctx: AgentContext):
-        from planning_bot.app.memory_layers import PlanningActionLogLayer
         from shared.memory.layers import build_memory_layers
 
-        return [PlanningActionLogLayer(), *build_memory_layers(PLANNING_DOMAIN)]
+        return build_memory_layers(FINANCE_DOMAIN)
 
     async def prepare_extras(self, user_id: int) -> dict:
-        return {"bot": self._bot, "telegram_id": user_id}
+        return {"analyst": self._analyst, "telegram_id": user_id}

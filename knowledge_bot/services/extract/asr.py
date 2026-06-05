@@ -350,3 +350,14 @@ def transcribe_from_config(
         env_model=env_model,
         log=log,
     )
+
+
+def transcribe_av(path: Path, **kwargs: Any) -> str:
+    """Knowledge media pipeline: transcribe without raising on ASR failure."""
+    return transcribe_audio(
+        path,
+        raise_on_failure=False,
+        use_singleton=True,
+        backend_order=("faster_whisper", "whisper"),
+        **kwargs,
+    )

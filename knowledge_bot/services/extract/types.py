@@ -1,78 +1,39 @@
-"""Agent core types."""
+"""Extracted media/text bundle from knowledge ingest pipeline."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 
-class ModelRole(str, Enum):
-    PARSE = "parse"
-    ANALYZE = "analyze"
-    CHAT = "chat"
-
-
-class Domain(str, Enum):
-    FINANCE = "finance"
-    PLANNING = "planning"
-    KNOWLEDGE = "knowledge"
-    GENERAL = "general"
+class VisionRateLimitError(Exception):
+    """OpenRouter vision API returned HTTP 429."""
 
 
 @dataclass
-class Tool:
-    name: str
-    description: str
-    parameters: dict[str, Any]
-    handler: Callable[..., Awaitable[Any]]
-    category: str = "general"
-    always: bool = False
+class ExtractedBundle:
+    raw_text: str
+    urls: list[str] = field(default_factory=list)
+    meta: dict = field(default_factory=dict)
+    url_text: str = ""
+    pdf_text: str = ""
+    ocr_text: str = ""
+    vision_text: str | None = None
+    asr_text: str = ""
+    yt_transcript_text: str = ""
 
-
-@dataclass
-class ToolCall:
-    id: str
-    name: str
-    arguments: dict[str, Any]
-
-
-@dataclass
-class ToolResult:
-    id: str
-    name: str
-    content: str
-
-
-@dataclass
-class AgentMessage:
-    role: str
-    content: str | None = None
-    tool_calls: list[ToolCall] = field(default_factory=list)
-    tool_call_id: str | None = None
-
-
-@dataclass
-class AgentContext:
-    user_id: int
-    domain: str
-    question: str
-    system_prompt: str
-    history: list[AgentMessage] = field(default_factory=list)
-    extras: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class AgentAnswer:
-    text: str
-    media_files: list[tuple[str, str]] = field(default_factory=list)
-
-
-KB_MEDIA_EXTRAS_KEY = "kb_media_files"
-
-
-@dataclass
-class RouteDecision:
-    domain: Domain
-    intent: str
-    confidence: float
-    via: str  # rule | llm
+    def to_summary(self) -> dict[str, Any]:
+        derived: dict[str, str] = {
+            "url_text": self.url_text or "",
+            "pdf_text": self.pdf_text or "",
+            "ocr_text": self.ocr_text or "",
+            "asr_text": self.asr_text or "",
+            "vision_text": (self.vision_text or ""),
+        }
+        if self.yt_transcript_text:
+            derived["yt_transcript_text"] = self.yt_transcript_text
+        return {
+            "raw_text": self.raw_text,
+            "urls": list(self.urls or []),
+            "meta": dict(self.meta or {}),
+            "derived": derived,
+        }

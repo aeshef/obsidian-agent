@@ -12,6 +12,8 @@ from planning_bot.services.action_log_format import (
     content_for_parse,
     format_log_entry,
     gap_before_next_entry,
+    needs_repair,
+    repair_log_text,
 )
 
 _log = logging.getLogger(__name__)
@@ -200,6 +202,14 @@ class ActionLogger:
         # Do not use pdmsg for entry body: dmsg/pdmsg .strip() removes trailing newlines after
         # "---" in YAML (auto_ebf7357951), so the next append became "---## ...".
         entry = format_log_entry(timestamp, action_type, data)
+
+        if log_file.exists() and log_file.stat().st_size > 0:
+            raw = log_file.read_text(encoding="utf-8")
+            if needs_repair(raw):
+                fixed, n_fix = repair_log_text(raw)
+                if n_fix:
+                    log_file.write_text(fixed, encoding="utf-8")
+                    _log.info("Repaired %s glued entries in %s before append", n_fix, log_file.name)
 
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(gap_before_next_entry(log_file))

@@ -76,3 +76,32 @@ class VaultPaths:
     @property
     def data_dir(self) -> Path:
         return self.dashboards / dashboards_sub("data")
+
+
+def knowledge_db_root(vault_root_path: Path) -> Path:
+    from shared.vault_layout import knowledge_subdir
+
+    return vault_root_path / knowledge_subdir()
+
+
+def target_note_path(vault_root_path: Path, type_name: str, slug: str) -> Path:
+    from knowledge_bot.core.config import load_config
+    from knowledge_bot.core.settings import load_types_config
+
+    cfg = load_config()
+    types = load_types_config(cfg.agent_config_path)
+    subdir = types.dir_for(type_name) or types.dir_for(types.default_type) or "Знания"
+    return knowledge_db_root(vault_root_path) / subdir / f"{slug}.md"
+
+
+def build_export_path(export_root: Path, filename: str, h8: str) -> Path:
+    from datetime import date
+
+    safe = Path(filename).name.replace(" ", "_")
+    today = date.today()
+    return export_root / str(today.year) / f"{today.month:02d}" / f"{h8}_{safe}"
+
+
+def build_attachments_path(attachments_root: Path, filename: str, h8: str) -> Path:
+    safe = Path(filename).name.replace(" ", "_")
+    return attachments_root / f"{h8}_{safe}"

@@ -293,7 +293,7 @@ async def show_transaction_confirmation(
     if nav_row:
         kb_rows.append(nav_row)
 
-    kb_rows.append([InlineKeyboardButton(text=common("cancel"), callback_data="txn:cancel")])
+    kb_rows.append([InlineKeyboardButton(text=common("cancel_button"), callback_data="txn:cancel")])
 
     kb = InlineKeyboardMarkup(inline_keyboard=kb_rows)
 

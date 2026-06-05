@@ -37,9 +37,11 @@ def gap_before_next_entry(log_file: Path) -> str:
     if size == 0:
         return ""
     with open(log_file, "rb") as f:
-        f.seek(max(0, size - 256))
+        f.seek(max(0, size - 512))
         tail = f.read().decode("utf-8", errors="replace")
     if not tail:
+        return ""
+    if "---##" in tail or _GLUED_SEP.search(tail):
         return ""
     if tail.endswith(ENTRY_TAIL) or tail.endswith("\n\n---\n\n"):
         return ""

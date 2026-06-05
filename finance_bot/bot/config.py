@@ -1,78 +1,47 @@
-"""Load config/agent/memory.yaml."""
+"""Finance bot settings (env via pydantic-settings)."""
 from __future__ import annotations
 
-import os
 from functools import lru_cache
-from pathlib import Path
+from typing import Optional
 
-from shared.agent.config import agent_config_dir
-from shared.yaml_config import load_yaml
+from pydantic import AliasChoices, Field, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from bot.finance_db_paths import database_url_for_path, resolve_canonical_write_db
+from shared.constants import timezone_name
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    TELEGRAM_BOT_TOKEN: str = Field(
+        default="",
+        validation_alias=AliasChoices("TELEGRAM_FINANCE_BOT_TOKEN", "TELEGRAM_BOT_TOKEN"),
+        description="Telegram bot token from BotFather",
+    )
+    TIMEZONE: str = Field(
+        default_factory=timezone_name,
+        description="Default timezone (TIMEZONE env, default UTC)",
+    )
+    DATABASE_URL: str = Field(
+        default="sqlite+aiosqlite:///./finance.db",
+        description="SQLAlchemy URL; relative paths resolve under finance_bot root",
+    )
+    TINKOFF_API_TOKEN: Optional[str] = Field(default=None)
+    TINKOFF_IGNORE_ACCOUNT_IDS: Optional[str] = Field(default=None)
+    BASE_CURRENCY: str = Field(default="RUB")
+    DEEPSEEK_API_KEY: Optional[str] = Field(default=None)
+    DEEPSEEK_API_TOKEN: Optional[str] = Field(default=None)
+    DEEPSEEK_BASE_URL: Optional[str] = Field(default=None)
+    DEEPSEEK_MODEL: Optional[str] = Field(default=None)
+
+    @model_validator(mode="after")
+    def _canonical_database_url(self) -> "Settings":
+        canonical = resolve_canonical_write_db(database_url=self.DATABASE_URL)
+        object.__setattr__(self, "DATABASE_URL", database_url_for_path(canonical))
+        return self
 
 
 @lru_cache(maxsize=1)
-def load_memory_config() -> dict:
-    base = agent_config_dir()
-    path = base / "memory.yaml"
-    if not path.is_file():
-        path = base / "memory.yaml.example"
-    return load_yaml(
-        path,
-        default={
-            "global_profile": "user_profile.md",
-            "headers": {
-                "global_profile": "## Global profile",
-                "domain_profile": {
-                    "finance": "## Finance profile",
-                    "planning": "## Goals context",
-                },
-            },
-            "insights": {"global_limit": 8, "domain_limit": 10},
-        },
-    )
-
-
-def global_profile_path() -> Path:
-    cfg = load_memory_config()
-    raw = os.environ.get("AGENT_USER_PROFILE", "").strip() or str(cfg.get("global_profile") or "user_profile.md")
-    p = Path(raw)
-    if p.is_absolute():
-        return p
-    return agent_config_dir() / p
-
-
-def domain_profile_path(domain: str) -> Path | None:
-    if domain == "finance":
-        try:
-            from bot.config_loader import CONFIG_DIR
-        except ImportError:
-            from finance_bot.bot.config_loader import CONFIG_DIR
-
-        return CONFIG_DIR / "user_context.md"
-    if domain == "planning":
-        from planning_bot.core.config import GOALS_CONTEXT_FILE
-
-        return GOALS_CONTEXT_FILE
-    return None
-
-
-def profile_header(domain: str) -> str:
-    cfg = load_memory_config()
-    headers = cfg.get("headers") or {}
-    if domain == "global":
-        return str(headers.get("global_profile") or "## Global profile")
-    domain_headers = headers.get("domain_profile") or {}
-    return str(domain_headers.get(domain) or "## Profile")
-
-
-def insight_limits() -> tuple[int, int]:
-    cfg = load_memory_config()
-    ins = cfg.get("insights") or {}
-    try:
-        g = max(0, int(ins.get("global_limit", 8)))
-    except (TypeError, ValueError):
-        g = 8
-    try:
-        d = max(0, int(ins.get("domain_limit", 10)))
-    except (TypeError, ValueError):
-        d = 10
-    return g, d
+def get_settings() -> Settings:
+    return Settings()

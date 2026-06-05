@@ -1,7 +1,9 @@
-"""Composable reply keyboards for Telegram bots."""
+"""Planning reply keyboards (config/messages.{locale}.yaml)."""
 from __future__ import annotations
 
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+
+from planning_bot.app.ui import pmsg_menu
 
 
 class ReplyKeyboardExtras:
@@ -42,6 +44,27 @@ class ReplyKeyboardExtras:
         )
 
 
+_keyboard_extras = ReplyKeyboardExtras()
+
+
+def clear_keyboard_extras() -> None:
+    _keyboard_extras.clear()
+
+
+def set_keyboard_extras(rows: list[list[KeyboardButton]] | None) -> None:
+    _keyboard_extras.set(rows)
+
+
+def get_main_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.core.pdmsg import pdmsg
+
+    kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text=pdmsg("auto_ca15d9d2aa"))]],
+        resize_keyboard=True,
+    )
+    return _keyboard_extras.apply(kb)
+
+
 def append_button_rows(
     kb: ReplyKeyboardMarkup,
     rows: list[list[KeyboardButton | str]],
@@ -53,3 +76,78 @@ def append_button_rows(
     extras = ReplyKeyboardExtras()
     extras.set(normalized)
     return extras.apply(kb)
+
+
+def get_routines_keyboard() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=pmsg_menu("routines_stats")),
+                KeyboardButton(text=pmsg_menu("routines_recommendations")),
+            ],
+            [KeyboardButton(text=pmsg_menu("routines_today"))],
+            [KeyboardButton(text=pmsg_menu("back"))],
+        ],
+        resize_keyboard=True,
+    )
+    return _keyboard_extras.apply(kb)
+
+
+def get_tasks_filter_keyboard() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=pmsg_menu("goals")),
+                KeyboardButton(text=pmsg_menu("priorities")),
+            ],
+            [KeyboardButton(text=pmsg_menu("statuses"))],
+            [KeyboardButton(text=pmsg_menu("all_tasks"))],
+            [KeyboardButton(text=pmsg_menu("back"))],
+        ],
+        resize_keyboard=True,
+    )
+    return _keyboard_extras.apply(kb)
+
+
+def get_statuses_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.core.config import KANBAN_COLUMNS
+
+    cols = KANBAN_COLUMNS
+    rows: list[list[KeyboardButton]] = []
+    for i in range(0, len(cols), 3):
+        rows.append([KeyboardButton(text=cols[j]) for j in range(i, min(i + 3, len(cols)))])
+    rows.append([KeyboardButton(text=pmsg_menu("back"))])
+    kb = ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+    return _keyboard_extras.apply(kb)
+
+
+def get_categories_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.core.config import CATEGORIES
+
+    prefix = pmsg_menu("category_prefix")
+    category_buttons: list[list[KeyboardButton]] = []
+    for i in range(0, len(CATEGORIES), 2):
+        row: list[KeyboardButton] = []
+        for j in range(2):
+            if i + j < len(CATEGORIES):
+                row.append(KeyboardButton(text=f"{prefix}{CATEGORIES[i + j]}"))
+        if row:
+            category_buttons.append(row)
+    category_buttons.append([KeyboardButton(text=pmsg_menu("back"))])
+    kb = ReplyKeyboardMarkup(keyboard=category_buttons, resize_keyboard=True)
+    return _keyboard_extras.apply(kb)
+
+
+def get_priorities_keyboard() -> ReplyKeyboardMarkup:
+    kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=pmsg_menu("priority_high")),
+                KeyboardButton(text=pmsg_menu("priority_medium")),
+            ],
+            [KeyboardButton(text=pmsg_menu("priority_low"))],
+            [KeyboardButton(text=pmsg_menu("back"))],
+        ],
+        resize_keyboard=True,
+    )
+    return _keyboard_extras.apply(kb)

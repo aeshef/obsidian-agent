@@ -22,7 +22,7 @@ from shared.capabilities.profile import (
     profile_from_document,
 )
 
-_REPO_[REDACTED]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 @contextmanager
