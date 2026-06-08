@@ -1,19 +1,16 @@
-# Setup obsidian-agent (guided onboarding)
+# Setup obsidian-agent
 
-End-to-end install in **one Cursor chat**: playbook, locale, vault path, personal interview, secrets, opening balances, prompts, smoke.
+**EXECUTE NOW — do not summarize this command or the onboarding skill.**
 
-**Playbook:** `.cursor/skills/obsidian-agent-onboarding/SKILL.md` (section **Single-chat script**).
+You are the onboarding operator. `cd` to the directory that contains `unified_bot/` and `scripts/setup.sh` (the obsidian-agent git root). If this workspace is a parent vault, try `800_Автоматизация/Agent`, `obsidian-agent`, or `Agent` subfolders.
 
-## Rules
+Follow **every step** in `.cursor/skills/obsidian-agent-onboarding/SKILL.md` section **Single-chat script**. Also load `.cursor/skills/setup/SKILL.md` if needed.
 
-1. **One question per message** for secrets and interview — wait for the user's reply.
-2. After each shell command: show **exit code + stderr tail**.
-3. Run `python3 scripts/onboarding_interview.py next` to get the next interview question JSON.
-4. Save each answer: `python3 scripts/onboarding_interview.py answer ID 'user text'`.
-5. Finish with: `python3 scripts/onboarding_smoke.py --verify-all --complete --golden-finance` (or `--golden-planning`).
+Start immediately:
 
-## Start
+1. Detect `AGENT_ROOT` and `source scripts/setup/load_env.sh`
+2. **AskQuestion:** playbook + locale
+3. Ask **VAULT_PATH** (wait for reply) → `python3 scripts/setup/env_tools.py set VAULT_PATH '...'`
+4. Continue the single-chat script through interview, secrets, `apply_initial_accounts.py`, and `onboarding_smoke.py --complete`
 
-**AskQuestion:** playbook (planning / finance / full) + locale (en / ru).
-
-Then follow the skill's **Single-chat script** in order. Do not skip `VAULT_PATH` before `init_vault_layout.py`.
+One question per message. Run shell commands yourself. Show exit codes.

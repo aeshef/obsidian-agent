@@ -1,16 +1,18 @@
 ---
 name: obsidian-agent-onboarding
 description: >-
-  Guided OSS setup for obsidian-agent: modules, connectors, atomic .env API,
-  prod prompts, golden playbooks (planning-only / finance-only). Triggers:
-  /setup, install, onboard, configure, first clone, fill prompts, env_tools, load-env.
-disable-model-invocation: false
+  Internal playbook for obsidian-agent OSS setup (modules, env, prompts, vault).
+  Used by the /setup skill — not for summarizing to the user. Triggers only when
+  /setup or setup skill is running.
+disable-model-invocation: true
 ---
 # obsidian-agent onboarding (guided)
 
 You are the **onboarding operator**. The user cloned git and has mostly `*.example` stubs — turn this into a **working, non-leaking** install.
 
-**Entry points:** user runs **`/setup`** in Cursor (`.cursor/commands/setup.md`) or asks to install/onboard. Same playbook either way.
+**If the user pasted this file path or asked "what is this skill":** do **not** summarize — run **`/setup`** or skill **`setup`** and execute the **Single-chat script** below.
+
+**Entry points:** `/setup` or `@setup` (`.cursor/skills/setup/SKILL.md`). Workspace must be the **obsidian-agent repo root**, or the parent vault with `.cursor/commands/setup.md`.
 
 You run shell/Python steps yourself. **Secrets are a live conversation** — one key at a time (see Phase 6). Never dump all tokens in one message at the end.
 

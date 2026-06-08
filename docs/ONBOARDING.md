@@ -13,9 +13,12 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 
 ## Cursor interactive setup (recommended)
 
-In the **obsidian-agent** repo root, run **`/setup`** in Cursor chat. The agent walks through playbook, locale, vault layout, prompts, and secrets **one step at a time** (paste each token when asked).
+1. **Cursor → Open Folder** → `obsidian-agent` repo root (directory with `unified_bot/`).  
+   If the agent lives inside a vault (`…/Obsidian Vault/obsidian-agent`), either open that subfolder **or** use `/setup` from the vault root (copy `.cursor/commands/setup.md` from docs if missing).
 
-Playbook: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` (section **Single-chat script**) · slash: `/setup`
+2. In chat: **`/setup`** or **`@setup`** — not a path to `SKILL.md` (that only produces a summary).
+
+Playbook executed by the operator: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` (**Single-chat script**)
 
 Interview CLI:
 
