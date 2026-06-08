@@ -40,7 +40,7 @@ Capture tasks, notes, and money from chat (voice, text, media). The bot writes *
 ### Option A — Guided setup in Cursor (recommended)
 
 1. Clone and open the repo in **Cursor**.
-2. Start a chat and ask to **onboard obsidian-agent** — the skill at `.cursor/skills/obsidian-agent-onboarding` runs the wizard: pick modules/connectors, fill `.env` safely, materialize configs, scaffold prompts, smoke tests.
+2. In Cursor chat run **`/setup`** (or ask to onboard) — guided flow: playbook, locale, vault layout, prompts, secrets one-by-one. Playbook: `.cursor/skills/obsidian-agent-onboarding/SKILL.md`.
 3. Run the bot:
 
 ```bash
@@ -177,7 +177,7 @@ MIT — see [LICENSE](LICENSE).
 
 **obsidian-agent** — единый Telegram-бот, который пишет в ваш Obsidian vault: задачи, база знаний и финансы. Модули и коннекторы включаются декларативно; выключенное не попадает в UI, tools и sync.
 
-**Установка:** откройте репозиторий в **Cursor** и пройдите онбординг (скилл `.cursor/skills/obsidian-agent-onboarding`) **или** `./scripts/setup.sh` + `./scripts/onboarding_wizard.sh`. Подробности — [docs/SETUP.md](docs/SETUP.md), [docs/ONBOARDING.md](docs/ONBOARDING.md).
+**Установка:** откройте репозиторий в **Cursor** и в чате **`/setup`** (или скилл `.cursor/skills/obsidian-agent-onboarding`) **или** `./scripts/onboarding_wizard.sh`. Подробности — [docs/SETUP.md](docs/SETUP.md), [docs/ONBOARDING.md](docs/ONBOARDING.md).
 
 **Язык интерфейса:** по умолчанию английский; русский: `python3 scripts/setup/env_tools.py set-locale ru` ([docs/LOCALE.md](docs/LOCALE.md)).
 

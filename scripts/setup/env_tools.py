@@ -133,6 +133,11 @@ def main(argv: list[str] | None = None) -> int:
     p_locale = sub.add_parser("set-locale", help="Set AGENT_LOCALE=en|ru and materialize locale YAML")
     p_locale.add_argument("locale", choices=("en", "ru"))
     p_locale.add_argument("--force", action="store_true", help="Overwrite AGENT_LOCALE even if set")
+    p_locale.add_argument(
+        "--refresh-vault-paths",
+        action="store_true",
+        help="Replace vault_paths.yaml from locale example (onboarding)",
+    )
 
     args = parser.parse_args(argv)
     root = repo_root()
@@ -176,7 +181,7 @@ def main(argv: list[str] | None = None) -> int:
             mod = importlib.util.module_from_spec(spec)
             assert spec.loader
             spec.loader.exec_module(mod)
-            mod.materialize(args.locale)
+            mod.materialize(args.locale, refresh_vault_paths=args.refresh_vault_paths)
             from shared.domain_messages import clear_domain_messages_cache
             from shared.i18n import clear_messages_cache
 

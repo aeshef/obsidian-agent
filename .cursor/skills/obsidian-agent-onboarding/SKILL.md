@@ -3,12 +3,16 @@ name: obsidian-agent-onboarding
 description: >-
   Guided OSS setup for obsidian-agent: modules, connectors, atomic .env API,
   prod prompts, golden playbooks (planning-only / finance-only). Triggers:
-  install, onboard, configure, first clone, fill prompts, env_tools, load-env.
+  /setup, install, onboard, configure, first clone, fill prompts, env_tools, load-env.
 disable-model-invocation: false
 ---
 # obsidian-agent onboarding (guided)
 
-You are the **onboarding operator**. The user cloned git and has mostly `*.example` stubs — turn this into a **working, non-leaking** install. You run shell/Python steps yourself; the user only pastes secrets when asked.
+You are the **onboarding operator**. The user cloned git and has mostly `*.example` stubs — turn this into a **working, non-leaking** install.
+
+**Entry points:** user runs **`/setup`** in Cursor (`.cursor/commands/setup.md`) or asks to install/onboard. Same playbook either way.
+
+You run shell/Python steps yourself. **Secrets are a live conversation** — one key at a time (see Phase 6). Never dump all tokens in one message at the end.
 
 ## Non‑negotiable rules
 
@@ -22,8 +26,11 @@ You are the **onboarding operator**. The user cloned git and has mostly `*.examp
 | `.env`: append placeholders via `--patch-env` / `env_tools.py append-hints`; secrets via `env_tools.py set` only | Never replace non-empty values without `--force` |
 | Use **AskQuestion** for modules/connectors; **do not mention** declined options in UI/prompts/sync | Capability contract |
 | After each shell step: show **exit code + stderr**; stop on failure unless user wants to skip | |
+| **`init_vault_layout.py` only after** `capabilities.yaml` exists **and** locale/`vault_paths` materialized | Prevents planning/KB ghost folders |
+| **Never** `cp config/vault_paths.yaml.example` — use `materialize_locale.py` / `env_tools.py set-locale --refresh-vault-paths` | Wrong locale if copied manually |
 | UI strings: `config/messages.en.yaml` (canonical keys) + `messages.ru.yaml` — **no Cyrillic in `.py`** | |
-| Default `AGENT_LOCALE=en`; Russian: `env_tools.py set-locale ru` | |
+| Default `AGENT_LOCALE=en`; Russian: `env_tools.py set-locale ru --refresh-vault-paths` | |
+| `ensure_bot_prompts.sh` copies prompts **only for enabled modules** | Finance-only skips planning/KB prompts |
 
 ## Shell conventions (every phase)
 
@@ -59,7 +66,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 
 | Step | Command / action |
 |------|------------------|
-| Profile | `python3 scripts/apply_capabilities_profile.py --only-modules planning --write --patch-env` |
+| Profile | `python3 scripts/apply_capabilities_profile.py --preset planning_only --write --patch-env` |
 | Core env | `env_tools.py set` → `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN` (or `TELEGRAM_BOT_TOKEN`), `DEEPSEEK_API_KEY` |
 | Layout | `python3 scripts/init_vault_layout.py` → `./scripts/setup.sh` → `bash scripts/setup_agent_config.sh` |
 | Prompts | `bash scripts/ensure_bot_prompts.sh` — personalize planning `*.txt` only |
@@ -73,7 +80,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 
 | Step | Command / action |
 |------|------------------|
-| Profile | `python3 scripts/apply_capabilities_profile.py --only-modules finance --write --patch-env` |
+| Profile | `python3 scripts/apply_capabilities_profile.py --preset finance_only --write --patch-env` |
 | Core env | `VAULT_PATH`, Telegram token, `DEEPSEEK_API_KEY` |
 | Finance config | `cp finance_bot/config/broker_sync.yaml.example` only if user wants **API** broker later; default preset uses manual accounts + cards |
 | Prompts | Finance personalized prompts (`nlu_prompt`, `query_prompt`, …) — **no broker brand names in prompt logic**; localized labels live in `messages.ru.yaml` |
@@ -96,13 +103,14 @@ flowchart TD
   A[Detect: capabilities + VAULT_PATH] --> B[AskQuestion: playbook or modules]
   B --> C[Ask connectors for enabled modules only]
   C --> D[apply_capabilities_profile --write --patch-env]
-  D --> E[env_tools append-hints + set secrets]
+  D --> E[set-locale + materialize_locale + ensure_repo_config]
   E --> F[init_vault_layout + setup.sh]
   F --> G[ensure_bot_prompts + fill prompts]
-  G --> H[onboarding_smoke --verify-all --golden-*]
-  H --> I{Mac sync?}
-  I -->|yes| J[install_mac_sync.sh]
-  I -->|no| K[unified_bot.main smoke]
+  G --> H[secrets one-by-one in chat]
+  H --> I[onboarding_smoke --verify-all --golden-*]
+  I --> J{Mac sync?}
+  J -->|yes| K[install_mac_sync.sh]
+  J -->|no| L[unified_bot.main smoke]
 ```
 
 ---
@@ -187,29 +195,44 @@ python3 scripts/setup/env_tools.py status
 
 ---
 
-## Phase 4 — Vault layout + dependencies
+## Phase 4 — Locale + repo config (before vault folders)
+
+**Order matters.** Locale and `vault_paths.yaml` must exist **before** `init_vault_layout.py`.
+
+```bash
+AGENT_LOCALE="${AGENT_LOCALE:-en}"
+python3 scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" --refresh-vault-paths
+python3 scripts/setup/materialize_locale.py "$AGENT_LOCALE" --refresh-vault-paths
+AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
+```
+
+Do **not** copy `vault_paths.yaml.example` by hand — that forces English folder names when user chose Russian.
+
+## Phase 5 — Vault layout + dependencies
+
+Requires `config/agent/capabilities.yaml` from Phase 3 (script exits with error if missing).
 
 ```bash
 python3 scripts/init_vault_layout.py
 ./scripts/setup.sh
 bash scripts/setup_agent_config.sh
-AGENT_LOCALE="${AGENT_LOCALE:-en}"
-python3 scripts/setup/materialize_locale.py "$AGENT_LOCALE"
-AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
-cp config/vault_paths.yaml.example config/vault_paths.yaml   # if missing; tune folder names
-python3 scripts/setup/env_tools.py set-locale "$AGENT_LOCALE"   # materializes messages.*.yaml
 ```
+
+`init_vault_layout.py` creates **only folders for enabled modules** (finance-only → dashboards + finance charts + `.sync`, not tasks/goals/Knowledge).
 
 Ensure `.env` contains `AGENT_PROMPT_DYNAMIC_SUPPLEMENT=0` (see `.env.example`) — prefer explicit `<!-- @cap -->` blocks in prod prompts.
 
 ---
 
-## Phase 5 — Prompts (one pass: stubs → prod .txt)
+## Phase 6 — Prompts (one pass: stubs → prod .txt)
+
+Only enabled modules (finance-only → finance prompts + agent prompts, not planning/KB).
 
 ```bash
 bash scripts/ensure_bot_prompts.sh
 cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml  # if missing
 python3 scripts/scaffold_personalized_prompts.py
+# planning module only:
 python3 scripts/seed_planning_prompts.py || true
 bash scripts/ensure_bot_prompts.sh --warn-stubs
 ```
@@ -235,25 +258,39 @@ Example prod blocks (see `health_tools.example.txt`, `context_tools.example.txt`
 
 ---
 
-## Phase 6 — Secrets (user pastes → you `env_tools.py set`)
+## Phase 7 — Secrets (interactive chat, one at a time)
 
-Workflow per cluster:
+**Do not** list all secrets in one message and stop. Walk the user like a human setup guide:
 
-1. Send the user a **link + variable name** (never log the secret).
-2. User pastes value → `python3 scripts/setup/env_tools.py set KEY 'value'`.
-3. `python3 scripts/onboarding_smoke.py --verify-all` (add `--require-env` when all clusters done).
+1. **One secret per turn.** Explain where to click, which env key it maps to, then **wait** for the paste.
+2. User pastes → `python3 scripts/setup/env_tools.py set KEY 'value'` (never echo the value back).
+3. `python3 scripts/setup/env_tools.py list-missing …` — confirm that key is gone.
+4. Short “✓ saved” + **next** secret only if still missing.
+5. After all core keys: `onboarding_smoke.py --verify-all` (+ `--require-env` when done).
+
+### Core secrets (always, in this order)
+
+| Step | Tell the user | Env key |
+|------|---------------|---------|
+| 1 | Absolute path to their Obsidian vault folder | `VAULT_PATH` |
+| 2 | [BotFather](https://t.me/BotFather) → `/newbot` → copy token | `TELEGRAM_UNIFIED_BOT_TOKEN` |
+| 3 | [DeepSeek](https://platform.deepseek.com/) API key | `DEEPSEEK_API_KEY` |
+
+### Optional (only if connector enabled — one per turn)
 
 | Secret | Where to get it | Env key |
 |--------|-----------------|---------|
-| Telegram bot | [BotFather](https://t.me/BotFather) | `TELEGRAM_UNIFIED_BOT_TOKEN` or `TELEGRAM_BOT_TOKEN` |
-| LLM | [DeepSeek](https://platform.deepseek.com/) | `DEEPSEEK_API_KEY` |
 | Vision / KB | [OpenRouter](https://openrouter.ai/) | `OPENROUTER_API_KEY` |
 | Gmail IMAP | Google App Passwords | `GMAIL_IMAP_USER`, `GMAIL_IMAP_APP_PASSWORD` |
 | Broker (tinkoff) | Provider developer portal | `TINKOFF_API_TOKEN` + `broker_sync.yaml` |
 
+### Finance-only interview (after core secrets)
+
+Ask in chat (not a batch): accounts list → update `onboarding_slots.yaml` → re-run `scaffold_personalized_prompts.py`.
+
 ---
 
-## Phase 7 — Smoke gates
+## Phase 8 — Smoke gates
 
 ```bash
 python3 scripts/onboarding_smoke.py --verify-all --golden-planning   # planning playbook
@@ -269,7 +306,7 @@ CI runs `--golden-planning --golden-finance` without live Telegram.
 
 ---
 
-## Phase 8 — Mac sync / VPS (optional)
+## Phase 9 — Mac sync / VPS (optional)
 
 ```bash
 ./scripts/install_mac_sync.sh
@@ -283,7 +320,7 @@ CI runs `--golden-planning --golden-finance` without live Telegram.
 
 ---
 
-## Phase 9 — Run bot
+## Phase 10 — Run bot
 
 ```bash
 python3 -m unified_bot.main

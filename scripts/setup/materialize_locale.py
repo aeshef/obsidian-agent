@@ -10,6 +10,8 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 try:
     from shared.yaml_config import deep_merge, load_yaml
@@ -58,7 +60,7 @@ def _merge_examples(paths: list[Path]) -> dict:
     return out
 
 
-def _materialize_config(stem: str, locale: str) -> None:
+def _materialize_config(stem: str, locale: str, *, refresh_vault_paths: bool = False) -> None:
     examples = _example_chain(stem, locale)
     if not examples:
         return
@@ -67,6 +69,15 @@ def _materialize_config(stem: str, locale: str) -> None:
         return
     dst = ROOT / "config" / f"{stem}.yaml"
     cur = load_yaml(dst, default={}) if dst.is_file() else {}
+
+    if stem == "vault_paths" and dst.is_file() and cur:
+        from shared.capabilities.vault_paths_locale import should_replace_vault_paths_for_locale
+
+        if refresh_vault_paths or should_replace_vault_paths_for_locale(cur, locale):
+            _dump_yaml(dst, ex)
+            print(f"replaced {dst.relative_to(ROOT)} with {locale} locale example")
+            return
+
     merged = deep_merge(ex, cur) if cur else ex
     if merged == cur and dst.is_file():
         print(f"ok {dst.relative_to(ROOT)}")
@@ -79,10 +90,14 @@ def _materialize_config(stem: str, locale: str) -> None:
         print(f"merged {dst.relative_to(ROOT)} <- example (missing keys only)")
 
 
-def materialize(locale: str | None = None) -> None:
+def materialize(locale: str | None = None, *, refresh_vault_paths: bool = False) -> None:
     loc = _resolve_locale(locale)
     for stem in (f"messages.{loc}", f"domain_messages.{loc}", "vault_paths"):
-        _materialize_config(stem, loc)
+        _materialize_config(
+            stem,
+            loc,
+            refresh_vault_paths=refresh_vault_paths if stem == "vault_paths" else False,
+        )
 
     fin_cfg = ROOT / "finance_bot" / "config"
     for base in ("categories_mvp", "income_categories"):
@@ -94,8 +109,17 @@ def materialize(locale: str | None = None) -> None:
 
 
 def main() -> int:
-    loc = sys.argv[1] if len(sys.argv) > 1 else None
-    materialize(loc)
+    import argparse
+
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("locale", nargs="?", default=None, help="en or ru")
+    ap.add_argument(
+        "--refresh-vault-paths",
+        action="store_true",
+        help="Replace vault_paths.yaml from locale example (onboarding)",
+    )
+    args = ap.parse_args()
+    materialize(args.locale, refresh_vault_paths=args.refresh_vault_paths)
     return 0
 
 

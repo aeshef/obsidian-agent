@@ -6,6 +6,8 @@ import argparse
 import re
 from pathlib import Path
 
+from shared.capabilities.profile import get_capabilities
+from shared.capabilities.prompt_dirs import prompt_path_enabled
 from shared.capabilities.prompt_manifest import personalized_prompts
 from shared.capabilities.prompt_scaffold_templates import DEFAULT_SLOTS, SCAFFOLDS
 from shared.prompts import _is_comment_stub
@@ -62,10 +64,13 @@ def main() -> int:
 
     slots_path = args.slots if args.slots.is_file() else None
     slots = _load_slots(slots_path)
+    prof = get_capabilities()
     actions: list[str] = []
     missing_scaffold: list[str] = []
 
     for rel in sorted(personalized_prompts()):
+        if not prompt_path_enabled(rel, prof):
+            continue
         if rel not in SCAFFOLDS:
             missing_scaffold.append(rel)
             continue

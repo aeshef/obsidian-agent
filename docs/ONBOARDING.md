@@ -11,7 +11,13 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 | **features** | Fine-grained flags (nutrition chart, broker IIS, planning cron jobs, …) |
 | **sync.profile** | Mac `obsidian_sync.sh` steps; use `auto` to infer from modules/connectors |
 
-## One-shot wizard (recommended for new clones)
+## Cursor interactive setup (recommended)
+
+In the **obsidian-agent** repo root, run **`/setup`** in Cursor chat. The agent walks through playbook, locale, vault layout, prompts, and secrets **one step at a time** (paste each token when asked).
+
+Playbook: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` · slash entry: `.cursor/commands/setup.md`
+
+## One-shot shell wizard
 
 ```bash
 ./scripts/onboarding_wizard.sh --playbook planning   # or finance | full
@@ -19,9 +25,9 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 ./scripts/onboarding_wizard.sh --dry-run --playbook finance
 ```
 
-The wizard runs `apply_capabilities_profile`, `init_vault_layout`, `ensure_bot_prompts`, and `onboarding_smoke.py`. Secrets still require `python3 scripts/setup/env_tools.py set KEY 'value'`. Full interactive flow: Cursor skill `.cursor/skills/obsidian-agent-onboarding/SKILL.md`.
+The wizard runs `apply_capabilities_profile`, locale/`vault_paths` materialization, then `init_vault_layout` (only folders for enabled modules), `ensure_bot_prompts`, and `onboarding_smoke.py`. Secrets: `python3 scripts/setup/env_tools.py set KEY 'value'` or use `/setup` in Cursor.
 
-**Author machine:** use `AGENT_LOCALE=ru` in `.env` before the wizard so `vault_paths.yaml` keeps your Cyrillic folder names (`100_Задачи`, not `100_Tasks`).
+**Locale:** wizard calls `set-locale --refresh-vault-paths` so Russian installs get `100_Задачи`, not `100_Tasks`. Never copy `vault_paths.yaml.example` by hand.
 
 ## Examples
 

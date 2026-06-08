@@ -32,12 +32,19 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-PROMPT_DIRS=(
-  "config/agent/prompts"
-  "finance_bot/config/prompts"
-  "knowledge_bot/config/prompts"
-  "planning_bot/config/prompts"
-)
+PROMPT_DIRS=()
+while IFS= read -r d; do
+  [[ -n "$d" ]] && PROMPT_DIRS+=("$d")
+done < <(python3 -c "
+import sys
+sys.path.insert(0, '$ROOT')
+from shared.capabilities.prompt_dirs import prompt_dirs_for_profile
+for d in prompt_dirs_for_profile():
+    print(d)
+")
+if [[ ${#PROMPT_DIRS[@]} -eq 0 ]]; then
+  PROMPT_DIRS=("config/agent/prompts")
+fi
 
 copy_if_missing() {
   local src="$1" dst="$2"

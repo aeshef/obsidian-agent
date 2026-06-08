@@ -127,7 +127,12 @@ case "$MODULES" in
   finance) GOLDEN_FLAG="--golden-finance" ;;
 esac
 
-CAP_ARGS=(--only-modules $MODULES)
+case "$MODULES" in
+  planning) CAP_ARGS=(--preset planning_only) ;;
+  finance) CAP_ARGS=(--preset finance_only) ;;
+  "planning finance knowledge") CAP_ARGS=(--preset full) ;;
+  *) CAP_ARGS=(--only-modules $MODULES) ;;
+esac
 if [[ "$WRITE_CAP" -eq 1 ]]; then
   CAP_ARGS+=(--write --patch-env)
 fi
@@ -147,20 +152,15 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
-log "Phase 4: locale + repo config"
-"$PY" scripts/setup/materialize_locale.py "$AGENT_LOCALE"
+log "Phase 4: locale + repo config (before vault layout)"
+"$PY" scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" --refresh-vault-paths || true
+"$PY" scripts/setup/materialize_locale.py "$AGENT_LOCALE" --refresh-vault-paths
 AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
-if [[ ! -f config/vault_paths.yaml ]]; then
-  _vp="config/vault_paths.${AGENT_LOCALE}.yaml.example"
-  if [[ -f "$_vp" ]]; then
-    cp "$_vp" config/vault_paths.yaml
-  elif [[ -f config/vault_paths.yaml.example ]]; then
-    cp config/vault_paths.yaml.example config/vault_paths.yaml
-  fi
-fi
-"$PY" scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" || true
 
 log "Phase 5: vault layout + dependencies"
+if [[ ! -f config/agent/capabilities.yaml ]]; then
+  die "capabilities.yaml missing — run apply_capabilities_profile --write first"
+fi
 "$PY" scripts/init_vault_layout.py
 ./scripts/setup.sh
 bash scripts/setup_agent_config.sh
@@ -172,15 +172,14 @@ if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
     cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
   fi
   "$PY" scripts/scaffold_personalized_prompts.py || true
-  "$PY" scripts/seed_planning_prompts.py || true
+  if [[ "$MODULES" == *planning* ]]; then
+    "$PY" scripts/seed_planning_prompts.py || true
+  fi
   bash scripts/ensure_bot_prompts.sh --warn-stubs || true
 fi
 
-log "Phase 7: secrets reminder"
+log "Phase 7: secrets (set via env_tools.py set — use Cursor /setup for interactive chat)"
 "$PY" scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
-echo "Set secrets: python3 scripts/setup/env_tools.py set VAULT_PATH '/path/to/vault'"
-echo "             python3 scripts/setup/env_tools.py set TELEGRAM_UNIFIED_BOT_TOKEN '...'"
-echo "             python3 scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'"
 
 if [[ "$SKIP_SMOKE" -eq 0 ]]; then
   log "Phase 8: smoke"
