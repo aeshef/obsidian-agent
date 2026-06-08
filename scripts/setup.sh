@@ -23,6 +23,8 @@ common_load_env "$ROOT" 2>/dev/null || true
 echo ""
 echo "$(sh_msg scripts.setup.section_venv)"
 bash "$ROOT/scripts/ensure_bot_venv.sh" all
+OA_PY="$(common_resolve_python "$ROOT/finance_bot")"
+export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 echo ""
 echo "$(sh_msg scripts.setup.section_check_env)"
@@ -40,7 +42,7 @@ if ! grep -q '^AGENT_LOCALE=' "$ROOT/.env" 2>/dev/null; then
   echo "AGENT_LOCALE=${AGENT_LOCALE}" >> "$ROOT/.env"
   echo "$(sh_msgf scripts.setup.locale_set "{\"locale\":\"$AGENT_LOCALE\"}")"
 fi
-python3 "$ROOT/scripts/setup/materialize_locale.py" "${AGENT_LOCALE}"
+"$OA_PY" "$ROOT/scripts/setup/materialize_locale.py" "${AGENT_LOCALE}"
 
 echo ""
 echo "$(sh_msg scripts.setup.section_bot_configs)"
@@ -63,9 +65,8 @@ echo "$(sh_msg scripts.setup.prompts_header)"
 bash "$ROOT/scripts/ensure_bot_prompts.sh"
 # pull_prompts_from_server.sh — author-only (gitignored); optional local file
 [ -x "$ROOT/scripts/pull_prompts_from_server.sh" ] && bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
-export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-if python3 -c "import sys; sys.path.insert(0,'$ROOT'); from shared.capabilities.profile import get_capabilities, MODULE_PLANNING; import sys as s; s.exit(0 if get_capabilities().module(MODULE_PLANNING) else 1)" 2>/dev/null; then
-  python3 "$ROOT/scripts/seed_planning_prompts.py" || true
+if "$OA_PY" -c "from shared.capabilities.profile import get_capabilities, MODULE_PLANNING; import sys; sys.exit(0 if get_capabilities().module(MODULE_PLANNING) else 1)" 2>/dev/null; then
+  "$OA_PY" "$ROOT/scripts/seed_planning_prompts.py" || true
 fi
 bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
 

@@ -187,6 +187,14 @@ def _apply_answer(state: dict[str, Any], qid: str, raw: str, locale: str) -> Non
         tid = re.sub(r"\D", "", raw)
         state["telegram_id"] = tid
         _patch_initial_accounts_telegram(tid, state)
+    elif qid == "openrouter_api":
+        from scripts.setup.env_tools import set_env_value, env_path
+
+        key = raw.strip()
+        if key and not key.lower().startswith("skip"):
+            set_env_value(env_path(_ROOT), "OPENROUTER_API_KEY", key)
+    elif qid == "deploy_target":
+        state["deploy_target"] = raw.strip()
 
     _dump_slots(slots_path, slots)
 
@@ -338,6 +346,14 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_confirm_bot(args: argparse.Namespace) -> int:
+    state = _load_state()
+    state["bot_smoke_confirmed"] = True
+    _save_state(state)
+    print("bot_smoke_confirmed")
+    return 0
+
+
 def cmd_next(args: argparse.Namespace) -> int:
     clear_capabilities_cache()
     loc = _resolve_locale(args.locale)
@@ -377,6 +393,8 @@ def main() -> int:
     p_check = sub.add_parser("check", help="Alias for status --strict")
     p_check.add_argument("--strict", action="store_true", default=True)
 
+    sub.add_parser("confirm-bot", help="Mark live Telegram smoke as done")
+
     args = ap.parse_args()
     if args.cmd == "check":
         args.strict = True
@@ -387,6 +405,7 @@ def main() -> int:
         "apply-json": cmd_apply_json,
         "status": cmd_status,
         "next": cmd_next,
+        "confirm-bot": cmd_confirm_bot,
     }
     return handlers[args.cmd](args)
 

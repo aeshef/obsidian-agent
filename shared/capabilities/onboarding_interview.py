@@ -142,6 +142,32 @@ QUESTIONS: tuple[InterviewQuestion, ...] = (
         prompt_en="Your numeric Telegram user id (@userinfobot → /start, or bot logs after /start).",
         prompt_ru="Числовой Telegram ID (@userinfobot → /start или логи бота после /start).",
     ),
+    InterviewQuestion(
+        id="openrouter_api",
+        phase="after_secrets",
+        modules=(MODULE_KNOWLEDGE,),
+        kind="text",
+        prompt_en="OpenRouter API key (openrouter.ai) for vision/KB ingest — paste the key.",
+        prompt_ru="Ключ OpenRouter (openrouter.ai) для vision/ингеста в KB — вставьте ключ.",
+    ),
+    InterviewQuestion(
+        id="deploy_target",
+        phase="finalize",
+        modules=CORE,
+        kind="choice",
+        prompt_en="Where should the bot run after setup?",
+        prompt_ru="Где бот будет работать после настройки?",
+        choices_en=(
+            "This Mac only (local ./scripts/run_unified_bot.sh)",
+            "I want a VPS later — show me deploy steps",
+            "I have a VPS — help me deploy now",
+        ),
+        choices_ru=(
+            "Только этот Mac (локально ./scripts/run_unified_bot.sh)",
+            "Позже хочу VPS — покажи шаги деплоя",
+            "VPS уже есть — помоги развернуть сейчас",
+        ),
+    ),
 )
 
 

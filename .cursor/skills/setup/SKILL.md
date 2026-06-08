@@ -44,8 +44,14 @@ Read and **follow in order** (execute shell steps; do not paraphrase the doc):
 ```bash
 ./scripts/oa-python.sh scripts/onboarding_interview.py next
 ./scripts/oa-python.sh scripts/onboarding_interview.py answer QUESTION_ID 'user reply'
+./scripts/oa-python.sh scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'
+./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek
 ./scripts/oa-python.sh finance_bot/scripts/apply_initial_accounts.py
-./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --complete --golden-finance
+./scripts/run_unified_bot.sh
+# user tests Telegram → then:
+./scripts/oa-python.sh scripts/onboarding_interview.py confirm-bot
+./scripts/oa-python.sh scripts/onboarding_interview.py next   # deploy_target (finalize)
+./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --complete --ping-deepseek --golden-finance
 ```
 
 ## Start bot
@@ -57,6 +63,8 @@ Read and **follow in order** (execute shell steps; do not paraphrase the doc):
 ## Hard rules
 
 - One secret / one interview question per turn — wait for the user.
+- **Always ask DeepSeek key** even if `.env` looks set; run `onboarding_validate_secrets.py --ping-deepseek` after paste.
+- **Never say “setup complete”** until: `--ping-deepseek` OK + user confirmed bot test (`confirm-bot`) + `finalize` deploy question.
 - Never dump all tokens at the end.
 - Never `cp config/vault_paths.yaml.example` — use `set-locale --refresh-vault-paths`.
 - `init_vault_layout.py` only after `capabilities.yaml` exists.

@@ -56,3 +56,13 @@ Autocomplete missing is a known Cursor UI quirk; execution via Enter or `@setup`
 Workspace = folder with `unified_bot/` and `.cursor/commands/setup.md`.
 
 Run `./scripts/setup.sh` once (PyYAML lives in venv, not system Python).
+
+## When is setup actually done?
+
+The agent must **not** stop after Telegram token. Required before “complete”:
+
+1. Real `DEEPSEEK_API_KEY` + `./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek`
+2. User runs bot, tests `/start` + a sample expense
+3. `./scripts/oa-python.sh scripts/onboarding_interview.py confirm-bot`
+4. `deploy_target` question (local Mac vs VPS — see `docs/SETUP.md`)
+5. `onboarding_smoke.py --complete --ping-deepseek` exits 0

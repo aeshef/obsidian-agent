@@ -94,6 +94,8 @@ def completion_report(
     *,
     locale: str = "en",
     strict_interview: bool = False,
+    validate_secrets: bool = False,
+    ping_deepseek: bool = False,
 ) -> tuple[list[str], list[str]]:
     """Return (errors, warnings)."""
     prof = profile or get_capabilities()
@@ -104,9 +106,14 @@ def completion_report(
     if not cap.is_file():
         errors.append("capabilities.yaml missing (run apply_capabilities_profile --write)")
 
-    for key in ("VAULT_PATH", "TELEGRAM_UNIFIED_BOT_TOKEN", "DEEPSEEK_API_KEY"):
-        if not _env_nonempty(key):
-            errors.append(f".env: {key} not set")
+    from shared.setup.env_secrets import validate_core_secrets
+
+    se, sw = validate_core_secrets(
+        ping_deepseek_api=ping_deepseek or validate_secrets,
+        require_openrouter=prof.module("knowledge") and validate_secrets,
+    )
+    errors.extend(se)
+    warnings.extend(sw)
 
     if not _slots_look_filled():
         warnings.append("onboarding_slots.yaml missing or still has placeholder values")
@@ -130,6 +137,12 @@ def completion_report(
             errors.append(msg)
         else:
             warnings.append(msg)
+
+    state = _load_state()
+    if strict_interview and not state.get("bot_smoke_confirmed"):
+        errors.append(
+            "bot live smoke not confirmed — user must /start, send a test expense, then confirm-bot"
+        )
 
     return errors, warnings
 

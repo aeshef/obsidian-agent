@@ -30,5 +30,7 @@ if [ "$REMOTE" = 1 ]; then
   scp -q "$ROOT/scripts/ensure_tags_prompt.py" "$SERVER:/tmp/ensure_tags_prompt.py"
   ssh "$SERVER" "python3 /tmp/ensure_tags_prompt.py --tags '$TAGS_REMOTE' --example '$EXAMPLE_REMOTE'"
 else
-  python3 "$ROOT/scripts/ensure_tags_prompt.py" --tags "$TAGS_LOCAL" --example "$EXAMPLE"
+  PY="$(common_resolve_python "$ROOT/finance_bot")"
+  export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  "$PY" "$ROOT/scripts/ensure_tags_prompt.py" --tags "$TAGS_LOCAL" --example "$EXAMPLE"
 fi

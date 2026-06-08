@@ -164,6 +164,11 @@ def main() -> int:
         action="store_true",
         help="Fail unless full /setup checklist passes (secrets, slots, accounts, prompts)",
     )
+    parser.add_argument(
+        "--ping-deepseek",
+        action="store_true",
+        help="With --complete: call DeepSeek API to verify DEEPSEEK_API_KEY",
+    )
     args = parser.parse_args()
     _load_env()
 
@@ -216,7 +221,11 @@ def main() -> int:
     if args.complete:
         from shared.capabilities.onboarding_completion import completion_report
 
-        ce, cw = completion_report(strict_interview=True)
+        ce, cw = completion_report(
+            strict_interview=True,
+            validate_secrets=True,
+            ping_deepseek=args.ping_deepseek,
+        )
         errors.extend(ce)
         warnings.extend(cw)
 

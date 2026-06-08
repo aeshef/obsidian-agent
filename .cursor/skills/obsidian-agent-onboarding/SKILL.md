@@ -200,16 +200,27 @@ bash scripts/ensure_bot_prompts.sh --warn-stubs
 
 Enhance finance/planning prod `*.txt` from slots + `user_profile.md` (do not overwrite good existing text).
 
-### 7 — Secrets (one per turn)
+### 7 — Secrets (one per turn — **never skip DeepSeek**)
+
+Even if `env_tools.py status` shows DEEPSEEK “set”, it may still be `sk-...` from `.env.example`. **Always ask** and validate.
 
 | Order | Key | User action |
 |-------|-----|-------------|
 | 1 | `TELEGRAM_UNIFIED_BOT_TOKEN` | BotFather `/newbot` |
-| 2 | `DEEPSEEK_API_KEY` | platform.deepseek.com |
+| 2 | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com/) → API keys → create key |
+| 3 | `OPENROUTER_API_KEY` | Only if **knowledge** module enabled — [openrouter.ai](https://openrouter.ai/) |
+
+After each paste:
 
 ```bash
-python3 scripts/setup/env_tools.py set KEY 'value'
-python3 scripts/setup/env_tools.py list-missing TELEGRAM_UNIFIED_BOT_TOKEN DEEPSEEK_API_KEY
+./scripts/oa-python.sh scripts/setup/env_tools.py set KEY 'value'
+./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek
+```
+
+**Do not continue** while `--ping-deepseek` fails (401 = bad key). Also set `DEEPSEEK_API_TOKEN` duplicate:
+
+```bash
+./scripts/oa-python.sh scripts/setup/env_tools.py set DEEPSEEK_API_TOKEN 'same-as-key'
 ```
 
 ### 8 — Interview (`after_secrets` phase) — finance balances
@@ -228,25 +239,58 @@ python3 scripts/scaffold_personalized_prompts.py
 python3 finance_bot/scripts/apply_initial_accounts.py
 ```
 
-### 9 — Done gate
+### 9 — Run bot + live smoke (required before “done”)
 
 ```bash
-python3 scripts/onboarding_interview.py status
-python3 scripts/onboarding_smoke.py --verify-all --complete --golden-finance   # or --golden-planning
-python3 -m unified_bot.main
+./scripts/run_unified_bot.sh
 ```
 
-Tell user: open Telegram → `/start` → check balance matches opening balances.
+Tell user:
 
-### Completion checklist (print to user)
+1. Telegram → `/start`
+2. Send a test expense, e.g. `кофе 300 сбер`
+3. Confirm balances match opening balances
+
+When user confirms it works:
+
+```bash
+./scripts/oa-python.sh scripts/onboarding_interview.py confirm-bot
+```
+
+If LLM 401 in logs → go back to step 7 (DeepSeek key).
+
+### 10 — Finalize interview (`finalize` phase)
+
+```bash
+./scripts/oa-python.sh scripts/onboarding_interview.py next
+```
+
+Ask `deploy_target` — if VPS:
+
+- Point to `docs/SETUP.md` deploy section and `./scripts/deploy.sh`
+- Offer `./scripts/install_mac_sync.sh` for Mac ↔ vault sync
+- Do **not** claim setup is finished until user declines or you walk through deploy
+
+### 11 — Done gate (strict)
+
+```bash
+./scripts/oa-python.sh scripts/onboarding_interview.py check
+./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --complete --ping-deepseek --golden-finance
+```
+
+**Never print “setup complete”** unless both commands exit 0.
+
+### Definition of done (all required)
 
 ```
-✓ capabilities.yaml
-✓ VAULT_PATH + tokens in .env
-✓ onboarding_slots.yaml + user_profile.md
+✓ capabilities.yaml for chosen playbook
+✓ VAULT_PATH + real Telegram token (not placeholder)
+✓ DEEPSEEK_API_KEY validated (--ping-deepseek OK)
+✓ Interview intro + after_secrets + finalize answered
 ✓ initial_accounts.yaml + DB seeded (finance)
-✓ prod prompts not stubs
-✓ onboarding_smoke --complete OK
+✓ User confirmed live bot test (confirm-bot)
+✓ onboarding_smoke --complete --ping-deepseek OK
+✓ Deploy path explained (local or VPS)
 ```
 
 ---

@@ -92,6 +92,14 @@ def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     assert not any("Knowledge" in str(p) for p in dirs)
 
 
+def test_placeholder_deepseek_detected():
+    from shared.setup.env_secrets import is_placeholder_secret
+
+    assert is_placeholder_secret("DEEPSEEK_API_KEY", "sk-...")
+    assert is_placeholder_secret("DEEPSEEK_API_KEY", "")
+    assert not is_placeholder_secret("DEEPSEEK_API_KEY", "sk-" + "a" * 32)
+
+
 def test_env_tools_set_locale_no_dry_run_crash(tmp_path: Path):
     env = tmp_path / ".env"
     env.write_text("VAULT_PATH=/tmp/v\n", encoding="utf-8")
