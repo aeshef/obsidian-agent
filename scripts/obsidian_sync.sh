@@ -1,5 +1,10 @@
 #!/bin/zsh
+_SAVED_AGENT_ROOT="${AGENT_ROOT:-}"
 AGENT_ROOT="${0:A:h}/.."
+if [[ -n "$_SAVED_AGENT_ROOT" && -f "$_SAVED_AGENT_ROOT/config/vault_paths.yaml" ]]; then
+  AGENT_ROOT="$_SAVED_AGENT_ROOT"
+fi
+unset _SAVED_AGENT_ROOT
 export AGENT_ROOT
 if [[ -f "$AGENT_ROOT/.env" ]]; then
   set -a
@@ -38,6 +43,13 @@ fi
 AGENT_ROOT="${AGENT_ROOT:-${AGENT_ROOT}}"
 export AGENT_ROOT LOCAL_VAULT
 
+# До cap_load: LaunchAgent PATH без pyenv — иначе planning .venv → pyenv shim падает на export_vault_paths.
+unset PYENV_VERSION PYENV_VIRTUAL_ENV PYENV_SHELL
+if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
+  PATH="$(printf '%s' "$PATH" | awk -v RS=':' -v ORS=':' 'NF && $0 !~ /\.pyenv\/(shims|versions)/' | sed 's/:$//')"
+  export PATH
+fi
+
 # shellcheck source=scripts/lib/capabilities.sh
 # Product manifest: optional sync steps (default = all on if exporter missing)
 if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
@@ -48,7 +60,11 @@ if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
 fi
 # shellcheck source=scripts/lib/vault_paths_defaults.sh
 source "$AGENT_ROOT/scripts/lib/vault_paths_defaults.sh"
-vault_paths_load_from_agent "$AGENT_ROOT"
+vault_paths_load_from_agent "$AGENT_ROOT" || {
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ ABORT: vault_paths export failed" >> "$DEBUG_LOG" 2>/dev/null || true
+  echo "obsidian_sync: vault_paths export failed — sync aborted" >&2
+  exit 1
+}
 # Fallback: no manifest exporter → run full sync (backward compatible)
 if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
   cap_step_enabled() { return 0; }
@@ -79,13 +95,6 @@ fi
 # Каждый запуск (cron или вручную) — одна строка в лог; по нему видно, срабатывает ли cron каждые 5 мин (см. plist StartInterval)
 echo "$(date '+%Y-%m-%dT%H:%M:%S')" >> "$SYNC_DIR/cron_runs.log" 2>/dev/null || true
 
-# Изоляция от pyenv: venv/bin/python может быть симлинком на $HOME/.pyenv/versions/.../bin/python3,
-# а у pyenv-питона нет TCC FDA на ~/Documents → site.py падает на чтении venv/pyvenv.cfg и засоряет system_audit.log.
-unset PYENV_VERSION PYENV_VIRTUAL_ENV PYENV_SHELL
-if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
-  PATH="$(printf '%s' "$PATH" | awk -v RS=':' -v ORS=':' 'NF && $0 !~ /\.pyenv\/(shims|versions)/' | sed 's/:$//')"
-  export PATH
-fi
 SERVER="${SERVER:-}"
 SERVER_VAULT="${SERVER_VAULT:-/root/obsidian-vault}"
 SERVER_BOTS="${SERVER_BOTS:-/root/bots}"

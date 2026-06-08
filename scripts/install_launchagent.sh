@@ -14,7 +14,7 @@ LEGACY_LABELS=(com.example.obsidian-sync com.aeshef.obsidian-sync)
 SYNC_INTERVAL="${OBSIDIAN_SYNC_INTERVAL_SEC:-}"
 if [[ -z "$SYNC_INTERVAL" ]]; then
   _CAP_PY=""
-  for _c in "$AGENT_DIR/planning_bot/.venv/bin/python" "$AGENT_DIR/finance_bot/.venv/bin/python" python3; do
+  for _c in "$AGENT_DIR/finance_bot/.venv/bin/python" "$AGENT_DIR/planning_bot/.venv/bin/python" python3; do
     [[ -x "$_c" ]] && _CAP_PY="$_c" && break
   done
   if [[ -n "$_CAP_PY" ]]; then
@@ -50,11 +50,14 @@ export VAULT_PATH="$VAULT_PATH"
 DEBUG_LOG="/tmp/obsidian_sync_launchagent_wrapper.log"
 echo "\$(date '+%Y-%m-%dT%H:%M:%S') pid=\$\$ wrapper START" >> "\$DEBUG_LOG" 2>/dev/null || true
 _CAP_PY=""
-for _c in "$AGENT_DIR/planning_bot/.venv/bin/python" "$AGENT_DIR/finance_bot/.venv/bin/python" python3; do
+for _c in "$AGENT_DIR/finance_bot/.venv/bin/python" "$AGENT_DIR/planning_bot/.venv/bin/python" python3; do
   if [[ -x "\$_c" ]]; then _CAP_PY="\$_c"; break; fi
 done
 if [[ -n "\$_CAP_PY" && -f "$AGENT_DIR/scripts/export_capabilities_env.py" ]]; then
   eval "\$("\$_CAP_PY" "$AGENT_DIR/scripts/export_capabilities_env.py" 2>/dev/null)" || true
+fi
+if [[ -n "\$_CAP_PY" && -f "$AGENT_DIR/scripts/export_vault_paths_env.py" ]]; then
+  eval "\$("\$_CAP_PY" "$AGENT_DIR/scripts/export_vault_paths_env.py" 2>/dev/null)" || true
 fi
 exec "$SYNC_LINK"
 EOF

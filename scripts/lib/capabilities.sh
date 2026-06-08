@@ -3,9 +3,10 @@
 _cap_python() {
   local root="${AGENT_ROOT:-}" py="${CAPABILITIES_PYTHON:-python3}"
   [[ -z "$root" ]] && return 1
+  # finance_bot venv → homebrew python (LaunchAgent PATH); planning .venv often → pyenv.
   for candidate in \
-    "$root/planning_bot/.venv/bin/python" \
     "$root/finance_bot/.venv/bin/python" \
+    "$root/planning_bot/.venv/bin/python" \
     "$py"; do
     if [[ -x "$candidate" ]]; then
       CAPABILITIES_PYTHON="$candidate"

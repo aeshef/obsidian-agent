@@ -18,6 +18,7 @@ patch_agent_env_remote() {
   local session_persist="${MEMORY_SESSION_PERSIST:-1}"
   local kanban_writes="${KANBAN_AGENT_WRITES:-}"
   local vault_rel_knowledge="${VAULT_REL_KNOWLEDGE:-}"
+  local agent_locale="${AGENT_LOCALE:-ru}"
 
   if [ -z "$token" ]; then
     echo "❌ TELEGRAM_UNIFIED_BOT_TOKEN пустой в $root/.env" >&2
@@ -56,6 +57,7 @@ upsert SYNTH_DOMAINS "${synth_domains}"
 upsert MEMORY_SESSION_PERSIST "${session_persist}"
 upsert AGENT_MEMORY_DB "${bots}/memory.db"
 upsert AGENT_ROOT "${bots}"
+upsert AGENT_LOCALE "${agent_locale}"
 REMOTE
   if [ -n "$vault_rel_knowledge" ]; then
     common_ssh "bash -s" <<REMOTE_KB

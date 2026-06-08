@@ -46,14 +46,78 @@ _vault_sanitize_exported_segments() {
   done
 }
 
+_vault_yaml_field() {
+  local section="$1" key="$2" file="$3"
+  awk -v sec="$section" -v k="$key" '
+    BEGIN { in_sec=0 }
+    $0 ~ "^" sec ":" { in_sec=1; next }
+    in_sec && /^[^ #\t]/ && $0 !~ /^  / { in_sec=0 }
+    in_sec && $0 ~ "^  " k ":" {
+      sub(/^[^:]+:[ \t]*/, "", $0)
+      gsub(/^["'\'']|["'\'']$/, "", $0)
+      print $0
+      exit
+    }
+  ' "$file"
+}
+
+_vault_paths_try_python_export() {
+  local root="$1" py exporter="$root/scripts/export_vault_paths_env.py"
+  [[ -f "$exporter" ]] || return 1
+  for py in \
+    "$root/finance_bot/.venv/bin/python" \
+    "$root/planning_bot/.venv/bin/python" \
+    /opt/homebrew/bin/python3 \
+    python3; do
+    [[ -x "$py" ]] || continue
+    if eval "$("$py" "$exporter" 2>/dev/null)" && [[ -n "${VAULT_FOLDER_TASKS:-}" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+_vault_paths_yaml_shell_fallback() {
+  local root="$1" yaml="$root/config/vault_paths.yaml"
+  [[ -f "$yaml" ]] || return 1
+  local v
+  v="$(_vault_yaml_field folders tasks "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_TASKS="$v"
+  v="$(_vault_yaml_field folders goals "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_GOALS="$v"
+  v="$(_vault_yaml_field folders dashboards "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_DASHBOARDS="$v"
+  v="$(_vault_yaml_field folders routines "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_ROUTINES="$v"
+  v="$(_vault_yaml_field folders handwritten "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_HANDWRITTEN="$v"
+  v="$(_vault_yaml_field folders automation "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_AUTOMATION="$v"
+  v="$(_vault_yaml_field dashboards logs "$yaml")" && [[ -n "$v" ]] && export VAULT_DASH_LOGS="$v"
+  v="$(_vault_yaml_field dashboards charts "$yaml")" && [[ -n "$v" ]] && export VAULT_DASH_CHARTS="$v"
+  v="$(_vault_yaml_field dashboards data "$yaml")" && [[ -n "$v" ]] && export VAULT_DASH_DATA="$v"
+  v="$(_vault_yaml_field paths actions_mac "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_ACTIONS_MAC="$v"
+  v="$(_vault_yaml_field paths actions_iphone "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_ACTIONS_IPHONE="$v"
+  v="$(_vault_yaml_field paths context_today_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_CONTEXT_TODAY="$v"
+  v="$(_vault_yaml_field paths context_week_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_CONTEXT_WEEK="$v"
+  v="$(_vault_yaml_field paths iphone_today_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_IPHONE_TODAY="$v"
+  v="$(_vault_yaml_field paths iphone_week_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_IPHONE_WEEK="$v"
+  v="$(_vault_yaml_field files chart_daily_activity_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_DAILY_ACTIVITY="$v"
+  v="$(_vault_yaml_field files system_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_SYSTEM="$v"
+  v="$(_vault_yaml_field files vault_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_VAULT="$v"
+  [[ -n "${VAULT_FOLDER_TASKS:-}" ]]
+}
+
 vault_paths_load_from_agent() {
   local root="${1:-}"
   [[ -z "$root" ]] && return 0
+  local yaml="$root/config/vault_paths.yaml"
   if [[ -f "$root/scripts/lib/capabilities.sh" ]]; then
     # shellcheck disable=SC1091
     source "$root/scripts/lib/capabilities.sh"
     export AGENT_ROOT="$root"
     cap_load_vault_paths 2>/dev/null || true
+  fi
+  if [[ -f "$yaml" && -z "${VAULT_FOLDER_TASKS:-}" ]]; then
+    _vault_paths_try_python_export "$root" || _vault_paths_yaml_shell_fallback "$root" || {
+      echo "vault_paths: export failed for $yaml (LaunchAgent: grant Full Disk Access to zsh or run sync from Terminal)" >&2
+      return 1
+    }
+    echo "vault_paths: used shell YAML fallback (python export unavailable)" >&2
   fi
   vault_paths_apply_defaults
   _vault_sanitize_exported_segments
