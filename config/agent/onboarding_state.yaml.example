@@ -1,0 +1,7 @@
+# Copy to onboarding_state.yaml (gitignored) — tracks /setup interview progress.
+# Updated by: python3 scripts/onboarding_interview.py answer ID 'text'
+
+completed: []
+answers: {}
+# playbook: finance_only
+# locale: ru

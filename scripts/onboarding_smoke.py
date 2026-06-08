@@ -159,6 +159,11 @@ def main() -> int:
         action="store_true",
         help="Planning-only tool registry shape (no Telegram)",
     )
+    parser.add_argument(
+        "--complete",
+        action="store_true",
+        help="Fail unless full /setup checklist passes (secrets, slots, accounts, prompts)",
+    )
     args = parser.parse_args()
     _load_env()
 
@@ -207,6 +212,13 @@ def main() -> int:
 
     if args.check_bot_import:
         _check_bot_import(errors)
+
+    if args.complete:
+        from shared.capabilities.onboarding_completion import completion_report
+
+        ce, cw = completion_report(strict_interview=True)
+        errors.extend(ce)
+        warnings.extend(cw)
 
     from shared.capabilities.sync_steps import export_shell_env
 

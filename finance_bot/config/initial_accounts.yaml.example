@@ -13,4 +13,4 @@ accounts:
   - name: "Наличные"
     balance: 0
     currency: "RUB"
-    type: "cash"
+    type: "wallet"

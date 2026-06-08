@@ -38,6 +38,7 @@ config/agent/tools.yaml
 config/agent/health_parse.yaml
 config/agent/prompts/*.txt
 config/agent/onboarding_slots.yaml
+config/agent/onboarding_state.yaml
 config/locale/ru_missing_for_en.json
 config/locale/en_by_path.yaml
 !config/agent/prompts/*.example.txt

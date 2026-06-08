@@ -1,0 +1,15 @@
+# Copy to initial_accounts.yaml and fill during /setup (finance module).
+# Applied to DB: python3 finance_bot/scripts/apply_initial_accounts.py
+
+telegram_id: YOUR_TELEGRAM_NUMERIC_ID
+
+accounts:
+  - name: "Main card"
+    balance: 0
+    currency: "USD"
+    type: "card"
+
+  - name: "Cash"
+    balance: 0
+    currency: "USD"
+    type: "wallet"

@@ -12,14 +12,15 @@ Defined in `config/prompt_manifest.yaml.example` (optional local `prompt_manifes
 ## Commands
 
 ```bash
+python3 scripts/onboarding_interview.py answer user_about '...'   # /setup interview
+python3 scripts/onboarding_interview.py answer finance_accounts 'Card, Cash'
 bash scripts/ensure_bot_prompts.sh
-cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml  # once
 python3 scripts/scaffold_personalized_prompts.py
 bash scripts/ensure_bot_prompts.sh --warn-stubs
-python3 -c "from shared.capabilities.prompt_manifest import prompts_missing_prod_text; print(prompts_missing_prod_text())"
+python3 scripts/onboarding_smoke.py --complete
 ```
 
-Personalized prod files start from English scaffolds (`prompt_scaffold_templates.py`); the onboarding skill replaces `{{USER_*}}` slots and edits prompts for the user's accounts and vault.
+Slots live in `config/agent/onboarding_slots.yaml` (from interview). Personalized prod files start from scaffolds (`prompt_scaffold_templates.py`); `/setup` fills `{{USER_*}}` and should refine tone in prod `*.txt` for the user's locale.
 
 ## Capability blocks
 

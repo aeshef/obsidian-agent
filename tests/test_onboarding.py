@@ -92,6 +92,18 @@ def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     assert not any("Knowledge" in str(p) for p in dirs)
 
 
+def test_parse_accounts_and_balances():
+    from scripts.onboarding_interview import _parse_accounts, _parse_balances
+
+    accs = _parse_accounts("Тинькофф, Сбер\nНаличные")
+    assert len(accs) == 3
+    assert accs[2]["type"] == "wallet"
+    merged = _parse_balances("Тинькофф: 45000\nНаличные: 1200", accs)
+    by_name = {a["name"]: a["balance"] for a in merged}
+    assert by_name["Тинькофф"] == 45000.0
+    assert by_name["Наличные"] == 1200.0
+
+
 def test_init_vault_layout_requires_capabilities(tmp_path: Path, monkeypatch):
     import subprocess
 

@@ -100,17 +100,151 @@ Ask modules separately, then connectors per enabled module (see Phase 2). Do not
 
 ```mermaid
 flowchart TD
-  A[Detect: capabilities + VAULT_PATH] --> B[AskQuestion: playbook or modules]
-  B --> C[Ask connectors for enabled modules only]
-  C --> D[apply_capabilities_profile --write --patch-env]
-  D --> E[set-locale + materialize_locale + ensure_repo_config]
+  A[Detect + AskQuestion playbook/locale] --> B[VAULT_PATH secret]
+  B --> C[apply_capabilities --write]
+  C --> D[set-locale + materialize_locale]
+  D --> E[Interview intro via onboarding_interview.py]
   E --> F[init_vault_layout + setup.sh]
-  F --> G[ensure_bot_prompts + fill prompts]
-  G --> H[secrets one-by-one in chat]
-  H --> I[onboarding_smoke --verify-all --golden-*]
-  I --> J{Mac sync?}
-  J -->|yes| K[install_mac_sync.sh]
-  J -->|no| L[unified_bot.main smoke]
+  F --> G[ensure_bot_prompts + scaffold]
+  G --> H[Secrets: Telegram + DeepSeek]
+  H --> I[Interview: balances + telegram_id]
+  I --> J[apply_initial_accounts + scaffold]
+  J --> K[onboarding_smoke --complete]
+  K --> L[unified_bot.main]
+```
+
+---
+
+## Single-chat script (operator: follow in order)
+
+Use this as the **default /setup run**. One user message from you → wait for reply → next step.
+
+### 0 — Detect
+
+```bash
+cd "$AGENT_ROOT" && source scripts/setup/load_env.sh
+test -f .env || cp .env.example .env
+python3 scripts/onboarding_interview.py list
+```
+
+Set `AGENT_ROOT` in `.env` if the repo lives inside the vault (`obsidian-agent/` subfolder).
+
+### 1 — AskQuestion
+
+Playbook + locale. Map: finance → `--preset finance_only`, planning → `--preset planning_only`, full → `--preset full`.
+
+Optional connectors only if user asks (see Phase 2 table).
+
+### 2 — VAULT_PATH (first secret)
+
+> «Укажи полный путь к папке Obsidian vault на этом Mac (перетащи папку в терминал или скопируй путь).»
+
+```bash
+python3 scripts/setup/env_tools.py set VAULT_PATH '/absolute/path'
+```
+
+### 3 — Capabilities + locale
+
+```bash
+python3 scripts/apply_capabilities_profile.py --preset PRESET --write --patch-env
+python3 scripts/setup/env_tools.py set-locale LOCALE --refresh-vault-paths
+python3 scripts/setup/materialize_locale.py LOCALE --refresh-vault-paths
+AGENT_LOCALE=LOCALE bash scripts/ensure_repo_config.sh
+cp config/agent/onboarding_state.yaml.example config/agent/onboarding_state.yaml 2>/dev/null || true
+```
+
+### 4 — Personal interview (`intro` phase)
+
+Loop until `onboarding_interview.py next` returns `{"done": true}`:
+
+```bash
+python3 scripts/onboarding_interview.py next
+# → {"id": "user_about", "prompt": "...", "kind": "text"}
+```
+
+Ask the user the `prompt` in chat (use **AskQuestion** when `kind` is `choice`). Save:
+
+```bash
+python3 scripts/onboarding_interview.py answer user_about '...'
+```
+
+| id | What you collect |
+|----|------------------|
+| `user_about` | 2–4 sentences → `user_profile.md` + slots |
+| `user_tone` | How bot should talk |
+| `finance_currency` | RUB / USD / EUR (finance) |
+| `finance_accounts` | Card/wallet names (finance) |
+| `finance_categories` | Expense categories or “defaults OK” |
+| `planning_task_examples` | Sample tasks (planning) |
+| `planning_goals` | Goals (planning) |
+| `knowledge_folders` | Note folders (knowledge) |
+
+### 5 — Vault + deps
+
+```bash
+python3 scripts/init_vault_layout.py
+./scripts/setup.sh
+bash scripts/setup_agent_config.sh
+```
+
+### 6 — Prompts
+
+```bash
+bash scripts/ensure_bot_prompts.sh
+python3 scripts/scaffold_personalized_prompts.py
+# planning only: python3 scripts/seed_planning_prompts.py
+bash scripts/ensure_bot_prompts.sh --warn-stubs
+```
+
+Enhance finance/planning prod `*.txt` from slots + `user_profile.md` (do not overwrite good existing text).
+
+### 7 — Secrets (one per turn)
+
+| Order | Key | User action |
+|-------|-----|-------------|
+| 1 | `TELEGRAM_UNIFIED_BOT_TOKEN` | BotFather `/newbot` |
+| 2 | `DEEPSEEK_API_KEY` | platform.deepseek.com |
+
+```bash
+python3 scripts/setup/env_tools.py set KEY 'value'
+python3 scripts/setup/env_tools.py list-missing TELEGRAM_UNIFIED_BOT_TOKEN DEEPSEEK_API_KEY
+```
+
+### 8 — Interview (`after_secrets` phase) — finance balances
+
+Again loop `onboarding_interview.py next` for remaining questions:
+
+| id | What you collect |
+|----|------------------|
+| `finance_opening_balances` | `Тинькофф: 45000` per line → `initial_accounts.yaml` |
+| `telegram_user_id` | Numeric id (@userinfobot) |
+
+```bash
+python3 scripts/onboarding_interview.py answer finance_opening_balances '...'
+python3 scripts/onboarding_interview.py answer telegram_user_id '123456789'
+python3 scripts/scaffold_personalized_prompts.py
+python3 finance_bot/scripts/apply_initial_accounts.py
+```
+
+### 9 — Done gate
+
+```bash
+python3 scripts/onboarding_interview.py status
+python3 scripts/onboarding_smoke.py --verify-all --complete --golden-finance   # or --golden-planning
+python3 -m unified_bot.main
+```
+
+Tell user: open Telegram → `/start` → check balance matches opening balances.
+
+### Completion checklist (print to user)
+
+```
+✓ capabilities.yaml
+✓ VAULT_PATH + tokens in .env
+✓ onboarding_slots.yaml + user_profile.md
+✓ initial_accounts.yaml + DB seeded (finance)
+✓ prod prompts not stubs
+✓ onboarding_smoke --complete OK
 ```
 
 ---

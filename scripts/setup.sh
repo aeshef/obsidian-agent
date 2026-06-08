@@ -64,7 +64,9 @@ bash "$ROOT/scripts/ensure_bot_prompts.sh"
 # pull_prompts_from_server.sh — author-only (gitignored); optional local file
 [ -x "$ROOT/scripts/pull_prompts_from_server.sh" ] && bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
 export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-python3 "$ROOT/scripts/seed_planning_prompts.py" || true
+if python3 -c "import sys; sys.path.insert(0,'$ROOT'); from shared.capabilities.profile import get_capabilities, MODULE_PLANNING; import sys as s; s.exit(0 if get_capabilities().module(MODULE_PLANNING) else 1)" 2>/dev/null; then
+  python3 "$ROOT/scripts/seed_planning_prompts.py" || true
+fi
 bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
 
 echo ""

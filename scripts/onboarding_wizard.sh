@@ -178,11 +178,28 @@ if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
   bash scripts/ensure_bot_prompts.sh --warn-stubs || true
 fi
 
-log "Phase 7: secrets (set via env_tools.py set — use Cursor /setup for interactive chat)"
+log "Phase 7: interview scaffold"
+if [[ ! -f config/agent/onboarding_slots.yaml && -f config/agent/onboarding_slots.yaml.example ]]; then
+  cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
+fi
+if [[ ! -f config/agent/onboarding_state.yaml && -f config/agent/onboarding_state.yaml.example ]]; then
+  cp config/agent/onboarding_state.yaml.example config/agent/onboarding_state.yaml
+fi
+"$PY" scripts/onboarding_interview.py list || true
+echo "Run /setup in Cursor for live interview, or: python3 scripts/onboarding_interview.py answer ID 'text'"
+
+log "Phase 8: secrets (set via env_tools.py set — use Cursor /setup for interactive chat)"
 "$PY" scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
 
+if [[ "$MODULES" == *finance* ]]; then
+  log "Phase 8b: finance initial accounts (after telegram_id in interview)"
+  if [[ -f finance_bot/config/initial_accounts.yaml ]]; then
+    "$PY" finance_bot/scripts/apply_initial_accounts.py --dry-run 2>/dev/null || true
+  fi
+fi
+
 if [[ "$SKIP_SMOKE" -eq 0 ]]; then
-  log "Phase 8: smoke"
+  log "Phase 9: smoke"
   SMOKE_ARGS=(--verify-all)
   if [[ -n "$GOLDEN_FLAG" ]]; then
     SMOKE_ARGS+=("$GOLDEN_FLAG")
@@ -190,5 +207,6 @@ if [[ "$SKIP_SMOKE" -eq 0 ]]; then
   "$PY" scripts/onboarding_smoke.py "${SMOKE_ARGS[@]}"
 fi
 
-log "Done. Start bot: python3 -m unified_bot.main"
+log "Done. Finish interview: /setup in Cursor → onboarding_smoke.py --complete"
+log "Start bot: python3 -m unified_bot.main"
 log "Optional: ./scripts/install_mac_sync.sh | docs/ONBOARDING.md"

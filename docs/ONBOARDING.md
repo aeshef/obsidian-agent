@@ -15,7 +15,16 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 
 In the **obsidian-agent** repo root, run **`/setup`** in Cursor chat. The agent walks through playbook, locale, vault layout, prompts, and secrets **one step at a time** (paste each token when asked).
 
-Playbook: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` · slash entry: `.cursor/commands/setup.md`
+Playbook: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` (section **Single-chat script**) · slash: `/setup`
+
+Interview CLI:
+
+```bash
+python3 scripts/onboarding_interview.py next          # next question (JSON)
+python3 scripts/onboarding_interview.py answer ID '…' # save reply → slots + user_profile + initial_accounts
+python3 finance_bot/scripts/apply_initial_accounts.py # seed SQLite balances (finance)
+python3 scripts/onboarding_smoke.py --complete        # full done gate
+```
 
 ## One-shot shell wizard
 
