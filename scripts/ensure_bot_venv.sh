@@ -2,6 +2,7 @@
 # Единый venv-контракт: предпочитаем .venv, legacy venv → symlink .venv → venv.
 #
 #   scripts/ensure_bot_venv.sh finance_bot
+#   scripts/ensure_bot_venv.sh finance_bot knowledge_bot
 #   scripts/ensure_bot_venv.sh all --recreate   # пересоздать .venv + pip install
 set -euo pipefail
 
@@ -10,15 +11,23 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 source "$ROOT/scripts/lib/common.sh"
 
 RECREATE=0
-COMPONENT="${1:?Usage: ensure_bot_venv.sh <component|all> [--recreate]}"
+COMPONENTS=()
 
-shift || true
+usage() {
+  echo "Usage: ensure_bot_venv.sh <component|all> [component ...] [--recreate]" >&2
+  exit 2
+}
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --recreate) RECREATE=1; shift ;;
-    *) echo "Неизвестный флаг: $1" >&2; exit 2 ;;
+    finance_bot|knowledge_bot|planning_bot|all) COMPONENTS+=("$1"); shift ;;
+    -h|--help) usage ;;
+    *) echo "Неизвестный аргумент: $1" >&2; usage ;;
   esac
 done
+
+[ "${#COMPONENTS[@]}" -gt 0 ] || usage
 
 _ensure_one() {
   local comp="$1"
@@ -51,14 +60,23 @@ _ensure_one() {
   fi
 }
 
-case "$COMPONENT" in
-  all)
-    failed=0
-    for c in finance_bot knowledge_bot planning_bot; do
-      _ensure_one "$c" || failed=1
-    done
-    exit "$failed"
-    ;;
-  finance_bot|knowledge_bot|planning_bot) _ensure_one "$COMPONENT" ;;
-  *) echo "Неизвестный компонент: $COMPONENT" >&2; exit 2 ;;
-esac
+_expand_components() {
+  local c
+  for c in "${COMPONENTS[@]}"; do
+    if [ "$c" = all ]; then
+      echo finance_bot
+      echo knowledge_bot
+      echo planning_bot
+    else
+      echo "$c"
+    fi
+  done
+}
+
+failed=0
+while IFS= read -r comp; do
+  [ -n "$comp" ] || continue
+  _ensure_one "$comp" || failed=1
+done < <(_expand_components | awk '!seen[$0]++')
+
+exit "$failed"
