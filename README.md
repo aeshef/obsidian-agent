@@ -1,304 +1,184 @@
 # obsidian-agent
 
-> Telegram assistant that **writes into your Obsidian vault**: tasks, knowledge, and finance in one bot — modular connectors, optional Mac ↔ server sync.
+[![CI](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml)
+
+**Telegram is the inbox. Obsidian is the system of record.**
+
+Capture tasks, notes, and money from chat (voice, text, media). The bot writes **markdown, JSON, and SQLite** into your vault. You keep editing in Obsidian; the bot handles fast input, NLU, search, charts, and optional 24/7 hosting.
 
 ![obsidian-agent](assets/banner.png)
 
-**Install:** [docs/SETUP.md](docs/SETUP.md), [docs/ONBOARDING.md](docs/ONBOARDING.md), [docs/LOCALE.md](docs/LOCALE.md) (language toggle).
+---
 
-**Default UI language:** English (`AGENT_LOCALE=en`). Russian: `python3 scripts/setup/env_tools.py set-locale ru`.
+## Why this exists
+
+| Problem | What obsidian-agent does |
+|--------|---------------------------|
+| Ideas die while you open Obsidian | Telegram as a always-on capture surface |
+| Life ops split across apps | One **unified bot** with pluggable domains |
+| You want a server, but the vault lives on your Mac | Optional **rsync** — sync only folders you enabled |
+| Not everyone needs health, broker, or meal benefits | **Capabilities manifest** — off means gone from UI, agent tools, and sync |
 
 ---
 
-## In one sentence
+## What’s different
 
-You message the bot (voice, text, media) — it updates **markdown, JSON, and SQLite** in your vault. Obsidian stays where you edit; the bot is fast capture and background logic.
+- **Vault-native** — Kanban, goals, knowledge notes, and `finance.db` live under *your* tree; folder names come from `config/vault_paths.yaml`, not hardcoded paths in Python.
+- **Three domains, one process** — `planning`, `knowledge`, `finance` in a single `unified_bot` with classic Telegram handlers *and* a free-text **agent platform** (route domain → intent → tools).
+- **Real modularity** — `config/agent/capabilities.yaml` toggles modules and connectors. Disabled features don’t leak into menus, LLM hints, or Mac sync steps.
+- **Natural-language finance** — Batch expenses/income/transfers from plain text; confirm in chat before write.
+- **Knowledge pipeline** — Text, voice (ASR), images, PDFs, links → tagged notes with wikilinks and RAG search.
+- **Declarative UI** — Telegram labels and reply-keyboard routing live in `config/ui_capabilities.yaml.example` (`strings`, `menu_actions`), not scattered string checks in handlers.
+- **OSS-first locale** — Default `AGENT_LOCALE=en`; Russian UI via `env_tools.py set-locale ru`. User-facing copy stays in YAML, not in `.py`.
 
 ---
 
-## Three domains (mix and match)
+## Quick start
 
-| Domain | Capabilities |
-|--------|----------------|
-| **planning** | Kanban, goals, routines, reflection, calendar, device context |
-| **knowledge** | Ingest notes from text/media/links, tags, search, RAG |
-| **finance** | NLU expenses, dashboard, optional broker API and cards |
+**Requirements:** Python 3.9+, an Obsidian vault path, a [Telegram bot token](https://t.me/BotFather), and a [DeepSeek API key](https://platform.deepseek.com/) (planning + finance NLU; knowledge may also use OpenRouter for vision).
 
-**Production:** `python -m unified_bot.main` — agent routing + classic Telegram handlers.
+### Option A — Guided setup in Cursor (recommended)
 
-Modularity: [docs/CAPABILITIES.md](docs/CAPABILITIES.md). Guided setup: `.cursor/skills/obsidian-agent-onboarding`.
+1. Clone and open the repo in **Cursor**.
+2. Start a chat and ask to **onboard obsidian-agent** — the skill at `.cursor/skills/obsidian-agent-onboarding` runs the wizard: pick modules/connectors, fill `.env` safely, materialize configs, scaffold prompts, smoke tests.
+3. Run the bot:
+
+```bash
+export PYTHONPATH=.
+python -m unified_bot.main
+```
+
+The skill never commits secrets or prod prompts; it follows the same steps as the CLI below.
+
+### Option B — CLI wizard
+
+```bash
+git clone https://github.com/aeshef/obsidian-agent.git
+cd obsidian-agent
+cp .env.example .env
+./scripts/setup.sh
+
+# Pick a profile (planning | finance | full) or custom modules:
+./scripts/onboarding_wizard.sh --playbook planning
+# or: python3 scripts/apply_capabilities_profile.py --only-modules finance --write --patch-env
+
+python3 scripts/init_vault_layout.py
+python3 scripts/onboarding_smoke.py --golden-planning   # or --golden-finance
+
+export PYTHONPATH=.
+python -m unified_bot.main
+```
+
+Set at minimum in `.env` (or via `python3 scripts/setup/env_tools.py set KEY value`):
+
+| Variable | Purpose |
+|----------|---------|
+| `VAULT_PATH` | Absolute path to your Obsidian vault |
+| `TELEGRAM_UNIFIED_BOT_TOKEN` | Bot token from BotFather |
+| `DEEPSEEK_API_KEY` | LLM for planning, finance NLU, agent routing |
+
+**Next steps:** [docs/SETUP.md](docs/SETUP.md) (deploy, Mac sync), [docs/ONBOARDING.md](docs/ONBOARDING.md) (modules & smoke), [docs/PROMPTS_ONBOARDING.md](docs/PROMPTS_ONBOARDING.md) (personalize NLU prompts).
+
+---
+
+## Domains (mix and match)
+
+| Module | You get |
+|--------|---------|
+| **planning** | Kanban tasks, goals, routines, weekly reflection, optional calendar & health context |
+| **knowledge** | Ingest → tag → link → search your note corpus (text, voice, media, URLs) |
+| **finance** | NLU transactions, dashboards, debts, optional broker API or manual investment accounts |
+
+Turn modules and connectors on/off: [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
 
 ---
 
 ## Example phrases
 
-| You say | System does |
-|---------|-------------|
-| Add task: finish slides by Friday | Kanban note in vault |
-| Spent 12 on coffee, main card | NLU → `finance.db` |
-| Save this link about Rust | Knowledge ingest + tags |
-| How did I sleep yesterday? | Requires `apple_health` + snapshots |
+Neutral examples — swap amounts, names, and accounts for yours:
+
+| You send | What happens |
+|----------|----------------|
+| `Add task: ship docs by Friday` | Kanban note + action log in vault |
+| `What's in progress for project Alpha?` | Agent queries kanban + note search |
+| `Spent 24 on coffee, main card` | NLU → row in `finance.db` |
+| `How much on food this month?` | Finance summary (and investments if broker connector is on) |
+| `Save this link about Rust` | Knowledge ingest with tags |
+| `Find notes about hiking` | RAG answer grounded in vault files |
+
+Pin a domain with the reply keyboard, or leave **Auto** and let the host router pick.
 
 ---
 
-## Docs
+## How it fits together
 
-| Doc | Topic |
-|-----|--------|
-| [docs/SETUP.md](docs/SETUP.md) | First run, deploy, sync |
-| [docs/ONBOARDING.md](docs/ONBOARDING.md) | Profiles and smoke tests |
-| [docs/LOCALE.md](docs/LOCALE.md) | `AGENT_LOCALE`, EN/RU YAML |
-| [docs/CAPABILITIES.md](docs/CAPABILITIES.md) | Modules, connectors, sync |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | PR guidelines |
+```
+Telegram  →  unified_bot  →  vault (markdown / JSON / SQLite)
+                ↑
+         shared/agent (tools, memory, routing)
+                ↑
+    planning_bot · knowledge_bot · finance_bot  (domain logic)
 
-MIT — [LICENSE](LICENSE).
-
----
-
-# obsidian-agent (Русский)
-
-> Личный ассистент в Telegram, который **пишет в ваш Obsidian vault**: задачи, знания и финансы — один бот, один конфиг, опционально sync Mac ↔ сервер.
-
-![obsidian-agent](assets/banner.png)
-
-**Установка и секреты** — в [docs/SETUP.md](docs/SETUP.md) и [docs/ONBOARDING.md](docs/ONBOARDING.md). Здесь — что умеет система и как она устроена как продукт.
-
----
-
-## Одной фразой
-
-Вы говорите в Telegram (или кидаете медиа) — бот раскладывает ответы по **markdown, JSON и SQLite** в vault. Obsidian остаётся местом, где всё **видно и редактируется**; бот — быстрый ввод и фоновая логика (kanban, поиск, NLU, графики).
-
----
-
-## Зачем это существует
-
-| Боль | Решение |
-|------|---------|
-| Мысль теряется, пока открываешь Obsidian | Telegram как UI: голос, текст, кнопки |
-| Три «бота на жизнь» → три deploy и три venv | Монорепо + `unified_bot`: один процесс |
-| Нужен 24/7, но vault удобнее на Mac | Rsync нужных папок; тяжёлые графики — локально |
-| Не все нужны Health, брокер, корпоративный обед | **Модули и коннекторы**: выключено = нет в UI, tools и sync |
-
----
-
-## Три домена (можно включить любой набор)
-
-| Домен | Возможности | Где в vault |
-|-------|-------------|-------------|
-| **planning** | Kanban, цели, рутины, рефлексия, календарь, контекст устройств | папки задач, целей, рутин, дашбордов — имена в `config/vault_paths.yaml` |
-| **knowledge** | Текст, голос, фото, PDF, ссылки → заметки, теги, поиск, RAG | настраиваемый каталог знаний |
-| **finance** | Расходы NLU/голос, планы, дашборд, опционально брокер и карты | `finance.db` + графики в зоне дашбордов |
-
-**Production:** [unified_bot](unified_bot/) — свободный текст через agent platform (домен → intent → tools); кнопки и FSM — у классических хендлеров.
-
-Подробнее по коду доменов: [planning_bot/README.md](planning_bot/README.md), [knowledge_bot/README.md](knowledge_bot/README.md), [finance_bot/README.md](finance_bot/README.md). Платформа агента: [docs/AGENT_PLATFORM.md](docs/AGENT_PLATFORM.md).
-
----
-
-## Модульность: только то, что вы подключили
-
-Профиль задаётся в `config/agent/capabilities.yaml` (шаблон — `capabilities.yaml.example`, в git не хранится). **Обратная совместимость:** если файла нет, включены все модули и коннекторы (как после апгрейда старой установки).
-
-| Слой | Что даёт |
-|------|----------|
-| **modules** | `finance` / `planning` / `knowledge` — целые области в Telegram |
-| **connectors** | Опциональные пайплайны данных (см. таблицу ниже) |
-| **features** | Тонкая настройка (ИИС брокера, график КБЖУ, cron-напоминания…) |
-| **sync.profile** | Какие шаги `obsidian_sync.sh` гонять на Mac |
-
-**Контракт:** если коннектор выключен, его **нет** в agent tools, подсказках LLM, кнопках (`ui_capabilities.yaml`) и шагах sync. Система не падает — просто ведёт себя как продукт без этой опции.
-
-| Коннектор | Зачем | Если выключен |
-|-----------|-------|----------------|
-| `apple_health` | Снимки здоровья в vault, health-tools | Нет вопросов про шаги/сон в агенте; нет iPhone-sync шагов |
-| `gmail_health_pipeline` | Почта → те же снимки (отдельно от Health) | Не нужен Gmail IMAP в `.env` |
-| `apple_calendar` | Экспорт календаря → JSON + дашборд | Календарные tools и PNG не строятся |
-| `mac_context` | Снапшоты фокуса с Mac | Нет mac-context tools |
-| `broker_sync` | API портфеля (сегодня: `tinkoff` в `broker_sync.yaml`) | Нет кнопки «синк брокера» и API-sync |
-| `manual_broker_accounts` | Ручные счета без API | Только если нужен обзор без API |
-| `domestic_bank_cards` | Карты на финансовом дашборде | График без линий карт |
-| `corporate_badge` | Корпоративный лимит на обеды (`badge.yaml`) | Нет бейджа в меню и `get_badge_status` |
-| `knowledge_serendipity` | Случайная заметка дня в чат | Тихий knowledge без пушей |
-
-Имена папок vault **не зашиты в Python** — только в `config/vault_paths.yaml.example` (можно назвать `Tasks/` вместо `100_…`).
-
-Guided install: Cursor skill `.cursor/skills/obsidian-agent-onboarding` или [docs/ONBOARDING.md](docs/ONBOARDING.md). Справочник флагов: [docs/CAPABILITIES.md](docs/CAPABILITIES.md).
-
----
-
-## Примеры (нейтральные)
-
-Типичные фразы в чат — без привязки к конкретному человеку или работодателю:
-
-| Вы пишете | Что происходит |
-|-----------|----------------|
-| «Добавь задачу: подготовить презентацию к пятнице» | Задача на kanban-доске в vault, лог в дашборде |
-| «Что у меня в работе по проекту X?» | Agent: kanban + поиск по заголовкам/тегам |
-| «Потратил 450 на обед, карта основная» | NLU → транзакция в `finance.db`, категория из конфига |
-| «Сколько ушло на еду за месяц?» | Сводка + при включённом брокере — отдельно инвестиции |
-| «Сохрани эту ссылку про Rust» | Knowledge ingest → заметка с тегами и wikilinks |
-| «Найди заметки про отпуск» | RAG по vault, ответ с опорой на файлы |
-| «Как спал вчера и сколько шагов?» | Только если включён `apple_health` и есть снимки в vault |
-| «Свободен ли я во вторник после 15:00?» | Только с `apple_calendar` и актуальным экспортом |
-
-Один бот в режиме **Auto** сам выбирает домен; можно закрепить **Finance** / **Planning** / **Knowledge** клавиатурой.
-
----
-
-## Возможности по областям
-
-### Planning
-
-- **Kanban** в markdown: добавить, перенести, закрыть, поиск; action-логи для аналитики.
-- **Цели** — год/квартал; опциональный текст «зачем я это делаю» (локальный файл, не в git).
-- **Рутины** — чеклисты по дням, статус «сегодня», история.
-- **Рефлексия** — обзор доски, целей, календаря, контекста устройств → markdown в vault.
-- **Календарь** (коннектор) — экспорт с устройства → JSON + дашборд, PNG, опционально LLM по неделе.
-- **Mac / iPhone контекст** (коннекторы) — снапшоты в `Данные/…`, агрегаты JSON, TTL и очистка мусора на sync.
-- **Health** (коннектор) — ряды метрик, аномалии, корреляции, экспорт CSV; графики КБЖУ и веса — feature-флаги.
-
-### Knowledge
-
-- Пайплайн: текст, голос (ASR), фото, PDF, YouTube и ссылки.
-- Автоимя, теги по онтологии, wikilinks, вложения.
-- Поиск по vault, дописывание заметки из чата, опциональный serendipity.
-
-### Finance
-
-- NLU и голос → транзакции, категории, счета, планы, долги.
-- Markdown-дашборд и PNG после sync.
-- Брокер по API или ручные счета — отдельные коннекторы.
-
-### Agent platform
-
-- Один чат → роутинг **finance / planning / knowledge / host**.
-- Tool loop с лимитами из `config/agent/platform.yaml`.
-- Память сессии; опционально профиль и подтверждаемые инсайты (`/memory`).
-- Промпты и строки — YAML (`domain_messages`, `messages.*`), в Python нет user-facing кириллицы в tools.
-
-### Mac ↔ сервер (опционально)
-
-- Периодический `obsidian_sync.sh`: pull/push только папок **включённых модулей**; шаги IMAP, графиков, maintenance — по `CAP_SYNC_*`.
-- На сервере — unified bot 24/7; kanban monitor по cron, если включён planning.
-
----
-
-## Как это работает
-
-![Архитектура obsidian-agent](assets/architecture.svg)
-
-```mermaid
-flowchart LR
-  subgraph inputs["Ввод"]
-    TG((Telegram))
-    SC[Shortcuts]
-    OBS[Obsidian]
-  end
-
-  subgraph Mac["Mac"]
-    V[(Vault)]
-    SYNC[obsidian_sync]
-    CHARTS[charts]
-  end
-
-  subgraph VPS["Сервер 24/7"]
-    UB[unified_bot]
-  end
-
-  TG --> UB
-  SC --> V
-  OBS --> V
-  UB --> V
-  SYNC <-->|rsync| V
-  SYNC --> CHARTS
-  CHARTS --> V
+Optional: Mac obsidian_sync.sh  ⇄  VPS (24/7 bot + cron maintenance)
 ```
 
----
-
-## Стартовые профили (идея, не инструкция)
-
-| Профиль | Модули | Типичный пользователь |
-|---------|--------|------------------------|
-| Только задачи | `planning` | Kanban + цели, без финансов и KB |
-| Только финансы | `finance` | Учёт расходов + дашборд |
-| Только база знаний | `knowledge` | Inbox заметок из Telegram |
-| Полный | все modules + нужные connectors | Power-user с Mac, VPS и несколькими источниками |
-
-Команды и env — в [docs/ONBOARDING.md](docs/ONBOARDING.md), не дублируем здесь.
+Architecture details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · Agent platform: [docs/AGENT_PLATFORM.md](docs/AGENT_PLATFORM.md)
 
 ---
 
-## Структура репозитория
+## Repository map
 
 ```
 obsidian-agent/
-├── shared/           # LLM, agent, capabilities, telegram host
-├── unified_bot/      # production entrypoint
-├── finance_bot/  knowledge_bot/  planning_bot/
-├── config/           # messages, vault_paths, agent platform (examples → local)
-├── scripts/          # setup, deploy, obsidian_sync, capabilities CLI
-├── docs/             # установка, onboarding, architecture
-└── .env.example
+├── unified_bot/          # production entrypoint
+├── shared/               # agent platform, LLM, capabilities, telegram host
+├── planning_bot/         # tasks, goals, routines
+├── knowledge_bot/        # ingest, tags, query
+├── finance_bot/          # NLU, dashboards, scheduler
+├── config/               # messages, vault_paths, ui_capabilities (*.example → local)
+├── scripts/              # setup, deploy, obsidian_sync, onboarding CLI
+└── docs/                 # full documentation index
 ```
 
 ---
 
-## Конфигурация (куда смотреть)
+## Documentation
 
-| Что | Где |
-|-----|-----|
-| Секреты, `VAULT_PATH`, locale | `.env` |
-| Модули и коннекторы | `config/agent/capabilities.yaml` (опц., из `.example` или omit = всё) |
-| Имена папок vault | `config/vault_paths.yaml` (из `.example`) |
-| Кнопки Telegram | `config/messages.ru.yaml` / `messages.en.yaml` (из `.example`) |
-| Тексты tools и отчётов | `config/domain_messages.yaml` (из `.example`) |
-| Промпты LLM | `config/agent/prompts/*.txt` (из `*.example.txt`) |
-| Гейты кнопок | `config/ui_capabilities.yaml` (опц., из `.example`) |
-
-Переменные окружения: [docs/ENV_REFERENCE.md](docs/ENV_REFERENCE.md).
-
----
-
-## Документация
-
-| Документ | Содержание |
-|----------|------------|
-| [docs/SETUP.md](docs/SETUP.md) | Первый запуск, venv, deploy, Mac sync |
-| [docs/ONBOARDING.md](docs/ONBOARDING.md) | Модули, коннекторы, smoke, golden paths |
-| [docs/CAPABILITIES.md](docs/CAPABILITIES.md) | Manifest, sync env, `@cap` в промптах |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Монорепо, sync, CI |
-| [docs/AGENT_PLATFORM.md](docs/AGENT_PLATFORM.md) | Routing, memory, tools |
-| [docs/PROMPTS_ONBOARDING.md](docs/PROMPTS_ONBOARDING.md) | Уровни промптов и scaffolds |
-| [docs/TESTING.md](docs/TESTING.md) | pytest и локальный прогон |
-| [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) | Куда класть новый код |
-| [docs/AGENT_CONFIG.md](docs/AGENT_CONFIG.md) | `config/agent/*.yaml` |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | PR и стиль |
+| Doc | Topic |
+|-----|--------|
+| [docs/SETUP.md](docs/SETUP.md) | Install, deploy, Mac ↔ server sync |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | Modules, connectors, golden paths |
+| [docs/CAPABILITIES.md](docs/CAPABILITIES.md) | Manifest, sync steps, UI gates |
+| [docs/PROMPTS_ONBOARDING.md](docs/PROMPTS_ONBOARDING.md) | Prompt tiers & personalization |
+| [docs/LOCALE.md](docs/LOCALE.md) | `AGENT_LOCALE` (EN / RU) |
+| [docs/ENV_REFERENCE.md](docs/ENV_REFERENCE.md) | Environment variables |
+| [docs/TESTING.md](docs/TESTING.md) | pytest & CI |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 
 ---
 
-## Legacy (не рекомендуется для новых установок)
-
-| Режим | Запуск | В git |
-|-------|--------|-------|
-| **Production** | `python -m unified_bot.main` | да |
-| Finance-only bot | `python -m bot.main` (cwd `finance_bot`) | да |
-| Knowledge-only | `knowledge_bot/start_bot.py` | да (legacy) |
-| Planning-only | `python -m planning_bot.app.main` | да (legacy) |
-| Per-bot `deploy.sh` / `watchdog.sh` | отдельные venv на VPS | **нет** (author-only, `.gitignore`) |
-| `scripts/watchdog.sh`, `restart_component.sh` | multi-bot era | **нет** |
-
-Новый clone: один токен `TELEGRAM_UNIFIED_BOT_TOKEN`, `./scripts/deploy.sh --prod`, рестарт через `--restart-unified`.
-
----
-
-## Качество и лицензия
-
-CI: `py_compile`, smoke imports, pytest — см. `.github/workflows/ci.yml`.
+## Development
 
 ```bash
-./scripts/run_tests.sh
+./scripts/run_tests.sh -q
 ```
 
-MIT — [LICENSE](LICENSE).
+CI runs on push/PR: compile, smoke imports, pytest, capabilities/onboarding guards — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
+---
+
+## Русский (кратко)
+
+**obsidian-agent** — единый Telegram-бот, который пишет в ваш Obsidian vault: задачи, база знаний и финансы. Модули и коннекторы включаются декларативно; выключенное не попадает в UI, tools и sync.
+
+**Установка:** откройте репозиторий в **Cursor** и пройдите онбординг (скилл `.cursor/skills/obsidian-agent-onboarding`) **или** `./scripts/setup.sh` + `./scripts/onboarding_wizard.sh`. Подробности — [docs/SETUP.md](docs/SETUP.md), [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
+**Язык интерфейса:** по умолчанию английский; русский: `python3 scripts/setup/env_tools.py set-locale ru` ([docs/LOCALE.md](docs/LOCALE.md)).
+
+Полный индекс документации: [docs/README.md](docs/README.md).
