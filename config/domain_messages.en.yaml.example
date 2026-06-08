@@ -1719,7 +1719,6 @@ planning:
   auto_45b408e226: '📋 Review context: system=%d | calendar=%s | goals_context=%s |
     previous_reflections=%s | weekly_logs=%s | user=%d characters'
   auto_45cebbfff9: ' snapshot / week '
-  auto_46498478d3: Synchronizing quarterly focuses
   auto_465922e81f: '- Log files: **'
   auto_469a9dd887: "---\n\n\n*Created: \n"
   auto_472ed76ccb: ' days, total days with data: '
@@ -4113,7 +4112,6 @@ planning:
     '
   auto_d4a2685e67: 'Mapping loading error: {p1}'
   auto_d4ae7a30be: personal
-  auto_d4b5061954: ⚠️ File {QUARTERLY_FOCUS_FILE} not found, skipping
   auto_d4d8652207: Aggregates
   auto_d4de75d14b: 'Recorded: {_p1} (no categories)'
   auto_d50f527ace: ' (categories: '
@@ -4549,7 +4547,6 @@ planning:
     (last in the day where at least one macro exists).
 
     '
-  auto_f1cace2956: 🔄 Syncing quarterly focuses...
   auto_f1d3acb4fc: focus
   auto_f1f96ad214: above
   auto_f2964bb97c: '   Dashboard: {CALENDAR_DASHBOARD_MD}'
