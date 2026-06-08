@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from planning_bot.core.config import ACTION_LOGS_DIR
 from planning_bot.services.action_logger import ActionLogger
 from planning_bot.services.activity_log_query import (
@@ -11,6 +13,27 @@ from planning_bot.services.activity_log_query import (
     format_activity_events_block,
     unique_completions,
 )
+
+_FIXTURE_DAY = date(2026, 5, 12)
+
+
+def _require_may_12_activity_fixture():
+    """Author vault integration data; skip in CI / empty VAULT_PATH."""
+    if not ACTION_LOGS_DIR.is_dir():
+        pytest.skip("ACTION_LOGS_DIR missing in vault")
+    logger = ActionLogger(ACTION_LOGS_DIR)
+    _, _, n_raw, counts = fetch_activity_events(
+        logger,
+        from_date=_FIXTURE_DAY,
+        to_date=_FIXTURE_DAY,
+        event_types=None,
+        task_id=None,
+        task_title=None,
+        limit=0,
+    )
+    if n_raw == 0 or counts.get("task_completed", 0) < 7:
+        pytest.skip("2026-05-12 activity log fixture not in vault (author-only data)")
+    return logger
 
 
 def test_clamp_limit_max_1000():
@@ -40,8 +63,8 @@ def test_unique_completions_dedupes_move_and_complete():
 
 
 def test_summary_includes_type_breakdown():
-    logger = ActionLogger(ACTION_LOGS_DIR)
-    d = date(2026, 5, 12)
+    logger = _require_may_12_activity_fixture()
+    d = _FIXTURE_DAY
     entries, all_entries, n_raw, counts = fetch_activity_events(
         logger,
         from_date=d,
@@ -61,8 +84,8 @@ def test_summary_includes_type_breakdown():
 
 
 def test_filtered_completed_only():
-    logger = ActionLogger(ACTION_LOGS_DIR)
-    d = date(2026, 5, 12)
+    logger = _require_may_12_activity_fixture()
+    d = _FIXTURE_DAY
     entries, all_entries, n_raw, counts = fetch_activity_events(
         logger,
         from_date=d,
