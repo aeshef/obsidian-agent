@@ -16,7 +16,7 @@ if str(PACKAGE_PARENT) not in sys.path:
 
 # (comment)
 from planning_bot.core.config import (
-    VAULT_PATH, KANBAN_FILE, GOALS_FILE, QUARTERLY_FOCUS_FILE,
+    VAULT_PATH, KANBAN_FILE, GOALS_FILE,
     CATEGORY_ORDER, PRIORITY_ORDER, LOGS_DIR, ACTION_LOGS_DIR,
     KANBAN_COLUMNS, DONE_COLUMN, GOALS_YEAR,
 )
@@ -29,8 +29,6 @@ from planning_bot.tools.vault_maintenance.kanban_state import (
     get_task_title_by_id,
     log_task_movements,
 )
-from planning_bot.tools.vault_maintenance.quarterly import sync_quarterly_focus
-
 def run_all() -> bool:
     'Operation implementation.'
     print("=" * 50)
@@ -105,11 +103,6 @@ def run_all() -> bool:
     results.append((pdmsg("auto_bfafe7b122"), add_ids_to_tasks()))
     print()
     
-    # (comment)
-    results.append((pdmsg("auto_46498478d3"), sync_quarterly_focus()))
-    print()
-    
-    # (comment)
     results.append((pdmsg("auto_28dd89327d"), sort_kanban_tasks()))
     print()
     

@@ -5,14 +5,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
-from planning_bot.core.config import VAULT_PATH, GOALS_FILE, QUARTERLY_FOCUS_FILE, MAPPING_FILE, GOALS_YEAR
+from planning_bot.core.config import VAULT_PATH, GOALS_FILE, MAPPING_FILE, GOALS_YEAR
 
 # (comment)
 def get_goals_file():
     return GOALS_FILE
-
-def get_quarterly_goals_file():
-    return QUARTERLY_FOCUS_FILE
 
 def get_mapping_file():
     return MAPPING_FILE
@@ -25,7 +22,6 @@ class GoalsMapper:
         self.task_titles: Dict[str, str] = {}  # task_id -> task_title
         self.vault_path = VAULT_PATH
         self.goals_file = GOALS_FILE
-        self.quarterly_goals_file = QUARTERLY_FOCUS_FILE
         self.mapping_file = MAPPING_FILE
         self.load_goals()
         self.load_mapping()
@@ -34,15 +30,9 @@ class GoalsMapper:
         'Operation implementation.'
         self.goals = {}
         
-        # (comment)
         if self.goals_file.exists():
             content = self.goals_file.read_text(encoding='utf-8')
             self._parse_goals_from_content(content, self.goals_file)
-        
-        # (comment)
-        if self.quarterly_goals_file.exists():
-            content = self.quarterly_goals_file.read_text(encoding='utf-8')
-            self._parse_goals_from_content(content, self.quarterly_goals_file)
     
     def _parse_goals_from_content(self, content: str, source_file: Path):
         'Operation implementation.'

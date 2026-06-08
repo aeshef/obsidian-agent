@@ -18,7 +18,6 @@ dashboards:
 files:
   kanban_board: "📋 Task_Board.md"
   goals_template: "🎯 {year}_Goals.md"
-  quarterly_focus_template: "📅 Quarterly_Focus_{year}.md"
   action_log_prefix: "📊 Action_Logs_"
   calendar_txt: "Calendar.txt"
   calendar_json: "Calendar.json"
