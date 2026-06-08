@@ -1,7 +1,7 @@
 """Shell exports for vault folder names (config/vault_paths.yaml)."""
 from __future__ import annotations
 
-from shared.vault_paths_config import dashboards_sub, folder, vault_file, vault_rel_path
+from shared.vault_paths_config import dashboards_sub, finance_sub, folder, vault_file, vault_rel_path
 
 
 def _sh_quote(val: str) -> str:
@@ -26,9 +26,13 @@ def export_shell_env() -> str:
         f"export VAULT_PATH_CONTEXT_WEEK={_sh_quote(vault_rel_path('context_week_json'))}",
         f"export VAULT_PATH_IPHONE_TODAY={_sh_quote(vault_rel_path('iphone_today_json'))}",
         f"export VAULT_PATH_IPHONE_WEEK={_sh_quote(vault_rel_path('iphone_week_json'))}",
+        f"export VAULT_FILE_CALENDAR_JSON={_sh_quote(vault_file('calendar_json'))}",
         f"export VAULT_FILE_CHART_DAILY_ACTIVITY={_sh_quote(vault_file('chart_daily_activity_png'))}",
+        f"export VAULT_FILE_CHART_CALENDAR_WEEK_PNG={_sh_quote(vault_file('chart_calendar_week_png'))}",
+        f"export VAULT_FILE_CHART_NUTRITION_PNG={_sh_quote(vault_file('chart_nutrition_png'))}",
         f"export VAULT_FILE_AUDIT_SYSTEM={_sh_quote(vault_file('system_audit_report_md'))}",
         f"export VAULT_FILE_AUDIT_VAULT={_sh_quote(vault_file('vault_audit_report_md'))}",
+        f"export VAULT_FIN_CHART_DAILY_CATEGORIES_PNG={_sh_quote(finance_sub('chart_daily_categories_png'))}",
     ]
     try:
         from shared.vault_layout import knowledge_subdir

@@ -371,8 +371,8 @@ unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max ACTI
 
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
-_CAL_JSON="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Календарь.json"
-_CAL_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Встречи_нагрузка_недели.png"
+_CAL_JSON="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/${VAULT_FILE_CALENDAR_JSON}"
+_CAL_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_CALENDAR_WEEK_PNG}"
 PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
 _SHOULD_CAL=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
@@ -625,7 +625,7 @@ fi
 unset _kn_skip_today
 
 # 5b.post Mac → VPS: аудит-отчёты (после 5b; шаг 2 был до генерации). Pull их не берём (EXCLUDE_300).
-_audit_sys="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/Аудит_системы_отчет.md"
+_audit_sys="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_SYSTEM}"
 _audit_kb="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}"
 for _audit_push in "$_audit_sys" "$_audit_kb"; do
   if [ -f "$_audit_push" ]; then
@@ -712,8 +712,8 @@ fi
 # 5d. График КБЖУ — после 5b.4 + 5b.4b. Раз в сутки по маркеру, НО также если появился новый IPhone/*.txt
 # позже последнего PNG (иначе ночной прогон в 00:04 блокирует день до вечернего снапшота).
 NUTR_MARKER="$SYNC_DIR/daily_iphone_nutrition_date.txt"
-_IPHONE_CTX_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Действия/IPhone"
-_NUTR_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Питание_КБЖУ_по_дням.png"
+_IPHONE_CTX_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}"
+_NUTR_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_NUTRITION_PNG}"
 _SHOULD_NUTR=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_NUTR=1
@@ -749,7 +749,7 @@ unset _SHOULD_NUTR _IPHONE_CTX_DIR _NUTR_PNG _latest_iph _png_m
 FINANCE_MARKER="$SYNC_DIR/finance_dashboard_date.txt"
 FINANCE_BOT="$AGENT_ROOT/finance_bot"
 FIN_DB="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/finance.db"
-FIN_CHART_REF="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Финансы/Траты_по_дням_категории.png"
+FIN_CHART_REF="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FIN_CHART_DAILY_CATEGORIES_PNG}"
 FIN_DB_NEWER=
 if [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && [ "$FIN_DB" -nt "$FIN_CHART_REF" ]; then
   FIN_DB_NEWER=1

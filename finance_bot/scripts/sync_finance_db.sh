@@ -17,9 +17,12 @@ if [[ -z "${VAULT_PATH:-}" ]]; then
     VAULT_PATH="$HOME/Obsidian Vault"
   fi
 fi
-DATA_DIR="$VAULT_PATH/300_Дашборды/Данные"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 [[ -f "$ROOT/.env" ]] && set -a && source "$ROOT/.env" && set +a
+# shellcheck source=scripts/lib/vault_paths_defaults.sh
+source "$ROOT/scripts/lib/vault_paths_defaults.sh"
+vault_paths_load_from_agent "$ROOT" || true
+DATA_DIR="$VAULT_PATH/${VAULT_FOLDER_DASHBOARDS:-300_Dashboards}/${VAULT_DASH_DATA:-Data}"
 SERVER="${SERVER:?Set SERVER in .env}"
 REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/root/bots}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"

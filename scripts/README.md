@@ -61,7 +61,8 @@ One-off / audit scripts: not in git (see root `.gitignore`: `audit_*.py`, `fix_*
 - `planning_bot/scripts/_*.py`, `fix_*.py`, `patch_*.py` — локальные правки при выносе i18n
 - Legacy multi-bot: `cleanup_server_stale.sh`, `restart_component.sh`, `start_watchdog_detached.sh`, `watchdog.sh`, `finance_bot/scripts/deploy.sh`, per-bot `watchdog.sh` — только локально у автора (`.gitignore`)
 - Finance one-off: `import_badge_history.py`, `import_transactions_yaml.py`, `show_recent_txns.py`
-- `planning_bot/tools/rename_iphone_snapshots.py`, `repair_action_log_format.py`
+- `planning_bot/tools/rename_iphone_snapshots.py`, `rename_action_snapshots.py`, `repair_action_log_format.py`
+- `knowledge_bot/tools/analyze_vault_report.py`
 - `knowledge_bot/config/hubs_registry.yaml` — только `hubs_registry.yaml.example`; боевой файл из `setup.sh` / `ensure_hubs_registry.sh`
 - `finance_bot/config/{llm,asr,summary,categories}_*.yaml`, `dashboard_templates.yaml` — только `*.example` в git
 - `knowledge_bot/config/duplicate_cleanup.yaml` — только `.example` (author audit tools)

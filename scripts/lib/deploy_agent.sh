@@ -18,7 +18,7 @@ patch_agent_env_remote() {
   local session_persist="${MEMORY_SESSION_PERSIST:-1}"
   local kanban_writes="${KANBAN_AGENT_WRITES:-}"
   local vault_rel_knowledge="${VAULT_REL_KNOWLEDGE:-}"
-  local agent_locale="${AGENT_LOCALE:-ru}"
+  local agent_locale="${AGENT_LOCALE:-en}"
 
   if [ -z "$token" ]; then
     echo "❌ TELEGRAM_UNIFIED_BOT_TOKEN пустой в $root/.env" >&2

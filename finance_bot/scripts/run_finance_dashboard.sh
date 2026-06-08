@@ -16,6 +16,9 @@ cd "$ROOT"
 
 # shellcheck source=../../scripts/lib/common.sh
 source "$MONOREPO/scripts/lib/common.sh"
+# shellcheck source=../../scripts/lib/vault_paths_defaults.sh
+source "$MONOREPO/scripts/lib/vault_paths_defaults.sh"
+vault_paths_load_from_agent "$MONOREPO" || true
 
 if [[ -z "${VAULT_PATH:-}" ]]; then
   if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
@@ -25,7 +28,7 @@ if [[ -z "${VAULT_PATH:-}" ]]; then
   fi
 fi
 
-DB_PATH="${FINANCE_DB_PATH:-$VAULT_PATH/300_Дашборды/Данные/finance.db}"
+DB_PATH="${FINANCE_DB_PATH:-$VAULT_PATH/${VAULT_FOLDER_DASHBOARDS:-300_Dashboards}/${VAULT_DASH_DATA:-Data}/finance.db}"
 USER_ID="${FINANCE_DASHBOARD_USER_ID:-1}"
 
 export MPLCONFIGDIR="${MPLCONFIGDIR:-$ROOT/.cache/matplotlib}"

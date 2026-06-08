@@ -13,7 +13,7 @@ FIXTURE_VAULT = Path(__file__).parent / "fixtures" / "vault"
 os.environ.setdefault("TELEGRAM_BOT_TOKEN", "test-token-for-pytest")
 os.environ.setdefault("TELEGRAM_FINANCE_BOT_TOKEN", "test-token-for-pytest")
 os.environ.setdefault("DEEPSEEK_API_KEY", "test-key-for-pytest")
-os.environ.setdefault("AGENT_LOCALE", "ru")
+os.environ.setdefault("AGENT_LOCALE", "en")
 
 for p in (str(FINANCE_BOT), str(ROOT)):
     if p not in sys.path:

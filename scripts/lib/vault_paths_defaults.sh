@@ -96,9 +96,13 @@ _vault_paths_yaml_shell_fallback() {
   v="$(_vault_yaml_field paths context_week_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_CONTEXT_WEEK="$v"
   v="$(_vault_yaml_field paths iphone_today_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_IPHONE_TODAY="$v"
   v="$(_vault_yaml_field paths iphone_week_json "$yaml")" && [[ -n "$v" ]] && export VAULT_PATH_IPHONE_WEEK="$v"
+  v="$(_vault_yaml_field files calendar_json "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CALENDAR_JSON="$v"
   v="$(_vault_yaml_field files chart_daily_activity_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_DAILY_ACTIVITY="$v"
+  v="$(_vault_yaml_field files chart_calendar_week_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_CALENDAR_WEEK_PNG="$v"
+  v="$(_vault_yaml_field files chart_nutrition_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_NUTRITION_PNG="$v"
   v="$(_vault_yaml_field files system_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_SYSTEM="$v"
   v="$(_vault_yaml_field files vault_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_VAULT="$v"
+  v="$(_vault_yaml_field finance chart_daily_categories_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FIN_CHART_DAILY_CATEGORIES_PNG="$v"
   [[ -n "${VAULT_FOLDER_TASKS:-}" ]]
 }
 

@@ -186,7 +186,12 @@ async def get_routines_recommendations(self, message: Message):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": pdmsg("routines_recommendations_user")},
         ]
-        recommendations = self.llm.chat(messages, temperature=0.7)
+        from planning_bot.core.llm_params import planning_llm_temperature
+
+        recommendations = self.llm.chat(
+            messages,
+            temperature=planning_llm_temperature("routines_recommendations", 0.7),
+        )
         await message.answer(
             pmsg("routines_recommendations_header", recommendations=recommendations),
             parse_mode="Markdown",

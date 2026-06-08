@@ -12,7 +12,7 @@ if [[ -f .env ]]; then
   _loc="$(grep -E '^AGENT_LOCALE=' .env | tail -1 | cut -d= -f2- | tr -d "\"'" | xargs)"
   [[ -n "$_loc" ]] && AGENT_LOCALE="$_loc"
 fi
-AGENT_LOCALE="${AGENT_LOCALE:-ru}"
+AGENT_LOCALE="${AGENT_LOCALE:-en}"
 
 PLAYBOOK=""
 MODULES=""
@@ -147,19 +147,26 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
-log "Phase 4: vault layout + dependencies"
-"$PY" scripts/init_vault_layout.py
-./scripts/setup.sh
-bash scripts/setup_agent_config.sh
+log "Phase 4: locale + repo config"
 "$PY" scripts/setup/materialize_locale.py "$AGENT_LOCALE"
 AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
-if [[ ! -f config/vault_paths.yaml && -f config/vault_paths.yaml.example ]]; then
-  cp config/vault_paths.yaml.example config/vault_paths.yaml
+if [[ ! -f config/vault_paths.yaml ]]; then
+  _vp="config/vault_paths.${AGENT_LOCALE}.yaml.example"
+  if [[ -f "$_vp" ]]; then
+    cp "$_vp" config/vault_paths.yaml
+  elif [[ -f config/vault_paths.yaml.example ]]; then
+    cp config/vault_paths.yaml.example config/vault_paths.yaml
+  fi
 fi
 "$PY" scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" || true
 
+log "Phase 5: vault layout + dependencies"
+"$PY" scripts/init_vault_layout.py
+./scripts/setup.sh
+bash scripts/setup_agent_config.sh
+
 if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
-  log "Phase 5: prompts"
+  log "Phase 6: prompts"
   bash scripts/ensure_bot_prompts.sh
   if [[ ! -f config/agent/onboarding_slots.yaml && -f config/agent/onboarding_slots.yaml.example ]]; then
     cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
@@ -169,14 +176,14 @@ if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
   bash scripts/ensure_bot_prompts.sh --warn-stubs || true
 fi
 
-log "Phase 6: secrets reminder"
+log "Phase 7: secrets reminder"
 "$PY" scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
 echo "Set secrets: python3 scripts/setup/env_tools.py set VAULT_PATH '/path/to/vault'"
 echo "             python3 scripts/setup/env_tools.py set TELEGRAM_UNIFIED_BOT_TOKEN '...'"
 echo "             python3 scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'"
 
 if [[ "$SKIP_SMOKE" -eq 0 ]]; then
-  log "Phase 7: smoke"
+  log "Phase 8: smoke"
   SMOKE_ARGS=(--verify-all)
   if [[ -n "$GOLDEN_FLAG" ]]; then
     SMOKE_ARGS+=("$GOLDEN_FLAG")

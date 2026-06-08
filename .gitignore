@@ -117,7 +117,6 @@ knowledge_bot/scripts/run_vault_audit_report.sh
 knowledge_bot/tools/audit_tags.py
 knowledge_bot/tools/audit_wikilinks.py
 knowledge_bot/tools/analyze_*.py
-!knowledge_bot/tools/analyze_vault_report.py
 knowledge_bot/tools/reprocess_notes.py
 knowledge_bot/tools/retag_notes.py
 knowledge_bot/tools/refill_singleton_tags.py
@@ -129,8 +128,8 @@ knowledge_bot/tools/tag_ontology.py
 knowledge_bot/tools/unify_domain_topic.py
 !knowledge_bot/tools/vault_daily_maintenance.py
 planning_bot/tools/repair_*.py
-!planning_bot/tools/repair_action_log_format.py
 planning_bot/tools/rename_iphone_snapshots.py
+planning_bot/tools/rename_action_snapshots.py
 # Legacy per-bot VPS wrappers (monorepo scripts/deploy.sh + unified_bot)
 finance_bot/scripts/deploy.sh
 finance_bot/scripts/watchdog.sh

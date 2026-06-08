@@ -295,7 +295,7 @@ sync_repo_config_remote() {
     rsync -az "$cfg/$prod" "$SERVER:$SERVER_BOTS/config/"
     echo "  ↑ prod $prod"
   done
-  ssh "$SERVER" "AGENT_LOCALE='${AGENT_LOCALE:-ru}' bash '$SERVER_BOTS/scripts/ensure_repo_config.sh' '$SERVER_BOTS'" \
+  ssh "$SERVER" "AGENT_LOCALE='${AGENT_LOCALE:-en}' bash '$SERVER_BOTS/scripts/ensure_repo_config.sh' '$SERVER_BOTS'" \
     || { echo "⚠️  ensure_repo_config.sh failed (check server config/)" >&2; return 1; }
 }
 
