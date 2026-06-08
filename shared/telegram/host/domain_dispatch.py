@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
+from typing import Optional
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -29,7 +30,7 @@ log = logging.getLogger("shared.telegram.host.domain_dispatch")
 
 _MenuFn = Callable[[str], bool]
 _DispatchFn = Callable[
-    [Message, FSMContext, AgentApp, str, str, object | None],
+    [Message, FSMContext, AgentApp, str, str, Optional[object]],
     Awaitable[bool],
 ]
 
@@ -58,7 +59,7 @@ async def _dispatch_finance(
     agent_app: AgentApp,
     text: str,
     ui_mode: str,
-    planning: object | None,
+    planning: Optional[object],
 ) -> bool:
     del planning
     if ui_mode != DOMAIN_FINANCE:
@@ -80,7 +81,7 @@ async def _dispatch_planning(
     agent_app: AgentApp,
     text: str,
     ui_mode: str,
-    planning: object | None,
+    planning: Optional[object],
 ) -> bool:
     uid = message.from_user.id if message.from_user else message.chat.id
     if planning is None:
@@ -110,7 +111,7 @@ async def _dispatch_knowledge(
     agent_app: AgentApp,
     text: str,
     ui_mode: str,
-    planning: object | None,
+    planning: Optional[object],
 ) -> bool:
     del planning, text
     if ui_mode != DOMAIN_KNOWLEDGE:
