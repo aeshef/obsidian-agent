@@ -52,11 +52,8 @@ async def fetch_telegram_file_bytes(
     message: Message,
     file_id: str,
     _cfg: Any = None,
-    *,
-    timeout: int = 600,
 ) -> tuple[bytes, str]:
     """Download by file_id via message.bot (unified host token)."""
-    del timeout
     tg_file = await message.bot.get_file(file_id)
     file_path = getattr(tg_file, "file_path", None)
     if not file_path:
@@ -263,7 +260,7 @@ async def video_download_fallback(
 
     try:
         content, thumb_name = await fetch_telegram_file_bytes(
-            message, thumb.file_id, cfg, timeout=120
+            message, thumb.file_id, cfg
         )
         if not thumb_name.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
             thumb_name = f"{thumb_name}_thumb.jpg"

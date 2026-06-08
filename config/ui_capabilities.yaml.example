@@ -15,6 +15,17 @@ menu_detection:
   knowledge:
     knowledge_buttons: true
 
+# Pinned-domain text dispatch (shared/telegram/host/domain_dispatch.py).
+domain_routing:
+  order:
+    - finance
+    - planning
+    - knowledge
+  auto_menu_match:
+    finance: true
+    planning: true
+    knowledge: true
+
 strings:
   host.mode_finance: finance
   host.mode_planning: planning

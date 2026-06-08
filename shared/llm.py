@@ -498,5 +498,5 @@ class LLMClient:
         return {"error": "llm_unavailable"}
 
     @staticmethod
-    def is_reachable(timeout: float = 4.0) -> bool:
+    def is_reachable(timeout: float | None = None) -> bool:
         return deepseek_api_reachable(timeout)

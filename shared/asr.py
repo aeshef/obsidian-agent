@@ -100,12 +100,14 @@ def _http_transcribe(
         log.info("ASR http: url=%s model=%s", url, model_name)
         with open(path, "rb") as fh:
             files = {"file": (path.name, fh, "application/octet-stream")}
+            from shared.platform_timeouts import asr_http_timeout_sec
+
             resp = requests.post(
                 url,
                 headers={"Authorization": f"Bearer {api_key}"},
                 data=data,
                 files=files,
-                timeout=600,
+                timeout=asr_http_timeout_sec(),
             )
         if resp.status_code == 200:
             j = resp.json()

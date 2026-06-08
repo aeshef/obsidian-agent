@@ -36,7 +36,7 @@ async def process_single_media(
         doc = getattr(message, "document", None)
         if doc and message.bot:
             content, path_name = await fetch_telegram_file_bytes(
-                message, doc.file_id, cfg, timeout=120
+                message, doc.file_id, cfg
             )
             name = doc.file_name or path_name
             saved = save_raw_file(cfg.export_root, name, content)
@@ -80,7 +80,7 @@ async def process_single_media(
         if photos and message.bot:
             best = photos[-1]
             content, path_name = await fetch_telegram_file_bytes(
-                message, best.file_id, cfg, timeout=120
+                message, best.file_id, cfg
             )
             name = path_name
             saved = save_raw_file(cfg.export_root, name, content)
@@ -100,7 +100,7 @@ async def process_single_media(
         vid = getattr(message, "video", None) or getattr(message, "video_note", None)
         if vid and message.bot:
             content, path_name = await fetch_telegram_file_bytes(
-                message, vid.file_id, cfg, timeout=600
+                message, vid.file_id, cfg
             )
             name = getattr(vid, "file_name", None) or path_name
             saved = save_raw_file(cfg.export_root, name, content)
@@ -131,7 +131,7 @@ async def process_single_media(
         voice = getattr(message, "voice", None) or getattr(message, "audio", None)
         if voice and message.bot:
             content, path_name = await fetch_telegram_file_bytes(
-                message, voice.file_id, cfg, timeout=120
+                message, voice.file_id, cfg
             )
             ext = (getattr(voice, "mime_type", None) or "audio/ogg").split("/")[-1].split(";")[0].strip() or "ogg"
             if ext not in ("ogg", "m4a", "mp3", "wav"):

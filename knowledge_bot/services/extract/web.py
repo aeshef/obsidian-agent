@@ -27,7 +27,13 @@ def simple_from_text(text: str) -> ExtractedBundle:
         # Fallback: extract page title via requests if no body text
         if not url_text and requests is not None:
             try:
-                resp = requests.get(urls[0], headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+                from shared.platform_timeouts import knowledge_web_fetch_timeout_sec
+
+                resp = requests.get(
+                    urls[0],
+                    headers={"User-Agent": "Mozilla/5.0"},
+                    timeout=knowledge_web_fetch_timeout_sec(),
+                )
                 html = resp.text or ""
                 # Try og:title first
                 m = re.search(r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
@@ -56,7 +62,13 @@ def extract_from_url(url: str) -> ExtractedBundle:
             log.warning("extract_from_url failed: %s", e)
     if not txt and requests is not None:
         try:
-            resp = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
+            from shared.platform_timeouts import knowledge_web_fetch_timeout_sec
+
+            resp = requests.get(
+                url,
+                headers={"User-Agent": "Mozilla/5.0"},
+                timeout=knowledge_web_fetch_timeout_sec(),
+            )
             html = resp.text or ""
             m = re.search(r'<meta[^>]+property=["\']og:title["\'][^>]+content=["\']([^"\']+)["\']', html, re.IGNORECASE)
             if m:

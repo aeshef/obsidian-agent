@@ -17,8 +17,12 @@ def deepseek_host_from_env() -> str:
     return (parsed.hostname or "api.deepseek.com").lower()
 
 
-def deepseek_api_reachable(timeout: float = 4.0) -> bool:
+def deepseek_api_reachable(timeout: float | None = None) -> bool:
     """True if API host resolves (DNS). No HTTP — getaddrinfo only."""
+    if timeout is None:
+        from shared.platform_timeouts import llm_reachable_timeout_sec
+
+        timeout = llm_reachable_timeout_sec()
     host = deepseek_host_from_env()
     try:
         socket.getaddrinfo(host, 443, type=socket.SOCK_STREAM)

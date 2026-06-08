@@ -60,13 +60,17 @@ def openrouter_post(
     *,
     headers: dict[str, str],
     json_payload: dict[str, Any],
-    timeout: float = 90.0,
+    timeout: float | None = None,
     max_retries: int | None = None,
 ) -> Any:
     """Module helper (user strings in YAML)."""
     import requests as requests_mod
 
     log = logging.getLogger("kb.openrouter")
+    if timeout is None:
+        from shared.platform_timeouts import knowledge_vision_api_timeout_sec
+
+        timeout = knowledge_vision_api_timeout_sec()
     if max_retries is None:
         max_retries = _env_int("OPENROUTER_429_MAX_RETRIES", 4)
     base_backoff = _env_float("OPENROUTER_429_BACKOFF_SECONDS", 8.0)

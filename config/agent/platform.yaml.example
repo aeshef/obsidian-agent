@@ -108,9 +108,25 @@ planning_llm:
   task_parsing: 0.3
   weekly_review: 0.8
   recommendations: 0.7
+  routines_recommendations: 0.7
   goals_mapping: 0.3
   calendar_insights: 0.45
   chat_timeout_sec: 90
+
+asr:
+  http_timeout_sec: 600
+
+knowledge_extract:
+  text_intent_timeout_sec: 45
+  vision_gate_timeout_sec: 35
+  vision_api_timeout_sec: 90
+  ffmpeg_frame_timeout_sec: 15
+  ffprobe_timeout_sec: 5
+  web_fetch_timeout_sec: 15
+  serendipity_timeout_sec: 90
+
+llm_reachable:
+  timeout_sec: 4
 
 json_parse:
   error_preview_chars: 400

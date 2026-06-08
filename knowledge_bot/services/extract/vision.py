@@ -27,6 +27,18 @@ def _load_vision_prompt() -> str:
     return text
 
 
+def _ffmpeg_timeout_sec() -> int:
+    from shared.platform_timeouts import knowledge_ffmpeg_frame_timeout_sec
+
+    return knowledge_ffmpeg_frame_timeout_sec()
+
+
+def _ffprobe_timeout_sec() -> int:
+    from shared.platform_timeouts import knowledge_ffprobe_timeout_sec
+
+    return knowledge_ffprobe_timeout_sec()
+
+
 def _extract_video_middle_frame(video_path: Path) -> Tuple[Optional[Path], Optional[Path]]:
     """Extract helper."""
     dur = _get_video_duration(video_path)
@@ -38,7 +50,7 @@ def _extract_video_middle_frame(video_path: Path) -> Tuple[Optional[Path], Optio
             ["ffmpeg", "-y", "-ss", str(t), "-i", str(video_path), "-vframes", "1", "-q:v", "2", str(out)],
             capture_output=True,
             check=True,
-            timeout=15,
+            timeout=_ffmpeg_timeout_sec(),
         )
         if out.exists() and out.stat().st_size > 0:
             return out, tmpdir
@@ -57,7 +69,7 @@ def _get_video_duration(video_path: Path) -> float:
             ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", str(video_path)],
             capture_output=True,
             text=True,
-            timeout=5,
+            timeout=_ffprobe_timeout_sec(),
         )
         return float(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else 0
     except Exception:
@@ -77,7 +89,7 @@ def _extract_video_frames(video_path: Path, n: int = 5) -> Tuple[list[Path], Pat
                 ["ffmpeg", "-y", "-ss", str(t), "-i", str(video_path), "-vframes", "1", "-q:v", "2", str(out)],
                 capture_output=True,
                 check=True,
-                timeout=15,
+                timeout=_ffmpeg_timeout_sec(),
             )
             if out.exists() and out.stat().st_size > 0:
                 frames.append(out)
@@ -88,7 +100,7 @@ def _extract_video_frames(video_path: Path, n: int = 5) -> Tuple[list[Path], Pat
                         ["ffmpeg", "-y", "-i", str(video_path), "-vframes", "1", "-q:v", "2", str(out)],
                         capture_output=True,
                         check=True,
-                        timeout=15,
+                        timeout=_ffmpeg_timeout_sec(),
                     )
                     if out.exists() and out.stat().st_size > 0:
                         frames.append(out)
@@ -116,7 +128,15 @@ def _llm_asr_sufficient_to_skip_vision(llm_client: Optional[Any], asr_text: str)
         system = load_prompt(cfg.agent_config_path, "asr_skip_vision_gate")
         user = json.dumps({"transcript": t[:4500]}, ensure_ascii=False)
         model = os.environ.get("VISION_ASR_GATE_MODEL", "deepseek-chat")
-        result = llm_client.chat_json(system, user, model=model, timeout=35.0, max_tokens=96)
+        from shared.platform_timeouts import knowledge_vision_gate_timeout_sec
+
+        result = llm_client.chat_json(
+            system,
+            user,
+            model=model,
+            timeout=knowledge_vision_gate_timeout_sec(),
+            max_tokens=96,
+        )
         payload = result.content if isinstance(result.content, dict) else {}
         val = payload.get("sufficient")
         if isinstance(val, bool):
@@ -150,6 +170,7 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
         "temperature": 0.2,
     }
     from knowledge_bot.services.openrouter_rate_limit import openrouter_post
+    from shared.platform_timeouts import knowledge_vision_api_timeout_sec
 
     try:
         r = openrouter_post(
@@ -160,7 +181,7 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
                 "HTTP-Referer": "https://github.com/knowledge-bot",
             },
             json_payload=payload,
-            timeout=90.0,
+            timeout=knowledge_vision_api_timeout_sec(),
         )
         if r.ok:
             text = (r.json() or {}).get("choices", [{}])[0].get("message", {}).get("content", "")

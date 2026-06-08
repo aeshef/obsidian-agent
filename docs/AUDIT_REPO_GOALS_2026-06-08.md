@@ -67,10 +67,19 @@ Scope: full iteration after hygiene fixes (`52a485b` + this commit).
 | Item | Notes |
 |------|-------|
 | **Shell log strings RU** | `obsidian_sync.sh`, `setup.sh`, `deploy.sh` user-facing echoes — not i18n'd (cosmetic for OSS) |
-| **LLM fallback numbers** | `shared/llm_defaults.py`, ASR/media timeouts in knowledge handlers — move to `platform.yaml` |
-| **DOMAIN_* dispatch** | `auto_dispatch.py` / `domain_dispatch.py` — capability-gated but not declarative (`ui_bindings` P2) |
+| **Vision temperature** | `vision.py` OpenRouter payload `temperature: 0.2` — move to `platform.yaml` |
+| **auto_dispatch.py** | Still imperative domain branches; `pick_host_domain` is LLM-driven (OK) |
 | **EN `dmsg()` gaps** | `domain_messages.en` merge may show RU until catalog complete (`test_domain_messages_locale_parity` skips) |
 | **`rename_action_snapshots.py`** | Local maintainer only now |
+
+## Fixed P1 (2026-06-08, commit after `da2c1eb`)
+
+| Item | Change |
+|------|--------|
+| **ASR / extract timeouts** | `shared/platform_timeouts.py` + `platform.yaml.example` sections `asr`, `knowledge_extract`, `llm_reachable` |
+| **DOMAIN_* dispatch** | `domain_dispatch.py` → config order via `ui_capabilities.domain_routing` |
+| **Dead media timeouts** | Removed unused `timeout=` on `fetch_telegram_file_bytes` |
+| **routines_recommendations** | Added to `planning_llm` in `platform.yaml.example` |
 
 ---
 

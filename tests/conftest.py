@@ -28,12 +28,18 @@ def _clear_capability_caches():
     """Env overrides in one test must not leak via get_capabilities() lru_cache."""
     from shared.capabilities.profile import clear_capabilities_cache
     from shared.capabilities.ui_bindings import clear_ui_bindings_cache
+    from shared.telegram.host.domain_routing import clear_domain_routing_cache
+    from shared.telegram.host.menu_detection import clear_menu_detection_cache
 
     clear_capabilities_cache()
     clear_ui_bindings_cache()
+    clear_domain_routing_cache()
+    clear_menu_detection_cache()
     yield
     clear_capabilities_cache()
     clear_ui_bindings_cache()
+    clear_domain_routing_cache()
+    clear_menu_detection_cache()
 
 
 @pytest.fixture(autouse=True)

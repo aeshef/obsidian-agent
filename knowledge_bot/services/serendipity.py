@@ -171,6 +171,8 @@ async def _pick_and_format(cfg: AppConfig) -> tuple[str, str] | None:
     if not llm or not (cfg.deepseek_api_key or "").strip():
         log.warning("serendipity: no DEEPSEEK / LLM, skip")
         return None
+    from shared.platform_timeouts import knowledge_serendipity_timeout_sec
+
     system = load_prompt(cfg.agent_config_path, "serendipity_pick")
     model = deepseek_model(override=os.environ.get("SERENDIPITY_MODEL"))
     loop = asyncio.get_event_loop()
@@ -180,7 +182,7 @@ async def _pick_and_format(cfg: AppConfig) -> tuple[str, str] | None:
             system,
             json.dumps(user_payload, ensure_ascii=False),
             model=str(model),
-            timeout=90.0,
+            timeout=knowledge_serendipity_timeout_sec(),
         ),
     )
     content = (res.content or {}) if res else {}

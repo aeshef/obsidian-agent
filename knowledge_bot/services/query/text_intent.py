@@ -33,7 +33,11 @@ def classify_text_intent(agent_config_path: Path, llm: LLMClient, text: str) -> 
     system = load_prompt(agent_config_path, "text_intent")
     payload = json.dumps({"text": t[:12000]}, ensure_ascii=False)
     try:
-        raw = llm.chat_json(system, payload, timeout=45.0).content
+        from shared.platform_timeouts import knowledge_text_intent_timeout_sec
+
+        raw = llm.chat_json(
+            system, payload, timeout=knowledge_text_intent_timeout_sec()
+        ).content
     except Exception:
         log.exception("text intent LLM failed, defaulting to chat")
         return "chat"
