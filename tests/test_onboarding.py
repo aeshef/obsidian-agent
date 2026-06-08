@@ -62,7 +62,7 @@ def test_env_patch_does_not_overwrite(tmp_path: Path):
 def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     cfg = tmp_path / "cap.yaml"
     cfg.write_text(yaml.dump(preset_document(PRESET_FINANCE_ONLY)), encoding="utf-8")
-    os.environ["CAPABILITIES_PATH"] = str(cfg)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(cfg))
     clear_capabilities_cache()
     prof = load_capabilities()
     dirs = [str(p.name) for p in planned_vault_dirs(prof, tmp_path / "vault")]

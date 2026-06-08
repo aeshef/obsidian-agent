@@ -35,11 +35,23 @@ def _clear_capability_caches():
     clear_ui_bindings_cache()
     clear_domain_routing_cache()
     clear_menu_detection_cache()
+    try:
+        from planning_bot.app.menu_labels import clear_menu_label_cache
+
+        clear_menu_label_cache()
+    except Exception:
+        pass
     yield
     clear_capabilities_cache()
     clear_ui_bindings_cache()
     clear_domain_routing_cache()
     clear_menu_detection_cache()
+    try:
+        from planning_bot.app.menu_labels import clear_menu_label_cache
+
+        clear_menu_label_cache()
+    except Exception:
+        pass
 
 
 @pytest.fixture(autouse=True)

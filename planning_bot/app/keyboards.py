@@ -59,10 +59,11 @@ def set_keyboard_extras(rows: list[list[KeyboardButton]] | None) -> None:
 def get_main_keyboard() -> ReplyKeyboardMarkup:
     from planning_bot.core.pdmsg import pdmsg
 
-    kb = ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=pdmsg("auto_ca15d9d2aa"))]],
-        resize_keyboard=True,
-    )
+    rows = compact_keyboard_rows([[pdmsg("auto_ca15d9d2aa")]])
+    if rows:
+        kb = reply_keyboard_from_rows(rows, resize_keyboard=True)
+    else:
+        kb = ReplyKeyboardMarkup(keyboard=[], resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 
 
@@ -95,60 +96,62 @@ def get_routines_keyboard() -> ReplyKeyboardMarkup:
 
 
 def get_tasks_filter_keyboard() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text=pmsg_menu("goals")),
-                KeyboardButton(text=pmsg_menu("priorities")),
-            ],
-            [KeyboardButton(text=pmsg_menu("statuses"))],
-            [KeyboardButton(text=pmsg_menu("all_tasks"))],
-            [KeyboardButton(text=pmsg_menu("back"))],
-        ],
-        resize_keyboard=True,
+    rows = compact_keyboard_rows(
+        [
+            [pmsg_menu("goals"), pmsg_menu("priorities")],
+            [pmsg_menu("statuses")],
+            [pmsg_menu("all_tasks")],
+            [pmsg_menu("back")],
+        ]
     )
+    kb = reply_keyboard_from_rows(rows, resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 
 
 def get_statuses_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.app.menu_gates import planning_submenu_allowed
     from planning_bot.core.config import KANBAN_COLUMNS
 
-    cols = KANBAN_COLUMNS
-    rows: list[list[KeyboardButton]] = []
-    for i in range(0, len(cols), 3):
-        rows.append([KeyboardButton(text=cols[j]) for j in range(i, min(i + 3, len(cols)))])
-    rows.append([KeyboardButton(text=pmsg_menu("back"))])
-    kb = ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+    rows: list[list[str | KeyboardButton]] = []
+    if planning_submenu_allowed("kanban_column"):
+        cols = KANBAN_COLUMNS
+        for i in range(0, len(cols), 3):
+            rows.append([cols[j] for j in range(i, min(i + 3, len(cols)))])
+    rows.append([pmsg_menu("back")])
+    kb = reply_keyboard_from_rows(compact_keyboard_rows(rows), resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 
 
 def get_categories_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.app.menu_gates import planning_submenu_allowed
     from planning_bot.core.config import CATEGORIES
 
-    prefix = pmsg_menu("category_prefix")
-    category_buttons: list[list[KeyboardButton]] = []
-    for i in range(0, len(CATEGORIES), 2):
-        row: list[KeyboardButton] = []
-        for j in range(2):
-            if i + j < len(CATEGORIES):
-                row.append(KeyboardButton(text=f"{prefix}{CATEGORIES[i + j]}"))
-        if row:
-            category_buttons.append(row)
-    category_buttons.append([KeyboardButton(text=pmsg_menu("back"))])
-    kb = ReplyKeyboardMarkup(keyboard=category_buttons, resize_keyboard=True)
+    rows: list[list[str | KeyboardButton]] = []
+    if planning_submenu_allowed("category"):
+        prefix = pmsg_menu("category_prefix")
+        for i in range(0, len(CATEGORIES), 2):
+            row: list[str | KeyboardButton] = []
+            for j in range(2):
+                if i + j < len(CATEGORIES):
+                    row.append(f"{prefix}{CATEGORIES[i + j]}")
+            if row:
+                rows.append(row)
+    rows.append([pmsg_menu("back")])
+    kb = reply_keyboard_from_rows(compact_keyboard_rows(rows), resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 
 
 def get_priorities_keyboard() -> ReplyKeyboardMarkup:
-    kb = ReplyKeyboardMarkup(
-        keyboard=[
+    from planning_bot.app.menu_gates import planning_submenu_allowed
+
+    rows: list[list[str | KeyboardButton]] = []
+    if planning_submenu_allowed("priority"):
+        rows.extend(
             [
-                KeyboardButton(text=pmsg_menu("priority_high")),
-                KeyboardButton(text=pmsg_menu("priority_medium")),
-            ],
-            [KeyboardButton(text=pmsg_menu("priority_low"))],
-            [KeyboardButton(text=pmsg_menu("back"))],
-        ],
-        resize_keyboard=True,
-    )
+                [pmsg_menu("priority_high"), pmsg_menu("priority_medium")],
+                [pmsg_menu("priority_low")],
+            ]
+        )
+    rows.append([pmsg_menu("back")])
+    kb = reply_keyboard_from_rows(compact_keyboard_rows(rows), resize_keyboard=True)
     return _keyboard_extras.apply(kb)

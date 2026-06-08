@@ -17,20 +17,21 @@ _handler_map: dict[str, Handler] | None = None
 
 def _build_handler_map() -> dict[str, Handler]:
     from bot.handlers import start as h
+    from shared.capabilities.ui_bindings import message_allowed
 
     t = finance_menu_texts()
     # Reply keyboard only for kept actions; wizard labels route via agent/NLU.
-    canonical: dict[str, Handler] = {
-        t["balance"]: h.handle_balance_button,
-        t["last_ops"]: h.handle_last_button,
-    }
+    canonical: dict[str, Handler] = {}
+    if message_allowed("finance", "menu", "balance"):
+        canonical[t["balance"]] = h.handle_balance_button
+    if message_allowed("finance", "menu", "last_ops"):
+        canonical[t["last_ops"]] = h.handle_last_button
     cfg = get_nlu_config()
     configured = nlu_menu_buttons(cfg)
     if configured:
         missing = configured - set(canonical)
         if missing:
             raise RuntimeError(f"nlu menu_buttons without handlers: {sorted(missing)}")
-    from shared.capabilities.ui_bindings import message_allowed
 
     if is_badge_enabled() and message_allowed("finance", "menu", "badge"):
         badge = (get_badge_config().get("ui") or {}).get("menu_button") or fin_menu("badge")

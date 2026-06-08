@@ -9,8 +9,8 @@ from aiogram.types import Message
 from planning_bot.app import keyboards
 from planning_bot.app.handlers import menus, tasks
 from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
+from planning_bot.app.menu_gates import planning_auto_allowed, planning_submenu_allowed
 from planning_bot.core.pdmsg import pdmsg
-from shared.capabilities.ui_bindings import message_allowed
 from shared.telegram.reply_menu_dispatch import dispatch_label_actions
 
 _RESET_KEYS: Tuple[str, ...] = (
@@ -28,7 +28,7 @@ async def dispatch_planning_menu(
 ) -> bool:
     """Handle planning keyboard / submenu taps. True = consumed."""
     low = user_message.lower()
-    if low in {pdmsg(k).lower() for k in _RESET_KEYS}:
+    if low in {pdmsg(k).lower() for k in _RESET_KEYS if planning_auto_allowed(k)}:
         from planning_bot.app.handlers.commands import cmd_reset_context
 
         await cmd_reset_context(bot, message, state)
@@ -55,7 +55,7 @@ async def dispatch_planning_menu(
 
     label_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = []
     for key, action in key_actions:
-        if not message_allowed("planning", key):
+        if not planning_auto_allowed(key):
             continue
         label = pdmsg(key)
         if label:
@@ -64,15 +64,23 @@ async def dispatch_planning_menu(
     if await dispatch_label_actions(user_message, label_actions):
         return True
 
-    if user_message in KANBAN_COLUMNS:
+    if user_message in KANBAN_COLUMNS and planning_submenu_allowed("kanban_column"):
         await tasks.show_tasks_by_status(bot, message, column=user_message)
         return True
 
-    if user_message.startswith("📋 ") and user_message[2:] in CATEGORIES:
+    if (
+        user_message.startswith("📋 ")
+        and user_message[2:] in CATEGORIES
+        and planning_submenu_allowed("category")
+    ):
         await tasks.show_tasks(bot, message, category=user_message.replace("📋 ", "").strip())
         return True
 
-    if user_message.startswith("📋 ") and user_message[2:] in PRIORITIES:
+    if (
+        user_message.startswith("📋 ")
+        and user_message[2:] in PRIORITIES
+        and planning_submenu_allowed("priority")
+    ):
         await tasks.show_tasks(bot, message, priority=user_message.replace("📋 ", "").strip())
         return True
 
