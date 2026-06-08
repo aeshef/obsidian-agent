@@ -14,4 +14,5 @@ PyYAML==6.0.2
 greenlet==3.0.3
 faster-whisper>=1.0.0
 matplotlib>=3.8.0
+jinja2>=3.1.4
 # tinkoff-invest (SDK) опционален - при отсутствии используется REST API fallback

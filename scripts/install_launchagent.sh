@@ -72,6 +72,7 @@ sed -e "s|__HOME__|$HOME|g" \
 for _old in "${LEGACY_LABELS[@]}"; do
   [[ "$_old" == "$LABEL" ]] && continue
   launchctl bootout "gui/$(id -u)/$_old" 2>/dev/null || true
+  rm -f "$HOME/Library/LaunchAgents/${_old}.plist"
 done
 launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_DST"

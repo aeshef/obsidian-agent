@@ -4,4 +4,9 @@
 set -euo pipefail
 # shellcheck disable=SC1091
 source "$(dirname "$0")/_cron_common.sh"
-exec "$PY" -m planning_bot.services.routines_manager
+if "$PY" -m planning_bot.services.routines_manager; then
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] routines cron OK"
+else
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] routines cron FAILED rc=$?" >&2
+  exit 1
+fi

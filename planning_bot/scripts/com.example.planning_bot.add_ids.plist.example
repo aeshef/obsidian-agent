@@ -30,6 +30,12 @@
     <dict>
         <key>PATH</key>
         <string>__LAUNCHD_PATH__</string>
+        <key>AGENT_ROOT</key>
+        <string>__AGENT_ROOT__</string>
+        <key>VAULT_PATH</key>
+        <string>__VAULT_PATH__</string>
+        <key>PYTHONPATH</key>
+        <string>__AGENT_ROOT__</string>
     </dict>
 </dict>
 </plist>

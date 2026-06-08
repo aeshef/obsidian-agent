@@ -21,10 +21,12 @@ fi
 
 export PYTHONPATH="$ROOT:$(dirname "$ROOT")${PYTHONPATH:+:$PYTHONPATH}"
 
-if [ -d "$ROOT/venv/bin" ]; then
-    PY="$ROOT/venv/bin/python3"
+if [ -x "$ROOT/../finance_bot/.venv/bin/python" ]; then
+    PY="$ROOT/../finance_bot/.venv/bin/python"
 elif [ -d "$ROOT/.venv/bin" ]; then
-    PY="$ROOT/.venv/bin/python3"
+    PY="$ROOT/.venv/bin/python"
+elif [ -d "$ROOT/venv/bin" ]; then
+    PY="$ROOT/venv/bin/python3"
 else
     PY="python3"
 fi
