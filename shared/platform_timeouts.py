@@ -36,5 +36,9 @@ def knowledge_serendipity_timeout_sec() -> float:
     return platform_float("knowledge_extract", "serendipity_timeout_sec", default=90.0)
 
 
+def knowledge_vision_openrouter_temperature() -> float:
+    return platform_float("knowledge_extract", "vision_openrouter_temperature", default=0.2)
+
+
 def llm_reachable_timeout_sec() -> float:
     return platform_float("llm_reachable", "timeout_sec", default=4.0)

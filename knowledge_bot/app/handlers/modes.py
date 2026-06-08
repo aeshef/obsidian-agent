@@ -7,11 +7,7 @@ from aiogram.types import Message
 
 from knowledge_bot.app.ui import kmsg
 from knowledge_bot.app.state import (
-    BTN_BULK_OFF,
-    BTN_BULK_ON,
-    BTN_QUERY,
     bulk_session_stats,
-    is_bulk_ingest,
     main_reply_keyboard,
     set_bulk_ingest,
 )
@@ -53,24 +49,6 @@ async def disable_bulk_ingest(
 
 async def try_handle_mode_button(message: Message) -> bool:
     """True when a mode reply-keyboard button was handled."""
-    text = (message.text or "").strip()
-    if not text or not message.from_user:
-        return False
-    uid = message.from_user.id
+    from knowledge_bot.app.menu_dispatch import dispatch_knowledge_menu_button
 
-    if text == BTN_BULK_ON:
-        await enable_bulk_ingest(message)
-        return True
-
-    if text == BTN_BULK_OFF:
-        await disable_bulk_ingest(message)
-        return True
-
-    if text == BTN_QUERY:
-        await message.answer(
-            kmsg("query_prompt"),
-            reply_markup=main_reply_keyboard(bulk_active=is_bulk_ingest(uid)),
-        )
-        return True
-
-    return False
+    return await dispatch_knowledge_menu_button(message)

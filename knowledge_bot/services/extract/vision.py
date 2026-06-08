@@ -167,10 +167,13 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
         "model": model,
         "messages": [{"role": "user", "content": content}],
         "max_tokens": 500,
-        "temperature": 0.2,
+        "temperature": knowledge_vision_openrouter_temperature(),
     }
     from knowledge_bot.services.openrouter_rate_limit import openrouter_post
-    from shared.platform_timeouts import knowledge_vision_api_timeout_sec
+    from shared.platform_timeouts import (
+        knowledge_vision_api_timeout_sec,
+        knowledge_vision_openrouter_temperature,
+    )
 
     try:
         r = openrouter_post(

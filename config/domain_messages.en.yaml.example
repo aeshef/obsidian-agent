@@ -574,6 +574,9 @@ planning:
   calendar_tool_prefix: "Calendar (day):"
   calendar_tool_empty: "Calendar empty or unavailable. [{meta}]"
   calendar_truncated_suffix: " …(truncated)"
+  calendar_chat_header: "Calendar (chat):"
+  calendar_prompt_status_empty: Calendar not included in prompt
+  calendar_prompt_status_ok: 'Calendar in prompt: {preview}'
   agent_calendar_unavailable: "Calendar unavailable (read error)."
   agent_calendar_analytics_unavailable: "Calendar analytics unavailable (no calendar.json)."
   agent_calendar_analytics_header: "Calendar analytics: anchor={anchor}, horizon={horizon} d."
@@ -4867,7 +4870,7 @@ planning:
     # Action Logs {month}
 
 
-    logs_dir_access_denied: |
+  logs_dir_access_denied: |
 
 
     No access to logs directory ({error}).
@@ -4876,7 +4879,7 @@ planning:
     Check permissions and VAULT_PATH on server.
 
 
-    logs_dir_empty: |
+  logs_dir_empty: |
 
 
     No log files in vault for this period.
@@ -4885,7 +4888,7 @@ planning:
     Check VAULT_PATH and if maintenance/bot writes logs to vault.
 
 
-    logs_dir_missing: |
+  logs_dir_missing: |
 
 
     Action logs directory not found.
@@ -4894,7 +4897,7 @@ planning:
     Check VAULT_PATH on server — Obsidian vault root.
 
 
-    logs_dir_not_dir: |
+  logs_dir_not_dir: |
 
 
     Action logs path is misconfigured.
@@ -4902,7 +4905,6 @@ planning:
 
     Check VAULT_PATH on server.
 
-    '
   misc_uncategorized: uncategorized
   movement_completed: Completed {timestamp}
   movement_created: Created {timestamp}

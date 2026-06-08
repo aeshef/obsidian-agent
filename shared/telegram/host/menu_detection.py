@@ -62,12 +62,11 @@ def is_planning_menu_text(text: str) -> bool:
 
 
 def is_knowledge_menu_text(text: str) -> bool:
-    from knowledge_bot.app.kb_labels import bulk_off, bulk_on, query_button, query_legacy
-    from knowledge_bot.app.state import BTN_BULK_OFF, BTN_BULK_ON, BTN_QUERY
+    from knowledge_bot.app.menu_dispatch import is_knowledge_menu_button
 
     t = (text or "").strip()
     if not t:
         return False
     if not _enabled("knowledge", "knowledge_buttons", True):
         return False
-    return t in (BTN_QUERY, BTN_BULK_ON, BTN_BULK_OFF, query_legacy())
+    return is_knowledge_menu_button(t)

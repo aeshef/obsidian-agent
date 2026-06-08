@@ -26,6 +26,8 @@ MONOREPO="${MONOREPO:-$(cd "$(dirname "$0")/.." && pwd)}"
 source "$MONOREPO/scripts/lib/common.sh"
 # shellcheck source=scripts/lib/deploy_agent.sh
 source "$MONOREPO/scripts/lib/deploy_agent.sh"
+# shellcheck source=scripts/lib/sh_msg.sh
+source "$MONOREPO/scripts/lib/sh_msg.sh"
 common_load_env "$MONOREPO"
 
 SERVER="${SERVER:?Set SERVER in .env (SSH host for deploy)}"
@@ -61,7 +63,7 @@ while [ $# -gt 0 ]; do
     --patch-agent-env) PATCH_AGENT_ENV=1; shift;;
     --restart-unified) RESTART_UNIFIED=1; shift;;
     --legacy-bots) LEGACY_BOTS=1; shift;;
-    *) echo "Неизвестный флаг: $1"; exit 2;;
+    *) echo "$(sh_msgf scripts.deploy.unknown_flag "{\"flag\":\"$1\"}")"; exit 2;;
   esac
 done
 
@@ -144,7 +146,7 @@ AGENT_EXCLUDES=(
 )
 
 ssh_check() {
-  ssh -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "❌ SSH $SERVER не отвечает"; exit 1; }
+  ssh -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "$(sh_msgf scripts.deploy.ssh_failed "{\"server\":\"$SERVER\"}")"; exit 1; }
 }
 
 rsync_comp() {
@@ -209,13 +211,13 @@ _restart_bot_remote() {
 restart_comp() {
   local name="$1"
   [ "$NO_RESTART" = 0 ] || { echo "⏭  $name: --no-restart"; return 0; }
-  [ "$DRYRUN" = 0 ] || { echo "⏭  $name: --dry-run (без рестарта)"; return 0; }
+  [ "$DRYRUN" = 0 ] || { echo "$(sh_msgf scripts.deploy.dry_run_skip "{\"name\":\"$name\"}")"; return 0; }
   echo "🔁 restart $name"
   case "$name" in
     finance_bot)   _restart_bot_remote finance_bot 'bot.main';;
     knowledge_bot) _restart_bot_remote knowledge_bot 'start_bot.py';;
     planning_bot)  _restart_bot_remote planning_bot 'planning_bot.app.main';;
-    shared) echo "  shared не требует рестарта";;
+    shared) echo "  $(sh_msg scripts.deploy.shared_no_restart)";;
   esac
 }
 
@@ -234,7 +236,7 @@ verify_deploy_checksums() {
   local rel lc rc missing=0
   local deployed=("$@")
   if [ "${#deployed[@]}" -eq 0 ]; then
-    echo "⏭ verify checksums: нет задеплоенных компонентов"
+    echo "$(sh_msg scripts.deploy.verify_no_components)"
     return 0
   fi
   echo "🔍 verify deploy checksums (${deployed[*]})..."
@@ -274,7 +276,7 @@ verify_deploy_checksums() {
     fi
   done
   if [ "$missing" -ne 0 ]; then
-    echo "❌ deploy verify FAILED — на сервере старая или отсутствующая версия файлов" >&2
+    echo "$(sh_msg scripts.deploy.verify_failed)" >&2
     exit 1
   fi
   echo "✅ deploy checksum verify OK"
@@ -324,14 +326,14 @@ sync_bot_prompts_optional() {
     rsync -az "$f" "$SERVER:$SERVER_BOTS/$bot/config/prompts/"
     n=$((n + 1))
   done
-  [ "$n" -gt 0 ] && echo "📝 rsync $bot prompts ($n файлов) → server"
+  [ "$n" -gt 0 ] && echo "$(sh_msgf scripts.deploy.rsync_prompts "{\"bot\":\"$bot\",\"count\":\"$n\"}")"
 }
 
 sync_badge_yaml_optional() {
   local local_badge="$MONOREPO/finance_bot/config/badge.yaml"
   [ "$DRYRUN" = 1 ] && return 0
   [ -f "$local_badge" ] || return 0
-  echo "🍽 rsync badge.yaml → $SERVER (локальный конфиг)"
+  echo "$(sh_msgf scripts.deploy.rsync_badge "{\"server\":\"$SERVER\"}")"
   rsync -az "$local_badge" "$SERVER:$SERVER_BOTS/finance_bot/config/badge.yaml"
 }
 
@@ -379,7 +381,7 @@ verify_bots() {
     exit \$failed")" || failed=1
   echo "$out"
   if [ "$failed" -ne 0 ]; then
-    echo "❌ post-deploy verify FAILED — бот(ы) не поднялись" >&2
+    echo "$(sh_msg scripts.deploy.post_deploy_failed)" >&2
     exit 1
   fi
   echo "✅ post-deploy verify OK"
@@ -398,7 +400,7 @@ if [ "$RESTART_UNIFIED" = 1 ] && [ "$PROD" = 0 ] && [ "$PATCH_AGENT_ENV" = 0 ] &
   rsync_server_scripts
   sync_repo_config_remote
   [ "$DRYRUN" = 1 ] && { echo "dry-run: restart unified_bot"; exit 0; }
-  [ "$NO_RESTART" = 1 ] && { echo "⏭ --no-restart: unified не перезапускаем"; exit 0; }
+  [ "$NO_RESTART" = 1 ] && { echo "$(sh_msg scripts.deploy.no_restart_unified)"; exit 0; }
   restart_unified_bot_remote
   verify_unified_bot_remote
   exit $?
@@ -445,7 +447,7 @@ for c in "${COMPONENTS[@]}"; do
       # config/ уже синхронизирован выше (sync_repo_config_remote); отдельный rsync не нужен
       ;;
     shared|finance_bot|knowledge_bot|planning_bot|unified_bot) ;;
-    *) echo "Неизвестный компонент: $c"; exit 2 ;;
+    *) echo "$(sh_msgf scripts.deploy.unknown_component "{\"component\":\"$c\"}")"; exit 2 ;;
   esac
 done
 
@@ -457,7 +459,7 @@ if [ "$_deploy_all" = 0 ]; then
     case "$c" in shared|unified_bot) _needs_kb=1 ;; esac
   done
   if [ "$_needs_kb" = 1 ] && [ "$_has_kb" = 0 ]; then
-    echo "ℹ️  shared/unified → добавляем knowledge_bot (зависимость ingest)"
+    echo "$(sh_msg scripts.deploy.knowledge_deps_note)"
     COMPONENTS+=(knowledge_bot)
   fi
 fi
@@ -515,7 +517,7 @@ if [ "$_want_verify" = 1 ]; then
 fi
 
 _comp_list="${COMPONENTS[*]}"
-echo "✅ deploy завершён (components=${_comp_list:-all}, restart=$([ $NO_RESTART = 1 ] && echo no || echo yes))"
+echo "$(sh_msgf scripts.deploy.deploy_done "{\"components\":\"${_comp_list:-all}\",\"restart\":\"$([ $NO_RESTART = 1 ] && echo no || echo yes)\"}")"
 if [ "$DRYRUN" = 0 ]; then
   echo "📋 ensure bot prompts on server (missing .txt from examples)..."
   ssh "$SERVER" "cd '$SERVER_BOTS' && bash scripts/ensure_bot_prompts.sh --warn-stubs" 2>/dev/null || true

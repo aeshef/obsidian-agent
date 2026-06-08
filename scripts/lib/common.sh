@@ -39,7 +39,9 @@ common_load_env() {
 
 common_require_server() {
     if [ -z "${SERVER:-}" ]; then
-        echo "❌ SERVER не задан. Добавьте SERVER=your-ssh-host в .env" >&2
+        # shellcheck source=scripts/lib/sh_msg.sh
+        source "$(dirname "${BASH_SOURCE[0]}")/sh_msg.sh"
+        echo "$(sh_msg scripts.common.server_not_set)" >&2
         exit 1
     fi
 }

@@ -66,13 +66,18 @@ Scope: full iteration after hygiene fixes (`52a485b` + this commit).
 
 | Item | Notes |
 |------|-------|
-| **Shell log strings RU** | `obsidian_sync.sh`, `setup.sh`, `deploy.sh` user-facing echoes — not i18n'd (cosmetic for OSS) |
-| **Vision temperature** | `vision.py` OpenRouter payload `temperature: 0.2` — move to `platform.yaml` |
-| **auto_dispatch.py** | Still imperative domain branches; `pick_host_domain` is LLM-driven (OK) |
-| **EN `dmsg()` gaps** | `domain_messages.en` merge may show RU until catalog complete (`test_domain_messages_locale_parity` skips) |
-| **`rename_action_snapshots.py`** | Local maintainer only now |
+| **obsidian_sync step 5c** | Mixed EN echo (calendar_sync) — optional scripts key |
+| **Vault path Cyrillic in rsync excludes** | From `vault_paths` / author layout — not message i18n |
 
-## Fixed P1 (2026-06-08, commit after `da2c1eb`)
+## Fixed P2 (2026-06-08, after `225053f`)
+
+| Item | Change |
+|------|--------|
+| **Shell log i18n** | `scripts/lib/sh_msg.sh` + `scripts.*` in `messages.{en,ru}.yaml.example`; `deploy.sh`, `obsidian_sync.sh`, `common.sh` |
+| **vision temperature** | `knowledge_extract.vision_openrouter_temperature` in `platform.yaml.example` |
+| **auto_dispatch** | Handler registry in `auto_routing.py` |
+| **EN dmsg gaps** | Fixed `planning.logs_dir_*` YAML nesting + `calendar_*` chat keys in both `.example` files |
+| **BTN_* if-chains** | `knowledge_bot/app/menu_dispatch.py`; `knowledge_dispatch`, `modes`, `menu_detection` |
 
 | Item | Change |
 |------|--------|

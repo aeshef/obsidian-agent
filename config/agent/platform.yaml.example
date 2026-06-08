@@ -124,6 +124,7 @@ knowledge_extract:
   ffprobe_timeout_sec: 5
   web_fetch_timeout_sec: 15
   serendipity_timeout_sec: 90
+  vision_openrouter_temperature: 0.2
 
 llm_reachable:
   timeout_sec: 4

@@ -466,6 +466,9 @@ planning:
   calendar_tool_prefix: "Календарь (день):"
   calendar_tool_empty: "Календарь пуст или недоступен. [{meta}]"
   calendar_truncated_suffix: " …(обрезано)"
+  calendar_chat_header: "Календарь (чат):"
+  calendar_prompt_status_empty: Календарь в промпт не попал
+  calendar_prompt_status_ok: "Календарь в промпт: {preview}"
   agent_calendar_unavailable: "Календарь недоступен (ошибка чтения)."
   agent_calendar_analytics_unavailable: "Аналитика календаря недоступна (нет calendar.json)."
   agent_calendar_analytics_header: "Календарь, аналитика: anchor={anchor}, horizon={horizon} дн."
@@ -1431,30 +1434,39 @@ planning:
   log_entry_data_fenced: "**Данные:**\n```json\n{payload}\n```\n"
   log_month_header: |
 
+
     # Логи действий {month}
 
-    logs_dir_access_denied: |
+
+  logs_dir_access_denied: |
+
 
     Нет доступа к папке с логами ({error}).
 
 
     Проверь права доступа и VAULT_PATH на сервере.
 
-    logs_dir_empty: |
+
+  logs_dir_empty: |
+
 
     В хранилище нет файлов лога действий за этот период.
 
 
     Проверь VAULT_PATH и что maintenance/бот пишут логи в vault.
 
-    logs_dir_missing: |
+
+  logs_dir_missing: |
+
 
     Папка с логами действий не найдена.
 
 
     Проверь VAULT_PATH на сервере — корень хранилища Obsidian.
 
-    logs_dir_not_dir: |
+
+  logs_dir_not_dir: |
+
 
     Путь к логам действий настроен неверно.
 
