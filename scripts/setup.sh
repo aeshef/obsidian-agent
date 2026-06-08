@@ -61,7 +61,7 @@ done
 echo ""
 echo "$(sh_msg scripts.setup.prompts_header)"
 bash "$ROOT/scripts/ensure_bot_prompts.sh"
-# pull_prompts_from_server.sh — author-only (see docs/_maintainer); optional local file
+# pull_prompts_from_server.sh — author-only (gitignored); optional local file
 [ -x "$ROOT/scripts/pull_prompts_from_server.sh" ] && bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
 export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 python3 "$ROOT/scripts/seed_planning_prompts.py" || true

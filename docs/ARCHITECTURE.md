@@ -107,11 +107,13 @@ PYTHONPATH = $bot_root:$monorepo_root
 New planning code should call `shared.llm.LLMClient` (or agent router), not extend `DeepSeekClient.chat()`.
 `calendar_insights_llm.py` already uses shared transport.
 
-### Host menu detection
+### Host menu detection and reply dispatch
 
-Domain button routing (`is_finance_menu`, `is_planning_menu`, `is_knowledge_menu`) reads
-`menu_detection` in `config/ui_capabilities.yaml` (see `.example`). UI string gates use the
-same file (`strings` / `patterns`).
+- **Domain routing:** `domain_routing` + `menu_detection` in `config/ui_capabilities.yaml.example` → `shared/telegram/host/domain_dispatch.py`, `menu_detection.py`.
+- **UI string gates:** same file (`strings` / `patterns`) → `shared/capabilities/ui_bindings.py` (`msg()` / `dmsg()` return empty when capability is off).
+- **Reply keyboard actions:** `menu_actions` in the same YAML → `shared/capabilities/menu_actions_config.py` → `{bot}/menu_action_handlers.py` via `shared/telegram/reply_menu_dispatch.py`.
+
+Prod override: `config/ui_capabilities.yaml` (gitignored); example is always merged as base.
 
 ---
 

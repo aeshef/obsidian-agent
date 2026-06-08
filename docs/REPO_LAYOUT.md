@@ -2,6 +2,14 @@
 
 Where files belong in **obsidian-agent**. Use this when adding code or wondering if something is misplaced.
 
+**Tracked in git:** only the files listed in [README.md](README.md). Maintainer audits and `docs/_maintainer/` are gitignored.
+
+---
+
+## Русский
+
+Куда класть новый код и конфиги. В git — только пользовательские доки из [README.md](README.md). Мейнтейнерские аудиты и `docs/_maintainer/` в репозиторий не попадают (`.gitignore`).
+
 ## Target tree
 
 ```text
@@ -13,10 +21,11 @@ obsidian-agent/
 ├── assets/                   # README banner, architecture.svg
 ├── config/                   # repo-wide YAML (not per-bot secrets)
 │   ├── agent/                # platform: capabilities, prompts, routing, tools
+│   ├── ui_capabilities.yaml.example  # UI gates + menu_actions (optional local override)
 │   ├── messages.{en,ru}.yaml.example
 │   ├── vault_paths.{en,ru}.yaml.example
 │   └── domain_messages.{en,ru}.yaml.example
-├── docs/                     # user-facing docs only (tracked in git)
+├── docs/                     # user-facing docs only (no AUDIT_* / _maintainer/)
 ├── scripts/                  # monorepo ops: deploy, sync, setup, CI helpers
 │   ├── lib/                  # shell libraries (source, do not run directly)
 │   └── setup/                # onboarding: env_tools, load_env, update_shellrc
@@ -67,13 +76,15 @@ Prod `*.txt` is always gitignored; only `*.example.txt` in git.
 
 ## Author-only (on disk, not in public git)
 
-Maintainer batch tools and notes may exist locally under:
+See root `.gitignore`. Typical local-only paths:
 
+- `docs/_maintainer/`, `docs/AUDIT_REPO_GOALS*.md` — maintainer notes and repo audits
 - `knowledge_bot/tools/analyze_*.py`, `reprocess_notes.py`, …
-- Maintainer notes: `docs/_maintainer/`, `docs/OPS.md`, … (see root `.gitignore`, not on GitHub `main`)
-- `scripts/archive/`, `planning_bot/scripts/backfill_*.py` (candidates to gitignore)
+- `scripts/maintainer/`, `scripts/pull_prompts_from_server.sh`, `audit_*.py`, `fix_*.py`
+- Prod prompts `**/config/prompts/*.txt`, `config/agent/prompts/*.txt`
+- `scripts/archive/`, `planning_bot/scripts/backfill_*.py`
 
-Clones only need `knowledge_bot/tools/vault_daily_maintenance.py` for KB sync step.
+Clones only need `knowledge_bot/tools/vault_daily_maintenance.py` for the KB sync step.
 
 `knowledge_bot/config/hubs_registry.yaml` is gitignored (copy from `hubs_registry.yaml.example` in `setup.sh`).
 

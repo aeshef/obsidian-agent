@@ -114,7 +114,19 @@ Dynamic supplement is **off by default** (`AGENT_PROMPT_DYNAMIC_SUPPLEMENT=0` in
 
 Dot-paths map to capability specs (`finance.sync_broker_button: gate:broker`, `planning.auto_f317ab8f35: feature:planning_routines`, `any:broker,manual_broker`). Resolved in `shared/capabilities/ui_bindings.py` — `msg()` / `dmsg()` return `""` when off (no per-handler `cap=`).
 
+`menu_detection` and `domain_routing` in the same file drive host menu routing (`shared/telegram/host/domain_dispatch.py`, `menu_detection.py`).
+
+### Reply keyboard actions (`menu_actions`)
+
+Under `menu_actions:` in `ui_capabilities.yaml.example`: maps reply-keyboard labels to handler action ids per domain (`planning`, `finance`, `knowledge`). Loaded by `shared/capabilities/menu_actions_config.py`; handlers live in `{bot}/menu_action_handlers.py` and `shared/telegram/reply_menu_dispatch.py`. Add a row in YAML + register the action id in the domain handler module — no new hardcoded label lists in Python.
+
 Optional override: copy `ui_capabilities.yaml.example` → `ui_capabilities.yaml` (gitignored).
+
+---
+
+### Русский (кратко)
+
+Строки UI и `menu_actions` — в `ui_capabilities.yaml.example` (локально `ui_capabilities.yaml`). Гейты через `ui_bindings.py`; кнопки reply-меню — декларативно в `menu_actions`, обработчики в `{bot}/menu_action_handlers.py`.
 
 English: `messages.en.yaml` + `AGENT_LOCALE=en`.
 
@@ -148,5 +160,7 @@ python3 scripts/onboarding_smoke.py --golden-planning
 - `shared/capabilities/features.py` — fine-grained flags + planning/broker gates
 - `shared/capabilities/planning_gates.py` — APScheduler job toggles
 - `shared/capabilities/ui_bindings.py` — Telegram/domain string gates
+- `shared/capabilities/menu_actions_config.py` — reply keyboard → action id
 - `shared/setup/env_patch.py` — idempotent `.env` key hints (`--patch-env` on apply script)
-- `shared/telegram/host/*` — adapters, bootstrap, keyboards, routing
+- `shared/telegram/host/*` — adapters, bootstrap, domain dispatch
+- `shared/telegram/reply_menu_dispatch.py` — menu action routing

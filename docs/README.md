@@ -1,19 +1,27 @@
 # Documentation
 
-User-facing docs only (English summary + Russian body where noted). Maintainer notes stay local — see `.gitignore`.
+User-facing docs for **obsidian-agent** clones and contributors. Maintainer-only notes (`docs/_maintainer/`, `docs/AUDIT_REPO_GOALS*.md`, one-off audits) stay **local** — see root `.gitignore`; they are not on `main`.
 
 | Doc | Purpose |
 |-----|---------|
-| [SETUP.md](SETUP.md) | First run: venv, `.env`, messages, deploy hint |
-| [ONBOARDING.md](ONBOARDING.md) | Modules, connectors, prompts, smoke |
-| [CAPABILITIES.md](CAPABILITIES.md) | `capabilities.yaml`, UI gates, `@cap` prompts |
-| [PROMPTS_ONBOARDING.md](PROMPTS_ONBOARDING.md) | Prompt tiers & scaffolds |
-| [LOCALE.md](LOCALE.md) | `AGENT_LOCALE` toggle (EN default) |
+| [SETUP.md](SETUP.md) | First run: venv, `.env`, locale, deploy, Mac sync |
+| [ONBOARDING.md](ONBOARDING.md) | Modules, connectors, prompts, smoke tests |
+| [CAPABILITIES.md](CAPABILITIES.md) | `capabilities.yaml`, sync steps, UI gates, `menu_actions` |
+| [PROMPTS_ONBOARDING.md](PROMPTS_ONBOARDING.md) | Prompt tiers and scaffolds |
+| [LOCALE.md](LOCALE.md) | `AGENT_LOCALE` (EN default) |
 | [ENV_REFERENCE.md](ENV_REFERENCE.md) | Environment variables |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Monorepo layout, unified_bot |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Monorepo layout, unified_bot, sync |
 | [AGENT_PLATFORM.md](AGENT_PLATFORM.md) | Routing, memory, tool loop |
 | [AGENT_CONFIG.md](AGENT_CONFIG.md) | `platform.yaml`, agent prompts |
-| [TESTING.md](TESTING.md) | pytest & CI |
-| [REPO_LAYOUT.md](REPO_LAYOUT.md) | Where to put new files (tree + rules) |
+| [TESTING.md](TESTING.md) | pytest and CI |
+| [REPO_LAYOUT.md](REPO_LAYOUT.md) | Where to put new files |
 
-Start: [../README.md](../README.md) → [ONBOARDING.md](ONBOARDING.md).
+Start: [../README.md](../README.md) → [SETUP.md](SETUP.md) → [ONBOARDING.md](ONBOARDING.md).
+
+---
+
+# Документация
+
+Пользовательские доки для клонов и контрибьюторов. Мейнтейнерские заметки (`docs/_maintainer/`, `docs/AUDIT_REPO_GOALS*.md`, разовые аудиты) остаются **локально** — см. `.gitignore`; в публичном `main` их нет.
+
+Таблица выше — те же файлы. Старт: [../README.md](../README.md) → [SETUP.md](SETUP.md) → [ONBOARDING.md](ONBOARDING.md).

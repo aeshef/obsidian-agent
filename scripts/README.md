@@ -41,7 +41,7 @@
 | `ensure_bot_prompts.sh` | `*.example.txt` → `*.txt` + scaffolds; `--check-git`, `--warn-stubs` |
 | `scaffold_personalized_prompts.py` | English prod prompts from `prompt_scaffold_templates.py` |
 | `seed_planning_prompts.py` | дефолтные planning prompts, если только stub (OSS) |
-| `pull_prompts_from_server.sh` | **author-only** (локально в `docs/_maintainer/` или свой скрипт) — prod prompts с VPS |
+| `pull_prompts_from_server.sh` | **author-only** (gitignored) — prod prompts с VPS; не нужен клонам |
 | `ensure_hubs_registry.sh` | `directory:` → `{knowledge_subdir}/_Хабы` |
 | `lib/vault_knowledge_dir.sh` | `vault_knowledge_subdir()` для shell (obsidian_sync) |
 | `ensure_tags_prompt.sh` + `.py` | JSON-обёртка `tags.txt` (knowledge) |

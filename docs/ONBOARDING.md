@@ -103,7 +103,7 @@ Folder names live in `config/vault_paths.yaml` (materialized from `vault_paths.e
 | Broker provider | `finance_bot/config/broker_sync.yaml` → `provider: tinkoff\|none` |
 | Account display names | `broker_sync.yaml` → `accounts`, `display_names` |
 | Meal badge | `finance_bot/config/badge.yaml` + `messages.ru` → `finance.menu.badge` |
-| UI capability gates | `config/ui_capabilities.yaml` (optional override of `.example`) |
+| UI capability gates + reply menu | `config/ui_capabilities.yaml` (`strings`, `menu_actions`; optional override of `.example`) |
 
 English UI: `cp config/messages.en.yaml.example config/messages.en.yaml`, set `AGENT_LOCALE=en` in `.env`.
 

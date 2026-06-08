@@ -2,7 +2,7 @@
 
 ## English
 
-CI (`.github/workflows/ci.yml`): `py_compile`, `smoke_imports.sh`, `run_tests.sh`, plus capabilities job (`test_messages_locale_parity`, `test_domain_messages_locale_parity`, prompt guards). Not every file under `tests/` runs in CI — see table below. Local: `bash scripts/run_tests.sh tests/test_foo.py -q`.
+CI (`.github/workflows/ci.yml`): `py_compile`, `smoke_imports.sh`, `run_tests.sh`, plus a **capabilities** job (onboarding smoke, locale parity, prompt guards). The repo has ~70+ files under `tests/`; not every file runs in default CI — see table below. Local: `bash scripts/run_tests.sh tests/test_foo.py -q` or full suite: `bash scripts/run_tests.sh -q`.
 
 ---
 
@@ -20,16 +20,19 @@ Workflow `.github/workflows/ci.yml` на каждый push/PR:
    - `test_prompt_git_policy` — prod prompts не в git
    - `test_prompt_scaffolds` — шаблоны onboarding
 
-**Не все ~57 файлов в `tests/` в default CI** — намеренно.
+**Не все файлы в `tests/` в default CI** — намеренно (~70+ модулей на диске).
 
 | Модуль | Почему не в CI |
 |--------|----------------|
 | `test_kanban_agent.py` | Падает, если в env задан `KANBAN_AGENT_WRITES=1` |
 | `test_nlu_batch_parse.py` | 1 кейс расходится с текущим парсером |
 | `test_note_review.py` | Нужен knowledge venv + jinja2 (в CI только `test_note_complete`) |
-| `test_ocr_profile.py` | optional easyocr |
+| `test_ocr_profile.py` | optional easyocr (flaky without pinned deps) |
 | `test_telegram_media_helpers.py` | тяжёлые зависимости / collection error в finance venv |
+| `test_action_log_format.py` | legacy action-log fixtures; run locally when touching planning log |
 | `test_health_data.py`, `test_bulk_ingest_mode.py`, … | интеграционные / ручной прогон |
+
+В CI стабильно: `test_ui_bindings.py`, `test_profile_matrix.py`, agent/platform guards, locale parity.
 
 Локально прогнать один файл:
 
