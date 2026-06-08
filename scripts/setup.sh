@@ -21,20 +21,20 @@ fi
 common_load_env "$ROOT" 2>/dev/null || true
 
 echo ""
-echo "=== venv (per-bot, constraints.txt) ==="
+echo "$(sh_msg scripts.setup.section_venv)"
 bash "$ROOT/scripts/ensure_bot_venv.sh" all
 
 echo ""
-echo "=== check_env ==="
+echo "$(sh_msg scripts.setup.section_check_env)"
 bash "$ROOT/scripts/check_env.sh" all || true
 
 echo ""
-echo "=== smoke ==="
+echo "$(sh_msg scripts.setup.section_smoke)"
 export SMOKE_INSTALL=1
 bash "$ROOT/scripts/smoke_imports.sh"
 
 echo ""
-echo "=== locale (AGENT_LOCALE, default en) ==="
+echo "$(sh_msg scripts.setup.section_locale)"
 AGENT_LOCALE="${AGENT_LOCALE:-en}"
 if ! grep -q '^AGENT_LOCALE=' "$ROOT/.env" 2>/dev/null; then
   echo "AGENT_LOCALE=${AGENT_LOCALE}" >> "$ROOT/.env"
@@ -43,7 +43,7 @@ fi
 python3 "$ROOT/scripts/setup/materialize_locale.py" "${AGENT_LOCALE}"
 
 echo ""
-echo "=== bot configs from *.example ==="
+echo "$(sh_msg scripts.setup.section_bot_configs)"
 for pair in \
   "config/messages.ru.yaml:config/messages.ru.yaml.example" \
   "config/agent/platform.yaml:config/agent/platform.yaml.example" \
@@ -68,7 +68,7 @@ python3 "$ROOT/scripts/seed_planning_prompts.py" || true
 bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
 
 echo ""
-echo "=== tags prompt (knowledge) ==="
+echo "$(sh_msg scripts.setup.section_tags_prompt)"
 bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 
 echo ""

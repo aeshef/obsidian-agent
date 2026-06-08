@@ -100,3 +100,38 @@ patterns:
   "planning.messages.*_reminder": "feature:planning_routines"
   "knowledge.buttons.*": "knowledge"
   "knowledge.bulk_*": "knowledge"
+
+# Reply-keyboard label → handler action id (Python registry per domain).
+menu_actions:
+  planning:
+    reset_context:
+      label_keys:
+        - auto_322fab4a99
+        - auto_27c8e8e900
+        - auto_f0bc732b56
+    reply:
+      - { label_key: auto_ca15d9d2aa, action: show_tasks_menu }
+      - { label_key: auto_edc1040220, action: show_categories_menu }
+      - { label_key: auto_8771b735cb, action: show_priorities_menu }
+      - { label_key: auto_a0b7b44b3f, action: show_statuses_menu }
+      - { label_key: auto_e9917f3011, action: show_all_tasks }
+      - { label_key: auto_dc232d1607, action: back_to_main }
+      - { label_key: auto_f317ab8f35, action: show_routines_stats }
+      - { label_key: auto_b6b32200b7, action: routines_recommendations }
+      - { label_key: auto_7a4a4c1791, action: show_pending_routines }
+      - { label_key: auto_f895d3042c, action: start_reflection }
+    submenu:
+      - { kind: kanban_column, action: filter_by_kanban_column }
+      - { kind: category, action: filter_by_category }
+      - { kind: priority, action: filter_by_priority }
+  finance:
+    reply:
+      - { menu_key: balance, action: balance }
+      - { menu_key: last_ops, action: last_ops }
+      - { menu_key: badge, action: badge, requires_badge: true }
+  knowledge:
+    reply:
+      - { button_key: bulk_on, action: bulk_on }
+      - { button_key: bulk_off, action: bulk_off }
+      - { button_key: query, action: query }
+      - { button_key: query_legacy, action: query }

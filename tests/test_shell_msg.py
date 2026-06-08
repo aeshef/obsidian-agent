@@ -20,3 +20,4 @@ def test_sh_msg_resolves_en_default(monkeypatch):
     monkeypatch.setenv("AGENT_LOCALE", "en")
     clear_messages_cache()
     assert msg("scripts", "deploy", "shared_no_restart") == "shared does not require restart"
+    assert msg("scripts", "setup", "section_venv") == "=== venv (per-bot, constraints.txt) ==="

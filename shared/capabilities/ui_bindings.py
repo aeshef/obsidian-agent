@@ -94,6 +94,9 @@ def message_allowed(
 def clear_ui_bindings_cache() -> None:
     _binding_map.cache_clear()
     _pattern_map.cache_clear()
+    from shared.capabilities.menu_actions_config import clear_menu_actions_cache
+
+    clear_menu_actions_cache()
 
 
 def clear_all_message_caches() -> None:

@@ -1,4 +1,4 @@
-"""Planning reply-keyboard dispatch (labels from pdmsg / kanban schema)."""
+"""Planning reply-keyboard dispatch (labels/actions from ui_capabilities menu_actions)."""
 from __future__ import annotations
 
 from typing import Awaitable, Callable, List, Tuple
@@ -6,18 +6,38 @@ from typing import Awaitable, Callable, List, Tuple
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from planning_bot.app import keyboards
-from planning_bot.app.handlers import menus, tasks
-from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
+from planning_bot.app.handlers import tasks
+from planning_bot.app.menu_action_handlers import PlanningMenuContext, planning_action_handlers
 from planning_bot.app.menu_gates import planning_auto_allowed, planning_submenu_allowed
+from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
 from planning_bot.core.pdmsg import pdmsg
+from shared.capabilities.menu_actions_config import (
+    menu_reply_specs,
+    menu_reset_label_keys,
+    menu_submenu_specs,
+)
 from shared.telegram.reply_menu_dispatch import dispatch_label_actions
 
-_RESET_KEYS: Tuple[str, ...] = (
-    "auto_322fab4a99",
-    "auto_27c8e8e900",
-    "auto_f0bc732b56",
-)
+
+def _planning_label_actions(
+    ctx: PlanningMenuContext,
+) -> List[Tuple[str, Callable[[], Awaitable[None]]]]:
+    handlers = planning_action_handlers(ctx)
+    label_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = []
+    for spec in menu_reply_specs("planning"):
+        label_key = str(spec.get("label_key") or "").strip()
+        action_id = str(spec.get("action") or "").strip()
+        if not label_key or not action_id:
+            continue
+        if not planning_auto_allowed(label_key):
+            continue
+        handler = handlers.get(action_id)
+        if handler is None:
+            continue
+        label = pdmsg(label_key)
+        if label:
+            label_actions.append((label, handler))
+    return label_actions
 
 
 async def dispatch_planning_menu(
@@ -27,61 +47,35 @@ async def dispatch_planning_menu(
     user_message: str,
 ) -> bool:
     """Handle planning keyboard / submenu taps. True = consumed."""
+    ctx = PlanningMenuContext(bot=bot, message=message, state=state)
     low = user_message.lower()
-    if low in {pdmsg(k).lower() for k in _RESET_KEYS if planning_auto_allowed(k)}:
+    reset_keys = {
+        pdmsg(k).lower()
+        for k in menu_reset_label_keys("planning")
+        if planning_auto_allowed(k) and pdmsg(k)
+    }
+    if low in reset_keys:
         from planning_bot.app.handlers.commands import cmd_reset_context
 
         await cmd_reset_context(bot, message, state)
         return True
 
-    key_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = [
-        ("auto_ca15d9d2aa", lambda: menus.show_tasks_menu(bot, message)),
-        ("auto_edc1040220", lambda: menus.show_categories_menu(bot, message)),
-        ("auto_8771b735cb", lambda: menus.show_priorities_menu(bot, message)),
-        ("auto_a0b7b44b3f", lambda: menus.show_statuses_menu(bot, message)),
-        ("auto_e9917f3011", lambda: tasks.show_tasks(bot, message)),
-        (
-            "auto_dc232d1607",
-            lambda: message.answer(
-                pdmsg("auto_80c02bf46b"),
-                reply_markup=keyboards.get_main_keyboard(),
-            ),
-        ),
-        ("auto_f317ab8f35", lambda: menus.show_routines_statistics(bot, message)),
-        ("auto_b6b32200b7", lambda: bot.get_routines_recommendations(message)),
-        ("auto_7a4a4c1791", lambda: menus.show_pending_routines(bot, message)),
-        ("auto_f895d3042c", lambda: bot.start_reflection(message, state)),
-    ]
-
-    label_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = []
-    for key, action in key_actions:
-        if not planning_auto_allowed(key):
-            continue
-        label = pdmsg(key)
-        if label:
-            label_actions.append((label, action))
-
-    if await dispatch_label_actions(user_message, label_actions):
+    if await dispatch_label_actions(user_message, _planning_label_actions(ctx)):
         return True
 
-    if user_message in KANBAN_COLUMNS and planning_submenu_allowed("kanban_column"):
-        await tasks.show_tasks_by_status(bot, message, column=user_message)
-        return True
-
-    if (
-        user_message.startswith("📋 ")
-        and user_message[2:] in CATEGORIES
-        and planning_submenu_allowed("category")
-    ):
-        await tasks.show_tasks(bot, message, category=user_message.replace("📋 ", "").strip())
-        return True
-
-    if (
-        user_message.startswith("📋 ")
-        and user_message[2:] in PRIORITIES
-        and planning_submenu_allowed("priority")
-    ):
-        await tasks.show_tasks(bot, message, priority=user_message.replace("📋 ", "").strip())
-        return True
+    for spec in menu_submenu_specs("planning"):
+        kind = str(spec.get("kind") or "").strip()
+        if kind == "kanban_column" and user_message in KANBAN_COLUMNS:
+            if planning_submenu_allowed("kanban_column"):
+                await tasks.show_tasks_by_status(bot, message, column=user_message)
+                return True
+        elif kind == "category" and user_message.startswith("📋 ") and user_message[2:] in CATEGORIES:
+            if planning_submenu_allowed("category"):
+                await tasks.show_tasks(bot, message, category=user_message.replace("📋 ", "").strip())
+                return True
+        elif kind == "priority" and user_message.startswith("📋 ") and user_message[2:] in PRIORITIES:
+            if planning_submenu_allowed("priority"):
+                await tasks.show_tasks(bot, message, priority=user_message.replace("📋 ", "").strip())
+                return True
 
     return False
