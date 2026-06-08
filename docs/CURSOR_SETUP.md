@@ -40,8 +40,19 @@ cp /path/to/obsidian-agent/.cursor/commands/setup.md ~/.cursor/commands/obsidian
 
 Use `/obsidian-agent-setup` in any project (still `cd` to agent root in the script).
 
+## `/setup` not in autocomplete?
+
+Cursor builds differ:
+
+- **Agent chat** (not Ask): type `/` — commands from `.cursor/commands/*.md`
+- If no dropdown: type full name `/setup` or `/obsidian-agent-setup` and press Enter (still works via `cursor_commands`)
+- **`@setup`** — skill picker (`.cursor/skills/setup/SKILL.md`)
+- **Reload:** `Cmd+Shift+P` → Developer: Reload Window
+
+Autocomplete missing is a known Cursor UI quirk; execution via Enter or `@setup` is the reliable path.
+
 ## Verify
 
-Type `/` in Agent chat — you should see **setup** or **obsidian-agent-setup**.
+Workspace = folder with `unified_bot/` and `.cursor/commands/setup.md`.
 
-If not: Cursor version ≥ 0.45, reload window, confirm `.cursor/commands/setup.md` exists at workspace root.
+Run `./scripts/setup.sh` once (PyYAML lives in venv, not system Python).

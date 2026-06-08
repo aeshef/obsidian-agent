@@ -34,17 +34,24 @@ Read and **follow in order** (execute shell steps; do not paraphrase the doc):
 
 ## First action (this message)
 
-1. `source scripts/setup/load_env.sh` (after `cd "$AGENT_ROOT"`)
-2. **AskQuestion:** playbook (planning / finance / full) + locale (en / ru)
-3. Ask for **VAULT_PATH** (one message, wait for reply) before `init_vault_layout.py`
+1. `cd "$AGENT_ROOT"` && `./scripts/setup.sh` (creates venvs — **required**; system `python3` has no PyYAML)
+2. Use **`./scripts/oa-python.sh`** for all Python during onboarding (not bare `python3`)
+3. **AskQuestion:** playbook (planning / finance / full) + locale (en / ru)
+4. Ask for **VAULT_PATH** before `init_vault_layout.py`
 
 ## Interview CLI
 
 ```bash
-python3 scripts/onboarding_interview.py next
-python3 scripts/onboarding_interview.py answer QUESTION_ID 'user reply'
-python3 finance_bot/scripts/apply_initial_accounts.py   # after balances + telegram_id
-python3 scripts/onboarding_smoke.py --verify-all --complete --golden-finance
+./scripts/oa-python.sh scripts/onboarding_interview.py next
+./scripts/oa-python.sh scripts/onboarding_interview.py answer QUESTION_ID 'user reply'
+./scripts/oa-python.sh finance_bot/scripts/apply_initial_accounts.py
+./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --complete --golden-finance
+```
+
+## Start bot
+
+```bash
+./scripts/run_unified_bot.sh
 ```
 
 ## Hard rules

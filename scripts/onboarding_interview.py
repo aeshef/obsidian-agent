@@ -16,6 +16,10 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
+from shared.setup.load_env import load_repo_env
+
+load_repo_env(_ROOT)
+
 from shared.agent.config import agent_config_dir
 from shared.capabilities.onboarding_completion import completion_report
 from shared.capabilities.onboarding_interview import (
@@ -157,7 +161,15 @@ def _apply_answer(state: dict[str, Any], qid: str, raw: str, locale: str) -> Non
         state["_parsed_accounts"] = accs
         _write_initial_accounts(state, accs, slots)
     elif qid == "finance_categories":
-        slots["USER_CATEGORIES"] = raw.strip() or slots.get("USER_CATEGORIES", "")
+        low = raw.strip().lower()
+        if low in ("по умолчанию", "пропустить", "пропуск", "default", "skip", "mvp", "defaults"):
+            slots["USER_CATEGORIES"] = (
+                "Еда, Транспорт, Дом, Развлечения"
+                if locale.startswith("ru")
+                else "Food, Transport, Housing, Groceries, Fun"
+            )
+        else:
+            slots["USER_CATEGORIES"] = raw.strip() or slots.get("USER_CATEGORIES", "")
     elif qid == "finance_opening_balances":
         base = state.get("_parsed_accounts") or _parse_accounts(
             state.get("answers", {}).get("finance_accounts", "")
@@ -314,7 +326,7 @@ def cmd_apply_json(args: argparse.Namespace) -> int:
 def cmd_status(args: argparse.Namespace) -> int:
     clear_capabilities_cache()
     loc = _resolve_locale(args.locale)
-    errors, warnings = completion_report(strict_interview=args.strict)
+    errors, warnings = completion_report(strict_interview=bool(getattr(args, "strict", False)))
     print("=== onboarding status ===")
     for w in warnings:
         print(f"  warn: {w}")
@@ -357,12 +369,13 @@ def main() -> int:
     p_json = sub.add_parser("apply-json", help="Apply answers from JSON file")
     p_json.add_argument("file")
 
-    sub.add_parser("status", help="Completion checklist")
+    p_status = sub.add_parser("status", help="Completion checklist")
+    p_status.add_argument("--strict", action="store_true")
 
     sub.add_parser("next", help="Next unanswered question as JSON")
 
-    p_status = sub.add_parser("check", help="Alias for status with --strict")
-    p_status.add_argument("--strict", action="store_true")
+    p_check = sub.add_parser("check", help="Alias for status --strict")
+    p_check.add_argument("--strict", action="store_true", default=True)
 
     args = ap.parse_args()
     if args.cmd == "check":

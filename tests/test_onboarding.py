@@ -92,6 +92,15 @@ def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     assert not any("Knowledge" in str(p) for p in dirs)
 
 
+def test_env_tools_set_locale_no_dry_run_crash(tmp_path: Path):
+    env = tmp_path / ".env"
+    env.write_text("VAULT_PATH=/tmp/v\n", encoding="utf-8")
+    from scripts.setup import env_tools
+
+    rc = env_tools.main(["--env", str(env), "set-locale", "ru", "--dry-run"])
+    assert rc == 0
+
+
 def test_parse_accounts_and_balances():
     from scripts.onboarding_interview import _parse_accounts, _parse_balances
 

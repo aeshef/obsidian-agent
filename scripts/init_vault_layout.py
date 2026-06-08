@@ -13,6 +13,9 @@ if str(_ROOT) not in sys.path:
 
 from shared.agent.config import agent_config_dir
 from shared.capabilities.profile import clear_capabilities_cache, load_capabilities
+from shared.setup.load_env import load_repo_env
+
+load_repo_env(_ROOT)
 from shared.capabilities.vault_init import ensure_vault_layout, planned_vault_dirs
 from shared.paths import vault_root_optional
 

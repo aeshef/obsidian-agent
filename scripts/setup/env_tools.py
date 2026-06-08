@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -80,8 +81,13 @@ def set_env_value(
         if m:
             existing[m.group(1)] = i
 
-    quoted = val if (val.startswith('"') and val.endswith('"')) else val
-    new_line = f"{key}={quoted}"
+    if val.startswith('"') and val.endswith('"'):
+        new_line = f"{key}={val}"
+    elif re.search(r"[\s#'\"\\$`]", val):
+        esc = val.replace("\\", "\\\\").replace('"', '\\"')
+        new_line = f'{key}="{esc}"'
+    else:
+        new_line = f"{key}={val}"
 
     if key in existing:
         idx = existing[key]
@@ -133,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
     p_locale = sub.add_parser("set-locale", help="Set AGENT_LOCALE=en|ru and materialize locale YAML")
     p_locale.add_argument("locale", choices=("en", "ru"))
     p_locale.add_argument("--force", action="store_true", help="Overwrite AGENT_LOCALE even if set")
+    p_locale.add_argument("--dry-run", action="store_true")
     p_locale.add_argument(
         "--refresh-vault-paths",
         action="store_true",
@@ -172,9 +179,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "set-locale":
         import importlib.util
 
-        status = set_env_value(ep, "AGENT_LOCALE", args.locale, force=args.force, dry_run=args.dry_run)
+        dry = bool(getattr(args, "dry_run", False))
+        status = set_env_value(ep, "AGENT_LOCALE", args.locale, force=args.force, dry_run=dry)
         print(f"AGENT_LOCALE: {status}")
-        if not args.dry_run:
+        if not dry:
             os.environ["AGENT_LOCALE"] = args.locale
             mat_path = root / "scripts/setup/materialize_locale.py"
             spec = importlib.util.spec_from_file_location("materialize_locale", mat_path)

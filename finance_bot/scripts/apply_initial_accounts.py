@@ -45,6 +45,10 @@ async def apply(path: Path, *, dry_run: bool = False) -> int:
         print("accounts list empty", file=sys.stderr)
         return 1
 
+    from bot.startup import bootstrap_finance
+
+    await bootstrap_finance(start_schedulers=False)
+
     created = updated = 0
     async with AsyncSessionLocal() as session:
         user = (await session.execute(select(User).where(User.telegram_id == tg_id))).scalar_one_or_none()
