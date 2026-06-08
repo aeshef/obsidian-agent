@@ -6,14 +6,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/lib/common.sh
 source "$ROOT/scripts/lib/common.sh"
+# shellcheck source=scripts/lib/sh_msg.sh
+source "$ROOT/scripts/lib/sh_msg.sh"
 
-echo "=== obsidian-agent setup ==="
+echo "$(sh_msg scripts.setup.title)"
 
 if [ ! -f "$ROOT/.env" ]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
-  echo "Создан $ROOT/.env — заполните токены и VAULT_PATH."
+  echo "$(sh_msgf scripts.setup.env_created "{\"path\":\"$ROOT\"}")"
 else
-  echo "Используется существующий $ROOT/.env"
+  echo "$(sh_msgf scripts.setup.env_exists "{\"path\":\"$ROOT\"}")"
 fi
 
 common_load_env "$ROOT" 2>/dev/null || true
@@ -36,7 +38,7 @@ echo "=== locale (AGENT_LOCALE, default en) ==="
 AGENT_LOCALE="${AGENT_LOCALE:-en}"
 if ! grep -q '^AGENT_LOCALE=' "$ROOT/.env" 2>/dev/null; then
   echo "AGENT_LOCALE=${AGENT_LOCALE}" >> "$ROOT/.env"
-  echo "  set AGENT_LOCALE=${AGENT_LOCALE} in .env"
+  echo "$(sh_msgf scripts.setup.locale_set "{\"locale\":\"$AGENT_LOCALE\"}")"
 fi
 python3 "$ROOT/scripts/setup/materialize_locale.py" "${AGENT_LOCALE}"
 
@@ -52,12 +54,12 @@ for pair in \
   example="${pair##*:}"
   if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
     cp "$ROOT/$example" "$ROOT/$target"
-    echo "  created $target from example"
+    echo "$(sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}")"
   fi
 done
 
 echo ""
-echo "=== bot prompts (*.example.txt → *.txt, не перезаписываем) ==="
+echo "$(sh_msg scripts.setup.prompts_header)"
 bash "$ROOT/scripts/ensure_bot_prompts.sh"
 # pull_prompts_from_server.sh — author-only (see docs/_maintainer); optional local file
 [ -x "$ROOT/scripts/pull_prompts_from_server.sh" ] && bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
@@ -70,8 +72,8 @@ echo "=== tags prompt (knowledge) ==="
 bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 
 echo ""
-echo "✅ Готово. Дальше:"
-echo "  Модули:    docs/ONBOARDING.md  (или skill obsidian-agent-onboarding)"
-echo "  Mac sync:  ./scripts/install_launchagent.sh"
-echo "  Deploy:    ./scripts/deploy.sh --component all --install-deps"
-echo "  Запуск:    python -m unified_bot.main  (см. docs/SETUP.md)"
+echo "$(sh_msg scripts.setup.done)"
+echo "$(sh_msg scripts.setup.next_onboarding)"
+echo "$(sh_msg scripts.setup.next_mac_sync)"
+echo "$(sh_msg scripts.setup.next_deploy)"
+echo "$(sh_msg scripts.setup.next_run)"

@@ -62,12 +62,12 @@ Scope: full iteration after hygiene fixes (`52a485b` + this commit).
 
 ---
 
-## P1 — remaining
+## P1 — closed (2026-06-08)
 
-| Item | Notes |
-|------|-------|
-| **obsidian_sync step 5c** | Mixed EN echo (calendar_sync) — optional scripts key |
-| **Vault path Cyrillic in rsync excludes** | From `vault_paths` / author layout — not message i18n |
+| Item | Change |
+|------|--------|
+| **obsidian_sync step 5c** | `scripts.obsidian_sync.step_5c` / `step_5c_fail` via `sh_msg` |
+| **Vault path Cyrillic in rsync excludes** | `VAULT_DASH_*`, `VAULT_FILE_*`, `VAULT_FIN_CHART_*` from `vault_paths_shell.py` |
 
 ## Fixed P2 (2026-06-08, after `225053f`)
 
@@ -78,6 +78,11 @@ Scope: full iteration after hygiene fixes (`52a485b` + this commit).
 | **auto_dispatch** | Handler registry in `auto_routing.py` |
 | **EN dmsg gaps** | Fixed `planning.logs_dir_*` YAML nesting + `calendar_*` chat keys in both `.example` files |
 | **BTN_* if-chains** | `knowledge_bot/app/menu_dispatch.py`; `knowledge_dispatch`, `modes`, `menu_detection` |
+| **setup.sh shell i18n** | `scripts.setup` / `deploy_agent` / `bootstrap` keys; `setup.sh`, `bootstrap_python.sh`, `deploy_agent.sh` |
+| **domain_dispatch handlers** | `domain_handlers.py` + `DOMAIN_HANDLERS`; thin loop in `domain_dispatch.py` |
+| **menu dispatch unify** | `shared/telegram/reply_menu_dispatch.py` — finance / planning / knowledge |
+| **materialize_locale merge** | Deep-merge missing keys into existing `domain_messages.*.yaml` |
+| **test_ocr_profile** | Mock `pytesseract` so Tesseract path is deterministic |
 
 | Item | Change |
 |------|--------|
@@ -90,11 +95,10 @@ Scope: full iteration after hygiene fixes (`52a485b` + this commit).
 
 ## P2 — improvements
 
-- `ui_bindings.yaml` for menu detection (replace `BTN_*` / domain if-chains gradually)
-- Centralize ASR/vision/media timeouts in `config/agent/platform.yaml.example`
+- `ui_bindings.yaml` for menu detection (replace remaining domain-specific submenu branches gradually)
 - OSS checklist doc: single ordered page mirroring wizard phases 0–8
 - `git filter-repo` if public history must be PII-free
-- i18n shell logs via `msg` keys (low priority)
+- Remaining setup section headers (`=== venv ===`, etc.) — optional `scripts.setup` keys
 
 ---
 

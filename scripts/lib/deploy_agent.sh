@@ -21,7 +21,9 @@ patch_agent_env_remote() {
   local agent_locale="${AGENT_LOCALE:-en}"
 
   if [ -z "$token" ]; then
-    echo "❌ TELEGRAM_UNIFIED_BOT_TOKEN пустой в $root/.env" >&2
+    # shellcheck source=scripts/lib/sh_msg.sh
+    source "$root/scripts/lib/sh_msg.sh"
+    echo "$(sh_msgf scripts.deploy_agent.token_empty "{\"path\":\"$root\"}")" >&2
     return 1
   fi
 
@@ -98,6 +100,12 @@ ensure_unified_host_deps_remote() {
   local bots="${SERVER_BOTS:?}"
   local pip="${bots}/finance_bot/.venv/bin/pip"
   local py="${bots}/finance_bot/.venv/bin/python"
+  local root="${MONOREPO:-$(common_monorepo_root)}"
+  # shellcheck source=scripts/lib/sh_msg.sh
+  source "$root/scripts/lib/sh_msg.sh"
+  local msg_pip msg_req
+  msg_pip="$(sh_msg scripts.deploy_agent.pip_missing)"
+  msg_req="$(sh_msg scripts.deploy_agent.req_missing)"
 
   echo "📦 unified host: knowledge deps → finance_bot .venv"
   common_ssh "bash -s" <<REMOTE
@@ -108,11 +116,11 @@ PY="${py}"
 REQ="\$BOTS/knowledge_bot/requirements.txt"
 CON="\$BOTS/constraints.txt"
 if [ ! -x "\$PIP" ]; then
-  echo "❌ нет \$PIP — сначала ensure_bot_venv.sh finance_bot" >&2
+  echo "${msg_pip}" >&2
   exit 1
 fi
 if [ ! -f "\$REQ" ]; then
-  echo "❌ нет \$REQ" >&2
+  echo "${msg_req}" >&2
   exit 1
 fi
 if [ -f "\$CON" ]; then

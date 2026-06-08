@@ -11,6 +11,7 @@ from planning_bot.app.handlers import menus, tasks
 from planning_bot.core.config import CATEGORIES, KANBAN_COLUMNS, PRIORITIES
 from planning_bot.core.pdmsg import pdmsg
 from shared.capabilities.ui_bindings import message_allowed
+from shared.telegram.reply_menu_dispatch import dispatch_label_actions
 
 _RESET_KEYS: Tuple[str, ...] = (
     "auto_322fab4a99",
@@ -33,7 +34,7 @@ async def dispatch_planning_menu(
         await cmd_reset_context(bot, message, state)
         return True
 
-    label_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = [
+    key_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = [
         ("auto_ca15d9d2aa", lambda: menus.show_tasks_menu(bot, message)),
         ("auto_edc1040220", lambda: menus.show_categories_menu(bot, message)),
         ("auto_8771b735cb", lambda: menus.show_priorities_menu(bot, message)),
@@ -52,15 +53,16 @@ async def dispatch_planning_menu(
         ("auto_f895d3042c", lambda: bot.start_reflection(message, state)),
     ]
 
-    for key, action in label_actions:
+    label_actions: List[Tuple[str, Callable[[], Awaitable[None]]]] = []
+    for key, action in key_actions:
         if not message_allowed("planning", key):
             continue
         label = pdmsg(key)
-        if not label:
-            continue
-        if user_message == label:
-            await action()
-            return True
+        if label:
+            label_actions.append((label, action))
+
+    if await dispatch_label_actions(user_message, label_actions):
+        return True
 
     if user_message in KANBAN_COLUMNS:
         await tasks.show_tasks_by_status(bot, message, column=user_message)

@@ -21,6 +21,10 @@ domain_routing:
     - finance
     - planning
     - knowledge
+  menu_detection:
+    finance: finance
+    planning: planning
+    knowledge: knowledge
   auto_menu_match:
     finance: true
     planning: true

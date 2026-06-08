@@ -6,6 +6,8 @@
 
 # shellcheck source=scripts/lib/common.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
+# shellcheck source=scripts/lib/sh_msg.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/sh_msg.sh"
 
 bootstrap_python() {
     local component="${1:?component required: finance_bot|knowledge_bot|planning_bot}"
@@ -14,7 +16,7 @@ bootstrap_python() {
     bot_root="$monorepo/$component"
 
     if [ ! -d "$bot_root" ]; then
-        echo "❌ bootstrap_python: каталог не найден: $bot_root" >&2
+        echo "$(sh_msgf scripts.bootstrap.bot_root_missing "{\"bot_root\":\"$bot_root\"}")" >&2
         return 1
     fi
 
@@ -36,7 +38,7 @@ bootstrap_python() {
     export PYTHONPATH="$bot_root:$monorepo${PYTHONPATH:+:$PYTHONPATH}"
 
     if ! common_require_python_min "$PYTHON_CMD" 3 9; then
-        echo "❌ Требуется Python >= 3.9 (сейчас: $("$PYTHON_CMD" -V 2>&1))" >&2
+        echo "$(sh_msgf scripts.bootstrap.python_version "{\"version\":\"$("$PYTHON_CMD" -V 2>&1)\"}")" >&2
         return 1
     fi
 

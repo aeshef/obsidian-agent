@@ -20,9 +20,10 @@ def test_extract_from_image_thumbnail_skips_easyocr(tmp_path: Path):
         mock_img.mode = "RGB"
         pil.Image.open.return_value = mock_img
         pil.Image.LANCZOS = 1
-        with patch("knowledge_bot.services.extract.ocr._ocr_tesseract", return_value="hello") as tess:
-            with patch("knowledge_bot.services.extract.ocr._ocr_easyocr") as easy:
-                out = extract_from_image(img, profile="thumbnail")
-                assert out == "hello"
-                tess.assert_called_once()
-                easy.assert_not_called()
+        with patch("knowledge_bot.services.extract.ocr.pytesseract", object()):
+            with patch("knowledge_bot.services.extract.ocr._ocr_tesseract", return_value="hello") as tess:
+                with patch("knowledge_bot.services.extract.ocr._ocr_easyocr") as easy:
+                    out = extract_from_image(img, profile="thumbnail")
+                    assert out == "hello"
+                    tess.assert_called_once()
+                    easy.assert_not_called()

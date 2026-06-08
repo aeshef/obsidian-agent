@@ -37,6 +37,16 @@ def domain_routing_order() -> tuple[str, ...]:
     return tuple(out) if out else _KNOWN_DOMAINS
 
 
+def domain_menu_detection_key(domain: str) -> str:
+    """ui_capabilities.domain_routing.menu_detection.{domain} → menu_detection section key."""
+    block = _routing_block().get("menu_detection")
+    if isinstance(block, dict):
+        raw = block.get(domain)
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip()
+    return domain
+
+
 def auto_menu_match_enabled(domain: str) -> bool:
     """When ui_mode=auto, match reply-menu labels for this domain."""
     block = _routing_block().get("auto_menu_match")

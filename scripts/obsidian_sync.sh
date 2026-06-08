@@ -145,10 +145,10 @@ EXCLUDE_300=(
   --exclude="${VAULT_DASH_CHARTS}/"
   --exclude='weekly_sprints.json'
   --exclude='Completions_By_Category_Chart.md'
-  --exclude='data/'
-  --exclude='📅 Рутины/'
-  --exclude='📊 Рутины_Статистика.md'
-  --exclude='/📊 Логи_Действий_*.md'
+  --exclude="${VAULT_DASH_DATA}/"
+  --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}"
+  --exclude="${VAULT_FILE_ROUTINES_STATS_MD}"
+  --exclude="/${VAULT_FILE_ACTION_LOG_PREFIX}*.md"
   --exclude="${VAULT_FILE_AUDIT_SYSTEM}"
   --exclude="${VAULT_FILE_AUDIT_VAULT}"
   --exclude="${VAULT_DASH_DATA}/finance.db"
@@ -240,12 +240,12 @@ unset _PLANNING_BOT
 PUSH_EXCLUDE_300=(
   --exclude='kanban_state.json'
   --exclude='.kanban_monitor_state.json'
-  --exclude='Логи/'
+  --exclude="${VAULT_DASH_LOGS}/"
   --exclude='goals_task_mapping.json'
-  --exclude='/📊 Логи_Действий_*.md'
-  --exclude='Графики/Финансы/Доли_по_дням_категории_обычные.png'
-  --exclude='Данные/finance.db'
-  --exclude='Данные/finance.db-*'
+  --exclude="/${VAULT_FILE_ACTION_LOG_PREFIX}*.md"
+  --exclude="${VAULT_DASH_CHARTS}/${VAULT_FIN_CHART_DAILY_CATEGORIES_PNG}"
+  --exclude="${VAULT_DASH_DATA}/finance.db"
+  --exclude="${VAULT_DASH_DATA}/finance.db-*"
 )
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
@@ -320,16 +320,15 @@ unset _pb_venv _pb_sp _chart_py_ok
 # FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
 MARKER="$SYNC_DIR/daily_charts_date.txt"
 LOGS_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_LOGS}"
-ACTION_LOG_PREFIX="📊 Логи_Действий_"
 _CHART_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}"
-_CUR_LOG="$LOGS_DIR/${ACTION_LOG_PREFIX}$(date +%Y-%m).md"
+_CUR_LOG="$LOGS_DIR/${VAULT_FILE_ACTION_LOG_PREFIX}$(date +%Y-%m).md"
 _chart_png_mtime_max() {
   local d="$1" max=0 m f
   for f in \
-    "$d/Активность_за_день.png" \
-    "$d/Завершено_по_категориям_дни.png" \
-    "$d/Открыто_по_категориям_дни.png" \
-    "$d/Дедлайны_горизонт.png"; do
+    "$d/${VAULT_FILE_CHART_DAILY_ACTIVITY}" \
+    "$d/${VAULT_FILE_CHART_COMPLETIONS_PNG}" \
+    "$d/${VAULT_FILE_CHART_OPEN_PIPELINE_PNG}" \
+    "$d/${VAULT_FILE_CHART_DEADLINE_PNG}"; do
     [ -f "$f" ] || continue
     m=$(stat -f '%m' "$f" 2>/dev/null || echo 0)
     [ "$m" -gt "$max" ] && max=$m
@@ -337,7 +336,7 @@ _chart_png_mtime_max() {
   echo "$max"
 }
 HAS_LOGS=
-[ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name '*Логи_Действий_*.md' 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
+[ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name "${VAULT_FILE_ACTION_LOG_PREFIX}*.md" 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
 _SHOULD_CHARTS=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_CHARTS=1
@@ -370,7 +369,7 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
     fi
   fi
 fi
-unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max ACTION_LOG_PREFIX
+unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max
 
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
@@ -392,13 +391,13 @@ if ! cap_step_enabled SYNC_CALENDAR; then
 fi
 if [ "$_SHOULD_CAL" = "1" ]; then
   if [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ]; then
-    echo "obsidian_sync: шаг 5c — calendar_sync ($CHART_PYTHON, лог: logs/charts.log)…" >&2
+    echo "$(sh_msgf scripts.obsidian_sync.step_5c '{"python":"'$CHART_PYTHON'","log":"logs/charts.log"}')" >&2
     export LOCAL_VAULT
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
     if cd "$PLANNING_BOT" && "$CHART_PYTHON" -m planning_bot.tools.calendar_sync >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$CAL_MARKER"
     else
-      echo "⚠️ obsidian_sync: шаг 5c — calendar_sync failed (см. charts.log)" >&2
+      echo "$(sh_msg scripts.obsidian_sync.step_5c_fail)" >&2
       SYNC_OK=0
     fi
   fi

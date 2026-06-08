@@ -8,6 +8,7 @@ from aiogram.types import Message
 
 from bot.config_loader import get_badge_config, get_nlu_config, is_badge_enabled, nlu_menu_buttons
 from bot.menu_labels import finance_menu_aliases, finance_menu_texts, fin_menu
+from shared.telegram.reply_menu_dispatch import dispatch_by_label_map
 
 Handler = Callable[[Message, FSMContext], Awaitable[None]]
 
@@ -60,9 +61,10 @@ def is_reply_menu_button(text: str) -> bool:
 
 
 async def dispatch_reply_menu_button(message: Message, state: FSMContext) -> bool:
-    label = normalize_reply_label(message.text or "")
-    handler = reply_menu_handlers().get(label)
-    if handler is None:
-        return False
-    await handler(message, state)
-    return True
+    return await dispatch_by_label_map(
+        message.text or "",
+        reply_menu_handlers(),
+        message,
+        state,
+        normalize=normalize_reply_label,
+    )

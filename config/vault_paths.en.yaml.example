@@ -41,6 +41,8 @@ files:
   system_audit_report_md: "System_audit_report.md"
   vault_audit_report_md: "Vault_audit_report.md"
   reflection_weekly_file: "Reflection_{date}.md"
+  routines_calendar_subdir: "📅 Routines/"
+  routines_stats_md: "📊 Routine_statistics.md"
 
 finance:
   dashboard_md: "📊 Finance_Dashboard.md"
