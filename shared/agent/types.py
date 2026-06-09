@@ -27,6 +27,7 @@ class Tool:
     handler: Callable[..., Awaitable[Any]]
     category: str = "general"
     always: bool = False
+    serial: bool = False
 
 
 @dataclass

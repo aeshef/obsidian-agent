@@ -49,13 +49,20 @@ def _build_parameters_schema(fn: Callable[..., Any]) -> dict[str, Any]:
     return {"type": "object", "properties": props, "required": required}
 
 
-def tool(*, category: str = "general", always: bool = False, name: str | None = None):
+def tool(
+    *,
+    category: str = "general",
+    always: bool = False,
+    serial: bool = False,
+    name: str | None = None,
+):
     """Register async function as Tool when adding to ToolRegistry."""
 
     def decorator(fn: Callable[..., Any]) -> Callable[..., Any]:
         fn._agent_tool_meta = {  # type: ignore[attr-defined]
             "category": category,
             "always": always,
+            "serial": serial,
             "name": name or fn.__name__,
             "description": (fn.__doc__ or fn.__name__).strip().split("\n")[0],
             "parameters": _build_parameters_schema(fn),
@@ -80,6 +87,7 @@ class ToolRegistry:
             handler=fn,
             category=meta["category"],
             always=meta["always"],
+            serial=bool(meta.get("serial")),
         )
         self._tools[t.name] = t
 

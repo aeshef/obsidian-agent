@@ -18,6 +18,7 @@ from planning_bot.services.kanban_format import (
     task_created_line,
     task_meta_line,
 )
+from planning_bot.services.kanban_lock import kanban_transaction
 
 
 class KanbanBoard:
@@ -58,30 +59,22 @@ class KanbanBoard:
         with open(self.file_path, 'w', encoding='utf-8') as f:
             f.write(self.content)
 
-    def add_task_to_backlog(
+    def _insert_task_block_at_backlog(
         self,
         title: str,
         category: str,
         priority: str,
-        created_date: Optional[str] = None
+        *,
+        created_date: str,
+        task_id: Optional[str] = None,
     ) -> str:
-        'Operation implementation.'
-        # (comment)
-        self.load()
-        self.load_state()
-
-        if created_date is None:
-            created_date = datetime.now().strftime("%Y-%m-%d")
-
-        # (comment)
-        task_id = str(uuid.uuid4())[:8]  # (comment)
-
+        tid = task_id or str(uuid.uuid4())[:8]
         cat = normalize_category(category)
         pri = normalize_priority(priority)
         task_line = f"- [ ] {title}"
         task_meta = task_meta_line(cat, pri)
         task_date = task_created_line(created_date)
-        task_id_line = f"\t🆔 ID: {task_id}"
+        task_id_line = f"\t🆔 ID: {tid}"
         parts = [task_line]
         if task_meta.strip():
             parts.append(task_meta)
@@ -95,19 +88,78 @@ class KanbanBoard:
         if backlog_index == -1:
             raise ValueError(pdmsg("auto_31a23d0c3d", BACKLOG_COLUMN={BACKLOG_COLUMN}))
 
-        # (comment)
         after_header = backlog_index + len(backlog_header)
         next_line_break = self.content.find("\n", after_header)
         insert_position = next_line_break + 1
 
-        # (comment)
         before = self.content[:insert_position]
         after = self.content[insert_position:]
         clean_after = after.lstrip("\n")
         self.content = before + "\n" + new_task + "\n" + clean_after
+        return tid
 
-        self.save()
-        return task_id
+    def _verify_tasks_persisted(self, task_ids: list[str]) -> None:
+        on_disk = self.file_path.read_text(encoding="utf-8")
+        missing = [tid for tid in task_ids if tid not in on_disk]
+        if missing:
+            raise RuntimeError(
+                pdmsg("kanban_persist_verify_failed", missing=", ".join(missing[:5]))
+            )
+
+    def add_task_to_backlog(
+        self,
+        title: str,
+        category: str,
+        priority: str,
+        created_date: Optional[str] = None
+    ) -> str:
+        'Operation implementation.'
+        with kanban_transaction(self.file_path):
+            self.load()
+            self.load_state()
+            if created_date is None:
+                created_date = datetime.now().strftime("%Y-%m-%d")
+            tid = self._insert_task_block_at_backlog(
+                title, category, priority, created_date=created_date
+            )
+            self.save()
+            self._verify_tasks_persisted([tid])
+        return tid
+
+    def add_tasks_to_backlog(
+        self,
+        items: list[tuple[str, ...]],
+        *,
+        created_date: Optional[str] = None,
+    ) -> list[str]:
+        """Insert many tasks in one locked read/write (safe for bulk agent creates)."""
+        if not items:
+            return []
+        with kanban_transaction(self.file_path):
+            self.load()
+            self.load_state()
+            if created_date is None:
+                created_date = datetime.now().strftime("%Y-%m-%d")
+            ids: list[str] = []
+            for row in items:
+                if len(row) < 3:
+                    continue
+                title, category, priority = row[0], row[1], row[2]
+                preset_id = row[3] if len(row) > 3 and row[3] else None
+                if not (title or "").strip():
+                    continue
+                ids.append(
+                    self._insert_task_block_at_backlog(
+                        title.strip(),
+                        category,
+                        priority,
+                        created_date=created_date,
+                        task_id=preset_id,
+                    )
+                )
+            self.save()
+            self._verify_tasks_persisted(ids)
+        return ids
 
     def get_tasks(self, exclude_today: bool = True, exclude_blocked: bool = False) -> List[Dict]:
         'Operation implementation.'

@@ -269,19 +269,20 @@ async def search_tasks(
     return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks", always=True, serial=True)
 async def apply_kanban_task(
     ctx: AgentContext,
     action: str,
     dry_run: bool = False,
     task_id: str = "",
     title: str = "",
+    titles: Optional[List[str]] = None,
     category: str = DEFAULT_CATEGORY,
     priority: str = DEFAULT_PRIORITY,
     column: str = "",
     all_matching: bool = False,
 ) -> str:
-    """Board mutation: create | move | complete (KANBAN_AGENT_WRITES=1)."""
+    """Board mutation: create | move | complete (KANBAN_AGENT_WRITES=1). For many new tasks use titles=[...] in one call."""
     from planning_bot.services.kanban_agent import apply_kanban_action
 
     bot = _bot(ctx)
@@ -292,6 +293,7 @@ async def apply_kanban_task(
         dry_run=dry_run,
         task_id=task_id,
         title=title,
+        titles=titles,
         category=category,
         priority=priority,
         column=column,

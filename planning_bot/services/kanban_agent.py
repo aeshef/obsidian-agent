@@ -18,6 +18,7 @@ from planning_bot.core.config import (
 )
 from planning_bot.core.pdmsg import pdmsg
 from planning_bot.services.kanban import KanbanBoard
+from planning_bot.services.kanban_lock import kanban_transaction
 from planning_bot.services import kanban_parse as kp
 from shared.parsing.date_range import resolve_date_range
 from shared.parsing.iso_date import parse_iso_calendar_day
@@ -244,6 +245,7 @@ def apply_kanban_action(
     dry_run: bool = False,
     task_id: str = "",
     title: str = "",
+    titles: Optional[List[str]] = None,
     category: str = DEFAULT_CATEGORY,
     priority: str = DEFAULT_PRIORITY,
     column: str = "",
@@ -256,38 +258,58 @@ def apply_kanban_action(
 
     writes_ok = kanban_writes_allowed()
     if act == "create":
-        if not (title or "").strip():
-            return pdmsg("auto_500c1d0683")
-        if dry_run:
-            from planning_bot.services.kanban_format import normalize_category, normalize_priority
-
-            return pdmsg(
-                "auto_690e1f6cab",
-                _p1=title.strip(),
-                _p3=BACKLOG_COLUMN,
-                _p5=normalize_category(category),
-                _p7=normalize_priority(priority),
-            )
-        if not writes_ok:
-            return (
-                pdmsg("auto_9105976fe5")
-            )
         from planning_bot.core.config import CATEGORIES
         from planning_bot.services.kanban_format import normalize_category, normalize_priority
 
+        batch = [t.strip() for t in (titles or []) if (t or "").strip()]
+        if not batch and (title or "").strip():
+            batch = [title.strip()]
+        if not batch:
+            return pdmsg("auto_500c1d0683")
+
         cat_norm = normalize_category(category)
         pri_norm = normalize_priority(priority)
-        tid = board.add_task_to_backlog(title.strip(), cat_norm, pri_norm)
-        if logger:
-            logger.log_task_created(title.strip(), cat_norm, pri_norm, task_id=tid)
+
+        if dry_run:
+            lines = [
+                pdmsg(
+                    "auto_690e1f6cab",
+                    _p1=t,
+                    _p3=BACKLOG_COLUMN,
+                    _p5=cat_norm,
+                    _p7=pri_norm,
+                )
+                for t in batch
+            ]
+            return "\n".join(lines)
+        if not writes_ok:
+            return pdmsg("auto_9105976fe5")
+
+        items = [(t, cat_norm, pri_norm) for t in batch]
+        if len(items) == 1:
+            tid = board.add_task_to_backlog(items[0][0], items[0][1], items[0][2])
+            created = [(tid, items[0][0], cat_norm, pri_norm)]
+        else:
+            ids = board.add_tasks_to_backlog(items)
+            created = list(zip(ids, batch, [cat_norm] * len(ids), [pri_norm] * len(ids)))
+
+        for tid, t_title, c_norm, p_norm in created:
+            if logger:
+                logger.log_task_created(t_title, c_norm, p_norm, task_id=tid)
         _sync_state_file(board)
-        out = pdmsg(
-            "kanban_task_created",
-            task_id=tid,
-            title=title.strip(),
-            category=cat_norm,
-            priority=pri_norm,
-        )
+
+        lines_out: List[str] = []
+        for tid, t_title, c_norm, p_norm in created:
+            lines_out.append(
+                pdmsg(
+                    "kanban_task_created",
+                    task_id=tid,
+                    title=t_title,
+                    category=c_norm,
+                    priority=p_norm,
+                )
+            )
+        out = "\n".join(lines_out)
         raw_cat = (category or "").strip().lower()
         if raw_cat and raw_cat != cat_norm:
             allowed = ", ".join(CATEGORIES) if CATEGORIES else cat_norm
@@ -297,6 +319,8 @@ def apply_kanban_action(
                 used=cat_norm,
                 allowed=allowed,
             )
+        if len(created) > 1:
+            out += "\n" + pdmsg("kanban_batch_created", count=len(created))
         return out
 
     if not (task_id or "").strip() and not (title or "").strip():
@@ -325,21 +349,25 @@ def apply_kanban_action(
         return prefix + one
 
     lines: List[str] = []
-    for tid in ids:
+    with kanban_transaction(board.file_path):
         board.load()
         sections = _parse_sections(board.content)
-        lines.append(
-            _apply_move_or_complete(
-                board,
-                sections,
-                act=act,
-                task_id=tid,
-                column=column,
-                dry_run=dry_run,
-                writes_ok=writes_ok,
-                logger=logger,
+        for tid in ids:
+            lines.append(
+                _apply_move_or_complete(
+                    board,
+                    sections,
+                    act=act,
+                    task_id=tid,
+                    column=column,
+                    dry_run=dry_run,
+                    writes_ok=writes_ok,
+                    logger=logger,
+                    reload=False,
+                )
             )
-        )
+            if not dry_run and writes_ok:
+                sections = _parse_sections(board.content)
     return prefix + "\n".join(lines)
 
 
@@ -353,6 +381,7 @@ def _apply_move_or_complete(
     dry_run: bool,
     writes_ok: bool,
     logger,
+    reload: bool = True,
 ) -> str:
     found = _find_task_block(sections, task_id)
     if not found:
@@ -386,12 +415,31 @@ def _apply_move_or_complete(
             pdmsg("auto_a909f1b98e", act={act}, task_id={task_id}, target_col={target_col})
         )
 
-    sections[src_col].pop(idx)
-    if target_col not in sections:
-        sections[target_col] = []
-    sections[target_col].append(new_block)
-    board.content = _rebuild_kanban_content(sections, board.content)
-    board.save()
+    def _mutate() -> None:
+        nonlocal sections
+        if reload:
+            board.load()
+            sections = _parse_sections(board.content)
+            found2 = _find_task_block(sections, task_id)
+            if not found2:
+                raise ValueError(pdmsg("auto_26f9884391", task_id={task_id}))
+            src2, idx2, block2 = found2
+            sections[src2].pop(idx2)
+            blk = re.sub(r"- \[ \]", "- [x]", block2, count=1) if act == "complete" else block2
+        else:
+            sections[src_col].pop(idx)
+            blk = new_block
+        if target_col not in sections:
+            sections[target_col] = []
+        sections[target_col].append(blk)
+        board.content = _rebuild_kanban_content(sections, board.content)
+        board.save()
+
+    if reload:
+        with kanban_transaction(board.file_path):
+            _mutate()
+    else:
+        _mutate()
     _sync_state_file(board)
     if logger:
         task_title = (kp.title_from_block(new_block) or "")[:80]

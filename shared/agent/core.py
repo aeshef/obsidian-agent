@@ -216,9 +216,26 @@ async def run_agent(
             }
         )
 
-        results = await asyncio.gather(
-            *[execute_tool(tc, registry, ctx, allowed_names=set(selected)) for tc in calls]
-        )
+        allowed = set(selected)
+        results: list[ToolResult] = []
+        parallel_batch: list[Any] = []
+
+        async def _flush_parallel() -> None:
+            nonlocal parallel_batch
+            if not parallel_batch:
+                return
+            results.extend(await asyncio.gather(*parallel_batch))
+            parallel_batch = []
+
+        for tc in calls:
+            if registry.get(tc.name).serial:
+                await _flush_parallel()
+                results.append(await execute_tool(tc, registry, ctx, allowed_names=allowed))
+            else:
+                parallel_batch.append(
+                    execute_tool(tc, registry, ctx, allowed_names=allowed)
+                )
+        await _flush_parallel()
         for tr in results:
             tool_bodies.append(tr.content or "")
             api_messages.append(
