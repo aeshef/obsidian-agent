@@ -123,6 +123,8 @@ Legacy (отладка одного домена): `finance_bot/scripts/run.sh`,
 
 ## 7. VPS: деплой
 
+Пошагово для новичков: **`docs/DEPLOY_VPS.md`** (минимальные ресурсы, SSH-ключ, `SERVER` в `.env`).
+
 ```bash
 ./scripts/deploy.sh --prod --install-deps
 ```

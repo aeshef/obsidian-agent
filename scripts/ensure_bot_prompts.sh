@@ -6,6 +6,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=scripts/lib/common.sh
 source "$ROOT/scripts/lib/common.sh" 2>/dev/null || true
+OA_PY="$ROOT/scripts/oa-python.sh"
+if [[ ! -x "$OA_PY" ]]; then
+  OA_PY=(python3)
+else
+  OA_PY=("$OA_PY")
+fi
 
 WARN_STUBS=0
 CHECK_GIT=0
@@ -35,7 +41,7 @@ done
 PROMPT_DIRS=()
 while IFS= read -r d; do
   [[ -n "$d" ]] && PROMPT_DIRS+=("$d")
-done < <(python3 -c "
+done < <("${OA_PY[@]}" -c "
 import sys
 sys.path.insert(0, '$ROOT')
 from shared.capabilities.prompt_dirs import prompt_dirs_for_profile
@@ -62,7 +68,7 @@ copy_if_missing() {
 is_comment_stub() {
   local f="$1"
   [[ -f "$f" ]] || return 1
-  python3 - "$f" <<'PY'
+  "${OA_PY[@]}" - "$f" <<'PY'
 import sys
 from pathlib import Path
 from shared.prompts import _is_comment_stub
@@ -111,9 +117,7 @@ for rel in "${PROMPT_DIRS[@]}"; do
 done
 
 # English scaffolds for personalized prompts (prod still stub after example copy)
-if command -v python3 >/dev/null 2>&1; then
-  python3 "$ROOT/scripts/scaffold_personalized_prompts.py" 2>/dev/null || true
-fi
+"${OA_PY[@]}" "$ROOT/scripts/scaffold_personalized_prompts.py" 2>/dev/null || true
 
 if [[ "$WARN_STUBS" = 1 ]]; then
   stubs=()

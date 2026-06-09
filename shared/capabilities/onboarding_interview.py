@@ -155,17 +155,89 @@ QUESTIONS: tuple[InterviewQuestion, ...] = (
         phase="finalize",
         modules=CORE,
         kind="choice",
-        prompt_en="Where should the bot run after setup?",
-        prompt_ru="Где бот будет работать после настройки?",
+        prompt_en=(
+            "Where should the bot run 24/7? "
+            "A small VPS is recommended so Telegram works when your laptop is off."
+        ),
+        prompt_ru=(
+            "Где бот должен работать круглосуточно? "
+            "Рекомендуем VPS — иначе бот доступен только пока включён ваш компьютер."
+        ),
         choices_en=(
-            "This Mac only (local ./scripts/run_unified_bot.sh)",
-            "I want a VPS later — show me deploy steps",
-            "I have a VPS — help me deploy now",
+            "VPS (recommended) — deploy now with guided steps",
+            "VPS — I'll deploy later (give me the checklist)",
+            "This computer only (./scripts/run_unified_bot.sh while Mac/PC is on)",
         ),
         choices_ru=(
-            "Только этот Mac (локально ./scripts/run_unified_bot.sh)",
-            "Позже хочу VPS — покажи шаги деплоя",
-            "VPS уже есть — помоги развернуть сейчас",
+            "VPS (рекомендуется) — развернуть сейчас по шагам",
+            "VPS — разверну позже (нужен чеклист)",
+            "Только этот компьютер (./scripts/run_unified_bot.sh пока Mac/PC включён)",
+        ),
+    ),
+    InterviewQuestion(
+        id="deploy_local_ack",
+        phase="finalize",
+        modules=CORE,
+        kind="choice",
+        prompt_en="Local-only: the bot stops when this computer sleeps. Continue?",
+        prompt_ru="Локально: бот останавливается, когда компьютер спит. Продолжаем?",
+        choices_en=("Understood — local run is OK for now",),
+        choices_ru=("Понятно — пока устраивает локальный запуск",),
+    ),
+    InterviewQuestion(
+        id="deploy_ssh_host",
+        phase="finalize",
+        modules=CORE,
+        kind="text",
+        prompt_en=(
+            "SSH target for your VPS: user@hostname or SSH config alias "
+            "(e.g. root@203.0.113.10). Use SSH keys — do not send passwords here."
+        ),
+        prompt_ru=(
+            "SSH для VPS: user@hostname или alias из ~/.ssh/config "
+            "(например root@203.0.113.10). Только ключи — пароли сюда не присылайте."
+        ),
+    ),
+    InterviewQuestion(
+        id="deploy_ssh_key_ready",
+        phase="finalize",
+        modules=CORE,
+        kind="choice",
+        prompt_en="Can you already SSH to the server without a password?",
+        prompt_ru="Уже можете зайти на сервер по SSH без пароля?",
+        choices_en=(
+            "Yes — ssh user@host works with my key",
+            "No — I need SSH key setup steps",
+        ),
+        choices_ru=(
+            "Да — ssh user@host работает с моим ключом",
+            "Нет — нужна инструкция по SSH-ключу",
+        ),
+    ),
+    InterviewQuestion(
+        id="deploy_vps_later_ack",
+        phase="finalize",
+        modules=CORE,
+        kind="choice",
+        prompt_en="Saved the VPS checklist in docs/DEPLOY_VPS.md?",
+        prompt_ru="Чеклист в docs/DEPLOY_VPS.md сохранён?",
+        choices_en=("Yes — I'll deploy later",),
+        choices_ru=("Да — разверну позже",),
+    ),
+    InterviewQuestion(
+        id="deploy_vps_ack",
+        phase="finalize",
+        modules=CORE,
+        kind="choice",
+        prompt_en="After ./scripts/deploy.sh --prod — did the bot start on the VPS?",
+        prompt_ru="После ./scripts/deploy.sh --prod — бот запустился на VPS?",
+        choices_en=(
+            "Yes — unified_bot is UP on the server",
+            "Not yet — I'll finish deploy using docs/DEPLOY_VPS.md",
+        ),
+        choices_ru=(
+            "Да — unified_bot на сервере работает",
+            "Ещё нет — доделаю по docs/DEPLOY_VPS.md",
         ),
     ),
 )

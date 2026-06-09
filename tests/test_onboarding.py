@@ -92,6 +92,23 @@ def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     assert not any("Knowledge" in str(p) for p in dirs)
 
 
+def test_deploy_mode_normalize():
+    from shared.capabilities.onboarding_deploy import (
+        DEPLOY_MODE_LOCAL,
+        DEPLOY_MODE_VPS_LATER,
+        DEPLOY_MODE_VPS_NOW,
+        is_question_visible,
+        normalize_deploy_mode,
+    )
+
+    assert normalize_deploy_mode("Только этот Mac") == DEPLOY_MODE_LOCAL
+    assert normalize_deploy_mode("VPS — разверну позже") == DEPLOY_MODE_VPS_LATER
+    assert normalize_deploy_mode("VPS deploy now") == DEPLOY_MODE_VPS_NOW
+    st = {"deploy_mode": DEPLOY_MODE_VPS_NOW, "completed": ["deploy_target"]}
+    assert is_question_visible("deploy_ssh_host", st, None)
+    assert not is_question_visible("deploy_local_ack", st, None)
+
+
 def test_placeholder_deepseek_detected():
     from shared.setup.env_secrets import is_placeholder_secret
 

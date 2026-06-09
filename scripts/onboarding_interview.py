@@ -22,6 +22,13 @@ load_repo_env(_ROOT)
 
 from shared.agent.config import agent_config_dir
 from shared.capabilities.onboarding_completion import completion_report
+from shared.capabilities.onboarding_deploy import (
+    deploy_hint_lines,
+    deploy_mode,
+    iter_visible_questions,
+    normalize_deploy_mode,
+    ssh_host_sanitized,
+)
 from shared.capabilities.onboarding_interview import (
     choices_for,
     prompt_for,
@@ -195,6 +202,22 @@ def _apply_answer(state: dict[str, Any], qid: str, raw: str, locale: str) -> Non
             set_env_value(env_path(_ROOT), "OPENROUTER_API_KEY", key)
     elif qid == "deploy_target":
         state["deploy_target"] = raw.strip()
+        state["deploy_mode"] = normalize_deploy_mode(raw)
+    elif qid == "deploy_ssh_host":
+        host = ssh_host_sanitized(raw)
+        if host:
+            from scripts.setup.env_tools import env_path, set_env_value
+
+            set_env_value(env_path(_ROOT), "SERVER", host, force=True)
+            state["deploy_ssh_host"] = host
+    elif qid == "deploy_ssh_key_ready":
+        state["deploy_ssh_key_ready"] = raw.strip()
+    elif qid == "deploy_vps_ack":
+        low = raw.strip().lower()
+        if any(k in low for k in ("yes", "да", "up", "работает", "works")):
+            state["deploy_success"] = True
+        else:
+            state["deploy_deferred"] = True
 
     _dump_slots(slots_path, slots)
 
@@ -296,8 +319,8 @@ def cmd_list(args: argparse.Namespace) -> int:
     clear_capabilities_cache()
     prof = get_capabilities()
     loc = _resolve_locale(args.locale)
-    qs = questions_for_profile(prof, phase=args.phase, locale=loc)
     state = _load_state()
+    qs = iter_visible_questions(prof, phase=args.phase, locale=loc, state=state)
     done = set(state.get("completed") or [])
     for q in qs:
         mark = "✓" if q.id in done else " "
@@ -361,12 +384,33 @@ def cmd_next(args: argparse.Namespace) -> int:
     state = _load_state()
     done = set(state.get("completed") or [])
     for phase in ("intro", "before_layout", "after_layout", "after_secrets", "finalize"):
-        for q in questions_for_profile(prof, phase=phase, locale=loc):
+        for q in iter_visible_questions(prof, phase=phase, locale=loc, state=state):
             if q.id in done:
                 continue
-            print(json.dumps({"id": q.id, "phase": q.phase, "prompt": prompt_for(q, loc), "kind": q.kind}, ensure_ascii=False))
+            payload: dict[str, Any] = {
+                "id": q.id,
+                "phase": q.phase,
+                "prompt": prompt_for(q, loc),
+                "kind": q.kind,
+            }
+            if q.phase == "finalize" and q.id == "deploy_target":
+                payload["hint"] = deploy_hint_lines(state, loc)
+            ch = choices_for(q, loc)
+            if ch:
+                payload["choices"] = list(ch)
+            print(json.dumps(payload, ensure_ascii=False))
             return 0
-    print(json.dumps({"done": True}))
+    print(json.dumps({"done": True, "deploy_mode": deploy_mode(state)}))
+    return 0
+
+
+def cmd_deploy_hint(args: argparse.Namespace) -> int:
+    loc = _resolve_locale(args.locale)
+    state = _load_state()
+    mode = deploy_mode(state) or "unknown"
+    print(f"deploy_mode={mode}")
+    for line in deploy_hint_lines(state, loc):
+        print(line)
     return 0
 
 
@@ -395,6 +439,8 @@ def main() -> int:
 
     sub.add_parser("confirm-bot", help="Mark live Telegram smoke as done")
 
+    sub.add_parser("deploy-hint", help="Print deploy checklist from onboarding state")
+
     args = ap.parse_args()
     if args.cmd == "check":
         args.strict = True
@@ -406,6 +452,7 @@ def main() -> int:
         "status": cmd_status,
         "next": cmd_next,
         "confirm-bot": cmd_confirm_bot,
+        "deploy-hint": cmd_deploy_hint,
     }
     return handlers[args.cmd](args)
 

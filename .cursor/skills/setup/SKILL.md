@@ -64,7 +64,11 @@ Read and **follow in order** (execute shell steps; do not paraphrase the doc):
 
 - One secret / one interview question per turn — wait for the user.
 - **Always ask DeepSeek key** even if `.env` looks set; run `onboarding_validate_secrets.py --ping-deepseek` after paste.
-- **Never say “setup complete”** until: `--ping-deepseek` OK + user confirmed bot test (`confirm-bot`) + `finalize` deploy question.
+- **Local bot smoke (`confirm-bot`) is not the end.** After smoke → full **finalize deploy** branch (`deploy_target` → SSH/VPS or local ack).
+- Recommend **VPS for 24/7** — point to `docs/DEPLOY_VPS.md`. Never ask for root passwords in chat; SSH keys only.
+- If user picks VPS now: set `SERVER` via interview, guide `ssh-copy-id`, run `./scripts/deploy.sh --prod` (with approval), then `deploy_vps_ack`.
+- **Never say “setup complete”** until: `--ping-deepseek` OK + `confirm-bot` + all visible finalize questions answered + `onboarding_smoke --complete` OK.
 - Never dump all tokens at the end.
 - Never `cp config/vault_paths.yaml.example` — use `set-locale --refresh-vault-paths`.
 - `init_vault_layout.py` only after `capabilities.yaml` exists.
+- Use `./scripts/oa-python.sh` for **all** Python (including `ensure_bot_prompts.sh` path — system python has no PyYAML).

@@ -259,17 +259,30 @@ When user confirms it works:
 
 If LLM 401 in logs → go back to step 7 (DeepSeek key).
 
-### 10 — Finalize interview (`finalize` phase)
+### 10 — Finalize deploy (required; after `confirm-bot`)
+
+Local smoke proves the bot works; **production setup** is deploy.
 
 ```bash
-./scripts/oa-python.sh scripts/onboarding_interview.py next
+./scripts/oa-python.sh scripts/onboarding_interview.py next   # deploy_target
+./scripts/oa-python.sh scripts/onboarding_interview.py deploy-hint
 ```
 
-Ask `deploy_target` — if VPS:
+**Tell the user (before `deploy_target`):**
 
-- Point to `docs/SETUP.md` deploy section and `./scripts/deploy.sh`
-- Offer `./scripts/install_mac_sync.sh` for Mac ↔ vault sync
-- Do **not** claim setup is finished until user declines or you walk through deploy
+- For 24/7 Telegram, a small VPS is recommended (1 vCPU, 1 GB RAM, Ubuntu 22.04+).
+- See `docs/DEPLOY_VPS.md` for provider-agnostic steps.
+- Local-only is OK for testing but stops when the laptop sleeps.
+
+**Branch on `deploy_target` answer:**
+
+| Choice | Next questions | Agent actions |
+|--------|----------------|---------------|
+| VPS now | `deploy_ssh_host` → `deploy_ssh_key_ready` → `deploy_vps_ack` | `env_tools set SERVER`, guide `ssh-copy-id`, run `./scripts/deploy.sh --prod` |
+| VPS later | `deploy_ssh_host` (optional) → `deploy_vps_later_ack` | Print checklist from `deploy-hint`; no password in chat |
+| Local only | `deploy_local_ack` | Explain limitations; optional `install_mac_sync.sh` if they add VPS later |
+
+Never paste or request VPS root passwords. SSH keys only.
 
 ### 11 — Done gate (strict)
 
@@ -289,8 +302,8 @@ Ask `deploy_target` — if VPS:
 ✓ Interview intro + after_secrets + finalize answered
 ✓ initial_accounts.yaml + DB seeded (finance)
 ✓ User confirmed live bot test (confirm-bot)
+✓ Finalize deploy branch completed (local ack or VPS checklist/deploy)
 ✓ onboarding_smoke --complete --ping-deepseek OK
-✓ Deploy path explained (local or VPS)
 ```
 
 ---

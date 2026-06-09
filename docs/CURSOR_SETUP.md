@@ -64,5 +64,5 @@ The agent must **not** stop after Telegram token. Required before “complete”
 1. Real `DEEPSEEK_API_KEY` + `./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek`
 2. User runs bot, tests `/start` + a sample expense
 3. `./scripts/oa-python.sh scripts/onboarding_interview.py confirm-bot`
-4. `deploy_target` question (local Mac vs VPS — see `docs/SETUP.md`)
+4. Full finalize deploy branch (`deploy_target` → SSH/VPS steps or local ack) — `docs/DEPLOY_VPS.md`
 5. `onboarding_smoke.py --complete --ping-deepseek` exits 0

@@ -7,7 +7,10 @@ from pathlib import Path
 from typing import Optional
 
 from shared.agent.config import agent_config_dir
-from shared.capabilities.onboarding_interview import QUESTIONS, _module_active
+from shared.capabilities.onboarding_deploy import (
+    deploy_completion_errors,
+    interview_incomplete_ids,
+)
 from shared.capabilities.profile import MODULE_FINANCE, CapabilityProfile, get_capabilities
 from shared.capabilities.prompt_dirs import prompt_path_enabled
 from shared.capabilities.prompt_manifest import personalized_prompts
@@ -79,14 +82,7 @@ def _prompt_stubs_for_enabled(prof: CapabilityProfile) -> list[str]:
 
 def _interview_incomplete(prof: CapabilityProfile, locale: str) -> list[str]:
     state = _load_state()
-    done = set(state.get("completed") or [])
-    missing: list[str] = []
-    for q in QUESTIONS:
-        if not _module_active(q, prof):
-            continue
-        if q.id not in done:
-            missing.append(q.id)
-    return missing
+    return interview_incomplete_ids(prof, state, locale)
 
 
 def completion_report(
@@ -143,6 +139,8 @@ def completion_report(
         errors.append(
             "bot live smoke not confirmed — user must /start, send a test expense, then confirm-bot"
         )
+    if strict_interview:
+        errors.extend(deploy_completion_errors(state, strict=True))
 
     return errors, warnings
 
