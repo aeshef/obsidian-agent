@@ -71,6 +71,12 @@ def resolve_locale() -> str:
 
 
 def example_chain(stem: str, locale: str) -> list[Path]:
+    loc_path = CFG / f"{stem}.{locale}.yaml.example"
+    generic = CFG / f"{stem}.yaml.example"
+    if stem == "vault_paths":
+        if loc_path.is_file():
+            return [loc_path]
+        return [generic] if generic.is_file() else []
     names = [f"{stem}.{locale}.yaml.example", f"{stem}.yaml.example"]
     return [CFG / n for n in names if (CFG / n).is_file()]
 

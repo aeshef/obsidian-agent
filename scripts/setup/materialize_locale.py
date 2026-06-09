@@ -47,6 +47,13 @@ def _dump_yaml(path: Path, data: dict) -> None:
 
 def _example_chain(stem: str, locale: str) -> list[Path]:
     cfg = ROOT / "config"
+    loc_path = cfg / f"{stem}.{locale}.yaml.example"
+    generic = cfg / f"{stem}.yaml.example"
+    # vault_paths: never merge generic EN stub over locale-specific (would create 100_Tasks on RU vaults)
+    if stem == "vault_paths":
+        if loc_path.is_file():
+            return [loc_path]
+        return [generic] if generic.is_file() else []
     names = [f"{stem}.{locale}.yaml.example", f"{stem}.yaml.example"]
     return [cfg / n for n in names if (cfg / n).is_file()]
 

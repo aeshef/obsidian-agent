@@ -1,5 +1,5 @@
 # Default EN example (alias). Locale-specific: vault_paths.en.yaml.example / vault_paths.ru.yaml.example
-# cp → config/vault_paths.yaml on first setup (see scripts/setup/materialize_locale.py)
+# materialize_locale.py uses locale-specific file ONLY for vault_paths (generic must not override RU paths).
 
 folders:
   tasks: "100_Tasks"

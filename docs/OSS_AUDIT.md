@@ -34,6 +34,7 @@ North star: one repo, any locale, any module subset, no author identity in git, 
 |------|--------|
 | Check-in handler | `start_daily_checkin(self, …)` — PlanningBot method binding |
 | Deploy safety | `vault_paths.yaml` excluded from rsync prod list |
+| vault_paths materialize | locale-specific example only (no EN generic override on RU) |
 | Server config | `ensure_repo_config.sh`: `PYTHONPATH`, wrong-locale replace via `vault_paths_locale` |
 | Deploy noise | `resolve_shell_msg.py` joins `argv[3:]`; bootstrap uses compact python version |
 | Check-in UX | Removed `**bold**` from check-in message keys (no `parse_mode` in handler) |
@@ -41,9 +42,10 @@ North star: one repo, any locale, any module subset, no author identity in git, 
 
 ## P0 — regressions to watch
 
-1. **Author `messages.ru.yaml`** — not in git; after example changes run `materialize_locale.py ru` or merge `checkin_*` keys manually on Mac + server.
-2. **Partial deploy** — `planning_bot` only does not rsync `shared/`; ensure full deploy after shared changes.
-3. **Markdown in planning messages** — many `planning.messages.*` still use `**` where handlers omit `parse_mode`; audit per handler or standardize `parse_mode=MarkdownV2`.
+1. **`vault_paths` materialize** — fixed 2026-06-10: `materialize_locale` / `ensure_repo_config` no longer merge generic `vault_paths.yaml.example` (EN) over `vault_paths.ru.yaml.example` (was creating `100_Tasks` ghost dirs via `init_vault_layout`).
+2. **Author `messages.ru.yaml`** — not in git; after example changes merge `checkin_*` keys manually on Mac + server.
+3. **Partial deploy** — `planning_bot` only does not rsync `shared/`; ensure full deploy after shared changes.
+4. **Markdown in planning messages** — many `planning.messages.*` still use `**` where handlers omit `parse_mode`; audit per handler or standardize `parse_mode=MarkdownV2`.
 
 ## P1 — architecture / hardcode
 

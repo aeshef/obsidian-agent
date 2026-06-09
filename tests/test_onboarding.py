@@ -80,6 +80,17 @@ def test_vault_paths_locale_replace():
     assert should_replace_vault_paths_for_locale(en_doc, "ru")
 
 
+def test_materialize_vault_paths_ru_ignores_en_generic():
+    """RU materialize must not merge vault_paths.yaml.example (EN) over vault_paths.ru.yaml.example."""
+    from scripts.setup.materialize_locale import _example_chain, _merge_examples
+
+    paths = _example_chain("vault_paths", "ru")
+    assert len(paths) == 1
+    assert paths[0].name == "vault_paths.ru.yaml.example"
+    merged = _merge_examples(paths)
+    assert merged["folders"]["tasks"] == "100_Задачи"
+
+
 def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     cfg = tmp_path / "cap.yaml"
     cfg.write_text(yaml.dump(preset_document(PRESET_FINANCE_ONLY)), encoding="utf-8")
