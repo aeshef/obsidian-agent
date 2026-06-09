@@ -1,0 +1,39 @@
+{{quarter_progress_heading}}
+
+```dataviewjs
+const TAG_FOCUS = "{{tag_focus}}";
+const goalsFile = dv.page("{{goals_page}}")
+
+if (!goalsFile) {
+  dv.paragraph("{{goals_not_found}}")
+} else {
+  const tasks = goalsFile.file.tasks || []
+  const quarters = { Q1: { total: 0, completed: 0 }, Q2: { total: 0, completed: 0 }, Q3: { total: 0, completed: 0 }, Q4: { total: 0, completed: 0 } }
+
+  function hasFocusTag(taskText, quarter) {
+    return new RegExp(`#${TAG_FOCUS}/${quarter}\\b`).test(taskText)
+  }
+
+  tasks.forEach(task => {
+    const taskText = task.text || ""
+    ;["Q1", "Q2", "Q3", "Q4"].forEach(q => {
+      if (hasFocusTag(taskText, q)) {
+        quarters[q].total++
+        if (task.completed) quarters[q].completed++
+      }
+    })
+  })
+
+  const rows = Object.entries(quarters).map(([q, stats]) => {
+    const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+    const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10))
+    return [q, `${stats.completed}/${stats.total}`, `${bar} ${progress}%`]
+  }).filter(row => quarters[row[0]] && quarters[row[0]].total > 0)
+
+  if (rows.length > 0) {
+    dv.table(["{{table_quarter}}", "{{table_goals}}", "{{table_progress}}"], rows)
+  } else {
+    dv.paragraph("{{no_quarter_focus}}")
+  }
+}
+```

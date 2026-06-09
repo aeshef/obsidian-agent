@@ -411,7 +411,7 @@ python3 scripts/init_vault_layout.py
 bash scripts/setup_agent_config.sh
 ```
 
-`init_vault_layout.py` creates **only folders for enabled modules** (finance-only → dashboards + finance charts + `.sync`, not tasks/goals/Knowledge).
+`init_vault_layout.py` creates **only folders for enabled modules** (finance-only → dashboards + finance charts + `.sync`, not tasks/goals/Knowledge) and scaffolds **main dashboard** markdown blocks from `vault_dashboards.{locale}.yaml.example` (skips if file exists).
 
 Ensure `.env` contains `AGENT_PROMPT_DYNAMIC_SUPPLEMENT=0` (see `.env.example`) — prefer explicit `<!-- @cap -->` blocks in prod prompts.
 

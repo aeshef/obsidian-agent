@@ -36,6 +36,7 @@ files:
   chart_nutrition_png: "Питание_КБЖУ_по_дням.png"
   chart_nutrition_md: "Питание_КБЖУ_по_дням.md"
   chart_calendar_week_png: "Встречи_нагрузка_недели.png"
+  main_dashboard_md: "🎯 Главный_Дашборд.md"
   nutrition_dashboard_md: "🥗 Питание_КБЖУ.md"
   system_audit_report_md: "Аудит_системы_отчет.md"
   vault_audit_report_md: "Аудит_хранилища_отчет.md"

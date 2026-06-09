@@ -1,0 +1,80 @@
+# cp via scripts/setup/materialize_locale.py (AGENT_LOCALE=en)
+# Finance dashboard markdown/chart labels — locale-specific (not in .py).
+
+title: "# 📊 Finance"
+
+errors:
+  db_not_found: |
+    # 📊 Finance
+
+    ⚠️ Database not found: `{db_path}`
+
+    Run sync:
+    ```bash
+    cd /path/to/finance_bot && ./scripts/sync_finance_db.sh
+    ./scripts/run_finance_dashboard.sh
+    ```
+  db_not_found_log: "DB not found. Wrote stub: {out_path}"
+
+logs:
+  loaded: "Loaded: {accounts} accounts, {transactions} txns, {planned} plans"
+  written: "Written: {out_path}"
+
+misc:
+  no_due_date: "no due date"
+  unknown_account: "Unknown"
+  dash: "—"
+  other_category: "Other"
+  rest_category: "Rest"
+
+sections:
+  summary:
+    heading: "## 💰 Summary"
+    db_updated: "- **finance.db updated:** {mtime}"
+    stale_data: |
+      - ⚠️ **Stale data** (DB from {mtime}). Run `./scripts/sync_finance_db.sh` then rebuild the dashboard.
+    total_rub: "- **Total balance (RUB):** {amount}"
+    total_usd: "- **Total balance (USD):** {amount}"
+
+  planned:
+    heading: "### 📋 Planned expenses"
+    line: "- **{name}**: {amount} {currency} (due {due})"
+    hint: "_Add plans in the bot: 📋 Plan → ➕ Add plan_"
+
+  structure:
+    heading: "### Balance structure (RUB)"
+    pie_title: "Where money sits (RUB)"
+    pie_label: "{name} — {amount}"
+
+  expenses:
+    month_heading: "### Spending by category (current month)"
+    month_pie_title: "Spending {month}"
+    regular_heading: "### Regular spending by category (current month)"
+    regular_pie_title: "Regular spending {month} (under {threshold:,} RUB)"
+    all_heading: "### Spending by category (all time)"
+    all_pie_title: "Spending (all time)"
+    empty_heading: "### Spending by category"
+    empty_hint: "_No expenses yet. Log them in the bot — charts appear here._"
+
+footer:
+  refresh: |
+    ---
+
+    **Force refresh:** from `finance_bot` run `./scripts/run_finance_dashboard_daily.sh`.
+
+charts:
+  daily_categories_file: "Finance/daily_categories.png"
+  daily_categories_title: "Regular daily spending by category"
+  flow_daily_file: "Finance/daily_income_expense.png"
+  flow_daily_title: "Daily income and expense"
+  balance_daily_file: "Finance/daily_balance.png"
+  balance_daily_title: "End-of-day balance"
+  period_xlabel: "Period"
+  income: "Income"
+  expense: "Expense"
+
+category_order: []
+
+badge:
+  default_title: "🍽 Meal badge"
+  no_account: "_Badge account not created yet — log first meal in the bot._"

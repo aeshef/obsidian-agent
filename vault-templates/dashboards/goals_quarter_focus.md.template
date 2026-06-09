@@ -1,0 +1,83 @@
+{{quarter_focus_heading}}
+
+```dataviewjs
+const TAG_GOAL = "{{tag_goal}}";
+const TAG_PRIORITY = "{{tag_priority}}";
+const TAG_FOCUS = "{{tag_focus}}";
+const TAG_DEADLINE = "{{tag_deadline}}";
+const categoryOrder = {{category_order_json}};
+const priorityOrder = {{priority_order_json}};
+const categoryEmoji = {{category_emojis_json}};
+const priorityEmoji = {{priority_emojis_json}};
+const quarterNames = {{quarter_names_json}};
+const priorities = {{priorities_json}};
+const labelNoCategory = "{{label_no_category}}";
+const labelNoPriority = "{{label_no_priority}}";
+
+const today = dv.date('today')
+const month = today.toJSDate().getMonth() + 1
+let quarter = "Q1"
+if (month >= 4 && month <= 6) quarter = "Q2"
+else if (month >= 7 && month <= 9) quarter = "Q3"
+else if (month >= 10) quarter = "Q4"
+
+dv.paragraph(`**${quarterNames[quarter] || quarter}**`)
+dv.paragraph("")
+
+const goalsFile = dv.page("{{goals_page}}")
+const focusRe = new RegExp(`#${TAG_FOCUS}/${quarter}\\b`)
+
+if (!goalsFile) {
+  dv.paragraph("{{goals_not_found}}")
+} else {
+  const rawTasks = goalsFile.file.tasks || []
+  const tasks = []
+  const priAlt = priorities.join("|")
+
+  rawTasks.forEach(task => {
+    const taskText = task.text || ""
+    if (task.completed || !focusRe.test(taskText)) return
+    const categoryMatch = taskText.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`))
+    const priorityMatch = taskText.match(new RegExp(`#${TAG_PRIORITY}/(${priAlt})`))
+    const taskName = taskText
+      .replace(new RegExp(`#${TAG_GOAL}/[^\\s#]+`, 'g'), '')
+      .replace(new RegExp(`#${TAG_PRIORITY}/[^\\s#]+`, 'g'), '')
+      .replace(new RegExp(`#${TAG_FOCUS}/[^\\s#]+`, 'g'), '')
+      .replace(new RegExp(`#${TAG_DEADLINE}/[^\\s#]+`, 'g'), '')
+      .trim()
+    if (taskName) {
+      tasks.push({
+        name: taskName,
+        category: categoryMatch ? categoryMatch[1] : labelNoCategory,
+        priority: priorityMatch ? priorityMatch[1] : labelNoPriority
+      })
+    }
+  })
+
+  if (tasks.length === 0) {
+    dv.paragraph("{{no_focus_tasks}} #" + TAG_FOCUS + "/" + quarter)
+    dv.paragraph("")
+    dv.paragraph("{{add_focus_hint}}" + quarter)
+  } else {
+    const byCategory = {}
+    tasks.forEach(task => {
+      if (!byCategory[task.category]) byCategory[task.category] = []
+      byCategory[task.category].push(task)
+    })
+    const sortedCategories = categoryOrder.filter(cat => byCategory[cat])
+      .concat(Object.keys(byCategory).filter(cat => !categoryOrder.includes(cat)))
+    sortedCategories.forEach(category => {
+      const categoryTasks = byCategory[category]
+      categoryTasks.sort((a, b) => (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99))
+      const emoji = categoryEmoji[category] || "📌"
+      dv.header(4, `${emoji} ${category}`)
+      categoryTasks.forEach(task => {
+        const pEmoji = priorityEmoji[task.priority] || ""
+        dv.paragraph(`&nbsp;&nbsp;&nbsp;&nbsp;${pEmoji} ${task.name}`)
+      })
+      dv.paragraph("")
+    })
+    dv.paragraph("{{open_goals}}")
+  }
+}
+```

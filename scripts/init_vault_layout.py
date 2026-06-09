@@ -63,6 +63,13 @@ def main() -> int:
             print(f"  + {c}")
     else:
         print(f"Vault layout OK ({len(planned)} dirs checked) under {root}")
+
+    from shared.capabilities.vault_dashboard_scaffold import scaffold_vault_dashboards
+
+    dashed = scaffold_vault_dashboards(prof, root)
+    for p in dashed:
+        print(f"  dashboard: {p}")
+
     return 0
 
 

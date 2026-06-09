@@ -1,0 +1,137 @@
+# Vault Obsidian dashboards — block catalog (locale + module aware).
+# cp via materialize_locale.py; rendered by scripts/scaffold_vault_dashboards.py
+
+strings:
+  preamble_tip: |
+    > [!tip] Неделя во встречах
+    > Автообновление: [[{{calendar_dashboard}}|Встречи и фокус недели]] · данные [[{{data_subdir}}/{{calendar_json}}|{{calendar_json}}]].
+  section_goals: "## 🎯 Цели"
+  section_progress: "## 📈 Прогресс"
+  chart_activity_title: "### Дневная активность задач (по типам и приоритетам)"
+  chart_activity_body: |
+    Линейный график по дням, начиная с момента, когда в action-логах появился `task_id`.
+  chart_completions_title: "### Завершено по категориям (по дням)"
+  chart_completions_body: "Линейный график: сколько задач завершено в каждый день по категориям."
+  chart_pipeline_title: "### Нагрузка: открытый пайплайн по категориям"
+  chart_pipeline_body: |
+    Столбчатый график: незавершённые задачи вне «{{done_column}}», снимок на день.
+  chart_deadlines_title: "### Дедлайны по календарю (горизонт)"
+  chart_deadlines_body: |
+    Stacked bar по дням: задачи с `#{{tag_deadline}}/YYYY-MM-DD`. Подробности в [[{{charts_subdir}}/{{chart_deadline_md}}|заметке графика]].
+  chart_nutrition_title: "### Питание: КБЖУ (ккал на день)"
+  chart_nutrition_body: "Данные — снимок из iPhone-контекста. Подробно: [[{{nutrition_dashboard}}]]."
+  finance_embed_title: "## 💰 Финансы"
+  finance_embed_body: "Автообновление: [[{{finance_dashboard}}|Финансы]]. Сборка: `finance_bot/scripts/run_finance_dashboard.sh`."
+  footer: "_Обновляй раз в неделю, чтобы видеть общую картину._"
+  goals_not_found: "⚠️ Файл целей не найден"
+  no_focus_tasks: "📭 Нет активных целей с тегом"
+  add_focus_hint: "👉 Добавь #{{tag_focus}}/"
+  open_goals: "👉 [[{{goals_page}}|Открыть цели]]"
+  quarter_focus_heading: "### Текущий квартальный фокус"
+  quarter_progress_heading: "### Прогресс по квартальным фокусам"
+  no_quarter_focus: "Квартальные фокусы не заполнены"
+  kanban_not_found: "⚠️ Канбан-доска не найдена"
+  mapping_not_found: "⚠️ Файл маппинга не найден или пуст"
+  mapping_error: "⚠️ Ошибка при чтении маппинга"
+  no_mapped_tasks: "📭 Нет задач, связанных с целями."
+  goals_mapping_heading: "### Прогресс по целям (маппинг задач)"
+  category_progress_heading: "### Прогресс по категориям"
+  no_categorized_tasks: "Нет задач с категориями"
+  label_no_category: "без категории"
+  label_no_priority: "без приоритета"
+  table_quarter: "Квартал"
+  table_goals: "Целей"
+  table_progress: "Прогресс"
+  table_goal: "Цель"
+  table_tasks: "Задачи"
+  table_category: "Категория"
+  quarter_names:
+    Q1: "Q1 {year} (Январь - Март)"
+    Q2: "Q2 {year} (Апрель - Июнь)"
+    Q3: "Q3 {year} (Июль - Сентябрь)"
+    Q4: "Q4 {year} (Октябрь - Декабрь)"
+
+dashboards:
+  main:
+    file_key: main_dashboard_md
+    blocks:
+      - preamble
+      - calendar_tip
+      - section_goals
+      - goals_quarter_focus
+      - goals_quarter_progress
+      - section_progress
+      - chart_daily_activity
+      - chart_completions
+      - chart_open_pipeline
+      - chart_deadlines
+      - chart_nutrition
+      - goals_mapping
+      - category_progress
+      - finance_embed
+      - footer
+
+blocks:
+  preamble:
+    template: preamble.md.template
+    modules: []
+  calendar_tip:
+    template: calendar_tip.md.template
+    modules: [planning]
+  section_goals:
+    template: section_heading.md.template
+    modules: [planning]
+    heading_key: section_goals
+  goals_quarter_focus:
+    template: goals_quarter_focus.md.template
+    modules: [planning]
+  goals_quarter_progress:
+    template: goals_quarter_progress.md.template
+    modules: [planning]
+  section_progress:
+    template: section_heading.md.template
+    modules: [planning]
+    heading_key: section_progress
+  chart_daily_activity:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_activity_title
+    body_key: chart_activity_body
+    chart_md_key: chart_daily_activity_md
+  chart_completions:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_completions_title
+    body_key: chart_completions_body
+    chart_md_key: chart_completions_by_category_md
+  chart_open_pipeline:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_pipeline_title
+    body_key: chart_pipeline_body
+    chart_md_key: chart_open_pipeline_md
+  chart_deadlines:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_deadlines_title
+    body_key: chart_deadlines_body
+    chart_md_key: chart_deadline_horizon_md
+  chart_nutrition:
+    template: chart_embed.md.template
+    modules: [planning]
+    feature: health_nutrition_chart
+    title_key: chart_nutrition_title
+    body_key: chart_nutrition_body
+    chart_md_key: chart_nutrition_md
+  goals_mapping:
+    template: goals_mapping.md.template
+    modules: [planning]
+  category_progress:
+    template: category_progress.md.template
+    modules: [planning]
+  finance_embed:
+    template: finance_embed.md.template
+    modules: [finance]
+  footer:
+    template: footer.md.template
+    modules: []

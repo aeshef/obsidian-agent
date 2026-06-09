@@ -1,0 +1,72 @@
+{{goals_mapping_heading}}
+
+```dataviewjs
+const TAG_GOAL = "{{tag_goal}}";
+const mappingFilePath = "{{mapping_path}}"
+const kanbanFile = dv.page("{{kanban_page}}")
+const priorityEmoji = {{priority_emojis_json}};
+
+if (!kanbanFile) {
+  dv.paragraph("{{kanban_not_found}}")
+} else {
+  try {
+    const mappingFileContent = await dv.io.load(mappingFilePath)
+    if (!mappingFileContent) {
+      dv.paragraph("{{mapping_not_found}}")
+      return
+    }
+    const mappingData = JSON.parse(mappingFileContent)
+    const readableMapping = mappingData.readable_mapping || {}
+    const allTasks = kanbanFile.file.tasks || []
+    const tasksById = {}
+    const tasksByTitle = {}
+
+    allTasks.forEach(task => {
+      let taskId = null
+      let taskTitle = null
+      if (task.text) {
+        const taskIdMatch = task.text.match(/🆔\s*ID[:\s]+([a-f0-9]{8})/i)
+        if (taskIdMatch) taskId = taskIdMatch[1]
+        const titleMatch = task.text.match(/^- \[[ x]\] (.+?)(?:\n|$)/)
+        if (titleMatch) taskTitle = titleMatch[1].trim()
+      }
+      if (taskId) tasksById[taskId] = task
+      if (taskTitle) tasksByTitle[taskTitle] = task
+    })
+
+    const goalsStats = {}
+    Object.entries(readableMapping).forEach(([taskId, mappingInfo]) => {
+      let task = tasksById[taskId]
+      if (!task && mappingInfo.task_title) task = tasksByTitle[mappingInfo.task_title]
+      const isCompleted = task?.completed || false
+      ;(mappingInfo.goals || []).forEach(goal => {
+        const goalId = goal.id
+        const goalName = goal.text || "?"
+        if (!goalsStats[goalId]) {
+          goalsStats[goalId] = { name: goalName, quarter: goal.quarter || "", priority: goal.priority || "", total: 0, completed: 0 }
+        }
+        goalsStats[goalId].total++
+        if (isCompleted) goalsStats[goalId].completed++
+      })
+    })
+
+    const rows = Object.entries(goalsStats).map(([_, stats]) => {
+      const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+      const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10))
+      const pEmoji = priorityEmoji[stats.priority] || "⚪"
+      return [`${pEmoji} ${stats.name}`, `Q${stats.quarter}`, `${stats.completed}/${stats.total}`, `${bar} ${progress}%`]
+    }).sort((a, b) => {
+      const qNum = row => { const m = (row[1] || "").match(/Q(\d)/); return m ? parseInt(m[1], 10) : 99 }
+      return qNum(a) - qNum(b)
+    })
+
+    if (rows.length > 0) {
+      dv.table(["{{table_goal}}", "{{table_quarter}}", "{{table_tasks}}", "{{table_progress}}"], rows)
+    } else {
+      dv.paragraph("{{no_mapped_tasks}}")
+    }
+  } catch (e) {
+    dv.paragraph(`{{mapping_error}}: ${e.message}`)
+  }
+}
+```

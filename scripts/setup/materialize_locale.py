@@ -107,6 +107,26 @@ def materialize(locale: str | None = None, *, refresh_vault_paths: bool = False)
             shutil.copy2(ex, dst)
             print(f"created {dst.relative_to(ROOT)} from example")
 
+    _copy_locale_example_if_missing(
+        fin_cfg / f"dashboard_templates.{loc}.yaml.example",
+        fin_cfg / "dashboard_templates.yaml",
+        ROOT,
+    )
+
+    plan_cfg = ROOT / "planning_bot" / "config"
+    _copy_locale_example_if_missing(
+        plan_cfg / f"kanban_schema.{loc}.yaml.example",
+        plan_cfg / "kanban_schema.yaml",
+        ROOT,
+    )
+
+
+def _copy_locale_example_if_missing(example: Path, dst: Path, root: Path) -> None:
+    if not example.is_file() or dst.is_file():
+        return
+    shutil.copy2(example, dst)
+    print(f"created {dst.relative_to(root)} from {example.name}")
+
 
 def main() -> int:
     import argparse

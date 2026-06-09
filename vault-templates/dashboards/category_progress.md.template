@@ -1,0 +1,37 @@
+{{category_progress_heading}}
+
+```dataviewjs
+const TAG_GOAL = "{{tag_goal}}";
+const kanbanFile = dv.page("{{kanban_page}}")
+const categories = {{categories_json}};
+
+if (!kanbanFile) {
+  dv.paragraph("{{kanban_not_found}}")
+} else {
+  const allTasks = kanbanFile.file.tasks || []
+  const categoryStats = {}
+  categories.forEach(cat => { categoryStats[cat] = { total: 0, completed: 0 } })
+
+  allTasks.forEach(task => {
+    const match = task.text?.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`))
+    const category = match ? match[1] : null
+    if (category && categoryStats[category]) {
+      categoryStats[category].total++
+      if (task.completed) categoryStats[category].completed++
+    }
+  })
+
+  const rows = categories.map(cat => {
+    const stats = categoryStats[cat]
+    const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+    const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10))
+    return [cat, `${stats.completed}/${stats.total}`, `${bar} ${progress}%`]
+  }).filter(row => categoryStats[row[0]] && categoryStats[row[0]].total > 0)
+
+  if (rows.length > 0) {
+    dv.table(["{{table_category}}", "{{table_tasks}}", "{{table_progress}}"], rows)
+  } else {
+    dv.paragraph("{{no_categorized_tasks}}")
+  }
+}
+```

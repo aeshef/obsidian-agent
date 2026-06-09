@@ -36,6 +36,7 @@ files:
   chart_nutrition_png: "Nutrition_macros_by_day.png"
   chart_nutrition_md: "Nutrition_macros_by_day.md"
   chart_calendar_week_png: "Meetings_workload_week.png"
+  main_dashboard_md: "🎯 Main_Dashboard.md"
   nutrition_dashboard_md: "🥗 Nutrition_macros.md"
   system_audit_report_md: "System_audit_report.md"
   vault_audit_report_md: "Vault_audit_report.md"

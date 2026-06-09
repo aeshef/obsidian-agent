@@ -1,0 +1,72 @@
+# cp via scripts/setup/materialize_locale.py (AGENT_LOCALE=en)
+
+columns:
+  - "📋 Backlog"
+  - "📅 Waiting for date"
+  - "⏸ Deferred"
+  - "🔄 In progress"
+  - "🚫 Blocked"
+  - "✅ Done"
+
+categories:
+  - career
+  - study
+  - growth
+  - home
+  - family
+  - health
+  - infrastructure
+  - experience
+
+priorities:
+  - high
+  - medium
+  - low
+
+category_order:
+  career: 1
+  study: 2
+  growth: 3
+  health: 4
+  infrastructure: 5
+  home: 6
+  family: 7
+  experience: 8
+
+priority_order:
+  high: 1
+  medium: 2
+  low: 3
+
+category_emojis:
+  career: "💼"
+  study: "📚"
+  growth: "🚀"
+  home: "🏠"
+  family: "👥"
+  health: "💪"
+  infrastructure: "⚙️"
+  experience: "🌟"
+
+priority_emojis:
+  high: "🔥"
+  medium: "🟡"
+  low: "⚪"
+
+tag_prefixes:
+  goal: goal
+  priority: priority
+  focus: focus
+  deadline: deadline
+
+task_meta_template: "\t#goal/{category} #priority/{priority}"
+task_created_template: "\t📅 Created: {created_date}"
+tag_goal_regex: '#goal/([^\s#]+)'
+tag_priority_regex: '#priority/(high|medium|low)'
+tag_deadline_regex: '#deadline/(\d{4}-\d{2}-\d{2})'
+goal_strip_focus_regex: '#(?:focus)/[^\s#]+'
+goal_strip_goal_regex: '#(?:goal)/[^\s#]+'
+goal_strip_priority_regex: '#(?:priority)/[^\s#]+'
+goal_strip_deadline_regex: '#(?:deadline)/[^\s#]+'
+goal_focus_quarter_regex_template: '#(?:focus)/{quarter}\\b'
+tag_created_regex: '📅 Created:\s*(\d{4}-\d{2}-\d{2})'
