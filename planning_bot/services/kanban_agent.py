@@ -49,6 +49,35 @@ def resolve_column_name(name: str) -> Optional[str]:
     return None
 
 
+def _kanban_search_limit_max() -> int:
+    from shared.agent.platform_config import platform_int
+
+    return max(1, platform_int("planning_kanban_search", "limit_max", default=100))
+
+
+def _sort_tasks(tasks: List[Dict[str, Any]], sort_by: str) -> List[Dict[str, Any]]:
+    sb = (sort_by or "").strip().lower()
+    if sb in ("created", "created_asc", "oldest"):
+        return sorted(
+            tasks,
+            key=lambda x: (x.get("created_date") or "9999", x.get("title") or ""),
+        )
+    if sb in ("created_desc", "newest"):
+        return sorted(
+            tasks,
+            key=lambda x: (x.get("created_date") or "", x.get("title") or ""),
+            reverse=True,
+        )
+    return sorted(
+        tasks,
+        key=lambda x: (
+            x.get("deadline") or "9999",
+            PRIORITY_ORDER.get(x.get("priority") or "", 9),
+            x.get("title") or "",
+        ),
+    )
+
+
 def filter_tasks(
     tasks: List[Dict[str, Any]],
     *,
@@ -58,6 +87,9 @@ def filter_tasks(
     priority: str = "",
     deadline_from: str = "",
     deadline_to: str = "",
+    created_from: str = "",
+    created_to: str = "",
+    sort_by: str = "",
     completed: Optional[bool] = None,
     limit: int = 40,
 ) -> List[Dict[str, Any]]:
@@ -69,6 +101,10 @@ def filter_tasks(
     d_to = parse_iso_calendar_day(deadline_to)
     if d_from and d_to and d_from > d_to:
         d_from, d_to = d_to, d_from
+    c_from = parse_iso_calendar_day(created_from)
+    c_to = parse_iso_calendar_day(created_to)
+    if c_from and c_to and c_from > c_to:
+        c_from, c_to = c_to, c_from
 
     out: List[Dict[str, Any]] = []
     for t in tasks:
@@ -94,15 +130,22 @@ def filter_tasks(
                 continue
         elif (d_from or d_to) and not dl:
             continue
+        cd = t.get("created_date")
+        if (c_from or c_to) and cd:
+            try:
+                created = date.fromisoformat(str(cd)[:10])
+            except ValueError:
+                continue
+            if c_from and created < c_from:
+                continue
+            if c_to and created > c_to:
+                continue
+        elif (c_from or c_to) and not cd:
+            continue
         out.append(t)
-    out.sort(
-        key=lambda x: (
-            x.get("deadline") or "9999",
-            PRIORITY_ORDER.get(x.get("priority") or "", 9),
-            x.get("title") or "",
-        )
-    )
-    return out[: max(1, min(int(limit), 100))]
+    out = _sort_tasks(out, sort_by)
+    cap = _kanban_search_limit_max()
+    return out[: max(1, min(int(limit), cap))]
 
 
 def format_task_list(tasks: List[Dict[str, Any]], *, header: str) -> str:
@@ -112,7 +155,17 @@ def format_task_list(tasks: List[Dict[str, Any]], *, header: str) -> str:
     for t in tasks:
         tid = t.get("task_id") or "—"
         lines.append(
-            pdmsg("auto_2163b8b245", _p1=tid, _p3=t.get('title', '')[:80], _p5=t.get('column') or '?', _p7=t.get('category') or '—', _p9=t.get('priority') or '—', _p11=t.get('deadline') or '—', _p13=t.get('completed'))
+            pdmsg(
+                "agent_task_filter_row",
+                id=tid,
+                title=(t.get("title") or "")[:80],
+                column=t.get("column") or "?",
+                category=t.get("category") or "—",
+                priority=t.get("priority") or "—",
+                deadline=t.get("deadline") or "—",
+                created=t.get("created_date") or "—",
+                completed=t.get("completed"),
+            )
         )
     return "\n".join(lines)
 

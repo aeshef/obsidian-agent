@@ -97,6 +97,10 @@ planning_action_log:
   safety_max_events: 10000
   activity_events_limit_default: 40
   activity_events_limit_max: 1000
+  task_history_months_max: 0
+
+planning_kanban_search:
+  limit_max: 100
 
 planning_reflection:
   review_days: 7

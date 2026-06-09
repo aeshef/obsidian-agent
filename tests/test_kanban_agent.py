@@ -9,6 +9,36 @@ from planning_bot.services.kanban_agent import (
 from tests.kanban_test_data import kanban_fixture, kanban_strings
 
 
+def test_filter_tasks_created_range_and_sort():
+    tasks = [
+        {
+            "title": "Old backlog",
+            "column": BACKLOG_COLUMN,
+            "category": CATEGORIES[0],
+            "priority": PRIORITIES[2],
+            "deadline": None,
+            "created_date": "2025-12-01",
+            "completed": False,
+            "task_id": "old1",
+        },
+        {
+            "title": "New backlog",
+            "column": BACKLOG_COLUMN,
+            "category": CATEGORIES[0],
+            "priority": PRIORITIES[2],
+            "deadline": None,
+            "created_date": "2026-06-01",
+            "completed": False,
+            "task_id": "new1",
+        },
+    ]
+    backlog_key = BACKLOG_COLUMN.split()[-1]
+    out = filter_tasks(tasks, column=backlog_key, sort_by="created_asc")
+    assert [t["task_id"] for t in out] == ["old1", "new1"]
+    out2 = filter_tasks(tasks, created_to="2026-01-01")
+    assert len(out2) == 1 and out2[0]["task_id"] == "old1"
+
+
 def test_filter_tasks_column_and_priority():
     in_work_key = IN_WORK_COLUMN.split()[-1]
     high_key = PRIORITIES[0][:4]
@@ -37,7 +67,8 @@ def test_filter_tasks_column_and_priority():
     assert out[0]["task_id"] == "abc"
 
 
-def test_kanban_writes_default_off():
+def test_kanban_writes_default_off(monkeypatch):
+    monkeypatch.delenv("KANBAN_AGENT_WRITES", raising=False)
     assert kanban_writes_allowed() is False
 
 

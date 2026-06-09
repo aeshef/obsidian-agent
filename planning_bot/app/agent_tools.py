@@ -246,10 +246,13 @@ async def search_tasks(
     priority: str = "",
     deadline_from: str = "",
     deadline_to: str = "",
+    created_from: str = "",
+    created_to: str = "",
+    sort_by: str = "",
     completed: Optional[bool] = None,
     limit: int = 25,
 ) -> str:
-    """Search kanban tasks: text, column, category tag, priority, deadline, completed."""
+    """Search kanban: text, column, category, priority, deadline/created ranges (YYYY-MM-DD), sort_by=created_asc|created_desc|deadline."""
     from planning_bot.services.kanban_agent import filter_tasks, format_task_list
 
     bot = _bot(ctx)
@@ -263,10 +266,31 @@ async def search_tasks(
         priority=priority,
         deadline_from=deadline_from,
         deadline_to=deadline_to,
+        created_from=created_from,
+        created_to=created_to,
+        sort_by=sort_by,
         completed=completed,
         limit=limit,
     )
     return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
+
+
+@tool(category="tasks", always=True)
+async def get_task_timeline(
+    ctx: AgentContext,
+    task_id: str = "",
+    task_title: str = "",
+) -> str:
+    """One task: board metadata (created_date, column) + full log chain (created/moved/completed)."""
+    from planning_bot.services.task_timeline_query import format_task_timeline
+
+    bot = _bot(ctx)
+    return format_task_timeline(
+        bot.logger,
+        bot.kanban,
+        task_id=task_id,
+        task_title=task_title,
+    )
 
 
 @tool(category="tasks", always=True, serial=True)
@@ -496,6 +520,7 @@ def build_planning_registry() -> ToolRegistry:
             [
                 get_kanban,
                 search_tasks,
+                get_task_timeline,
                 apply_kanban_task,
                 get_goals,
                 get_calendar,

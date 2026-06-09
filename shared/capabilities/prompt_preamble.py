@@ -34,7 +34,7 @@ _HEALTH_LINES: tuple[tuple[str, str], ...] = (
 )
 
 _TOOL_SELECT_LINES: tuple[tuple[str, str], ...] = (
-    ("planning", "Kanban writes: apply_kanban_task; reads: get_kanban, search_tasks."),
+    ("planning", "Kanban: apply_kanban_task; reads get_kanban, search_tasks (created_from/to, sort_by=created_asc), get_task_timeline."),
     ("finance", "Finance tools only for balances, transactions, plans — no invented numbers."),
     ("knowledge", "Knowledge: search_knowledge_base, read_knowledge_note."),
     ("broker", "Include broker tools only when investments/portfolio are in scope."),

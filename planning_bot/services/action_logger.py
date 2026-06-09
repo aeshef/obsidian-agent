@@ -788,46 +788,44 @@ class ActionLogger:
         result.sort(key=lambda x: x["timestamp"])
         return result
     
+    def _all_log_months(self) -> List[str]:
+        from shared.agent.platform_config import platform_int
+
+        months: List[str] = []
+        prefix = ACTION_LOG_PREFIX
+        for path in sorted(self.logs_dir.glob(f"{prefix}*.md")):
+            suffix = path.name[len(prefix) :]
+            if suffix.endswith(".md"):
+                month = suffix[:-3]
+                if len(month) == 7 and month[4] == "-":
+                    months.append(month)
+        months = sorted(set(months))
+        cap = platform_int("planning_action_log", "task_history_months_max", default=0)
+        if cap > 0:
+            months = months[-cap:]
+        return months
+
     def get_task_history(
         self,
         task_title: Optional[str] = None,
         task_id: Optional[str] = None,
     ) -> List[Dict]:
         'Operation implementation.'
-        from datetime import timedelta
-        import re
-
         if not task_id and not task_title:
             return []
 
-        # (comment)
-        today = datetime.now()
-        log_files = []
-        for i in range(3):
-            month_date = today - timedelta(days=30 * i)
-            log_file = self.logs_dir / f"{ACTION_LOG_PREFIX}{month_date.strftime('%Y-%m')}.md"
-            if log_file.exists():
-                log_files.append(log_file)
-
-        history = []
-        for log_file in log_files:
-            content = _read_log_file(log_file)
-
-            pattern = pdmsg("auto_9158eed63e")
-
-            for match in re.finditer(pattern, content, re.DOTALL):
-                timestamp_str = match.group(1)
-                action_type = match.group(2)
-                try:
-                    data = json.loads(match.group(3))
-                    if task_id and data.get("task_id") == task_id:
-                        history.append({"timestamp": timestamp_str, "type": action_type, "data": data})
-                    elif not task_id and task_title and data.get("title") == task_title:
-                        history.append({"timestamp": timestamp_str, "type": action_type, "data": data})
-                except json.JSONDecodeError:
-                    pass
-
-        history.sort(key=lambda x: x["timestamp"])
+        entries = self._load_task_events(self._all_log_months())
+        history: List[Dict] = []
+        for entry in entries:
+            data = entry.get("data") or {}
+            if task_id and data.get("task_id") == task_id:
+                history.append(
+                    {"timestamp": entry["timestamp"], "type": entry["type"], "data": data}
+                )
+            elif not task_id and task_title and data.get("title") == task_title:
+                history.append(
+                    {"timestamp": entry["timestamp"], "type": entry["type"], "data": data}
+                )
         return history
 
     def get_task_status_on_date(
