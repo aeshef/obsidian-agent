@@ -3,17 +3,24 @@ from __future__ import annotations
 
 import os
 import re
+from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
 from shared.capabilities.onboarding_interview import (
     InterviewQuestion,
+    question_by_id,
     questions_for_profile,
 )
 from shared.capabilities.profile import CapabilityProfile, get_capabilities
+from shared.yaml_config import load_yaml
 
 DEPLOY_MODE_LOCAL = "local"
 DEPLOY_MODE_VPS_NOW = "vps_now"
 DEPLOY_MODE_VPS_LATER = "vps_later"
+
+_REPO = Path(__file__).resolve().parents[2]
+_HINTS_PATH = _REPO / "config" / "onboarding_deploy.yaml.example"
 
 _PLACEHOLDER_SERVERS = frozenset(
     {
@@ -27,11 +34,48 @@ _PLACEHOLDER_SERVERS = frozenset(
 )
 
 
+@lru_cache(maxsize=1)
+def _hints_doc() -> dict:
+    doc = load_yaml(_HINTS_PATH, default={}) or {}
+    return doc if isinstance(doc, dict) else {}
+
+
+def _hint_block(key: str, locale: str) -> list[str]:
+    loc = "ru" if (locale or "").strip().lower().startswith("ru") else "en"
+    hints = _hints_doc().get("hints", {})
+    block = hints.get(key, {}) if isinstance(hints, dict) else {}
+    if not isinstance(block, dict):
+        return []
+    lines = block.get(loc)
+    return [str(x) for x in lines] if isinstance(lines, list) else []
+
+
+def _choice_matches_label(choice: str, label: str) -> bool:
+    c = choice.strip()
+    lab = label.strip()
+    if not c or not lab:
+        return False
+    if c == lab or c in lab or lab in c:
+        return True
+    return False
+
+
 def normalize_deploy_mode(choice: str) -> str:
-    c = (choice or "").strip().lower()
-    if any(k in c for k in ("mac", "локаль", "local", "computer only", "этот комп", "этот mac")):
+    q = question_by_id("deploy_target")
+    c = (choice or "").strip()
+    if q and q.deploy_modes:
+        for i, mode in enumerate(q.deploy_modes):
+            labels: list[str] = []
+            if i < len(q.choices_en):
+                labels.append(q.choices_en[i])
+            if i < len(q.choices_ru):
+                labels.append(q.choices_ru[i])
+            if any(_choice_matches_label(c, lab) for lab in labels):
+                return mode
+    low = c.lower()
+    if "local" in low or "computer only" in low or "mac" in low or "pc" in low:
         return DEPLOY_MODE_LOCAL
-    if any(k in c for k in ("позже", "later", "потом", "чеклист", "checklist")):
+    if "later" in low or "checklist" in low:
         return DEPLOY_MODE_VPS_LATER
     return DEPLOY_MODE_VPS_NOW
 
@@ -47,7 +91,7 @@ def deploy_mode(state: dict) -> Optional[str]:
 
 
 def is_question_visible(qid: str, state: dict, prof: Optional[CapabilityProfile] = None) -> bool:
-    from shared.capabilities.onboarding_interview import _module_active, question_by_id
+    from shared.capabilities.onboarding_interview import _module_active
 
     q = question_by_id(qid)
     if q is None:
@@ -123,6 +167,20 @@ def ssh_host_sanitized(raw: str) -> str:
     return s
 
 
+def _is_negative_choice(qid: str, answer: str) -> bool:
+    q = question_by_id(qid)
+    if not q or q.negative_choice_index is None:
+        return False
+    idx = q.negative_choice_index
+    a = (answer or "").strip()
+    labels = []
+    if idx < len(q.choices_en):
+        labels.append(q.choices_en[idx])
+    if idx < len(q.choices_ru):
+        labels.append(q.choices_ru[idx])
+    return a in labels
+
+
 def deploy_completion_errors(state: dict, *, strict: bool) -> list[str]:
     if not strict:
         return []
@@ -151,52 +209,20 @@ def deploy_completion_errors(state: dict, *, strict: bool) -> list[str]:
         if "deploy_vps_ack" not in set(state.get("completed") or []):
             errors.append("deploy_vps_ack missing — run deploy or mark deferred")
         elif not state.get("deploy_success") and not state.get("deploy_deferred"):
-            ans = (state.get("answers") or {}).get("deploy_vps_ack", "").lower()
-            if "fail" in ans or "retry" in ans or "позже" in ans or "потом" in ans:
-                if not state.get("deploy_deferred"):
-                    errors.append("VPS deploy not finished — complete deploy.sh or choose later")
+            ans = str((state.get("answers") or {}).get("deploy_vps_ack", ""))
+            if _is_negative_choice("deploy_vps_ack", ans) and not state.get("deploy_deferred"):
+                errors.append("VPS deploy not finished — complete deploy.sh or choose later")
     return errors
 
 
 def deploy_hint_lines(state: dict, locale: str = "en") -> list[str]:
     """Agent-facing checklist (no secrets)."""
-    loc = (locale or "en").strip().lower()
     mode = deploy_mode(state) or ""
-    ru = loc.startswith("ru")
-
     if mode == DEPLOY_MODE_LOCAL:
-        return [
-            "Локальный режим: бот работает только пока включён Mac."
-            if ru
-            else "Local mode: bot runs only while this computer is on.",
-            "./scripts/run_unified_bot.sh",
-            "Опционально 24/7: docs/DEPLOY_VPS.md + ./scripts/install_mac_sync.sh"
-            if ru
-            else "Optional 24/7: docs/DEPLOY_VPS.md + ./scripts/install_mac_sync.sh",
-        ]
-
-    lines = [
-        "Минимум VPS: 1 vCPU, 1 GB RAM, 20 GB disk, Ubuntu 22.04+."
-        if ru
-        else "Minimum VPS: 1 vCPU, 1 GB RAM, 20 GB disk, Ubuntu 22.04+.",
-        "docs/DEPLOY_VPS.md",
-    ]
+        return _hint_block("local", locale)
+    lines = list(_hint_block("vps_base", locale))
     if mode == DEPLOY_MODE_VPS_LATER:
-        lines.append(
-            "Сохрани чеклист; когда VPS будет — SERVER в .env и ./scripts/deploy.sh --prod"
-            if ru
-            else "Save checklist; when VPS is ready: SERVER in .env, then ./scripts/deploy.sh --prod"
-        )
+        lines.extend(_hint_block("vps_later_tail", locale))
         return lines
-
-    lines.extend(
-        [
-            "SSH: только ключи (пароль root в чат не присылайте)."
-            if ru
-            else "SSH: keys only (never paste root password in chat).",
-            "ssh-copy-id user@your-server",
-            "./scripts/deploy.sh --prod --install-deps",
-            "На Mac: ./scripts/install_mac_sync.sh (vault ↔ VPS)",
-        ]
-    )
+    lines.extend(_hint_block("vps_now_tail", locale))
     return lines

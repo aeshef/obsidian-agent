@@ -1,0 +1,38 @@
+# Deploy onboarding hints (en/ru). Loaded by shared/capabilities/onboarding_deploy.py
+
+hints:
+  local:
+    en:
+      - "Local mode: bot runs only while this computer is on."
+      - "./scripts/run_unified_bot.sh"
+      - "Optional 24/7: docs/DEPLOY_VPS.md + ./scripts/install_mac_sync.sh"
+    ru:
+      - "Локальный режим: бот работает только пока включён Mac."
+      - "./scripts/run_unified_bot.sh"
+      - "Опционально 24/7: docs/DEPLOY_VPS.md + ./scripts/install_mac_sync.sh"
+
+  vps_base:
+    en:
+      - "Minimum VPS: 1 vCPU, 1 GB RAM, 20 GB disk, Ubuntu 22.04+."
+      - "docs/DEPLOY_VPS.md"
+    ru:
+      - "Минимум VPS: 1 vCPU, 1 GB RAM, 20 GB disk, Ubuntu 22.04+."
+      - "docs/DEPLOY_VPS.md"
+
+  vps_later_tail:
+    en:
+      - "Save checklist; when VPS is ready: SERVER in .env, then ./scripts/deploy.sh --prod"
+    ru:
+      - "Сохрани чеклист; когда VPS будет — SERVER в .env и ./scripts/deploy.sh --prod"
+
+  vps_now_tail:
+    en:
+      - "SSH: keys only (never paste root password in chat)."
+      - "ssh-copy-id user@your-server"
+      - "./scripts/deploy.sh --prod --install-deps"
+      - "On Mac: ./scripts/install_mac_sync.sh (vault ↔ VPS)"
+    ru:
+      - "SSH: только ключи (пароль root в чат не присылайте)."
+      - "ssh-copy-id user@your-server"
+      - "./scripts/deploy.sh --prod --install-deps"
+      - "На Mac: ./scripts/install_mac_sync.sh (vault ↔ VPS)"

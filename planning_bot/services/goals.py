@@ -2,7 +2,7 @@ from planning_bot.core.pdmsg import pdmsg
 import re
 from typing import List, Optional
 from datetime import datetime
-from planning_bot.core.config import GOALS_FILE, GOALS_CONTEXT_FILE
+from planning_bot.core.config import GOALS_FILE, GOALS_CONTEXT_FILE, _kanban_schema
 
 
 def current_quarter() -> str:
@@ -16,10 +16,15 @@ def current_quarter() -> str:
     return "Q4"
 
 
-_FOCUS_TAG_RE = re.compile(r"#(?:фокус|focus)/[^\s#]+")
-_GOAL_TAG_RE = re.compile(r"#(?:цель|goal)/[^\s#]+")
-_PRIORITY_TAG_RE = re.compile(r"#(?:приоритет|priority)/[^\s#]+")
-_DEADLINE_TAG_RE = re.compile(r"#(?:дедлайн|deadline)/[^\s#]+")
+def _goal_re(key: str, fallback: str) -> re.Pattern[str]:
+    pat = _kanban_schema().get(key) or fallback
+    return re.compile(str(pat))
+
+
+_FOCUS_TAG_RE = _goal_re("goal_strip_focus_regex", r"#(?:focus)/[^\s#]+")
+_GOAL_TAG_RE = _goal_re("goal_strip_goal_regex", r"#(?:goal)/[^\s#]+")
+_PRIORITY_TAG_RE = _goal_re("goal_strip_priority_regex", r"#(?:priority)/[^\s#]+")
+_DEADLINE_TAG_RE = _goal_re("goal_strip_deadline_regex", r"#(?:deadline)/[^\s#]+")
 
 
 def _strip_goal_tags(goal_text: str, *, include_focus: bool = True) -> str:
@@ -32,7 +37,11 @@ def _strip_goal_tags(goal_text: str, *, include_focus: bool = True) -> str:
 
 
 def _has_focus_quarter(goal_text: str, quarter: str) -> bool:
-    return bool(re.search(rf"#(?:фокус|focus)/{quarter}\b", goal_text))
+    tpl = str(
+        _kanban_schema().get("goal_focus_quarter_regex_template")
+        or r"#(?:focus)/{quarter}\b"
+    )
+    return bool(re.search(tpl.format(quarter=quarter), goal_text))
 
 
 class GoalsManager:
@@ -92,7 +101,7 @@ class GoalsManager:
         return goals
 
     def get_quarterly_focus(self) -> List[str]:
-        """Active goals tagged #фокус/Qn for the current calendar quarter (from goals file)."""
+        """Active goals with focus tag for the current calendar quarter (from goals file)."""
         if not self.goals_file.exists():
             return []
 

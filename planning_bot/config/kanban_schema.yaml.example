@@ -60,4 +60,10 @@ task_created_template: "\t📅 Создано: {created_date}"
 tag_goal_regex: '#цель/([^\s#]+)'
 tag_priority_regex: '#приоритет/(высокий|средний|низкий)'
 tag_deadline_regex: '#дедлайн/(\d{4}-\d{2}-\d{2})'
+# Goals file tag stripping (locale-aware; used by planning_bot/services/goals.py)
+goal_strip_focus_regex: '#(?:фокус|focus)/[^\s#]+'
+goal_strip_goal_regex: '#(?:цель|goal)/[^\s#]+'
+goal_strip_priority_regex: '#(?:приоритет|priority)/[^\s#]+'
+goal_strip_deadline_regex: '#(?:дедлайн|deadline)/[^\s#]+'
+goal_focus_quarter_regex_template: '#(?:фокус|focus)/{quarter}\\b'
 tag_created_regex: '📅 Создано:\s*(\d{4}-\d{2}-\d{2})'

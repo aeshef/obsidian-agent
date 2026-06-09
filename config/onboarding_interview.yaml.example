@@ -1,0 +1,152 @@
+# Onboarding interview copy (en/ru). Loaded by shared/capabilities/onboarding_interview.py
+# cp not needed — .example is the canonical OSS catalog.
+
+questions:
+  user_about:
+    phase: intro
+    modules: []
+    kind: text
+    prompt_en: "In 2–4 sentences: who you are, what you use this assistant for, anything agents should always remember."
+    prompt_ru: "2–4 предложения: кто вы, зачем вам ассистент, что важно помнить всегда."
+    slot_keys: [AUTHOR_CONTEXT]
+
+  user_tone:
+    phase: intro
+    modules: []
+    kind: choice
+    prompt_en: "How should the bot talk to you?"
+    prompt_ru: "Как боту с вами общаться?"
+    slot_keys: [USER_TONE]
+    choices_en: ["Short and direct", "Friendly, conversational", "Detailed and formal"]
+    choices_ru: ["Коротко и по делу", "Дружелюбно", "Подробно и формально"]
+
+  finance_currency:
+    phase: intro
+    modules: [finance]
+    kind: choice
+    prompt_en: "Main accounting currency?"
+    prompt_ru: "Основная валюта учёта?"
+    slot_keys: [USER_CURRENCY]
+    choices_en: ["RUB", "USD", "EUR"]
+    choices_ru: ["RUB (₽)", "USD ($)", "EUR (€)"]
+
+  finance_accounts:
+    phase: intro
+    modules: [finance]
+    kind: accounts
+    prompt_en: "List your accounts/cards/wallets — one per line or comma-separated. Example: Tinkoff card, Sber card, Cash"
+    prompt_ru: "Перечислите счета/карты/кошельки — по одному в строке или через запятую. Пример: Тинькофф, Сбер, Наличные"
+    slot_keys: [USER_ACCOUNTS]
+
+  finance_opening_balances:
+    phase: after_secrets
+    modules: [finance]
+    kind: account_balances
+    prompt_en: "Opening balance for each account (today). Format per line: Account name: amount (e.g. Tinkoff card: 45000). Use 0 if unknown."
+    prompt_ru: "Стартовый баланс по каждому счёту на сегодня. Формат строки: Название: сумма (например Тинькофф: 45000). 0 — если не знаете."
+
+  finance_categories:
+    phase: intro
+    modules: [finance]
+    kind: comma_list
+    prompt_en: "Top expense categories you care about (comma-separated). Defaults exist — skip to keep MVP list."
+    prompt_ru: "Важные категории расходов через запятую. Можно пропустить — останется MVP-список."
+    slot_keys: [USER_CATEGORIES]
+
+  planning_task_examples:
+    phase: intro
+    modules: [planning]
+    kind: text
+    prompt_en: "2–3 example tasks you often write (how you phrase them)."
+    prompt_ru: "2–3 примера задач, как вы их обычно формулируете."
+    slot_keys: [USER_TASK_EXAMPLES]
+
+  planning_goals:
+    phase: intro
+    modules: [planning]
+    kind: text
+    prompt_en: "Current goals or quarterly focus (one line each)."
+    prompt_ru: "Текущие цели или фокус квартала (по одной строке)."
+    slot_keys: [USER_GOALS]
+
+  knowledge_folders:
+    phase: intro
+    modules: [knowledge]
+    kind: comma_list
+    prompt_en: "Main note types/folders in your vault (Video, Articles, Links, …)."
+    prompt_ru: "Основные типы заметок/папки (Видео, Статьи, Ссылки, …)."
+    slot_keys: [USER_VAULT_FOLDERS]
+
+  telegram_user_id:
+    phase: after_secrets
+    modules: [finance, knowledge]
+    kind: text
+    prompt_en: "Your numeric Telegram user id (@userinfobot → /start, or bot logs after /start)."
+    prompt_ru: "Числовой Telegram ID (@userinfobot → /start или логи бота после /start)."
+
+  openrouter_api:
+    phase: after_secrets
+    modules: [knowledge]
+    kind: text
+    prompt_en: "OpenRouter API key (openrouter.ai) for vision/KB ingest — paste the key."
+    prompt_ru: "Ключ OpenRouter (openrouter.ai) для vision/ингеста в KB — вставьте ключ."
+
+  deploy_target:
+    phase: finalize
+    modules: []
+    kind: choice
+    prompt_en: "Where should the bot run 24/7? A small VPS is recommended so Telegram works when your laptop is off."
+    prompt_ru: "Где бот должен работать круглосуточно? Рекомендуем VPS — иначе бот доступен только пока включён ваш компьютер."
+    deploy_modes: [vps_now, vps_later, local]
+    choices_en:
+      - "VPS (recommended) — deploy now with guided steps"
+      - "VPS — I'll deploy later (give me the checklist)"
+      - "This computer only (./scripts/run_unified_bot.sh while Mac/PC is on)"
+    choices_ru:
+      - "VPS (рекомендуется) — развернуть сейчас по шагам"
+      - "VPS — разверну позже (нужен чеклист)"
+      - "Только этот компьютер (./scripts/run_unified_bot.sh пока Mac/PC включён)"
+
+  deploy_local_ack:
+    phase: finalize
+    modules: []
+    kind: choice
+    prompt_en: "Local-only: the bot stops when this computer sleeps. Continue?"
+    prompt_ru: "Локально: бот останавливается, когда компьютер спит. Продолжаем?"
+    choices_en: ["Understood — local run is OK for now"]
+    choices_ru: ["Понятно — пока устраивает локальный запуск"]
+
+  deploy_ssh_host:
+    phase: finalize
+    modules: []
+    kind: text
+    prompt_en: "SSH target for your VPS: user@hostname or SSH config alias (e.g. root@203.0.113.10). Use SSH keys — do not send passwords here."
+    prompt_ru: "SSH для VPS: user@hostname или alias из ~/.ssh/config (например root@203.0.113.10). Только ключи — пароли сюда не присылайте."
+
+  deploy_ssh_key_ready:
+    phase: finalize
+    modules: []
+    kind: choice
+    prompt_en: "Can you already SSH to the server without a password?"
+    prompt_ru: "Уже можете зайти на сервер по SSH без пароля?"
+    choices_en: ["Yes — ssh user@host works with my key", "No — I need SSH key setup steps"]
+    choices_ru: ["Да — ssh user@host работает с моим ключом", "Нет — нужна инструкция по SSH-ключу"]
+
+  deploy_vps_later_ack:
+    phase: finalize
+    modules: []
+    kind: choice
+    prompt_en: "Saved the VPS checklist in docs/DEPLOY_VPS.md?"
+    prompt_ru: "Чеклист в docs/DEPLOY_VPS.md сохранён?"
+    choices_en: ["Yes — I'll deploy later"]
+    choices_ru: ["Да — разверну позже"]
+
+  deploy_vps_ack:
+    phase: finalize
+    modules: []
+    kind: choice
+    prompt_en: "After ./scripts/deploy.sh --prod — did the bot start on the VPS?"
+    prompt_ru: "После ./scripts/deploy.sh --prod — бот запустился на VPS?"
+    choices_en: ["Yes — unified_bot is UP on the server", "Not yet — I'll finish deploy using docs/DEPLOY_VPS.md"]
+    choices_ru: ["Да — unified_bot на сервере работает", "Ещё нет — доделаю по docs/DEPLOY_VPS.md"]
+    negative_choice_index: 1
