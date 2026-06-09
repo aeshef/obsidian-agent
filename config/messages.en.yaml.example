@@ -725,6 +725,8 @@ planning:
 
       {recommendations}'
     routines_stats_error: ❌ Error loading routine statistics.
+    checkin_phrase_close_day: close the day
+    checkin_phrase_close_day_alt: close day
     checkin_offer: '🌙 **Close your day?**
 
       Quick routine check-in and a few subjective signals for analytics.'

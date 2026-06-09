@@ -3,6 +3,14 @@
 # Labels: config/messages.{locale}.yaml (planning.messages.checkin_*).
 # Schedule overrides: config/agent/platform.yaml → planning_checkin.
 
+# Free-text → menu action (phrases in config/messages.{locale}.yaml planning.messages).
+text_triggers:
+  - action: start_daily_checkin
+    feature: planning_daily_checkin
+    phrase_keys:
+      - checkin_phrase_close_day
+      - checkin_phrase_close_day_alt
+
 checkin:
   schedule:
     hour: 23

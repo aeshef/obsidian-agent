@@ -46,5 +46,12 @@ def menu_submenu_specs(domain: str) -> list[dict[str, Any]]:
     return [row for row in submenu if isinstance(row, dict)]
 
 
+def menu_main_keyboard_keys(domain: str) -> tuple[str, ...]:
+    block = menu_actions_domain(domain).get("main_keyboard")
+    if not isinstance(block, list):
+        return ()
+    return tuple(str(k).strip() for k in block if str(k).strip())
+
+
 def clear_menu_actions_cache() -> None:
     _menu_actions_root.cache_clear()

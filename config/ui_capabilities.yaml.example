@@ -107,6 +107,9 @@ patterns:
 # Reply-keyboard label → handler action id (Python registry per domain).
 menu_actions:
   planning:
+    main_keyboard:
+      - auto_ca15d9d2aa
+      - auto_e3bbb7b586
     reset_context:
       label_keys:
         - auto_322fab4a99

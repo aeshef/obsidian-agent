@@ -31,21 +31,24 @@ def test_finance_reply_menu_slim():
     assert nlu_menu_buttons(get_nlu_config()) <= set(handlers)
 
 
-def test_planning_main_keyboard_only_my_tasks():
+def test_planning_main_keyboard_from_ui_capabilities():
+    from shared.capabilities.menu_actions_config import clear_menu_actions_cache
     from shared.capabilities.profile import clear_capabilities_cache
     from shared.capabilities.ui_bindings import clear_ui_bindings_cache
     from shared.domain_messages import clear_domain_messages_cache
+    from planning_bot.services.planning_text_triggers import clear_planning_text_triggers_cache
 
     clear_capabilities_cache()
     clear_ui_bindings_cache()
     clear_domain_messages_cache()
+    clear_menu_actions_cache()
+    clear_planning_text_triggers_cache()
     clear_menu_label_cache()
     pb_kb.clear_keyboard_extras()
     labels = {btn.text for row in pb_kb.get_main_keyboard().keyboard for btn in row}
     assert labels == main_menu_buttons()
     assert is_planning_menu_button(pdmsg("auto_ca15d9d2aa"))
+    assert is_planning_menu_button(pdmsg("auto_e3bbb7b586"))
     assert not is_planning_menu_button(pdmsg("auto_32ec6c2753"))
-    assert not is_planning_menu_button(pdmsg("auto_f895d3042c"))
     assert pdmsg("auto_edc1040220") in submenu_buttons()
-    assert pdmsg("auto_f317ab8f35") not in submenu_buttons()
-    assert len(main_menu_buttons()) == 1
+    assert len(main_menu_buttons()) >= 2

@@ -47,7 +47,15 @@ async def dispatch_planning_menu(
     user_message: str,
 ) -> bool:
     """Handle planning keyboard / submenu taps. True = consumed."""
+    from planning_bot.services.planning_text_triggers import match_planning_text_trigger
+
     ctx = PlanningMenuContext(bot=bot, message=message, state=state)
+    trigger_action = match_planning_text_trigger(user_message)
+    if trigger_action:
+        handler = planning_action_handlers(ctx).get(trigger_action)
+        if handler is not None:
+            await handler()
+            return True
     low = user_message.lower()
     reset_keys = {
         pdmsg(k).lower()

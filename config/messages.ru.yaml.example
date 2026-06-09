@@ -308,6 +308,8 @@ planning:
     statuses_menu_title: "📋 **Выбери статус:**"
     routines_menu_title: "🔄 **Рутины**\n\nВыбери действие:"
     routines_stats_error: "❌ Ошибка при загрузке статистики рутин."
+    checkin_phrase_close_day: "закрой день"
+    checkin_phrase_close_day_alt: "закрыть день"
     checkin_offer: |
       🌙 **Закрыть день?**
 

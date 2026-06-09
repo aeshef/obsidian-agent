@@ -95,6 +95,20 @@ def test_append_signals_entry(vault_env, monkeypatch):
     assert "mood: 5" in body
 
 
+def test_text_trigger_close_day(monkeypatch):
+    from planning_bot.app.ui import pmsg
+    from planning_bot.services.planning_text_triggers import (
+        clear_planning_text_triggers_cache,
+        match_planning_text_trigger,
+    )
+
+    clear_planning_text_triggers_cache()
+    phrase = pmsg("checkin_phrase_close_day")
+    if phrase:
+        assert match_planning_text_trigger(phrase) == "start_daily_checkin"
+    assert match_planning_text_trigger("random unrelated phrase xyz") is None
+
+
 def test_planning_daily_checkin_feature_default():
     from shared.capabilities.features import (
         FEAT_PLANNING_DAILY_CHECKIN,

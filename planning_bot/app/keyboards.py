@@ -57,9 +57,16 @@ def set_keyboard_extras(rows: list[list[KeyboardButton]] | None) -> None:
 
 
 def get_main_keyboard() -> ReplyKeyboardMarkup:
+    from planning_bot.app.menu_gates import planning_auto_allowed
     from planning_bot.core.pdmsg import pdmsg
+    from shared.capabilities.menu_actions_config import menu_main_keyboard_keys
 
-    rows = compact_keyboard_rows([[pdmsg("auto_ca15d9d2aa")]])
+    labels = [
+        pdmsg(key)
+        for key in menu_main_keyboard_keys("planning")
+        if planning_auto_allowed(key) and pdmsg(key)
+    ]
+    rows = compact_keyboard_rows([labels] if labels else [])
     if rows:
         kb = reply_keyboard_from_rows(rows, resize_keyboard=True)
     else:
