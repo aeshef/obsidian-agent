@@ -1,6 +1,12 @@
 # obsidian-agent
 
 [![CI](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
+[![Obsidian](https://img.shields.io/badge/Obsidian-vault-7c3aed)](https://obsidian.md)
+[![Telegram](https://img.shields.io/badge/Telegram-bot-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
+[![Locale](https://img.shields.io/badge/locale-en%20%7C%20ru-green)](config/agent/)
+[![GitHub stars](https://img.shields.io/github/stars/aeshef/obsidian-agent?style=social)](https://github.com/aeshef/obsidian-agent/stargazers)
 
 **Telegram is the inbox. Obsidian is the system of record.**
 
