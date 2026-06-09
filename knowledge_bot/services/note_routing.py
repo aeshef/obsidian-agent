@@ -6,7 +6,13 @@ import logging
 from typing import Any
 
 from knowledge_bot.core.config import load_config
-from knowledge_bot.core.settings import get_author_context, load_enums_config, load_prompt, load_types_config
+from knowledge_bot.core.settings import (
+    enums_for_llm_payload,
+    get_author_context,
+    load_enums_config,
+    load_prompt,
+    load_types_config,
+)
 from knowledge_bot.i18n.domain_text import routing_author_line
 
 log = logging.getLogger("kb.routing")
@@ -26,11 +32,7 @@ def route_and_fill(llm: Any, summary_obj: dict[str, Any], *, source_hint: str = 
     user_payload = {
         "summary": summary_obj,
         "allowed_types": allowed_types,
-        "enums": {
-            "namespaces_controlled": enums_cfg.namespaces_controlled,
-            "common": enums_cfg.common,
-            "per_type": enums_cfg.per_type,
-        },
+        "enums": enums_for_llm_payload(enums_cfg),
         "source_hint": source_hint,
     }
     try:

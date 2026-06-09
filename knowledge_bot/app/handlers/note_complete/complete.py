@@ -15,7 +15,12 @@ from aiogram.types import Message
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.llm import LLMClient
 from knowledge_bot.core.schema import allowed_fields_for_type
-from knowledge_bot.core.settings import get_author_context, load_enums_config, load_prompt
+from knowledge_bot.core.settings import (
+    enums_for_llm_payload,
+    get_author_context,
+    load_enums_config,
+    load_prompt,
+)
 from knowledge_bot.services.extract import extract_from_path, fetch_youtube_transcript, simple_from_text
 from knowledge_bot.services.render import render_note
 from knowledge_bot.services.routing import route_and_fill
@@ -323,11 +328,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             "allowed_fields": allowed_fields,
             "summary": summary_obj,
             "filenames": routed.get("filenames", []),
-            "enums": {
-                "namespaces_controlled": enums_cfg.namespaces_controlled,
-                "common": enums_cfg.common,
-                "per_type": enums_cfg.per_type,
-            }
+            "enums": enums_for_llm_payload(enums_cfg),
         }
         filled = llm.chat_json(field_system, json.dumps(user, ensure_ascii=False)).content or {}
         #     (   /YouTube),    
@@ -363,11 +364,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             "type": routed.get("type"),
             "summary": summary_obj,
             "attachments": {"links": routed.get("attachments", {}).get("links", [])},
-            "enums": {
-                "namespaces_controlled": enums_cfg.namespaces_controlled,
-                "common": enums_cfg.common,
-                "per_type": enums_cfg.per_type,
-            },
+            "enums": enums_for_llm_payload(enums_cfg),
             "synonyms": enums_cfg.synonyms,
             "filenames": routed.get("filenames", []),
             "fields": fields_for_tags,

@@ -160,6 +160,12 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
         "VISION_FALLBACK_MODEL", "google/gemini-2.5-flash"
     )
     base_url = "https://openrouter.ai/api/v1"
+    from knowledge_bot.services.openrouter_rate_limit import openrouter_post
+    from shared.platform_timeouts import (
+        knowledge_vision_api_timeout_sec,
+        knowledge_vision_openrouter_temperature,
+    )
+
     content = [{"type": "text", "text": _load_vision_prompt()}]
     for b64 in images_b64:
         content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}})
@@ -169,11 +175,6 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
         "max_tokens": 500,
         "temperature": knowledge_vision_openrouter_temperature(),
     }
-    from knowledge_bot.services.openrouter_rate_limit import openrouter_post
-    from shared.platform_timeouts import (
-        knowledge_vision_api_timeout_sec,
-        knowledge_vision_openrouter_temperature,
-    )
 
     try:
         r = openrouter_post(

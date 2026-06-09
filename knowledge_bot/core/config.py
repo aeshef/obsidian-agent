@@ -10,6 +10,12 @@ from knowledge_bot.core.settings import get_config_path
 from shared.constants import deepseek_chat_completions_url
 from shared.paths import vault_root
 from shared.vault_layout import knowledge_attachments_subdir, knowledge_subdir
+from shared.vault_paths_config import folder, vault_rel_path
+
+
+def templates_path_for_vault(vault: Path) -> Path:
+    """Jinja templates live in vault (types.yaml comment), not knowledge_bot/templates/."""
+    return vault / folder("automation") / Path(vault_rel_path("templates_clones"))
 
 
 @dataclass(frozen=True)
@@ -37,10 +43,11 @@ def load_config() -> AppConfig:
     kb_root = Path(__file__).resolve().parent.parent
     uid_raw = (os.environ.get("TELEGRAM_USER_ID") or "").strip()
     uid = int(uid_raw) if uid_raw.isdigit() else None
+    vault = vault_root()
     return AppConfig(
-        vault_path=vault_root(),
+        vault_path=vault,
         agent_config_path=get_config_path(),
-        templates_path=kb_root / "templates",
+        templates_path=templates_path_for_vault(vault),
         deepseek_api_key=(
             os.environ.get("DEEPSEEK_API_TOKEN")
             or os.environ.get("DEEPSEEK_API_KEY")

@@ -115,9 +115,15 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
             re.findall(re.escape(mm("marker_deleted_empty")), text)
         )
     elif step_name in ("apply_duplicates", "apply_duplicates_dryrun"):
-        out["duplicates_deleted_lines"] = len(
-            re.findall(mm("regex_deleted_line"), text, re.MULTILINE)
+        applied = re.findall(mm("regex_deleted_line"), text, re.MULTILINE)
+        dry_marker = mm("dup_delete_marker")
+        dry_pat = (
+            rf"^\s*{re.escape(dry_marker)}"
+            if dry_marker
+            else r"^\s*удал(ить|ён):"
         )
+        dry = re.findall(dry_pat, text, re.MULTILINE)
+        out["duplicates_deleted_lines"] = len(applied) + len(dry)
         m = re.search(mm("regex_dup_freed"), text)
         if m:
             out["duplicates_export_files"] = int(m.group(1))

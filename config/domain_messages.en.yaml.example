@@ -308,6 +308,7 @@ knowledge_maintenance:
   marker_saved: '✓ Written:'
   regex_changed: Modified:\s*(\d+)
   regex_deleted_line: '^\s*deleted:'
+  dup_delete_marker: 'delete:'
   regex_dup_freed: Files:\s*(\d+),\s*freed\s*~([0-9.]+)\s*MB
   regex_refill_total: 'Total refill: affected=(\d+), skipped=(\d+), llm_errors=(\d+)'
   regex_retag_total: Total:\s*affected=(\d+),\s*skipped=(\d+)(?:,\s*llm_fallback=(\d+))?

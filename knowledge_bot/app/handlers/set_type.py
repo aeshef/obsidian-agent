@@ -11,7 +11,12 @@ from knowledge_bot.app.ui import kmsg
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.llm import LLMClient
 from knowledge_bot.core.schema import allowed_fields_for_type
-from knowledge_bot.core.settings import get_author_context, load_enums_config, load_prompt
+from knowledge_bot.core.settings import (
+    enums_for_llm_payload,
+    get_author_context,
+    load_enums_config,
+    load_prompt,
+)
 from knowledge_bot.services.render import render_note
 from knowledge_bot.services.tags_inventory import get_tags_inventory_for_prompt
 from knowledge_bot.services.wikilinks import inject_wikilinks
@@ -67,11 +72,7 @@ async def on_set_type(cb: CallbackQuery) -> None:
             "allowed_fields": allowed_fields,
             "summary": summary_l,
             "filenames": st["payload"].get("filenames", []),
-            "enums": {
-                "namespaces_controlled": enums_cfg.namespaces_controlled,
-                "common": enums_cfg.common,
-                "per_type": enums_cfg.per_type,
-            },
+            "enums": enums_for_llm_payload(enums_cfg),
         }
         filled = llm_l.chat_json(field_system, json.dumps(user, ensure_ascii=False)).content or {}
         for k in allowed_fields:
@@ -99,11 +100,7 @@ async def on_set_type(cb: CallbackQuery) -> None:
             "type": new_type,
             "summary": summary_l,
             "attachments": {"links": st["payload"].get("attachments", {}).get("links", [])},
-            "enums": {
-                "namespaces_controlled": enums_cfg.namespaces_controlled,
-                "common": enums_cfg.common,
-                "per_type": enums_cfg.per_type,
-            },
+            "enums": enums_for_llm_payload(enums_cfg),
             "synonyms": enums_cfg.synonyms,
             "filenames": st["payload"].get("filenames", []),
             "fields": fields_for_tags,

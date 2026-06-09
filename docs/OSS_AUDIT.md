@@ -1,6 +1,6 @@
 # OSS universality audit (living doc)
 
-Last review: 2026-06-09 (post daily check-in deploy).  
+Last review: 2026-06-10 (KB save + vault maintenance audit).  
 North star: one repo, any locale, any module subset, no author identity in git, config-driven everything, setup via onboarding skill + env.
 
 ## Philosophy scorecard
@@ -27,6 +27,15 @@ North star: one repo, any locale, any module subset, no author identity in git, 
 | Sample entry | `mood:5, energy:3, stress:2, focus:карьера, day_quality:4` | ✅ |
 | Routines today | `400_Рутины/📅 Рутины/📅 Сегодня.md` | ✅ toggles applied (e.g. Зал → `[x]`) |
 | Scheduler | `send_daily_checkin_prompt` 23:45 MSK | ✅ in APScheduler log |
+
+## Done (2026-06-10 session)
+
+| Area | Change |
+|------|--------|
+| KB save (no bulk) | `templates_path` → vault `800_*/Templates/Clones` (was `knowledge_bot/templates/`) |
+| KB LLM payloads | `enums_for_llm_payload()` — frozenset → sorted list (fixes `json.dumps` in route/field_fill/tags) |
+| Maintenance audit ✗ | `VisionRateLimitError` re-export from `extract`; dry-run dup lines via `dup_delete_marker` |
+| Tests | `test_knowledge_save_fixes.py` |
 
 ## Done (2026-06-09 session)
 

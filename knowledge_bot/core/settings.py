@@ -92,6 +92,15 @@ class EnumsConfig:
     synonyms: dict[str, dict[str, str]]
 
 
+def enums_for_llm_payload(cfg: EnumsConfig) -> dict[str, object]:
+    """JSON-serializable enums block for routing/field_fill/tags prompts."""
+    return {
+        "namespaces_controlled": sorted(cfg.namespaces_controlled),
+        "common": cfg.common,
+        "per_type": cfg.per_type,
+    }
+
+
 @lru_cache(maxsize=8)
 def load_enums_config(config_dir: Path | str) -> EnumsConfig:
     base = _resolve_config_dir(config_dir)

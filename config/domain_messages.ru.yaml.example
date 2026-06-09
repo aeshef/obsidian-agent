@@ -131,6 +131,7 @@ knowledge_maintenance:
   marker_saved: "✓ Записано:"
   marker_deleted_empty: "[удалено: нет контента]"
   regex_deleted_line: '^\s*удалён:'
+  dup_delete_marker: 'удалить:'
   regex_dup_freed: 'Файлов:\s*(\d+),\s*освобождено\s*~([0-9.]+)\s*МБ'
   regex_refill_total: 'Итого refill: затронуто=(\d+), пропущено=(\d+), llm_errors=(\d+)'
   regex_singleton_count: 'Заметок, из которых будут/были удалены singleton-теги:\s*(\d+)'

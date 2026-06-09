@@ -1,15 +1,38 @@
 # shellcheck shell=bash
-# Fallback when export_vault_paths_env.py is unavailable (EN layout; RU via vault_paths.ru.yaml).
+# Fallback when export_vault_paths_env.py is unavailable; folder defaults follow AGENT_LOCALE.
 vault_paths_apply_defaults() {
-  : "${VAULT_FOLDER_TASKS:=100_Tasks}"
-  : "${VAULT_FOLDER_GOALS:=200_Goals}"
-  : "${VAULT_FOLDER_DASHBOARDS:=300_Dashboards}"
-  : "${VAULT_FOLDER_ROUTINES:=400_Routines}"
-  : "${VAULT_FOLDER_HANDWRITTEN:=600_Handwritten}"
-  : "${VAULT_FOLDER_AUTOMATION:=800_Automation}"
-  : "${VAULT_DASH_LOGS:=Logs}"
-  : "${VAULT_DASH_CHARTS:=Charts}"
-  : "${VAULT_DASH_DATA:=Data}"
+  local locale="${AGENT_LOCALE:-en}"
+  if [[ -z "${VAULT_FOLDER_TASKS:-}" ]]; then
+    if [[ "$locale" == ru* ]]; then
+      : "${VAULT_FOLDER_TASKS:=100_Задачи}"
+      : "${VAULT_FOLDER_GOALS:=200_Цели}"
+      : "${VAULT_FOLDER_DASHBOARDS:=300_Дашборды}"
+      : "${VAULT_FOLDER_ROUTINES:=400_Рутины}"
+      : "${VAULT_FOLDER_HANDWRITTEN:=600_Рукописное}"
+      : "${VAULT_FOLDER_AUTOMATION:=800_Автоматизация}"
+      : "${VAULT_DASH_LOGS:=Логи}"
+      : "${VAULT_DASH_CHARTS:=Графики}"
+      : "${VAULT_DASH_DATA:=Данные}"
+    else
+      : "${VAULT_FOLDER_TASKS:=100_Tasks}"
+      : "${VAULT_FOLDER_GOALS:=200_Goals}"
+      : "${VAULT_FOLDER_DASHBOARDS:=300_Dashboards}"
+      : "${VAULT_FOLDER_ROUTINES:=400_Routines}"
+      : "${VAULT_FOLDER_HANDWRITTEN:=600_Handwritten}"
+      : "${VAULT_FOLDER_AUTOMATION:=800_Automation}"
+      : "${VAULT_DASH_LOGS:=Logs}"
+      : "${VAULT_DASH_CHARTS:=Charts}"
+      : "${VAULT_DASH_DATA:=Data}"
+    fi
+  elif [[ "$locale" == ru* ]]; then
+    : "${VAULT_DASH_LOGS:=Логи}"
+    : "${VAULT_DASH_CHARTS:=Графики}"
+    : "${VAULT_DASH_DATA:=Данные}"
+  else
+    : "${VAULT_DASH_LOGS:=Logs}"
+    : "${VAULT_DASH_CHARTS:=Charts}"
+    : "${VAULT_DASH_DATA:=Data}"
+  fi
   : "${VAULT_PATH_ACTIONS_MAC:=Actions/Mac}"
   : "${VAULT_PATH_ACTIONS_IPHONE:=Actions/IPhone}"
   : "${VAULT_PATH_CONTEXT_TODAY:=Actions/context_today.json}"
