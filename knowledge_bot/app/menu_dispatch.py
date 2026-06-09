@@ -49,7 +49,6 @@ def _build_handlers(
 ) -> dict[str, Callable[[], Awaitable[None]]]:
     from knowledge_bot.app.handlers.modes import disable_bulk_ingest, enable_bulk_ingest
     from knowledge_bot.app.state import is_bulk_ingest, main_reply_keyboard
-    from shared.telegram.host.keyboards import knowledge_keyboard
 
     uid = message.from_user.id if message.from_user else 0
     handlers: dict[str, Callable[[], Awaitable[None]]] = {}
@@ -68,16 +67,14 @@ def _build_handlers(
 
         if action_id == "bulk_on":
 
-            async def _bulk_on(_m=message, _kb=reply_markup, _st=state):
-                kb = _kb or knowledge_keyboard(bulk_active=True)
-                await enable_bulk_ingest(_m, reply_markup=kb, state=_st)
+            async def _bulk_on(_m=message, _st=state):
+                await enable_bulk_ingest(_m, state=_st)
 
             handlers[label] = _bulk_on
         elif action_id == "bulk_off":
 
-            async def _bulk_off(_m=message, _kb=reply_markup, _st=state):
-                kb = _kb or knowledge_keyboard(bulk_active=False)
-                await disable_bulk_ingest(_m, reply_markup=kb, state=_st)
+            async def _bulk_off(_m=message, _st=state):
+                await disable_bulk_ingest(_m, state=_st)
 
             handlers[label] = _bulk_off
         elif action_id == "query":

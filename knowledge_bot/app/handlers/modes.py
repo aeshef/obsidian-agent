@@ -25,9 +25,12 @@ async def enable_bulk_ingest(
     set_bulk_ingest(uid, True)
     if state is not None:
         from shared.telegram.host.constants import DOMAIN_KNOWLEDGE
+        from shared.telegram.host.keyboards import knowledge_keyboard
 
         await state.update_data(bulk_ingest=True, ui_mode=DOMAIN_KNOWLEDGE)
-    kb = reply_markup or main_reply_keyboard(bulk_active=True)
+        kb = knowledge_keyboard(bulk_active=True)
+    else:
+        kb = reply_markup or main_reply_keyboard(bulk_active=True)
     await message.answer(kmsg("bulk_enabled"), reply_markup=kb)
 
 
@@ -39,8 +42,16 @@ async def disable_bulk_ingest(
     uid = message.from_user.id if message.from_user else 0
     stats = set_bulk_ingest(uid, False)
     if state is not None:
+        from shared.telegram.host.constants import DOMAIN_IDS, DOMAIN_KNOWLEDGE
+        from shared.telegram.host.keyboards import keyboard_for_mode
+
         await state.update_data(bulk_ingest=False)
-    kb = reply_markup or main_reply_keyboard(bulk_active=False)
+        data = await state.get_data()
+        ui_mode = data.get("ui_mode", DOMAIN_KNOWLEDGE)
+        kb_mode = ui_mode if ui_mode in DOMAIN_IDS else DOMAIN_KNOWLEDGE
+        kb = keyboard_for_mode(kb_mode, user_id=uid)
+    else:
+        kb = reply_markup or main_reply_keyboard(bulk_active=False)
     await message.answer(
         kmsg("bulk_disabled", saved=stats["saved"], failed=stats["failed"]),
         reply_markup=kb,
