@@ -114,10 +114,24 @@ def include_planning_aux(dp: Dispatcher) -> None:
         F.data.startswith("confirm_task")
         | F.data.startswith("edit_task")
         | F.data.startswith("cancel_task")
+        | F.data.startswith("chk:")
     )
 
     @aux.callback_query(_planning_cb)
     async def _cb(callback: CallbackQuery, state: FSMContext, planning=None):
+        data = callback.data or ""
+        if data.startswith("chk:"):
+            from shared.capabilities.planning_gates import planning_daily_checkin_enabled
+
+            if not planning_daily_checkin_enabled():
+                from shared.i18n import msg
+
+                await callback.answer(msg("finance", "connector_unavailable"), show_alert=True)
+                return
+            from planning_bot.app.handlers.daily_checkin import handle_checkin_callback
+
+            await handle_checkin_callback(callback, state)
+            return
         if planning is None:
             from shared.i18n import msg
 

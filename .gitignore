@@ -54,6 +54,7 @@ knowledge_bot/config/media_extensions.yaml
 knowledge_bot/config/tag_domains.yaml
 knowledge_bot/config/contact_handles.yaml
 planning_bot/config/kanban_schema.yaml
+planning_bot/config/daily_checkin.yaml
 planning_bot/config/calendar_life_sections.yaml
 
 # LaunchAgent (генерируется локально из *.example.plist)

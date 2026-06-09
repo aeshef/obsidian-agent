@@ -6,7 +6,16 @@ from pathlib import Path
 from aiogram.fsm.storage.base import BaseStorage
 from shared.logging_setup import add_rotating_file_handler, setup_logging
 from planning_bot.app.chatid_store import load_chat_id
-from planning_bot.app.handlers import callbacks, commands, menus, recommendations, reflection, tasks, voice
+from planning_bot.app.handlers import (
+    callbacks,
+    commands,
+    daily_checkin,
+    menus,
+    recommendations,
+    reflection,
+    tasks,
+    voice,
+)
 from planning_bot.core.config import ACTION_LOGS_DIR, CHAT_ID_FILE, LOG_DIR
 from planning_bot.core.llm import DeepSeekClient
 from planning_bot.core.settings import get_config_path
@@ -53,6 +62,8 @@ class PlanningBot:
     show_goals_progress = menus.show_goals_progress
     send_morning_routine_reminder = menus.send_morning_routine_reminder
     send_evening_routine_reminder = menus.send_evening_routine_reminder
+    send_daily_checkin_prompt = menus.send_daily_checkin_prompt
+    start_daily_checkin = daily_checkin.start_daily_checkin
     send_goals_alerts = menus.send_goals_alerts
     send_deadlines_alerts = menus.send_deadlines_alerts
     send_stuck_alerts = menus.send_stuck_alerts

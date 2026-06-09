@@ -5,6 +5,7 @@ import re
 from typing import Dict, List, Tuple
 
 from planning_bot.core.config import VAULT_PATH
+from planning_bot.services.routines_lock import routines_transaction
 from shared.tz import get_tz
 
 ROUTINES_DIR = VAULT_PATH / pdmsg("auto_9e515fb7c8") / pdmsg("auto_fc906f665b")
@@ -167,6 +168,49 @@ def append_to_history(history_entry: str):
         new_content = pdmsg("auto_a55cff26c3", p1=history_entry)
     
     HISTORY_FILE.write_text(new_content, encoding='utf-8')
+
+
+_SECTION_HEADER_KEYS = {
+    "morning": "auto_87b10eda1f",
+    "day": "auto_3ed8660b4d",
+    "evening": "auto_0f1e39b138",
+}
+
+
+def set_task_done(section: str, task: str, done: bool) -> bool:
+    """Toggle one checkbox in today's routines file."""
+    if section not in _SECTION_HEADER_KEYS or not task:
+        return False
+    if not TODAY_FILE.exists():
+        check_and_update()
+    if not TODAY_FILE.exists():
+        return False
+
+    header_token = pdmsg(_SECTION_HEADER_KEYS[section])
+    mark = "x" if done else " "
+
+    with routines_transaction(TODAY_FILE):
+        lines = TODAY_FILE.read_text(encoding="utf-8").split("\n")
+        in_section = False
+        changed = False
+        out: list[str] = []
+        for line in lines:
+            if header_token in line:
+                in_section = True
+                out.append(line)
+                continue
+            if in_section and line.startswith("## "):
+                in_section = False
+            if in_section:
+                match = re.match(r"(-\s*\[)([ x])(\]\s*)(.+)", line.strip())
+                if match and match.group(4).strip() == task:
+                    out.append(f"- [{mark}] {task}")
+                    changed = True
+                    continue
+            out.append(line)
+        if changed:
+            TODAY_FILE.write_text("\n".join(out), encoding="utf-8")
+        return changed
 
 
 def check_and_update():

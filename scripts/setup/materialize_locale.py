@@ -119,6 +119,11 @@ def materialize(locale: str | None = None, *, refresh_vault_paths: bool = False)
         plan_cfg / "kanban_schema.yaml",
         ROOT,
     )
+    _copy_locale_example_if_missing(
+        plan_cfg / "daily_checkin.yaml.example",
+        plan_cfg / "daily_checkin.yaml",
+        ROOT,
+    )
 
 
 def _copy_locale_example_if_missing(example: Path, dst: Path, root: Path) -> None:

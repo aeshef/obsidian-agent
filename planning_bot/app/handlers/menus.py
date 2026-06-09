@@ -148,6 +148,19 @@ async def send_morning_routine_reminder(self, bot: Bot):
         logger.error("Morning routine reminder failed: %s", e)
 
 
+async def send_daily_checkin_prompt(self, bot: Bot):
+    try:
+        if not self.chat_id:
+            logger.warning("Chat ID not set, skip daily check-in prompt")
+            return
+        from planning_bot.app.handlers.daily_checkin import send_daily_checkin_prompt
+
+        await send_daily_checkin_prompt(bot, self.chat_id)
+        logger.info("Sent daily check-in prompt")
+    except Exception as e:
+        logger.error("Daily check-in prompt failed: %s", e)
+
+
 async def send_evening_routine_reminder(self, bot: Bot):
     try:
         if not should_send_evening_reminder() or not self.chat_id:

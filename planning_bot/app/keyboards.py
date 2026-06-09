@@ -81,16 +81,20 @@ def append_button_rows(
 
 
 def get_routines_keyboard() -> ReplyKeyboardMarkup:
-    rows = compact_keyboard_rows(
+    from planning_bot.core.pdmsg import pdmsg
+
+    close_day = pdmsg("auto_checkin_close")
+    rows_spec: list[list[str]] = [
         [
-            [
-                pmsg_menu("routines_stats"),
-                pmsg_menu("routines_recommendations"),
-            ],
-            [pmsg_menu("routines_today")],
-            [pmsg_menu("back")],
-        ]
-    )
+            pmsg_menu("routines_stats"),
+            pmsg_menu("routines_recommendations"),
+        ],
+        [pmsg_menu("routines_today")],
+    ]
+    if close_day:
+        rows_spec.append([close_day])
+    rows_spec.append([pmsg_menu("back")])
+    rows = compact_keyboard_rows(rows_spec)
     kb = reply_keyboard_from_rows(rows, resize_keyboard=True)
     return _keyboard_extras.apply(kb)
 

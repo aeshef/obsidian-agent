@@ -41,6 +41,8 @@ def planning_action_handlers(ctx: PlanningMenuContext) -> dict[str, ActionFn]:
         "routines_recommendations": lambda: bot.get_routines_recommendations(message),
         "show_pending_routines": lambda: menus.show_pending_routines(bot, message),
         "start_reflection": lambda: bot.start_reflection(message, state),
+        "show_routines_menu": lambda: menus.show_routines_menu(bot, message),
+        "start_daily_checkin": lambda: bot.start_daily_checkin(message, state),
     }
 
 
@@ -56,5 +58,7 @@ PLANNING_ACTION_IDS = frozenset(
         "routines_recommendations",
         "show_pending_routines",
         "start_reflection",
+        "show_routines_menu",
+        "start_daily_checkin",
     }
 )

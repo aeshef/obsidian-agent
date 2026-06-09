@@ -4337,6 +4337,7 @@ planning:
   auto_e3939e1bdb: 'Failed to read %s: %s'
   auto_e3aa9825ef: August
   auto_e3bbb7b586: 🔄 Routines
+  auto_checkin_close: 🌙 Close day
   auto_e3dd0ca3fe: '
 
     _Updated: {_p1} | horizon: {_p3} days._

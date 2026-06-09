@@ -18,12 +18,17 @@ _scheduler: Optional[AsyncIOScheduler] = None
 def start_scheduler(planning, bot: Bot) -> None:
     """Register daily jobs (mirrors former PTB job_queue schedule)."""
     from shared.capabilities.planning_gates import (
+        planning_daily_checkin_enabled,
         planning_deadlines_alerts_enabled,
         planning_goals_alerts_enabled,
         planning_routines_enabled,
         planning_stuck_alerts_enabled,
         planning_task_id_maintenance_enabled,
         planning_weekly_review_enabled,
+    )
+    from planning_bot.services.daily_checkin_config import (
+        checkin_schedule,
+        replace_passive_evening_reminders,
     )
 
     global _scheduler
@@ -36,6 +41,14 @@ def start_scheduler(planning, bot: Bot) -> None:
             args=[bot],
             id='weekly_review',
         )
+    if planning_daily_checkin_enabled():
+        hour, minute = checkin_schedule()
+        _scheduler.add_job(
+            planning.send_daily_checkin_prompt,
+            CronTrigger(hour=hour, minute=minute, timezone=tz),
+            args=[bot],
+            id='daily_checkin_prompt',
+        )
     if planning_routines_enabled():
         for hour in (8, 9, 10):
             _scheduler.add_job(
@@ -44,13 +57,17 @@ def start_scheduler(planning, bot: Bot) -> None:
                 args=[bot],
                 id=f'morning_routine_{hour}',
             )
-        for hour in (21, 22, 23):
-            _scheduler.add_job(
-                planning.send_evening_routine_reminder,
-                CronTrigger(hour=hour, minute=0, timezone=tz),
-                args=[bot],
-                id=f'evening_routine_{hour}',
-            )
+        skip_evening_passive = (
+            planning_daily_checkin_enabled() and replace_passive_evening_reminders()
+        )
+        if not skip_evening_passive:
+            for hour in (21, 22, 23):
+                _scheduler.add_job(
+                    planning.send_evening_routine_reminder,
+                    CronTrigger(hour=hour, minute=0, timezone=tz),
+                    args=[bot],
+                    id=f'evening_routine_{hour}',
+                )
 
     async def daily_add_ids_to_tasks():
         try:
@@ -94,7 +111,18 @@ def start_scheduler(planning, bot: Bot) -> None:
     logger.info('APScheduler started (%s)', TIMEZONE)
 
 def run_startup_tasks(planning) -> None:
-    from shared.capabilities.planning_gates import planning_routines_enabled
+    from shared.capabilities.planning_gates import (
+        planning_daily_checkin_enabled,
+        planning_routines_enabled,
+    )
+
+    if planning_daily_checkin_enabled():
+        try:
+            from planning_bot.services.signals_manager import ensure_signals_layout
+
+            ensure_signals_layout()
+        except Exception as e:
+            logger.warning("signals layout ensure failed: %s", e)
 
     if not planning_routines_enabled():
         logger.info("planning_routines feature off — skip routines_manager startup")

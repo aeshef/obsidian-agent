@@ -25,6 +25,7 @@ FEAT_BROKER_INVEST_BOX = "broker_invest_box"
 # Planning APScheduler jobs (require planning module when unset)
 FEAT_PLANNING_WEEKLY_REVIEW = "planning_weekly_review"
 FEAT_PLANNING_ROUTINES = "planning_routines"
+FEAT_PLANNING_DAILY_CHECKIN = "planning_daily_checkin"
 FEAT_PLANNING_GOALS_ALERTS = "planning_goals_alerts"
 FEAT_PLANNING_DEADLINES = "planning_deadlines_alerts"
 FEAT_PLANNING_STUCK = "planning_stuck_alerts"
@@ -38,6 +39,7 @@ ALL_FEATURE_KEYS = (
     FEAT_BROKER_INVEST_BOX,
     FEAT_PLANNING_WEEKLY_REVIEW,
     FEAT_PLANNING_ROUTINES,
+    FEAT_PLANNING_DAILY_CHECKIN,
     FEAT_PLANNING_GOALS_ALERTS,
     FEAT_PLANNING_DEADLINES,
     FEAT_PLANNING_STUCK,
@@ -49,11 +51,19 @@ _ALL_FEATURE_KEYS = ALL_FEATURE_KEYS
 _ENV_FEATURE = {k: f"CAP_FEATURE_{k.upper()}" for k in ALL_FEATURE_KEYS}
 
 
+def _routines_enabled(profile: CapabilityProfile) -> bool:
+    if FEAT_PLANNING_ROUTINES in profile.feature_overrides:
+        return bool(profile.feature_overrides[FEAT_PLANNING_ROUTINES])
+    return _parent_default(profile, FEAT_PLANNING_ROUTINES)
+
+
 def _parent_default(profile: CapabilityProfile, key: str) -> bool:
     if key in (FEAT_HEALTH_NUTRITION, FEAT_HEALTH_BODY):
         return profile.module(MODULE_PLANNING) and profile.connector(CONNECTOR_APPLE_HEALTH)
     if key in (FEAT_BROKER_REGULAR, FEAT_BROKER_IIS, FEAT_BROKER_INVEST_BOX):
         return profile.module(MODULE_FINANCE) and profile.connector(CONNECTOR_BROKER_SYNC)
+    if key == FEAT_PLANNING_DAILY_CHECKIN:
+        return profile.module(MODULE_PLANNING) and _routines_enabled(profile)
     if key.startswith("planning_"):
         return profile.module(MODULE_PLANNING)
     return True

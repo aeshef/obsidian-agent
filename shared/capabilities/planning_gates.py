@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from shared.capabilities.features import (
+    FEAT_PLANNING_DAILY_CHECKIN,
     FEAT_PLANNING_DEADLINES,
     FEAT_PLANNING_GOALS_ALERTS,
     FEAT_PLANNING_ROUTINES,
@@ -23,6 +24,10 @@ def planning_weekly_review_enabled() -> bool:
 
 def planning_routines_enabled() -> bool:
     return feature_enabled(FEAT_PLANNING_ROUTINES)
+
+
+def planning_daily_checkin_enabled() -> bool:
+    return feature_enabled(FEAT_PLANNING_DAILY_CHECKIN)
 
 
 def planning_goals_alerts_enabled() -> bool:

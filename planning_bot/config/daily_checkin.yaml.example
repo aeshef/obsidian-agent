@@ -1,0 +1,57 @@
+# Daily close: routines (binary) + subjective signals (scales).
+# cp daily_checkin.yaml.example → daily_checkin.yaml (optional overrides).
+# Labels: config/messages.{locale}.yaml (planning.messages.checkin_*).
+# Schedule overrides: config/agent/platform.yaml → planning_checkin.
+
+checkin:
+  schedule:
+    hour: 23
+    minute: 45
+  snooze_minutes: 30
+  routine_sections:
+    - evening
+    - day
+  replace_passive_evening_reminders: true
+  skip_already_checked_routines: true
+
+scales:
+  apple_mood_7:
+    values: [1, 2, 3, 4, 5, 6, 7]
+    label_keys:
+      - checkin_scale_mood_1
+      - checkin_scale_mood_2
+      - checkin_scale_mood_3
+      - checkin_scale_mood_4
+      - checkin_scale_mood_5
+      - checkin_scale_mood_6
+      - checkin_scale_mood_7
+  likert_5:
+    values: [1, 2, 3, 4, 5]
+    label_keys:
+      - checkin_scale_likert_1
+      - checkin_scale_likert_2
+      - checkin_scale_likert_3
+      - checkin_scale_likert_4
+      - checkin_scale_likert_5
+
+signals:
+  - id: mood
+    scale: apple_mood_7
+    question_key: checkin_signal_mood
+    required: true
+  - id: energy
+    scale: likert_5
+    question_key: checkin_signal_energy
+    required: true
+  - id: stress
+    scale: likert_5
+    question_key: checkin_signal_stress
+    required: true
+  - id: focus_direction
+    type: category_choice
+    question_key: checkin_signal_focus
+    required: true
+  - id: day_quality
+    scale: likert_5
+    question_key: checkin_signal_day_quality
+    required: true

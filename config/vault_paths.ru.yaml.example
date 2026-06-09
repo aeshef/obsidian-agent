@@ -43,6 +43,9 @@ files:
   reflection_weekly_file: "Рефлексия_{date}.md"
   routines_calendar_subdir: "📅 Рутины/"
   routines_stats_md: "📊 Рутины_Статистика.md"
+  signals_subdir: "📊 Сигналы/"
+  signals_config_yaml: "📋 Конфиг_Сигналов.yaml"
+  signals_history_md: "📊 История_Сигналов.md"
 
 finance:
   dashboard_md: "📊 Финансы_Дашборд.md"

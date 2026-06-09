@@ -43,6 +43,7 @@ sync:
 #   broker_invest_box: true
 #   planning_weekly_review: true
 #   planning_routines: true
+#   planning_daily_checkin: true
 #   planning_goals_alerts: true
 #   planning_deadlines_alerts: true
 #   planning_stuck_alerts: true

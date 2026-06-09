@@ -108,6 +108,12 @@ planning_reflection:
   weekly_logs_limit: 100
   previous_reflections_limit: 5
 
+planning_checkin:
+  hour: 23
+  minute: 45
+  snooze_minutes: 30
+  replace_passive_evening_reminders: true
+
 planning_llm:
   task_parsing: 0.3
   weekly_review: 0.8

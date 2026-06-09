@@ -61,6 +61,8 @@ strings:
   planning.menu.routines_stats: feature:planning_routines
   planning.menu.routines_recommendations: feature:planning_routines
   planning.menu.routines_today: feature:planning_routines
+  planning.auto_checkin_close: feature:planning_daily_checkin
+  planning.auto_e3bbb7b586: feature:planning_routines
   planning.submenu.kanban_column: planning
   planning.submenu.category: planning
   planning.submenu.priority: planning
@@ -98,6 +100,7 @@ patterns:
   "planning.messages.routines*": "feature:planning_routines"
   "planning.messages.pending_routines*": "feature:planning_routines"
   "planning.messages.*_reminder": "feature:planning_routines"
+  "planning.messages.checkin_*": "feature:planning_daily_checkin"
   "knowledge.buttons.*": "knowledge"
   "knowledge.bulk_*": "knowledge"
 
@@ -120,6 +123,8 @@ menu_actions:
       - { label_key: auto_b6b32200b7, action: routines_recommendations }
       - { label_key: auto_7a4a4c1791, action: show_pending_routines }
       - { label_key: auto_f895d3042c, action: start_reflection }
+      - { label_key: auto_e3bbb7b586, action: show_routines_menu }
+      - { label_key: auto_checkin_close, action: start_daily_checkin }
     submenu:
       - { kind: kanban_column, action: filter_by_kanban_column }
       - { kind: category, action: filter_by_category }

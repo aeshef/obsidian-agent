@@ -725,6 +725,50 @@ planning:
 
       {recommendations}'
     routines_stats_error: ❌ Error loading routine statistics.
+    checkin_offer: '🌙 **Close your day?**
+
+      Quick routine check-in and a few subjective signals for analytics.'
+    checkin_btn_start: '▶️ Start'
+    checkin_btn_later: '⏰ Later'
+    checkin_btn_skip_today: 'Skip today'
+    checkin_btn_done: '✅ Done'
+    checkin_btn_skip: '❌ Not done'
+    checkin_btn_skip_section: 'Skip block'
+    checkin_snoozed: 'OK — I''ll remind you later.'
+    checkin_skipped_today: 'Skipped for today.'
+    checkin_session_expired: 'Session expired — open Routines → Close day.'
+    checkin_signals_intro: '**Subjective signals** — not a grade, just data for trends.'
+    checkin_routine_prompt: '{section}
+
+      **{task}** ({index}/{total})'
+    checkin_section_morning: '🌅 Morning routines'
+    checkin_section_day: '☀️ Day routines'
+    checkin_section_evening: '🌙 Evening routines'
+    checkin_section_other: 'Routines'
+    checkin_signal_mood: 'How is your mood at the end of the day?'
+    checkin_signal_energy: 'Energy level?'
+    checkin_signal_stress: 'Stress level?'
+    checkin_signal_focus: 'Where did your focus go today?'
+    checkin_signal_day_quality: 'How was the day overall?'
+    checkin_scale_mood_1: '😫'
+    checkin_scale_mood_2: '😞'
+    checkin_scale_mood_3: '😕'
+    checkin_scale_mood_4: '😐'
+    checkin_scale_mood_5: '🙂'
+    checkin_scale_mood_6: '😊'
+    checkin_scale_mood_7: '😄'
+    checkin_scale_likert_1: '1'
+    checkin_scale_likert_2: '2'
+    checkin_scale_likert_3: '3'
+    checkin_scale_likert_4: '4'
+    checkin_scale_likert_5: '5'
+    checkin_signal_summary_line: '{signal_id}: {value}'
+    checkin_signals_history_header: |
+      # Daily signals history
+
+      > Append-only log from Telegram check-in. Do not edit manually.
+    checkin_complete_title: '✅ Day closed. Thanks!'
+    checkin_complete_signals_saved: 'Signals saved to vault.'
     stats_active: '📋 Active tasks: {count}
 
 

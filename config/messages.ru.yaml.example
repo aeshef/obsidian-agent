@@ -308,6 +308,52 @@ planning:
     statuses_menu_title: "📋 **Выбери статус:**"
     routines_menu_title: "🔄 **Рутины**\n\nВыбери действие:"
     routines_stats_error: "❌ Ошибка при загрузке статистики рутин."
+    checkin_offer: |
+      🌙 **Закрыть день?**
+
+      Быстрый чек-ин рутин и пара субъективных сигналов для аналитики.
+    checkin_btn_start: "▶️ Начать"
+    checkin_btn_later: "⏰ Позже"
+    checkin_btn_skip_today: "Пропустить сегодня"
+    checkin_btn_done: "✅ Сделал"
+    checkin_btn_skip: "❌ Не сделал"
+    checkin_btn_skip_section: "Пропустить блок"
+    checkin_snoozed: "Ок — напомню позже."
+    checkin_skipped_today: "Пропущено на сегодня."
+    checkin_session_expired: "Сессия истекла — Рутины → Закрыть день."
+    checkin_signals_intro: "**Субъективные сигналы** — не оценка, а данные для трендов."
+    checkin_routine_prompt: |
+      {section}
+
+      **{task}** ({index}/{total})
+    checkin_section_morning: "🌅 Утренние рутины"
+    checkin_section_day: "☀️ Дневные рутины"
+    checkin_section_evening: "🌙 Вечерние рутины"
+    checkin_section_other: "Рутины"
+    checkin_signal_mood: "Как настроение к концу дня?"
+    checkin_signal_energy: "Уровень энергии?"
+    checkin_signal_stress: "Уровень стресса?"
+    checkin_signal_focus: "Куда ушёл фокус дня?"
+    checkin_signal_day_quality: "Как оценишь день в целом?"
+    checkin_scale_mood_1: "😫"
+    checkin_scale_mood_2: "😞"
+    checkin_scale_mood_3: "😕"
+    checkin_scale_mood_4: "😐"
+    checkin_scale_mood_5: "🙂"
+    checkin_scale_mood_6: "😊"
+    checkin_scale_mood_7: "😄"
+    checkin_scale_likert_1: "1"
+    checkin_scale_likert_2: "2"
+    checkin_scale_likert_3: "3"
+    checkin_scale_likert_4: "4"
+    checkin_scale_likert_5: "5"
+    checkin_signal_summary_line: "{signal_id}: {value}"
+    checkin_signals_history_header: |
+      # История сигналов дня
+
+      > Append-only лог из Telegram чек-ина. Не редактируй вручную.
+    checkin_complete_title: "✅ День закрыт. Спасибо!"
+    checkin_complete_signals_saved: "Сигналы сохранены в vault."
     pending_routines_header: "📋 **Невыполненные рутины на сегодня:**\n\n"
     morning_section: "🌅 **Утренние:**\n"
     morning_all_done: "🌅 **Утренние:** ✅ Все выполнены!\n\n"
