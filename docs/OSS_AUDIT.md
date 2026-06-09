@@ -2,53 +2,53 @@
 
 Goals: module toggles, locale (en/ru), no personal data in git, config-driven text/paths, simple `/setup` onboarding.
 
-## Fixed in recent commits
+## Done
 
 | Area | Status |
 |------|--------|
-| Cyrillic in `.py` | Moved to YAML (`onboarding_interview`, `vault_paths_locale`, `goals` regex) |
-| Task search by `created_date` | `search_tasks(created_from/to, sort_by=created_asc)` |
-| Task movement history | `get_task_timeline` + full log scan |
-| Vault dashboard scaffold | `scaffold_vault_dashboards.py` + `vault_dashboards.{en,ru}.yaml.example` |
-| `kanban_schema` locale | `kanban_schema.{en,ru}.yaml.example` + materialize on setup |
+| Cyrillic in `.py` | YAML (`onboarding_interview`, `vault_paths_locale`, `goals` regex) |
+| Task `created_date` + timeline | `search_tasks`, `get_task_timeline` |
+| Vault dashboard scaffold | `vault_dashboards.{en,ru}.yaml.example` + `vault-templates/dashboards/` |
+| `kanban_schema` locale | `{en,ru}.yaml.example` + `materialize_locale.py` |
+| `dashboard_templates` locale | Full EN/RU `.yaml.example` + key-tree test |
 | `main_dashboard_md` in vault_paths | EN/RU filenames |
+| LLM temps/timeouts/tool_choice | `config/agent/models.yaml` + `shared/llm_defaults.py` |
+| Deploy assets | `vault-templates/` rsync on deploy |
+| Setup | `scaffold_vault_dashboards.py` when `VAULT_PATH` + `capabilities.yaml` exist |
+| Menu actions | `config/ui_capabilities.yaml` → `menu_actions_config.py` (labels via messages) |
 
-## Remaining gaps (priority)
+## Remaining (priority)
 
-### P0 — blocks fresh EN onboarding
+### P1
 
-1. **Author vault dashboards** (`🎯 Главный_Дашборд.md` in personal vault) are not auto-migrated — new users get scaffolded file; authors keep legacy files until `--force` or manual merge.
-2. **`dashboard_templates.en.yaml.example`** is partial vs RU — expand section parity before calling finance OSS-complete.
-3. **`config/vault_paths.yaml` on author machine** — may lack `main_dashboard_md` until merge from `.ru.yaml.example`.
+1. **Author vault** — legacy `🎯 Главный_Дашборд.md` not auto-migrated; use `scaffold_vault_dashboards.py --force` or merge manually.
+2. **Menu routing** — domain text still routed via `domain_dispatch.py` + per-bot `menu_dispatch`; consolidate bulk/KB buttons into `ui_capabilities` reply specs fully.
+3. **`kanban_schema.yaml.example`** — deprecated alias; remove after one release cycle.
 
-### P1 — architecture / hardcode
+### P2
 
-4. **LLM call params** (`temperature`, `timeout`, `tool_choice`) — should live in `config/agent/platform.yaml` / model roles (user policy).
-5. **Menu dispatch** (`if agent_app.has_domain…`, `BTN_BULK_ON`) — move to capability-driven registry like agent tools.
-6. **`kanban_schema.yaml.example`** still RU-centric alias — prefer `kanban_schema.ru.yaml.example` only; deprecate generic `.example` duplicate.
+4. **Author-only scripts** — audit `planning_bot/tools/`, `knowledge_bot/tools/`, one-off `scripts/`; gitignore or `scripts/local/`.
+5. **`resolve_shell_msg.py` JSON** — deploy log noise (cosmetic).
+6. **Regular processes** — document LaunchAgents in `DEPLOY_VPS.md` (partial).
 
-### P2 — repo hygiene
+### P3
 
-7. **Maintainer / one-off scripts** in tree — audit `scripts/`, `planning_bot/tools/`, `knowledge_bot/tools/` for OSS vs author-only; extend `.gitignore` or move to `scripts/local/` (gitignored).
-8. **`.txt` prompts** — prod `*.txt` gitignored ✓; ensure CI never copies personal prompts; `seed_planning_prompts` only from `.example.txt`.
-9. **Regular processes** — verify `obsidian_sync.sh`, `run_finance_dashboard_daily.sh`, LaunchAgents documented in `DEPLOY_VPS.md` / `ONBOARDING.md`.
+7. Onboarding interview EN default categories from `categories_mvp.en` / `kanban_schema.en`.
+8. Planning chart scripts — spot-check new `pdmsg` keys in both locales.
 
-### P3 — i18n completeness
-
-10. **Planning chart captions** — mostly in `domain_messages.{en,ru}` ✓; spot-check new chart scripts.
-11. **Categories/priorities** — user-customizable via `kanban_schema.yaml`; onboarding interview should offer EN defaults for EN locale.
-12. **Dataview dashboards** — tag prefixes from `kanban_schema.tag_prefixes`; quarter names in `vault_dashboards` strings.
-
-## Verification checklist (CI / manual)
+## Verification
 
 ```bash
-AGENT_LOCALE=en CAP_MODULE_FINANCE=1 ./scripts/setup.sh
+AGENT_LOCALE=en ./scripts/setup.sh
 ./scripts/oa-python.sh scripts/apply_capabilities_profile.py --preset finance --write
 ./scripts/oa-python.sh scripts/init_vault_layout.py --vault "$VAULT_PATH"
-./scripts/oa-python.sh -m pytest tests/test_no_cyrillic_in_py.py tests/test_vault_dashboard_scaffold.py -q
+./scripts/oa-python.sh -m pytest \
+  tests/test_no_cyrillic_in_py.py \
+  tests/test_vault_dashboard_scaffold.py \
+  tests/test_dashboard_templates_locale.py -q
 ```
 
 ## Non-goals
 
-- Migrating author's existing Obsidian notes automatically.
-- Shipping personal `*.txt` prompts or vault content in git.
+- Auto-migrate author Obsidian notes.
+- Ship prod `*.txt` prompts or personal vault content in git.

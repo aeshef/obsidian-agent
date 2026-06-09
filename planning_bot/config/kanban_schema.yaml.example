@@ -1,4 +1,5 @@
-# cp planning_bot/config/kanban_schema.yaml.example planning_bot/config/kanban_schema.yaml
+# Legacy alias (RU). Prefer kanban_schema.ru.yaml.example / kanban_schema.en.yaml.example
+# via scripts/setup/materialize_locale.py → planning_bot/config/kanban_schema.yaml
 
 columns:
   - "📋 Бэклог"
