@@ -33,7 +33,7 @@ class KanbanBoard:
     def load(self):
         'Operation implementation.'
         if not self.file_path.exists():
-            raise FileNotFoundError(pdmsg("auto_f1a2415e4c", file_path={file_path}))
+            raise FileNotFoundError(pdmsg("auto_f1a2415e4c", file_path=self.file_path))
         
         with open(self.file_path, 'r', encoding='utf-8') as f:
             self.content = f.read()
