@@ -144,9 +144,9 @@ knowledge:
   type_updated: "Тип обновлён"
   back_button: "🔙 Назад"
   bulk_skip_empty: |
-    ❌ Прогрузка: не сохраняю (#{failed}) — видео >20 МБ у Bot API, превью не скачалось или нет подписи/ASR. Перешли как файл (<20 МБ), фото, аудио или ссылку на ролик.
+    ❌ Прогрузка: не сохраняю ({failed}) — видео >20 МБ у Bot API, превью не скачалось или нет подписи/ASR. Перешли как файл (<20 МБ), фото, аудио или ссылку на ролик.
   bulk_saved_ack: "✅ Прогрузка {saved}: {title}\n{path}"
-  bulk_save_error: "❌ Ошибка сохранения (#{failed}): {error}"
+  bulk_save_error: "❌ Ошибка сохранения ({failed}): {error}"
   untitled: "Без названия"
   type_undefined: "не определен"
   author_context_line: "Учти личность автора: {context}\n\n"

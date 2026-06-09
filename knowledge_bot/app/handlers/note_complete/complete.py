@@ -36,6 +36,7 @@ from knowledge_bot.app.state import (
     preview_keyboard,
 )
 from knowledge_bot.app.handlers.media import process_single_media
+from knowledge_bot.app.handlers.note_complete.bulk_finish import finish_bulk_ingest
 from knowledge_bot.app.handlers.review import generate_note_review
 from knowledge_bot.app.ui import kmsg
 
@@ -44,12 +45,12 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     """Full message handling: media ingest through review."""
     cfg = load_config()
     
-    #    ,   ,   
-    try:
-        processing_msg = await main_message.answer(kmsg("processing"))
-    except Exception as proc_err:
-        log.warning("Failed to send processing message: %s", proc_err)
-        processing_msg = None
+    processing_msg = None
+    if not bulk_mode:
+        try:
+            processing_msg = await main_message.answer(kmsg("processing"))
+        except Exception as proc_err:
+            log.warning("Failed to send processing message: %s", proc_err)
     bundle = simple_from_text(combined_text)
 
     llm = LLMClient(cfg.deepseek_api_key, cfg.deepseek_base_url)
@@ -449,7 +450,7 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     log.info("[DEBUG yt] before first render: type=%s, has_yt_in_routed=%s, yt_len=%s",
              routed.get("type"), "yt_transcript_summary" in routed and bool(routed.get("yt_transcript_summary")),
              len(routed.get("yt_transcript_summary") or ""))
-    log.info("Rendering note and generating review...")
+    log.info("Rendering note%s...", " (bulk auto-save)" if bulk_mode else " and generating review")
     try:
         rendered = render_note(cfg.templates_path, routed)
         if os.environ.get("ENABLE_WIKILINKS") == "1":
@@ -458,8 +459,20 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     except Exception as render_err:
         log.error("Failed to render note: %s", render_err, exc_info=True)
         rendered = ""
-    
-    #   
+
+    if bulk_mode:
+        uid = main_message.from_user.id if main_message.from_user else 0
+        await finish_bulk_ingest(
+            main_message,
+            routed,
+            summary_obj,
+            rendered,
+            uid=uid,
+            processing_msg=processing_msg,
+            media_group_id=media_group_id,
+        )
+        return
+
     try:
         review_text = generate_note_review(routed, summary_obj)
         log.info("Review text generated (len=%d)", len(review_text))

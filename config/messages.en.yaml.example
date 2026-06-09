@@ -449,11 +449,11 @@ knowledge:
 
     '
   bulk_processing: '⏳ Bulk load: received, processing...'
-  bulk_save_error: '❌ Save error (#{failed}): {error}'
+  bulk_save_error: '❌ Save error ({failed}): {error}'
   bulk_saved_ack: '✅ Bulk load {saved}: {title}
 
     {path}'
-  bulk_skip_empty: '❌ Bulk load: not saving (#{failed}) — video >20 MB in Bot API,
+  bulk_skip_empty: '❌ Bulk load: not saving ({failed}) — video >20 MB in Bot API,
     preview didn''t download or no caption/ASR. Resend as file (<20 MB), photo, audio
     or video link.
 
