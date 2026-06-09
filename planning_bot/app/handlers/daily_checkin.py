@@ -91,7 +91,7 @@ def _deserialize_signals(raw: list[Any]) -> list[SignalItem]:
     return out
 
 
-async def start_daily_checkin(message: Message, state: FSMContext) -> None:
+async def start_daily_checkin(self, message: Message, state: FSMContext) -> None:
     await _begin_checkin(message, state)
 
 

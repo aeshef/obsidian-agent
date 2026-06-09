@@ -109,6 +109,20 @@ def test_text_trigger_close_day(monkeypatch):
     assert match_planning_text_trigger("random unrelated phrase xyz") is None
 
 
+def test_start_daily_checkin_bound_as_planning_bot_method():
+    """Menu dispatch calls bot.start_daily_checkin(msg, state) — needs self like start_reflection."""
+    import inspect
+
+    from planning_bot.app.bot import PlanningBot
+    from planning_bot.app.handlers import daily_checkin
+
+    sig = inspect.signature(daily_checkin.start_daily_checkin)
+    params = list(sig.parameters)
+    assert params[0] == "self"
+    assert hasattr(PlanningBot, "start_daily_checkin")
+    assert PlanningBot.start_daily_checkin is daily_checkin.start_daily_checkin
+
+
 def test_planning_daily_checkin_feature_default():
     from shared.capabilities.features import (
         FEAT_PLANNING_DAILY_CHECKIN,

@@ -296,7 +296,8 @@ sync_repo_config_remote() {
     rsync -az "$MONOREPO/vault-templates/" "$SERVER:$SERVER_BOTS/vault-templates/"
     echo "  ↑ vault-templates/"
   fi
-  for prod in vault_paths.yaml domain_messages.en.yaml domain_messages.ru.yaml messages.en.yaml messages.ru.yaml domain_messages.yaml; do
+  # vault_paths.yaml is author-specific (gitignored); server materializes from locale example via ensure_repo_config.sh
+  for prod in domain_messages.en.yaml domain_messages.ru.yaml messages.en.yaml messages.ru.yaml domain_messages.yaml; do
     [ -f "$cfg/$prod" ] || continue
     rsync -az "$cfg/$prod" "$SERVER:$SERVER_BOTS/config/"
     echo "  ↑ prod $prod"

@@ -1,64 +1,119 @@
 # OSS universality audit (living doc)
 
-Last review: 2026-06-09. Goals: module toggles, locale (en/ru default), no personal data in git, config-driven text/paths/numbers, simple `/setup` + onboarding skill.
+Last review: 2026-06-09 (post daily check-in deploy).  
+North star: one repo, any locale, any module subset, no author identity in git, config-driven everything, setup via onboarding skill + env.
 
-## Philosophy checklist
+## Philosophy scorecard
 
-| Principle | Status |
-|-----------|--------|
-| Unified bot (merged infra) | `unified_bot` + shared host |
-| Modular domains/connectors/features | `capabilities.yaml` + env `CAP_*` |
-| Agent NL loop for free text | `shared/agent` — menus are optional shortcuts |
-| No Cyrillic in `.py` | CI `test_no_cyrillic_in_py.py` |
-| Text/numbers in YAML | `messages`, `domain_messages`, `platform.yaml`, bot configs |
-| Prompts `.example.txt` in git | prod `.txt` gitignored |
-| Default locale EN | `AGENT_LOCALE=en`, `materialize_locale.py` |
-| No personal data in commits | vault paths via examples; author vault gitignored |
+| Principle | Status | Evidence / gap |
+|-----------|--------|----------------|
+| **Unified host** | ✅ | `unified_bot` + `shared/telegram/host` |
+| **Modular bots** | ✅ | `capabilities.yaml` + `CAP_*` + feature gates (`planning_daily_checkin`, …) |
+| **Agent NL loop** | ⚠️ | Free text → agent; menus still parallel path via `menu_dispatch` / legacy `domain_dispatch` |
+| **No Cyrillic in `.py`** | ✅ | `tests/test_no_cyrillic_in_py.py` |
+| **Text in YAML** | ⚠️ | `messages.*`, `domain_messages.*`, bot YAML; check-in had `**markdown**` without `parse_mode` → fixed in examples |
+| **Numbers in YAML** | ⚠️ | `platform.yaml`, `models.yaml`; literals remain in some LLM call sites (see P1) |
+| **Paths in YAML** | ✅ | `vault_paths.{en,ru}.yaml.example`; deploy no longer overwrites author `vault_paths.yaml` |
+| **Prompts in files** | ✅ | `*.example.txt` in git; prod `*.txt` gitignored |
+| **Default locale EN** | ✅ | `AGENT_LOCALE=en`; author personalizes via `materialize_locale.py` + local YAML |
+| **No personal data in git** | ✅ | vault, prod prompts, `vault_paths.yaml`, `badge.yaml` gitignored |
+| **Simple setup** | ✅ | `scripts/setup.sh`, `.cursor/skills/obsidian-agent-onboarding/SKILL.md` |
 
-## Done (recent)
+## Verified: daily check-in E2E (2026-06-09 prod)
 
-| Area | Notes |
+| Artifact | Path (author vault, RU) | Status |
+|----------|---------------------------|--------|
+| Signals history | `400_Рутины/📊 Сигналы/📊 История_Сигналов.md` | ✅ YAML block + summary |
+| Sample entry | `mood:5, energy:3, stress:2, focus:карьера, day_quality:4` | ✅ |
+| Routines today | `400_Рутины/📅 Рутины/📅 Сегодня.md` | ✅ toggles applied (e.g. Зал → `[x]`) |
+| Scheduler | `send_daily_checkin_prompt` 23:45 MSK | ✅ in APScheduler log |
+
+## Done (2026-06-09 session)
+
+| Area | Change |
+|------|--------|
+| Check-in handler | `start_daily_checkin(self, …)` — PlanningBot method binding |
+| Deploy safety | `vault_paths.yaml` excluded from rsync prod list |
+| Server config | `ensure_repo_config.sh`: `PYTHONPATH`, wrong-locale replace via `vault_paths_locale` |
+| Deploy noise | `resolve_shell_msg.py` joins `argv[3:]`; bootstrap uses compact python version |
+| Check-in UX | Removed `**bold**` from check-in message keys (no `parse_mode` in handler) |
+| Tests | `test_start_daily_checkin_bound_as_planning_bot_method` |
+
+## P0 — regressions to watch
+
+1. **Author `messages.ru.yaml`** — not in git; after example changes run `materialize_locale.py ru` or merge `checkin_*` keys manually on Mac + server.
+2. **Partial deploy** — `planning_bot` only does not rsync `shared/`; ensure full deploy after shared changes.
+3. **Markdown in planning messages** — many `planning.messages.*` still use `**` where handlers omit `parse_mode`; audit per handler or standardize `parse_mode=MarkdownV2`.
+
+## P1 — architecture / hardcode
+
+| # | Issue | Location | Target state |
+|---|-------|----------|--------------|
+| 1 | LLM numeric defaults in signatures | `shared/llm.py` `chat_with_tools(temperature=…)` uses `role_*` helpers but callers pass literals `0.3`, `0.7` | All from `config/agent/models.yaml` / `platform.yaml` only |
+| 2 | Legacy menu routing | `shared/telegram/host/domain_dispatch.py`, `BTN_BULK_ON` string compares | `ui_capabilities.menu_actions` + `menu_dispatch` only |
+| 3 | Domain string constants | `DOMAIN_KNOWLEDGE`, `if ui_mode != …` chains in host | Capability-driven reply specs |
+| 4 | `shared/agent/router.py` | `default_timeout = 120` from dict default | `platform.yaml` single source |
+| 5 | Planning LLM temps | `planning_llm_temperature("task_parsing", 0.3)` fallback literals | Remove numeric fallbacks; require YAML |
+| 6 | Global `CAPS` env-style names | scattered `FEAT_*`, `DOMAIN_*` | OK as module ids; document in `ARCHITECTURE.md` |
+
+## P2 — repo hygiene (maintainer vs OSS)
+
+**Should NOT ship in OSS root** (author-only; target: `scripts/local/` + gitignore or separate private repo):
+
+| Path | Notes |
 |------|-------|
-| Daily check-in | `planning_daily_checkin` feature; routines toggle + signals history |
-| Config | `daily_checkin.yaml.example`, `platform.yaml` `planning_checkin` |
-| Vault | `signals_subdir`, `signals_history_md` in `vault_paths.*.example` |
-| Scheduler | 23:45 prompt; passive 21–23 disabled when check-in on |
-| UI | `auto_checkin_close`, `show_routines_menu` wired in `menu_actions` |
-| Tests | `tests/test_daily_checkin.py` |
+| `knowledge_bot/tools/*` | vault audits, retag, duplicates — 20+ scripts |
+| `planning_bot/tools/*` | iphone sync, calendar, vault_maintenance |
+| `finance_bot/tools/*` | tinkoff, reset_data, init_accounts |
+| `scripts/setup/translate_domain_messages.py` | one-off i18n helper |
+| `knowledge_bot/tools/apply_duplicates_resolution.py` | hardcoded timeout 120 |
 
-## Remaining (priority)
+**Keep in OSS:** `scripts/deploy.sh`, `obsidian_sync.sh`, `ensure_*`, `setup/`, `cron_routines.sh`.
 
-### P1 — architecture / hardcode
+## P3 — regular processes
 
-1. **LLM default params in signatures** — move remaining `temperature`/`timeout` defaults in `shared/llm.py` callers to `config/agent/models.yaml` only (no numeric literals in `.py` signatures).
-2. **Menu routing** — legacy `domain_dispatch.py` string compares (`BTN_BULK_ON`, domain `if` chains); migrate to `ui_capabilities` reply specs.
-3. **`resolve_shell_msg.py` JSON** — deploy log noise when kwargs passed from shell.
-4. **Author vault_paths** — merge new `signals_*` keys into local `config/vault_paths.yaml` (run `./scripts/setup.sh` or materialize).
+| Process | Expected | Verify |
+|---------|----------|--------|
+| `unified_bot` | polling on VPS | `pgrep -f unified_bot.main` |
+| `cron_routines.sh` | 01:00 MSK → routines history | crontab on server |
+| `obsidian_sync.sh` | Mac LaunchAgent → rsync + charts | `check_sync_health.sh` |
+| Daily check-in cron | 23:45 MSK APScheduler | `planning_bot.app.scheduling` |
+| Finance schedulers | broker sync, reminders | finance startup log |
 
-### P2 — repo hygiene
+Document in `docs/DEPLOY_VPS.md` (partial — expand cron table).
 
-5. **Maintainer scripts** — audit `planning_bot/tools/`, `knowledge_bot/tools/`, one-off `scripts/`; move author-only to `scripts/local/` + gitignore.
-6. **Regular processes** — document LaunchAgents + crontab (`cron_routines.sh` 01:00, obsidian_sync) in `DEPLOY_VPS.md`.
-7. **Signals export** — optional `signals_week.json` for dashboard charts (phase 2).
+## P4 — i18n / onboarding
 
-### P3 — polish
+| Item | Status |
+|------|--------|
+| Default EN examples | ✅ `messages.en.yaml.example`, `vault_paths.en.yaml.example` |
+| RU materialize | ✅ `materialize_locale.py --refresh-vault-paths` |
+| Onboarding skill | ✅ `.cursor/skills/obsidian-agent-onboarding/SKILL.md` |
+| Author personalization | prompts interview → prod `.txt`; `vault_paths.yaml`; `capabilities.yaml` |
+| `domain_messages` size | ⚠️ large generated files; EN/RU parity via examples + merge |
 
-8. Onboarding interview — EN default categories from `kanban_schema.en`.
-9. Morning routine block in check-in (separate 10:00 job).
-10. Agent tool `get_daily_signals` for NL queries.
+## P5 — polish / features
 
-## Verification
+- Agent tool `get_daily_signals` for NL queries over signals history
+- `signals_week.json` export for dashboards
+- Morning block in check-in (separate 10:00 flow)
+- Check-in: `parse_mode` policy doc (when Markdown vs plain)
+- Onboarding: EN default kanban categories from `kanban_schema.en`
+
+## Verification commands
 
 ```bash
 AGENT_LOCALE=en ./scripts/setup.sh
-./scripts/oa-python.sh scripts/materialize_locale.py en
+./scripts/oa-python.sh scripts/setup/materialize_locale.py en
 ./scripts/oa-python.sh -m pytest \
   tests/test_no_cyrillic_in_py.py \
   tests/test_daily_checkin.py \
+  tests/test_onboarding.py \
   tests/test_ui_bindings.py -q
 ```
 
 ## Non-goals
 
-- Auto-migrate author Obsidian notes (`🎯 Главный_Дашборд.md`).
-- Ship prod prompts or personal vault content in git.
+- Auto-migrate author Obsidian note titles (`🎯 Главный_Дашборд.md`).
+- Ship prod prompts, personal vault, or author `vault_paths.yaml` in git.
+- Force all users to Russian folder names.

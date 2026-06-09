@@ -38,7 +38,9 @@ bootstrap_python() {
     export PYTHONPATH="$bot_root:$monorepo${PYTHONPATH:+:$PYTHONPATH}"
 
     if ! common_require_python_min "$PYTHON_CMD" 3 9; then
-        echo "$(sh_msgf scripts.bootstrap.python_version "{\"version\":\"$("$PYTHON_CMD" -V 2>&1)\"}")" >&2
+        local py_ver
+        py_ver="$("$PYTHON_CMD" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")' 2>/dev/null || echo unknown)"
+        echo "$(sh_msgf scripts.bootstrap.python_version "{\"version\":\"$py_ver\"}")" >&2
         return 1
     fi
 

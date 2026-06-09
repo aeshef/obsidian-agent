@@ -727,7 +727,7 @@ planning:
     routines_stats_error: ❌ Error loading routine statistics.
     checkin_phrase_close_day: close the day
     checkin_phrase_close_day_alt: close day
-    checkin_offer: '🌙 **Close your day?**
+    checkin_offer: '🌙 Close your day?
 
       Quick routine check-in and a few subjective signals for analytics.'
     checkin_btn_start: '▶️ Start'
@@ -739,10 +739,10 @@ planning:
     checkin_snoozed: 'OK — I''ll remind you later.'
     checkin_skipped_today: 'Skipped for today.'
     checkin_session_expired: 'Session expired — open Routines → Close day.'
-    checkin_signals_intro: '**Subjective signals** — not a grade, just data for trends.'
+    checkin_signals_intro: 'Subjective signals — not a grade, just data for trends.'
     checkin_routine_prompt: '{section}
 
-      **{task}** ({index}/{total})'
+      {task} ({index}/{total})'
     checkin_section_morning: '🌅 Morning routines'
     checkin_section_day: '☀️ Day routines'
     checkin_section_evening: '🌙 Evening routines'

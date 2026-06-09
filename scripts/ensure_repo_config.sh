@@ -22,7 +22,7 @@ if [ -z "$PY" ]; then
 fi
 PY="${PY:-python3}"
 
-export ROOT CFG
+export ROOT CFG PYTHONPATH="$ROOT:$ROOT/finance_bot${PYTHONPATH:+:$PYTHONPATH}"
 "$PY" <<'PY'
 from __future__ import annotations
 
@@ -106,6 +106,35 @@ for local_stem, examples in targets:
     cur = load_yaml(local) if local.is_file() else {}
     if cur is None:
         continue
+    if local_stem == "vault_paths" and cur:
+        try:
+            from shared.capabilities.vault_paths_locale import should_replace_vault_paths_for_locale
+        except ImportError:
+            def _default_tasks(locale_name: str) -> str:
+                for name in (
+                    f"vault_paths.{locale_name}.yaml.example",
+                    "vault_paths.yaml.example",
+                ):
+                    p = CFG / name
+                    if not p.is_file():
+                        continue
+                    data = load_yaml(p)
+                    if isinstance(data, dict):
+                        folders = data.get("folders")
+                        if isinstance(folders, dict) and folders.get("tasks"):
+                            return str(folders["tasks"])
+                return ""
+
+            def should_replace_vault_paths_for_locale(doc: dict, loc: str) -> bool:
+                folders = doc.get("folders") if isinstance(doc.get("folders"), dict) else {}
+                cur_tasks = str(folders.get("tasks", ""))
+                other = "en" if loc.startswith("ru") else "ru"
+                return bool(cur_tasks) and cur_tasks == _default_tasks(other)
+
+        if should_replace_vault_paths_for_locale(cur, locale):
+            dump_yaml(local, ex)
+            print(f"  replaced {local_stem}.yaml (wrong-locale default → {locale})")
+            continue
     merged = deep_merge(ex, cur) if cur else ex
     if merged == cur and local.is_file():
         print(f"  ok {local_stem}.yaml")

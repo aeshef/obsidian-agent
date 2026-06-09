@@ -23,7 +23,14 @@ def main() -> int:
     if mode == "msgf":
         if len(sys.argv) < 4:
             return 2
-        kwargs = json.loads(sys.argv[3])
+        raw = " ".join(sys.argv[3:])
+        try:
+            kwargs = json.loads(raw)
+        except json.JSONDecodeError:
+            print(msg(*keys, default=raw), end="")
+            return 0
+        if not isinstance(kwargs, dict):
+            kwargs = {}
         print(msgf(*keys, **kwargs), end="")
         return 0
     if mode == "msg":

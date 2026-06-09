@@ -311,7 +311,7 @@ planning:
     checkin_phrase_close_day: "закрой день"
     checkin_phrase_close_day_alt: "закрыть день"
     checkin_offer: |
-      🌙 **Закрыть день?**
+      🌙 Закрыть день?
 
       Быстрый чек-ин рутин и пара субъективных сигналов для аналитики.
     checkin_btn_start: "▶️ Начать"
@@ -323,11 +323,11 @@ planning:
     checkin_snoozed: "Ок — напомню позже."
     checkin_skipped_today: "Пропущено на сегодня."
     checkin_session_expired: "Сессия истекла — Рутины → Закрыть день."
-    checkin_signals_intro: "**Субъективные сигналы** — не оценка, а данные для трендов."
+    checkin_signals_intro: "Субъективные сигналы — не оценка, а данные для трендов."
     checkin_routine_prompt: |
       {section}
 
-      **{task}** ({index}/{total})
+      {task} ({index}/{total})
     checkin_section_morning: "🌅 Утренние рутины"
     checkin_section_day: "☀️ Дневные рутины"
     checkin_section_evening: "🌙 Вечерние рутины"
