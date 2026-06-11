@@ -91,6 +91,22 @@ async def run_host_bot(
                         activate_bulk_ingest(event.from_user.id)
                 except Exception:
                     pass
+            if self._planning is not None and getattr(event, "chat", None):
+                try:
+                    from planning_bot.app.chatid_store import maybe_persist_chat_id
+
+                    uid_env = (os.environ.get("TELEGRAM_USER_ID") or "").strip()
+                    from_user = getattr(event, "from_user", None)
+                    if from_user and (
+                        not uid_env or str(from_user.id) == uid_env
+                    ):
+                        self._planning.chat_id = maybe_persist_chat_id(
+                            self._planning.chat_id_file,
+                            event.chat.id,
+                            current=self._planning.chat_id,
+                        )
+                except Exception:
+                    pass
             return await handler(event, data)
 
     dp.update.middleware(_Inject(agent_app, planning_bot))

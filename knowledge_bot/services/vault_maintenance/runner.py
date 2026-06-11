@@ -19,6 +19,13 @@ from knowledge_bot.services.maintenance_metrics import (
     render_maintenance_charts,
 )
 
+# retag/refill/reprocess exit 3 when DeepSeek DNS is down (--apply skipped, not a hard failure)
+_LLM_NETWORK_SKIP_EXIT = 3
+
+
+def _step_failed(returncode: int) -> bool:
+    return returncode not in (0, _LLM_NETWORK_SKIP_EXIT)
+
 
 def _kb_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -166,7 +173,7 @@ def run_daily_maintenance(
         args = ["tools/sync_hubs.py", "--vault", str(vault)]
         if hcfg.get("write", True):
             args.append("--apply")
-        if _run("sync_hubs", args) != 0:
+        if _step_failed(_run("sync_hubs", args)):
             out["ok"] = False
 
     wcfg = mcfg.get("apply_wikilinks") or {}
@@ -180,7 +187,7 @@ def run_daily_maintenance(
         ]
         if wcfg.get("apply", True):
             wargs.append("--apply")
-        if _run("apply_wikilinks_batch", wargs) != 0:
+        if _step_failed(_run("apply_wikilinks_batch", wargs)):
             out["ok"] = False
 
     fcfg = mcfg.get("refill_singleton_tags") or {}
@@ -196,7 +203,7 @@ def run_daily_maintenance(
         ]
         if fcfg.get("apply", True):
             fargs.append("--apply")
-        if _run("refill_singleton_tags", fargs) != 0:
+        if _step_failed(_run("refill_singleton_tags", fargs)):
             out["ok"] = False
 
     rtcfg = mcfg.get("retag_notes") or {}
@@ -214,7 +221,7 @@ def run_daily_maintenance(
             rtargs.append("--apply")
         if rtcfg.get("strip_obsolete_singleton_topics", True):
             rtargs.append("--strip-singleton-topics")
-        if _run("retag_notes", rtargs) != 0:
+        if _step_failed(_run("retag_notes", rtargs)):
             out["ok"] = False
 
     rcfg = mcfg.get("reprocess_notes") or {}
@@ -228,14 +235,14 @@ def run_daily_maintenance(
         ]
         if rcfg.get("apply", True):
             rargs.append("--apply")
-        if _run("reprocess_notes", rargs) != 0:
+        if _step_failed(_run("reprocess_notes", rargs)):
             out["ok"] = False
 
     dcfg = mcfg.get("apply_duplicates") or {}
     if dcfg.get("enabled", True):
         cap = int(dcfg.get("max_delete_per_run", 100))
         dry_args = ["tools/apply_duplicates_resolution.py"]
-        if _run("apply_duplicates_dryrun", dry_args) != 0:
+        if _step_failed(_run("apply_duplicates_dryrun", dry_args)):
             out["ok"] = False
         else:
             last = out["steps"][-1] if out["steps"] else {}
@@ -254,7 +261,7 @@ def run_daily_maintenance(
                     out["ok"] = False
                 else:
                     apply_args = ["tools/apply_duplicates_resolution.py", "--apply"]
-                    if _run("apply_duplicates", apply_args) != 0:
+                    if _step_failed(_run("apply_duplicates", apply_args)):
                         out["ok"] = False
             else:
                 print(
@@ -267,7 +274,7 @@ def run_daily_maintenance(
         sargs = ["tools/strip_singleton_tags.py", "--vault", str(vault)]
         if scfg.get("apply", True):
             sargs.append("--apply")
-        if _run("singleton_tags_report", sargs) != 0:
+        if _step_failed(_run("singleton_tags_report", sargs)):
             out["ok"] = False
 
     ts_end = datetime.now().isoformat(timespec="seconds")
