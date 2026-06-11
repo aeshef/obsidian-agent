@@ -115,8 +115,12 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
             re.findall(re.escape(mm("marker_deleted_empty")), text)
         )
     elif step_name in ("apply_duplicates", "apply_duplicates_dryrun"):
+        from shared.domain_messages import dmsg
+
         applied = re.findall(mm("regex_deleted_line"), text, re.MULTILINE)
-        dry_marker = mm("dup_delete_marker")
+        dry_marker = mm("dup_delete_marker") or dmsg(
+            "knowledge_vault_runner", "dup_delete_marker", default=""
+        )
         dry = (
             re.findall(rf"^\s*{re.escape(dry_marker)}", text, re.MULTILINE)
             if dry_marker
@@ -242,13 +246,14 @@ def append_daily_record(
         ts_s = min(str(prev.get("ts_start") or ts_start), ts_start)
         ts_e = max(str(prev.get("ts_end") or ts_end), ts_end)
         runs_count = int(prev.get("runs_count") or 1) + 1
-        ok_all = bool(prev.get("ok")) and bool(ok)
+        # Latest run wins: manual FORCE rerun after a failed nightly should show ✓ for the day.
+        ok_latest = bool(ok)
         record = {
             "date": d,
             "runs_count": runs_count,
             "ts_start": ts_s,
             "ts_end": ts_e,
-            "ok": ok_all,
+            "ok": ok_latest,
             "before": before_first,
             "after": after_latest,
             "delta_notes_md_db700": int(after_latest.get("notes_md_db700", 0))

@@ -1,13 +1,12 @@
 # shellcheck shell=bash
-# Knowledge vault subdir: VAULT_REL_KNOWLEDGE → platform.yaml → fallback 700_База_Данных
+# Knowledge vault subdir: VAULT_REL_KNOWLEDGE → platform.yaml (see shared/vault_layout.py).
 vault_knowledge_subdir() {
   if [[ -n "${VAULT_REL_KNOWLEDGE:-}" ]]; then
     printf '%s\n' "${VAULT_REL_KNOWLEDGE//\/}"
     return 0
   fi
   if [[ -z "${AGENT_ROOT:-}" || ! -d "${AGENT_ROOT}" ]]; then
-    printf '%s\n' "700_База_Данных"
-    return 0
+    return 1
   fi
   local out
   out="$(
@@ -20,9 +19,6 @@ from shared.vault_layout import knowledge_subdir
 print(knowledge_subdir())
 PY
   )"
-  if [[ -n "$out" ]]; then
-    printf '%s\n' "$out"
-  else
-    printf '%s\n' "700_База_Данных"
-  fi
+  [[ -n "$out" ]] || return 1
+  printf '%s\n' "$out"
 }

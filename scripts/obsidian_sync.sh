@@ -505,35 +505,28 @@ if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}"
         if [ "${SKIP_SERVER_DUPLICATE_APPLY:-0}" != "1" ]; then
           echo "$(sh_msgf scripts.obsidian_sync.step_5b_2b '{"server":"'$SERVER'","vault":"'$SERVER_VAULT'"}')" >&2
           # shellcheck disable=SC2090
-          ssh "${SSH_OPTS[@]}" "$SERVER" env VAULT_PATH="$SERVER_VAULT" SERVER_BOTS="$SERVER_BOTS" REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" bash -s \
+          _5b_2b_no_kb="$(sh_msg scripts.obsidian_sync.step_5b_2b_no_knowledge)"
+          ssh "${SSH_OPTS[@]}" "$SERVER" env \
+            VAULT_PATH="$SERVER_VAULT" \
+            SERVER_BOTS="$SERVER_BOTS" \
+            REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" \
+            PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" \
+            REMOTE_DUP_ERR_MSG="$_5b_2b_no_kb" \
+            bash -s \
             >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || { echo "$(sh_msg scripts.obsidian_sync.step_5b_2b_fail)" >&2; SYNC_OK=0; }
 set -euo pipefail
 export VAULT_PATH
-export SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
-KB=""
-_VAULT_AUTO="${VAULT_FOLDER_AUTOMATION:-800_Automation}"
-for d in "${REMOTE_KNOWLEDGE_BOT:-}" "${SERVER_BOTS}/knowledge_bot" "${VAULT_PATH}/${_VAULT_AUTO}/Agent/knowledge_bot"; do
-  [ -z "${d}" ] && continue
-  [ -f "${d}/tools/apply_duplicates_resolution.py" ] || continue
-  KB="${d}"
-  break
-done
-if [ -z "${KB}" ]; then
-  echo "$(sh_msg scripts.obsidian_sync.step_5b_2b_no_knowledge)" >&2
+# shellcheck source=scripts/lib/remote_knowledge_env.sh
+source "${SERVER_BOTS:?}/scripts/lib/remote_knowledge_env.sh"
+remote_load_agent_env
+KB="$(remote_resolve_knowledge_bot)" || {
+  echo "${REMOTE_DUP_ERR_MSG:-knowledge_bot not found}" >&2
   exit 1
-fi
+}
 cd "${KB}"
-# На VPS у knowledge_bot часто нет своего venv; системный python3 может быть без PyYAML.
-# Fallback: venv planning_bot (тот же хост, те же зависимости для YAML/агента).
-_PLANNING_PY="${PLANNING_BOT_REMOTE_PYTHON:-${SERVER_BOTS}/planning_bot/venv/bin/python}"
-if [ -x .venv/bin/python ]; then PY=".venv/bin/python"
-elif [ -x venv/bin/python ]; then PY="venv/bin/python"
-elif [ -x "${_PLANNING_PY}" ]; then PY="${_PLANNING_PY}"
-else PY="python3"
-fi
-export VAULT_PATH
-echo "[5b.2b] KB=${KB} VAULT_PATH=${VAULT_PATH} PY=${PY}"
-# apply_duplicates_resolution.py сам кладёт Agent в sys.path (parent ×3 от tools/)
+PY="$(remote_resolve_python_for_kb "${KB}")"
+export PYTHONPATH="$(remote_agent_pythonpath)"
+echo "[5b.2b] KB=${KB} VAULT_PATH=${VAULT_PATH} PY=${PY} VAULT_REL_KNOWLEDGE=${VAULT_REL_KNOWLEDGE:-}"
 exec "${PY}" tools/apply_duplicates_resolution.py --apply
 REMOTE_DUP
 

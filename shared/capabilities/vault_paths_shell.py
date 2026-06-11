@@ -17,6 +17,7 @@ def export_shell_env() -> str:
         f"export VAULT_FOLDER_DASHBOARDS={_sh_quote(folder('dashboards'))}",
         f"export VAULT_FOLDER_ROUTINES={_sh_quote(folder('routines'))}",
         f"export VAULT_FOLDER_HANDWRITTEN={_sh_quote(folder('handwritten'))}",
+        f"export VAULT_FOLDER_AUTOMATION={_sh_quote(folder('automation'))}",
         f"export VAULT_DASH_LOGS={_sh_quote(dashboards_sub('logs'))}",
         f"export VAULT_DASH_CHARTS={_sh_quote(dashboards_sub('charts'))}",
         f"export VAULT_DASH_DATA={_sh_quote(dashboards_sub('data'))}",
