@@ -9,6 +9,9 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from shared.chart_paths import chart_path, charts_root, ensure_parent
+from shared.vault_paths_config import dashboards_sub, folder, vault_file, vault_rel_path
+
 
 def _discover_vault(start: Path) -> Path:
     for p in [start] + list(start.parents):
@@ -138,20 +141,18 @@ def _write_out(
     rows: list[tuple[str, float, float, float, str, float, float, float]],
     w_line: list[float] | None,
     s_line: list[float] | None,
-    graphics: Path,
-    dash: Path,
+    vault: Path,
     ts: str,
     fat_by_day: dict[str, float],
 ) -> None:
-    graphics.mkdir(parents=True, exist_ok=True)
-    comp_md = graphics / pdmsg("auto_443f6eab29")
+    charts_root(vault).mkdir(parents=True, exist_ok=True)
+    comp_md = chart_path(vault, "chart_nutrition_md")
     if not rows:
         comp_md.write_text(
             pdmsg("auto_eae7dbddcc", _p1=ts),
             encoding="utf-8",
         )
         md_body = pdmsg("auto_3199a9f58d", _p1=ts)
-        dash.write_text(md_body, encoding="utf-8")
         return
 
     try:
@@ -311,7 +312,8 @@ def _write_out(
         framealpha=0.95,
     )
     fig.subplots_adjust(left=0.07, right=0.90, bottom=0.16, top=0.94)
-    png = graphics / pdmsg("auto_e05b321307")
+    png = chart_path(vault, "chart_nutrition_png")
+    ensure_parent(png)
     fig.savefig(png, bbox_inches="tight", facecolor="white", pad_inches=0.22, dpi=144)
     plt.close(fig)
 
@@ -321,19 +323,28 @@ def _write_out(
         encoding="utf-8",
     )
     body = pdmsg("auto_c01ff6fe9b", _p1=table_md, _p3=ts)
-    dash.write_text(body, encoding="utf-8")
-    print(f"OK: {png}, {comp_md}, {dash}")
+    print(f"OK: {png}, {comp_md}")
 
 
 def main() -> int:
     # (comment)
     os.environ.pop("PYTHONPATH", None)
+    from shared.domain_messages import clear_domain_messages_cache
+    from shared.locale import agent_locale
+
+    clear_domain_messages_cache()
+    agent_locale()
     ap = argparse.ArgumentParser()
     ap.add_argument("--vault", type=str, help=pdmsg("auto_13eed18124"))
     args = ap.parse_args()
     start = Path(__file__).resolve()
     vault = Path(args.vault).resolve() if args.vault else _discover_vault(start)
-    iphone_dir = vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_145f378b1a") / pdmsg("auto_fb3df31bf5") / "IPhone"
+    iphone_dir = (
+        vault
+        / folder("dashboards")
+        / dashboards_sub("data")
+        / vault_rel_path("actions_iphone")
+    )
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     snapshots: list[dict] = []
     try:
@@ -345,20 +356,19 @@ def main() -> int:
         snapshots = get_snapshots(iphone_dir, days=None)
     except Exception as e:
         print(f"WARN: get_snapshots failed ({e}), fallback iphone_week.json", file=sys.stderr)
-        week_json = vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_145f378b1a") / pdmsg("auto_fb3df31bf5") / "iphone_week.json"
+        week_json = (
+            vault
+            / folder("dashboards")
+            / dashboards_sub("data")
+            / vault_rel_path("iphone_week_json")
+        )
         if week_json.is_file():
             snapshots = json.loads(week_json.read_text(encoding="utf-8")).get("snapshots") or []
 
     if not snapshots and not iphone_dir.is_dir():
-        g = vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_1f4101e6f4")
-        d = vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_a9e6f3071c")
-        g.mkdir(parents=True, exist_ok=True)
-        (g / pdmsg("auto_443f6eab29")).write_text(
+        charts_root(vault).mkdir(parents=True, exist_ok=True)
+        chart_path(vault, "chart_nutrition_md").write_text(
             pdmsg("auto_a76864c8ac", _p1=ts),
-            encoding="utf-8",
-        )
-        d.write_text(
-            pdmsg("auto_daa59085ad", _p1=iphone_dir),
             encoding="utf-8",
         )
         return 0
@@ -373,8 +383,7 @@ def main() -> int:
         rows,
         w_se,
         s_se,
-        vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_1f4101e6f4"),
-        vault / pdmsg("auto_1c7277d3a5") / pdmsg("auto_a9e6f3071c"),
+        vault,
         ts,
         fat_by,
     )

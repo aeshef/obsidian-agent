@@ -25,7 +25,7 @@ def _paths(vault: Path, out_dir: Path | None) -> tuple[Path, Path]:
     return graphics, out
 
 
-HISTORY_FILENAME = "open_tasks_by_day_history.json"
+HISTORY_FILENAME = vault_file("open_tasks_history_json")
 PNG_NAME = vault_file("chart_open_pipeline_png")
 MD_NAME = vault_file("chart_open_pipeline_md")
 

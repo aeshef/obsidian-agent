@@ -74,3 +74,34 @@ def finance_sub(key: str) -> str:
     if not val:
         raise KeyError(f"vault_paths.finance.{key} missing")
     return str(val)
+
+
+def _domain_sub(block_name: str, key: str) -> str:
+    block = vault_paths_config().get(block_name) or {}
+    val = block.get(key)
+    if not val:
+        raise KeyError(f"vault_paths.{block_name}.{key} missing")
+    return str(val)
+
+
+def planning_sub(key: str) -> str:
+    return _domain_sub("planning", key)
+
+
+def health_sub(key: str) -> str:
+    return _domain_sub("health", key)
+
+
+def cross_sub(key: str) -> str:
+    return _domain_sub("cross", key)
+
+
+def dashboard_file(key: str, *, legacy_key: str | None = None, **fmt: object) -> str:
+    """Resolve files.* with optional fallback for renamed keys."""
+    block = vault_paths_config().get("files") or {}
+    template = block.get(key)
+    if not template and legacy_key:
+        template = block.get(legacy_key)
+    if not template:
+        raise KeyError(f"vault_paths.files.{key} missing")
+    return str(template).format(**fmt)

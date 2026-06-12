@@ -45,18 +45,16 @@ def _mermaid_pie(hours: Dict[str, float], pie_title: str, top: int = 6) -> str:
     return "\n".join(lines)
 
 
-_WIKI_WEEK = pdmsg("auto_95e2cc8d19")
-_WIKI_LIFE = pdmsg("auto_fa4234819c")
-
-
 def render_meeting_focus_dashboard(
     generated_at: str,
     analytics: Dict[str, Any],
     insights_md: str,
     *,
-    week_wiki: Optional[str] = _WIKI_WEEK,
-    life_wiki: Optional[str] = _WIKI_LIFE,
+    week_wiki: Optional[str] = None,
+    life_wiki: Optional[str] = None,
 ) -> str:
+    week_wiki = week_wiki or pdmsg("auto_95e2cc8d19")
+    life_wiki = life_wiki or pdmsg("auto_fa4234819c")
     today = date.today()
     days_data: List[Dict] = analytics.get("days") or []
     tot: Dict = analytics.get("totals") or {}

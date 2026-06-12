@@ -5,6 +5,8 @@ import sys
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+from shared.chart_paths import chart_path, charts_root
 import re
 from typing import Optional
 
@@ -72,10 +74,9 @@ def main() -> None:
 
     logs_dir, action_logs_dir, out_dir = _paths(args)
     vault = Path(args.vault).resolve() if args.vault is not None else _discover_vault(Path(__file__).resolve())
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    png_path = out_dir / pdmsg("auto_630d75801e")
-    md_path = out_dir / pdmsg("auto_bb65b56717")
+    charts_root(vault).mkdir(parents=True, exist_ok=True)
+    png_path = chart_path(vault, "chart_completions_by_category_png")
+    md_path = chart_path(vault, "chart_completions_by_category_md")
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from planning_bot.services.action_log_parser import collect_events_from_logs

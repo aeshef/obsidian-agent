@@ -738,7 +738,71 @@ if [ "$_SHOULD_NUTR" = "1" ]; then
     fi
   fi
 fi
-unset _SHOULD_NUTR _IPHONE_CTX_DIR _NUTR_PNG _latest_iph _png_m
+unset _SHOULD_NUTR _NUTR_PNG _latest_iph _png_m
+
+# 5d-b. Health analytics (trends, correlations)
+_HEALTH_MARKER="$SYNC_DIR/daily_health_analytics_date.txt"
+_HEALTH_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_HEALTH_TRENDS_PNG:-Здоровье/Тренды_метрик.png}"
+_SHOULD_HEALTH=0
+if [ -n "${FORCE_CHARTS:-}" ]; then
+  _SHOULD_HEALTH=1
+elif [ ! -f "$_HEALTH_MARKER" ] || [ "$(cat "$_HEALTH_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_HEALTH=1
+elif [ -d "$_IPHONE_CTX_DIR" ] && [ -f "$_HEALTH_PNG" ]; then
+  _latest_iph=$(
+    find "$_IPHONE_CTX_DIR" -maxdepth 1 -type f -name '*.txt' ! -iname '*copy*' -print0 2>/dev/null \
+      | xargs -0 stat -f '%m' 2>/dev/null | sort -rn | head -1
+  )
+  _hpng_m=$(stat -f '%m' "$_HEALTH_PNG" 2>/dev/null || echo 0)
+  if [ -n "$_latest_iph" ] && [ "$_latest_iph" -gt "$_hpng_m" ]; then
+    _SHOULD_HEALTH=1
+  fi
+fi
+if ! cap_step_enabled SYNC_HEALTH_ANALYTICS; then
+  _SHOULD_HEALTH=0
+fi
+if [ "$_SHOULD_HEALTH" = "1" ]; then
+  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_health_analytics.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _nutr_py="${CHART_PYTHON:-python3}"
+    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_health_analytics.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+      echo "$TODAY" > "$_HEALTH_MARKER"
+    fi
+  fi
+fi
+unset _SHOULD_HEALTH _HEALTH_MARKER _HEALTH_PNG _hpng_m _IPHONE_CTX_DIR _latest_iph
+
+# 5d-c. Cross-domain analytics
+_CROSS_MARKER="$SYNC_DIR/daily_cross_analytics_date.txt"
+_SHOULD_CROSS=0
+if [ -n "${FORCE_CHARTS:-}" ]; then
+  _SHOULD_CROSS=1
+elif [ ! -f "$_CROSS_MARKER" ] || [ "$(cat "$_CROSS_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_CROSS=1
+fi
+if ! cap_step_enabled SYNC_CROSS_ANALYTICS; then
+  _SHOULD_CROSS=0
+fi
+if [ "$_SHOULD_CROSS" = "1" ]; then
+  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_cross_domain_analytics.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _nutr_py="${CHART_PYTHON:-python3}"
+    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_cross_domain_analytics.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+      echo "$TODAY" > "$_CROSS_MARKER"
+    fi
+  fi
+fi
+unset _SHOULD_CROSS _CROSS_MARKER
+
+# 5d-d. Health hub markdown (locale template; not overwritten by nutrition chart)
+if cap_step_enabled SYNC_HEALTH_ANALYTICS && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_health_dashboard_hub.py" ]; then
+  export VAULT_PATH="$LOCAL_VAULT"
+  export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+  _nutr_py="${CHART_PYTHON:-python3}"
+  cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_health_dashboard_hub.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
+fi
 
 # 6. Финансы: каждый синк — pull канонической БД с сервера; PNG/markdown — раз в день или FORCE
 FINANCE_MARKER="$SYNC_DIR/finance_dashboard_date.txt"

@@ -34,6 +34,8 @@ STEP_GMAIL_HEALTH = "CAP_SYNC_GMAIL_HEALTH"
 STEP_PLANNING_CHARTS = "CAP_SYNC_PLANNING_CHARTS"
 STEP_CALENDAR = "CAP_SYNC_CALENDAR"
 STEP_NUTRITION = "CAP_SYNC_NUTRITION"
+STEP_HEALTH_ANALYTICS = "CAP_SYNC_HEALTH_ANALYTICS"
+STEP_CROSS_ANALYTICS = "CAP_SYNC_CROSS_ANALYTICS"
 STEP_KB_MAINTENANCE = "CAP_SYNC_KB_MAINTENANCE"
 STEP_FINANCE_DASHBOARD = "CAP_SYNC_FINANCE_DASHBOARD"
 STEP_VAULT_AUDIT_HEAVY = "CAP_SYNC_VAULT_AUDIT_HEAVY"
@@ -44,6 +46,8 @@ _ALL_STEPS = (
     STEP_PLANNING_CHARTS,
     STEP_CALENDAR,
     STEP_NUTRITION,
+    STEP_HEALTH_ANALYTICS,
+    STEP_CROSS_ANALYTICS,
     STEP_KB_MAINTENANCE,
     STEP_FINANCE_DASHBOARD,
     STEP_VAULT_AUDIT_HEAVY,
@@ -57,6 +61,8 @@ _PROFILE_DEFAULTS: dict[str, dict[str, bool]] = {
         STEP_PLANNING_CHARTS: False,
         STEP_CALENDAR: False,
         STEP_NUTRITION: False,
+        STEP_HEALTH_ANALYTICS: False,
+        STEP_CROSS_ANALYTICS: False,
         STEP_KB_MAINTENANCE: False,
         STEP_FINANCE_DASHBOARD: True,
         STEP_VAULT_AUDIT_HEAVY: False,
@@ -67,6 +73,8 @@ _PROFILE_DEFAULTS: dict[str, dict[str, bool]] = {
         STEP_PLANNING_CHARTS: True,
         STEP_CALENDAR: True,
         STEP_NUTRITION: True,
+        STEP_HEALTH_ANALYTICS: True,
+        STEP_CROSS_ANALYTICS: True,
         STEP_KB_MAINTENANCE: False,
         STEP_FINANCE_DASHBOARD: False,
         STEP_VAULT_AUDIT_HEAVY: False,
@@ -77,6 +85,8 @@ _PROFILE_DEFAULTS: dict[str, dict[str, bool]] = {
         STEP_PLANNING_CHARTS: False,
         STEP_CALENDAR: False,
         STEP_NUTRITION: False,
+        STEP_HEALTH_ANALYTICS: False,
+        STEP_CROSS_ANALYTICS: False,
         STEP_KB_MAINTENANCE: False,
         STEP_FINANCE_DASHBOARD: True,
         STEP_VAULT_AUDIT_HEAVY: False,
@@ -87,6 +97,8 @@ _PROFILE_DEFAULTS: dict[str, dict[str, bool]] = {
         STEP_PLANNING_CHARTS: True,
         STEP_CALENDAR: False,
         STEP_NUTRITION: False,
+        STEP_HEALTH_ANALYTICS: False,
+        STEP_CROSS_ANALYTICS: False,
         STEP_KB_MAINTENANCE: False,
         STEP_FINANCE_DASHBOARD: False,
         STEP_VAULT_AUDIT_HEAVY: False,
@@ -111,14 +123,20 @@ def _connector_allows_step(profile: CapabilityProfile, step: str) -> bool:
         return profile.connector(CONNECTOR_GMAIL_HEALTH)
     if step == STEP_CALENDAR:
         return profile.connector(CONNECTOR_APPLE_CALENDAR) and profile.module(MODULE_PLANNING)
-    if step in (STEP_MAC_IPHONE, STEP_NUTRITION):
+    if step in (STEP_MAC_IPHONE, STEP_NUTRITION, STEP_HEALTH_ANALYTICS):
         if not profile.module(MODULE_PLANNING):
             return False
         if step == STEP_NUTRITION:
             return profile.connector(CONNECTOR_APPLE_HEALTH) and feature_enabled(
                 FEAT_HEALTH_NUTRITION, profile
             )
+        if step == STEP_HEALTH_ANALYTICS:
+            return profile.connector(CONNECTOR_APPLE_HEALTH)
         return profile.connector(CONNECTOR_MAC_CONTEXT) or profile.connector(
+            CONNECTOR_APPLE_HEALTH
+        )
+    if step == STEP_CROSS_ANALYTICS:
+        return profile.any_module(MODULE_PLANNING, MODULE_FINANCE) and profile.connector(
             CONNECTOR_APPLE_HEALTH
         )
     return True

@@ -125,7 +125,7 @@ def build_scaffold_context(
     mapping_path = f"{dash_folder}/{vault_file('goals_mapping_json')}"
     calendar_dash = vault_file("calendar_dashboard_md")
     calendar_json = vault_file("calendar_json")
-    nutrition_dash = f"{dash_folder}/{vault_file('nutrition_dashboard_md')}"
+    nutrition_dash = f"{dash_folder}/{vault_file('health_dashboard_md')}"
     finance_dash = f"{dash_folder}/{finance_sub('dashboard_md')}"
 
     quarter_names = strings.get("quarter_names") if isinstance(strings.get("quarter_names"), dict) else {}
@@ -143,6 +143,7 @@ def build_scaffold_context(
         "calendar_dashboard": f"{dash_folder}/{calendar_dash}",
         "calendar_json": calendar_json,
         "nutrition_dashboard": nutrition_dash,
+        "health_dashboard": nutrition_dash,
         "finance_dashboard": finance_dash,
         "done_column": done_column,
         "tag_goal": tag_goal,

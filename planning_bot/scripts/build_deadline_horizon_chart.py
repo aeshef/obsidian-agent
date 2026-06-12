@@ -12,6 +12,8 @@ import sys
 from collections import Counter
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+from shared.vault_paths_config import vault_file
 from typing import Iterable
 
 
@@ -28,8 +30,8 @@ def _paths(vault: Path, out_dir: Path | None) -> Path:
     return out
 
 
-PNG_NAME = pdmsg("auto_a7c14af2a8")
-MD_NAME = pdmsg("auto_73f5ba424f")
+PNG_NAME = vault_file("chart_deadline_horizon_png")
+MD_NAME = vault_file("chart_deadline_horizon_md")
 
 
 def _sorted_categories(keys: Iterable[str], order: dict[str, int]) -> list[str]:

@@ -38,7 +38,7 @@ LOGS_DIR = _dash
 ACTION_LOGS_DIR = _logs
 assert ACTION_LOGS_DIR != LOGS_DIR and ACTION_LOGS_DIR.parent == LOGS_DIR
 GRAPHICS_DIR = _graphics
-COMPLETED_SOC_FILE = GRAPHICS_DIR / "completed_tasks_soc.json"
+COMPLETED_SOC_FILE = GRAPHICS_DIR / vault_file("completed_tasks_soc_json")
 ACTION_LOG_PREFIX = vault_file("action_log_prefix")
 MAPPING_FILE = _dash / vault_file("goals_mapping_json")
 

@@ -4,6 +4,8 @@ import argparse
 from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
+
+from shared.chart_paths import chart_path, charts_root
 import re
 
 
@@ -78,9 +80,9 @@ def main() -> None:
 
     logs_dir, action_logs_dir, out_dir = _paths(args)
     vault = Path(args.vault).resolve() if args.vault is not None else _discover_vault(Path(__file__).resolve())
-    out_dir.mkdir(parents=True, exist_ok=True)
-    png_path = out_dir / pdmsg("auto_2ce6c30bbb")
-    md_path = out_dir / pdmsg("auto_c35a11643f")
+    charts_root(vault).mkdir(parents=True, exist_ok=True)
+    png_path = chart_path(vault, "chart_daily_activity_png")
+    md_path = chart_path(vault, "chart_daily_activity_md")
 
     # (comment)
     import sys
