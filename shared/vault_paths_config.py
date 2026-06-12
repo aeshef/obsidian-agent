@@ -96,6 +96,10 @@ def cross_sub(key: str) -> str:
     return _domain_sub("cross", key)
 
 
+def routines_sub(key: str) -> str:
+    return _domain_sub("routines", key)
+
+
 def dashboard_file(key: str, *, legacy_key: str | None = None, **fmt: object) -> str:
     """Resolve files.* with optional fallback for renamed keys."""
     block = vault_paths_config().get("files") or {}

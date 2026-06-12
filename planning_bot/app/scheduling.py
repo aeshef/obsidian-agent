@@ -124,6 +124,16 @@ def run_startup_tasks(planning) -> None:
         except Exception as e:
             logger.warning("signals layout ensure failed: %s", e)
 
+    if planning_routines_enabled():
+        try:
+            from planning_bot.services.routines_layout import ensure_routines_layout
+
+            actions = ensure_routines_layout()
+            for line in actions:
+                logger.info("routines layout: %s", line)
+        except Exception as e:
+            logger.warning("routines layout ensure failed: %s", e)
+
     if not planning_routines_enabled():
         logger.info("planning_routines feature off — skip routines_manager startup")
         return

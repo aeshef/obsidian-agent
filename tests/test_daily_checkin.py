@@ -1,7 +1,7 @@
 """Daily check-in: config, routines toggle, signals history."""
 from __future__ import annotations
 
-import os
+import json
 from pathlib import Path
 
 import pytest
@@ -13,25 +13,36 @@ ROOT = Path(__file__).resolve().parents[1]
 @pytest.fixture()
 def vault_env(tmp_path, monkeypatch):
     routines = tmp_path / "400_Routines"
-    sub = routines / "Routines"
-    sub.mkdir(parents=True)
-    (sub / "Tasks_Config.md").write_text(
-        "## Evening\n\n- Brush teeth\n",
-        encoding="utf-8",
-    )
-    today = sub / "Today.md"
-    today.write_text(
-        "## Evening\n\n- [ ] Brush teeth\n\n---\n\n**Date:** 2099-01-01\n",
+    op = routines / "Routines"
+    data = routines / "Data"
+    op.mkdir(parents=True)
+    data.mkdir(parents=True)
+    (op / "Tasks_Config.md").write_text(
+        "## Evening routines\n\n- Brush teeth\n",
         encoding="utf-8",
     )
     cfg = {
         "folders": {"routines": "400_Routines"},
+        "routines": {
+            "operational": "Routines",
+            "signals": "Signals",
+            "data": "Data",
+            "charts": "Charts",
+            "charts_routines": "Routines",
+            "charts_signals": "Signals",
+        },
         "files": {
             "signals_subdir": "Signals/",
             "signals_config_yaml": "Signals_Config.yaml",
             "signals_history_md": "Signals_History.md",
+            "signals_stats_md": "Charts/Signals/Signals_statistics.md",
             "routines_calendar_subdir": "Routines/",
-            "routines_stats_md": "Routine_stats.md",
+            "routines_config_md": "Tasks_Config.md",
+            "routines_history_md": "Routines_History.md",
+            "routines_today_json": "routines_today.json",
+            "routines_today_legacy_md": "Today.md",
+            "routines_stats_md": "Charts/Routines/Routine_statistics.md",
+            "routines_stats_legacy_md": "Routine_statistics.md",
         },
     }
     (ROOT / "config" / "vault_paths.yaml").write_text(
@@ -60,27 +71,18 @@ def test_daily_checkin_config_loads():
     assert any(s.get("id") == "mood" for s in signals_config())
 
 
-def test_set_task_done(vault_env, monkeypatch):
-    from planning_bot.services import routines_manager as rm
+def test_set_task_done(vault_env):
+    from planning_bot.services.routines_config import section_config_header
+    from planning_bot.services.routines_manager import set_task_done
+    from shared.routines_paths import routines_config_path, routines_today_json_path
 
-    def _pdmsg(key, **kw):
-        return {
-            "auto_9e515fb7c8": "400_Routines",
-            "auto_fc906f665b": "Routines/",
-            "auto_f9a9071bae": "Tasks_Config.md",
-            "auto_2cc3b7c2af": "Today.md",
-            "auto_1c178f6429": "History.md",
-            "auto_87b10eda1f": "## Morning",
-            "auto_3ed8660b4d": "## Day",
-            "auto_0f1e39b138": "## Evening",
-        }.get(key, key)
-
-    monkeypatch.setattr(rm, "pdmsg", _pdmsg)
-    rm.ROUTINES_DIR = vault_env / "400_Routines" / "Routines"
-    rm.TODAY_FILE = rm.ROUTINES_DIR / "Today.md"
-    assert rm.set_task_done("evening", "Brush teeth", True)
-    text = rm.TODAY_FILE.read_text(encoding="utf-8")
-    assert "- [x] Brush teeth" in text
+    routines_config_path().write_text(
+        f"{section_config_header('evening')}\n\n- Brush teeth\n",
+        encoding="utf-8",
+    )
+    assert set_task_done("evening", "Brush teeth", True)
+    payload = json.loads(routines_today_json_path().read_text(encoding="utf-8"))
+    assert payload["status"]["evening"]["Brush teeth"] is True
 
 
 def test_append_signals_entry(vault_env, monkeypatch):

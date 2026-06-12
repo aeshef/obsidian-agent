@@ -23,6 +23,14 @@ health:
 cross:
   graphs_cross: "Cross"
 
+routines:
+  operational: "📅 Routines"
+  signals: "📊 Signals"
+  data: "Data"
+  charts: "Charts"
+  charts_routines: "Routines"
+  charts_signals: "Signals"
+
 files:
   kanban_board: "📋 Task_Board.md"
   kanban_archive_board: "📦 Closed_Tasks.md"
@@ -66,10 +74,16 @@ files:
   vault_audit_report_md: "Vault_audit_report.md"
   reflection_weekly_file: "Reflection_{date}.md"
   routines_calendar_subdir: "📅 Routines/"
-  routines_stats_md: "📊 Routine_statistics.md"
+  routines_config_md: "📋 Tasks_Config.md"
+  routines_history_md: "📊 Routines_History.md"
+  routines_today_json: "routines_today.json"
+  routines_today_legacy_md: "📅 Today.md"
+  routines_stats_md: "Charts/Routines/📊 Routine_statistics.md"
+  routines_stats_legacy_md: "📊 Routine_statistics.md"
   signals_subdir: "📊 Signals/"
   signals_config_yaml: "📋 Signals_Config.yaml"
   signals_history_md: "📊 Signals_History.md"
+  signals_stats_md: "Charts/Signals/📊 Signals_statistics.md"
 
 finance:
   dashboard_md: "📊 Finance_Dashboard.md"

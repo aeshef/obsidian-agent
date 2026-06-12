@@ -132,6 +132,8 @@ _vault_paths_yaml_shell_fallback() {
   v="$(_vault_yaml_field files chart_calendar_week_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_CALENDAR_WEEK_PNG="$v"
   v="$(_vault_yaml_field files routines_calendar_subdir "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_ROUTINES_CALENDAR_SUBDIR="$v"
   v="$(_vault_yaml_field files routines_stats_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_ROUTINES_STATS_MD="$v"
+  v="$(_vault_yaml_field files routines_stats_legacy_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_ROUTINES_STATS_LEGACY_MD="$v"
+  v="$(_vault_yaml_field files routines_today_legacy_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_ROUTINES_TODAY_LEGACY_MD="$v"
   v="$(_vault_yaml_field files chart_nutrition_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_NUTRITION_PNG="$v"
   v="$(_vault_yaml_field files system_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_SYSTEM="$v"
   v="$(_vault_yaml_field files vault_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_VAULT="$v"

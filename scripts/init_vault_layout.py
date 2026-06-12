@@ -70,6 +70,12 @@ def main() -> int:
     for p in dashed:
         print(f"  dashboard: {p}")
 
+    from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+
+    routines = scaffold_vault_routines(prof, root)
+    for p in routines:
+        print(f"  routines: {p}")
+
     return 0
 
 

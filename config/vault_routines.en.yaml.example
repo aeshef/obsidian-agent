@@ -1,0 +1,16 @@
+# Vault routines dashboards — scaffold via scripts/scaffold_vault_routines.py
+strings:
+  stats_empty_history: "📝 History is empty or missing. Close the day via bot — data will appear here."
+  stats_no_dates: "📝 No dated entries in history."
+  routines_stats_title: "# 📊 Routine statistics"
+  routines_stats_subtitle: "_Auto-updated completion stats for morning, day, and evening routines_"
+  signals_stats_title: "# 📊 Signals statistics"
+  signals_stats_subtitle: "_Mood, energy, and stress trends from evening check-in_"
+
+dashboards:
+  routines_stats:
+    file_key: routines_stats_md
+    template: routines_stats.md.template
+  signals_stats:
+    file_key: signals_stats_md
+    template: signals_stats.md.template

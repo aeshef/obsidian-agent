@@ -1,0 +1,169 @@
+{{routines_stats_title}}
+
+{{routines_stats_subtitle}}
+
+## 📈 Общая статистика и динамика по дням
+
+```dataviewjs
+await (async () => {
+const HISTORY = "{{history_page}}";
+const CONFIG = "{{config_page}}";
+const MORNING_HDR = "{{morning_config_header}}";
+const DAY_HDR = "{{day_config_header}}";
+const EVENING_HDR = "{{evening_config_header}}";
+const MORNING_LBL = "{{morning_history_label}}";
+const DAY_LBL = "{{day_history_label}}";
+const EVENING_LBL = "{{evening_history_label}}";
+
+async function readNote(link) {
+  const page = dv.page(link);
+  if (page?.file?.path) {
+    try { return await app.vault.read(page.file.path); } catch (e) { /* fall through */ }
+  }
+  const files = app.vault.getMarkdownFiles();
+  const hint = link.split("/").pop();
+  const f = files.find(x => x.path.includes(hint));
+  if (f) return await app.vault.read(f.path);
+  return "";
+}
+
+const fileContent = await readNote(HISTORY);
+const lines = (fileContent || "").split("\n");
+
+if (!fileContent || lines.length < 5) {
+  dv.paragraph("{{stats_empty_history}}");
+  return;
+}
+
+const configContent = await readNote(CONFIG);
+let morningTasks = [], dayTasks = [], eveningTasks = [];
+let inMorning = false, inDay = false, inEvening = false;
+for (const line of (configContent || "").split("\n")) {
+  if (line.includes(MORNING_HDR)) { inMorning = true; inDay = false; inEvening = false; continue; }
+  if (line.includes(DAY_HDR)) { inMorning = false; inDay = true; inEvening = false; continue; }
+  if (line.includes(EVENING_HDR)) { inMorning = false; inDay = false; inEvening = true; continue; }
+  if (line.trim().startsWith("- ") && (inMorning || inDay || inEvening)) {
+    const task = line.trim().substring(2).trim();
+    if (inMorning) morningTasks.push(task);
+    if (inDay) dayTasks.push(task);
+    if (inEvening) eveningTasks.push(task);
+  }
+}
+
+const stats = {};
+let currentDate = null, currentSection = null;
+for (const line of lines) {
+  const dateMatch = line.match(/^## (\d{4}-\d{2}-\d{2})/);
+  if (dateMatch) {
+    currentDate = dateMatch[1];
+    stats[currentDate] = { morning: {}, day: {}, evening: {} };
+    currentSection = null;
+    continue;
+  }
+  if (line.includes(MORNING_LBL)) { currentSection = "morning"; continue; }
+  if (line.includes(DAY_LBL)) { currentSection = "day"; continue; }
+  if (line.includes(EVENING_LBL)) { currentSection = "evening"; continue; }
+  if (currentDate && currentSection) {
+    const taskMatch = line.match(/^-\s*(✅|⬜)\s*(.+)$/);
+    if (taskMatch) stats[currentDate][currentSection][taskMatch[2].trim()] = taskMatch[1] === "✅";
+  }
+}
+
+const dates = Object.keys(stats).sort();
+if (morningTasks.length === 0 && dates.length > 0) morningTasks = Object.keys(stats[dates[0]].morning || {});
+if (dayTasks.length === 0 && dates.length > 0) dayTasks = Object.keys(stats[dates[0]].day || {});
+if (eveningTasks.length === 0 && dates.length > 0) eveningTasks = Object.keys(stats[dates[0]].evening || {});
+
+if (dates.length === 0) {
+  dv.paragraph("{{stats_no_dates}}");
+  return;
+}
+
+const today = dv.date("today");
+const currentYear = today.toJSDate().getFullYear();
+const currentMonth = today.toJSDate().getMonth() + 1;
+const monthName = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"][currentMonth - 1];
+
+const currentMonthStats = {};
+dates.forEach(d => {
+  const dateObj = new Date(d);
+  if (dateObj.getFullYear() === currentYear && dateObj.getMonth() + 1 === currentMonth) currentMonthStats[d] = stats[d];
+});
+
+function dayPct(day, section) {
+  const data = stats[day][section];
+  const tasks = section === "morning" ? morningTasks : (section === "day" ? dayTasks : eveningTasks);
+  if (!tasks.length) return 0;
+  let done = 0;
+  tasks.forEach(t => { if (data[t]) done++; });
+  return Math.round((done / tasks.length) * 100);
+}
+
+const last30 = dates.slice(-10).reverse();
+const dynamicRows = last30.map(d => {
+  const m = dayPct(d, "morning"), dn = dayPct(d, "day"), e = dayPct(d, "evening");
+  const dayStr = d.slice(8,10) + "." + d.slice(5,7);
+  return [d, dayStr, m + "%", dn + "%", e + "%",
+    "🟩".repeat(Math.floor(m/10)) + "⬜".repeat(10-Math.floor(m/10)),
+    "🟩".repeat(Math.floor(dn/10)) + "⬜".repeat(10-Math.floor(dn/10)),
+    "🟩".repeat(Math.floor(e/10)) + "⬜".repeat(10-Math.floor(e/10))];
+});
+dv.header(3, "📉 Динамика по дням (последние 10 дней)");
+dv.table(["Дата", "День", "Утро %", "День %", "Вечер %", "Утро", "День", "Вечер"], dynamicRows);
+
+const totalDays = Object.keys(currentMonthStats).length;
+if (totalDays === 0) {
+  dv.header(3, `📊 ${monthName} ${currentYear}`);
+  dv.paragraph("В текущем месяце записей пока нет.");
+} else {
+  function monthStats(section, tasks) {
+    const out = {};
+    tasks.forEach(task => {
+      let completed = 0, total = 0;
+      Object.values(currentMonthStats).forEach(day => {
+        if (day[section][task] !== undefined) { total++; if (day[section][task]) completed++; }
+      });
+      out[task] = { completed, total, percent: total > 0 ? Math.round((completed/total)*100) : 0 };
+    });
+    return out;
+  }
+  const morningStats = monthStats("morning", morningTasks);
+  const dayStats = monthStats("day", dayTasks);
+  const eveningStats = monthStats("evening", eveningTasks);
+  function sumPct(s) {
+    let c = 0, t = 0;
+    Object.values(s).forEach(x => { c += x.completed; t += x.total; });
+    return { c, t, p: t > 0 ? Math.round((c/t)*100) : 0 };
+  }
+  const mp = sumPct(morningStats), dp = sumPct(dayStats), ep = sumPct(eveningStats);
+  dv.header(3, `📊 ${monthName} ${currentYear} (${totalDays} дней)`);
+  dv.paragraph(`**Утро:** ${mp.p}% (${mp.c}/${mp.t}) · **День:** ${dp.p}% (${dp.c}/${dp.t}) · **Вечер:** ${ep.p}% (${ep.c}/${ep.t})`);
+  if (morningTasks.length) {
+    dv.header(4, "🌅 Утренние");
+    dv.table(["Задача", "Выполнено", "Прогресс"], morningTasks.map(task => {
+      const s = morningStats[task] || { completed: 0, total: 0, percent: 0 };
+      const bar = "🟩".repeat(Math.floor(s.percent/10)) + "⬜".repeat(10-Math.floor(s.percent/10));
+      return [task, s.completed + "/" + s.total, bar + " " + s.percent + "%"];
+    }));
+  }
+  if (dayTasks.length) {
+    dv.header(4, "☀️ Дневные");
+    dv.table(["Задача", "Выполнено", "Прогресс"], dayTasks.map(task => {
+      const s = dayStats[task] || { completed: 0, total: 0, percent: 0 };
+      const bar = "🟩".repeat(Math.floor(s.percent/10)) + "⬜".repeat(10-Math.floor(s.percent/10));
+      return [task, s.completed + "/" + s.total, bar + " " + s.percent + "%"];
+    }));
+  }
+  if (eveningTasks.length) {
+    dv.header(4, "🌙 Вечерние");
+    dv.table(["Задача", "Выполнено", "Прогресс"], eveningTasks.map(task => {
+      const s = eveningStats[task] || { completed: 0, total: 0, percent: 0 };
+      const bar = "🟩".repeat(Math.floor(s.percent/10)) + "⬜".repeat(10-Math.floor(s.percent/10));
+      return [task, s.completed + "/" + s.total, bar + " " + s.percent + "%"];
+    }));
+  }
+}
+})();
+```
+
+_Данные из [[{{routines_history_link}}|истории рутин]]; бот пополняет при смене дня._

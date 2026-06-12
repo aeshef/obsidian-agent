@@ -13,7 +13,7 @@ from shared.capabilities.profile import (
 )
 from shared.paths import VaultPaths
 from shared.vault_layout import knowledge_subdir
-from shared.vault_paths_config import dashboards_sub, finance_sub, folder, vault_rel_path
+from shared.vault_paths_config import dashboards_sub, finance_sub, folder, routines_sub, vault_file, vault_rel_path
 
 
 def _mkdir(p: Path) -> list[str]:
@@ -46,11 +46,18 @@ def planned_vault_dirs(
             ]
         )
     if prof.module(MODULE_PLANNING) and data_dir is not None:
+        routines_root = root / folder("routines")
         paths.extend(
             [
                 root / folder("tasks"),
                 root / folder("goals"),
-                root / folder("routines"),
+                routines_root,
+                routines_root / vault_file("routines_calendar_subdir").rstrip("/"),
+                routines_root / vault_file("signals_subdir").rstrip("/"),
+                routines_root / routines_sub("data"),
+                routines_root / routines_sub("charts"),
+                routines_root / routines_sub("charts") / routines_sub("charts_routines"),
+                routines_root / routines_sub("charts") / routines_sub("charts_signals"),
                 root / folder("handwritten"),
                 data_dir / vault_rel_path("actions_mac"),
                 data_dir / vault_rel_path("actions_iphone"),

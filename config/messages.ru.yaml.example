@@ -332,7 +332,22 @@ planning:
     checkin_section_day: "☀️ Дневные рутины"
     checkin_section_evening: "🌙 Вечерние рутины"
     checkin_section_other: "Рутины"
-    checkin_signal_mood: "Как настроение к концу дня?"
+    routines_section_morning_config: "## 🌅 Утренние рутины"
+    routines_section_day_config: "## ☀️ Дневные рутины"
+    routines_section_evening_config: "## 🌙 Вечерние рутины"
+    routines_section_morning_history: "**Утренние:**"
+    routines_section_day_history: "**Дневные:**"
+    routines_section_evening_history: "**Вечерние:**"
+    routines_history_header: |
+      # 📊 История выполнения рутин
+
+      > Append-only архив. Бот переносит сюда статус при смене дня. Список задач — в конфиге рутин.
+    routines_stats_title: "# 📊 Статистика рутин"
+    routines_stats_subtitle: "_Автоматически обновляемая статистика выполнения утренних, дневных и вечерних рутин_"
+    routines_stats_footer: "_Данные из [[{{routines_history_link}}|истории рутин]]; пополняется ботом при смене дня._"
+    signals_stats_title: "# 📊 Статистика сигналов"
+    signals_stats_subtitle: "_Тренды настроения, энергии и стресса из вечернего чек-ина_"
+    signals_stats_footer: "_Данные из [[{{signals_history_link}}|истории сигналов]]; append-only лог из Telegram._"
     checkin_signal_energy: "Уровень энергии?"
     checkin_signal_stress: "Уровень стресса?"
     checkin_signal_focus: "Куда ушёл фокус дня?"

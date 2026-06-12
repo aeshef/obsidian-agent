@@ -747,6 +747,22 @@ planning:
     checkin_section_day: '☀️ Day routines'
     checkin_section_evening: '🌙 Evening routines'
     checkin_section_other: 'Routines'
+    routines_section_morning_config: '## 🌅 Morning routines'
+    routines_section_day_config: '## ☀️ Daytime routines'
+    routines_section_evening_config: '## 🌙 Evening routines'
+    routines_section_morning_history: '**Morning:**'
+    routines_section_day_history: '**Day:**'
+    routines_section_evening_history: '**Evening:**'
+    routines_history_header: |
+      # 📊 Routines history
+
+      > Append-only archive. Bot moves daily status here on rollover. Task list lives in routines config.
+    routines_stats_title: '# 📊 Routine statistics'
+    routines_stats_subtitle: '_Auto-updated completion stats for morning, day, and evening routines_'
+    routines_stats_footer: '_Data from [[{{routines_history_link}}|routines history]]; filled by bot on day rollover._'
+    signals_stats_title: '# 📊 Signals statistics'
+    signals_stats_subtitle: '_Mood, energy, and stress trends from evening check-in_'
+    signals_stats_footer: '_Data from [[{{signals_history_link}}|signals history]]; append-only Telegram log._'
     checkin_signal_mood: 'How is your mood at the end of the day?'
     checkin_signal_energy: 'Energy level?'
     checkin_signal_stress: 'Stress level?'

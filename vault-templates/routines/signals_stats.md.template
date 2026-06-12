@@ -1,0 +1,73 @@
+{{signals_stats_title}}
+
+{{signals_stats_subtitle}}
+
+## 📈 Динамика сигналов
+
+```dataviewjs
+await (async () => {
+const HISTORY = "{{signals_history_page}}";
+
+async function loadHistory() {
+  const page = dv.page(HISTORY);
+  if (page?.file?.path) {
+    try { return await app.vault.read(page.file.path); } catch (e) { /* fall through */ }
+  }
+  const files = app.vault.getMarkdownFiles();
+  const f = files.find(x => x.path.includes("История_Сигналов") || x.path.includes("Signals_History"));
+  if (f) return await app.vault.read(f.path);
+  return "";
+}
+
+const content = await loadHistory();
+if (!content || content.trim().length < 20) {
+  dv.paragraph("{{stats_empty_history}}");
+  return;
+}
+
+const entries = [];
+const blocks = content.split(/^## /m).slice(1);
+for (const block of blocks) {
+  const dateMatch = block.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (!dateMatch) continue;
+  const yamlMatch = block.match(/```yaml\n([\s\S]*?)```/);
+  if (!yamlMatch) continue;
+  const signals = {};
+  let inSig = false;
+  for (const line of yamlMatch[1].split("\n")) {
+    if (line.trim() === "signals:") { inSig = true; continue; }
+    if (inSig) {
+      const m = line.match(/^\s+(\w+):\s*(.+)$/);
+      if (m) signals[m[1]] = m[2].trim();
+    }
+  }
+  entries.push({ date: dateMatch[1], signals });
+}
+
+if (!entries.length) {
+  dv.paragraph("{{stats_no_dates}}");
+  return;
+}
+
+entries.sort((a, b) => a.date.localeCompare(b.date));
+const last = entries.slice(-14);
+const numeric = ["mood", "energy", "stress", "day_quality"];
+const rows = last.map(e => {
+  const day = e.date.slice(8, 10) + "." + e.date.slice(5, 7);
+  const vals = numeric.map(k => e.signals[k] ?? "—");
+  const focus = e.signals.focus_direction ?? "—";
+  return [e.date, day, ...vals, focus];
+});
+dv.header(3, "Последние 14 дней");
+dv.table(["Дата", "День", "Mood", "Energy", "Stress", "Day", "Focus"], rows);
+
+const avg = {};
+numeric.forEach(k => {
+  const nums = last.map(e => Number(e.signals[k])).filter(n => !Number.isNaN(n));
+  avg[k] = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(1) : "—";
+});
+dv.paragraph(`Среднее за период: mood ${avg.mood}, energy ${avg.energy}, stress ${avg.stress}, day ${avg.day_quality}`);
+})();
+```
+
+_Данные из [[{{signals_history_link}}|истории сигналов]]; append-only лог из Telegram чек-ина._

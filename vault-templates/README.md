@@ -27,3 +27,21 @@ Obsidian dashboard markdown is **scaffolded** from:
 `init_vault_layout.py` runs scaffold automatically (skips existing files).
 
 Finance dashboard body is built by `finance_bot/scripts/build_finance_dashboard.py` from `dashboard_templates.yaml`.
+
+## Routines (`routines/`)
+
+Routines/signals statistics markdown is scaffolded from:
+
+- `config/vault_routines.{en,ru}.yaml.example` — page catalog + UI strings
+- `vault-templates/routines/*.md.template` — dataviewjs fragments
+- `config/vault_paths.yaml` — folder and file names (`routines` block)
+- `planning_bot/config/routines.yaml` — section header message keys
+
+```bash
+./scripts/oa-python.sh scripts/scaffold_vault_routines.py
+./scripts/oa-python.sh scripts/scaffold_vault_routines.py --force
+```
+
+Live routine status is stored in `Данные/routines_today.json` (bot-only). Task list: `📅 Рутины/📋 Конфиг_Задач.md`. Signals override: `📊 Сигналы/📋 Конфиг_Сигналов.yaml`.
+
+`init_vault_layout.py` and bot startup run `ensure_routines_layout()` (migrate legacy paths, scaffold stats).

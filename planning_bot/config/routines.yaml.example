@@ -1,0 +1,12 @@
+# Routines section headers — labels from config/messages.{locale}.yaml (planning.messages).
+# cp routines.yaml.example → routines.yaml (optional overrides).
+sections:
+  morning:
+    config_header_key: routines_section_morning_config
+    history_label_key: routines_section_morning_history
+  day:
+    config_header_key: routines_section_day_config
+    history_label_key: routines_section_day_history
+  evening:
+    config_header_key: routines_section_evening_config
+    history_label_key: routines_section_evening_history

@@ -176,6 +176,7 @@ EXCLUDE_300=(
   --exclude="${VAULT_DASH_DATA}/"
   --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}"
   --exclude="${VAULT_FILE_ROUTINES_STATS_MD}"
+  --exclude="${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:-}"
   --exclude="/${VAULT_FILE_ACTION_LOG_PREFIX}*.md"
   --exclude="${VAULT_FILE_AUDIT_SYSTEM}"
   --exclude="${VAULT_FILE_AUDIT_VAULT}"
@@ -189,11 +190,16 @@ EXCLUDE_300=(
   --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_CONTEXT_TODAY}"
   --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_CONTEXT_WEEK}"
 )
-# 1. Сервер → Локальный. --update: не перезаписывать локальные, если они новее (сохраняем правки в Obsidian). Если новее сервер (задача через бота / заметки knowledge bot) — подтягиваем.
+# Не подтягивать устаревшие пути рутин (корневой stats, markdown «Сегодня») — только новая структура.
+EXCLUDE_ROUTINES=(
+  --exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}"
+  --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}"
+)
+# 1. Сервер → Локальный.
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_ROUTINES[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" "$LOCAL_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
@@ -202,6 +208,17 @@ fi
 if cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
 fi
+
+# 1r. Рутины: миграция layout локально + удаление legacy (rsync --update не удаляет устаревшие пути).
+if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
+  export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
+from planning_bot.services.routines_layout import ensure_routines_layout
+for line in ensure_routines_layout():
+    print('[1r]', line)
+" ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
+fi
+
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
@@ -276,10 +293,14 @@ PUSH_EXCLUDE_300=(
   --exclude="${VAULT_DASH_DATA}/finance.db"
   --exclude="${VAULT_DASH_DATA}/finance.db-*"
 )
+PUSH_EXCLUDE_ROUTINES=(
+  --exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}"
+  --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}"
+)
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_ROUTINES[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
@@ -287,6 +308,17 @@ if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabl
 fi
 if cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
+fi
+
+# 2r. VPS: миграция рутин + удаление legacy paths на сервере.
+if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
+  echo "[2r] routines layout on server" >&2
+  ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
+from planning_bot.services.routines_layout import ensure_routines_layout
+for line in ensure_routines_layout():
+    print('[2r]', line)
+\"" >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
 fi
 
 # 2b. На VPS: тот же cleanup/JSON для IPhone (старый мусор мог остаться только на сервере)

@@ -8,49 +8,21 @@ from typing import Any
 from planning_bot.services.daily_checkin_config import signals_config
 from planning_bot.services.routines_lock import routines_transaction
 from planning_bot.services.routines_manager import get_today_date
-from shared.paths import vault_root_optional
+from shared.routines_paths import signals_config_path, signals_history_path
 from shared.tz import get_tz
-from shared.vault_paths_config import folder, vault_file
 from shared.yaml_config import load_yaml
-
-def _signals_dir() -> Path | None:
-    root = vault_root_optional()
-    if root is None:
-        return None
-    return root / folder("routines") / vault_file("signals_subdir").rstrip("/")
-
-
-def signals_history_path() -> Path | None:
-    base = _signals_dir()
-    if base is None:
-        return None
-    return base / vault_file("signals_history_md")
-
-
-def signals_vault_config_path() -> Path | None:
-    base = _signals_dir()
-    if base is None:
-        return None
-    return base / vault_file("signals_config_yaml")
 
 
 def ensure_signals_layout() -> None:
-    hist = signals_history_path()
-    if hist is None:
-        return
-    hist.parent.mkdir(parents=True, exist_ok=True)
-    if hist.is_file():
-        return
-    from planning_bot.app.ui import pmsg
+    from planning_bot.services.routines_layout import ensure_routines_layout
 
-    header = pmsg("checkin_signals_history_header")
-    hist.write_text(header + "\n", encoding="utf-8")
+    ensure_routines_layout(scaffold_stats=False)
 
 
 def effective_signals() -> list[dict[str, Any]]:
     base = list(signals_config())
-    vault_path = signals_vault_config_path()
-    if vault_path and vault_path.is_file():
+    vault_path = signals_config_path()
+    if vault_path.is_file():
         over = load_yaml(vault_path, default={})
         if isinstance(over, dict):
             raw = over.get("signals")
@@ -61,7 +33,7 @@ def effective_signals() -> list[dict[str, Any]]:
 
 def has_signals_for_date(date_str: str) -> bool:
     path = signals_history_path()
-    if path is None or not path.is_file():
+    if not path.is_file():
         return False
     content = path.read_text(encoding="utf-8")
     return f"## {date_str}" in content and "signals:" in content
@@ -82,8 +54,6 @@ def _human_summary(values: dict[str, Any]) -> str:
 
 def append_signals_entry(values: dict[str, Any], *, date_str: str | None = None) -> None:
     path = signals_history_path()
-    if path is None:
-        return
     ensure_signals_layout()
     day = date_str or get_today_date()
     tz = get_tz()
@@ -117,17 +87,3 @@ def append_signals_entry(values: dict[str, Any], *, date_str: str | None = None)
 
             content = pmsg("checkin_signals_history_header") + "\n\n"
         path.write_text(content + entry + tail, encoding="utf-8")
-
-
-def format_signals_for_day(date_str: str) -> str:
-    path = signals_history_path()
-    if path is None or not path.is_file():
-        return ""
-    content = path.read_text(encoding="utf-8")
-    marker = f"## {date_str}"
-    if marker not in content:
-        return ""
-    chunk = content.split(marker, 1)[1]
-    if "## " in chunk:
-        chunk = chunk.split("## ", 1)[0]
-    return chunk.strip()
