@@ -32,7 +32,7 @@ export FINANCE_BUILD_DASHBOARD_AFTER_PULL=0
 
 PYTHON="$(common_resolve_python_usable "$BOT_ROOT")"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] PYTHON=$PYTHON"
-"$PYTHON" scripts/build_finance_dashboard.py --vault "$VAULT_PATH"
+common_run_python_script "$PYTHON" "$BOT_ROOT/scripts/build_finance_dashboard.py" --vault "$VAULT_PATH"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] OK"
 # Маркеры для check_sync_health: при ручном запуске или из obsidian_sync — отчёт видит последний успех
 SYNC_DIR="$VAULT_PATH/.sync"

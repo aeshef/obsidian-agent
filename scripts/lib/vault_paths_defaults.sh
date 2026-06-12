@@ -88,12 +88,16 @@ _vault_paths_try_python_export() {
   local root="$1" py exporter="$root/scripts/export_vault_paths_env.py"
   [[ -f "$exporter" ]] || return 1
   for py in \
-    "$root/finance_bot/.venv/bin/python" \
-    "$root/planning_bot/.venv/bin/python" \
+    /opt/homebrew/bin/python3.12 \
+    python3.12 \
     /opt/homebrew/bin/python3 \
     python3; do
-    [[ -x "$py" ]] || continue
-    if eval "$("$py" "$exporter" 2>/dev/null)" && [[ -n "${VAULT_FOLDER_TASKS:-}" ]]; then
+    [[ -x "$py" ]] || command -v "$py" >/dev/null 2>&1 || continue
+    if [[ ! -t 0 ]]; then
+      if eval "$(cat "$exporter" | "$py" -u - 2>/dev/null)" && [[ -n "${VAULT_FOLDER_TASKS:-}" ]]; then
+        return 0
+      fi
+    elif eval "$("$py" "$exporter" 2>/dev/null)" && [[ -n "${VAULT_FOLDER_TASKS:-}" ]]; then
       return 0
     fi
   done

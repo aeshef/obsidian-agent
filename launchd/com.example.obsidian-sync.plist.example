@@ -7,6 +7,7 @@
 
 	<key>ProgramArguments</key>
 	<array>
+		<string>/bin/zsh</string>
 		<string>__HOME__/bin/obsidian_sync_launchagent.sh</string>
 	</array>
 
@@ -17,7 +18,7 @@
 	<integer>300</integer>
 
 	<key>WorkingDirectory</key>
-	<string>__VAULT_PATH__</string>
+	<string>__HOME__</string>
 
 	<key>StandardOutPath</key>
 	<string>/tmp/obsidian-sync.out</string>

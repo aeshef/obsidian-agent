@@ -91,12 +91,14 @@ common_venv_python_tag() {
 # Fallback: Homebrew python той же minor + site-packages venv на PYTHONPATH.
 common_resolve_python_usable() {
     local bot_root="$1" py ver candidate
+  if [ -t 0 ]; then
     for py in "$bot_root/.venv/bin/python" "$bot_root/venv/bin/python"; do
         if [ -x "$py" ] && "$py" -c "import site" 2>/dev/null; then
             echo "$py"
             return 0
         fi
     done
+  fi
     ver="$(common_venv_python_tag "$bot_root")"
     for candidate in \
         "/opt/homebrew/bin/python${ver}" \
@@ -117,12 +119,59 @@ common_resolve_python_usable() {
     command -v python3
 }
 
+# Homebrew python той же minor, что venv (не python3 → 3.14 после brew upgrade на Tahoe).
+common_launchagent_python() {
+    local bot_root="${1:-}" ver py candidate
+    if [ -n "$bot_root" ]; then
+        ver="$(common_venv_python_tag "$bot_root")"
+    else
+        ver="3.12"
+    fi
+    for candidate in \
+        "/opt/homebrew/bin/python${ver}" \
+        "/usr/local/bin/python${ver}" \
+        "python${ver}"; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            py="$(command -v "$candidate")"
+            if "$py" -c "import site" 2>/dev/null; then
+                echo "$py"
+                return 0
+            fi
+        fi
+    done
+    common_resolve_python_usable "${bot_root:-/nonexistent}"
+}
+
+# LaunchAgent без FDA: python не может open() .py в ~/Documents; zsh с FDA читает и шлёт в stdin.
+common_run_python_script() {
+    local py="$1" script="$2"
+    shift 2
+    if [ -t 0 ]; then
+        "$py" "$script" "$@"
+        return $?
+    fi
+    if [ ! -f "$script" ]; then
+        echo "common_run_python_script: missing $script" >&2
+        return 1
+    fi
+    cat "$script" | "$py" -u - "$@"
+}
+
 common_export_bot_pythonpath() {
     local bot_root="$1"
     local monorepo="${2:-$(dirname "$bot_root")}"
-    local sp
-    sp="$(common_bot_site_packages "$bot_root" 2>/dev/null || true)"
-    export PYTHONPATH="$bot_root:$monorepo${sp:+:$sp}${PYTHONPATH:+:$PYTHONPATH}"
+    local sp extra=""
+    if [ -n "${OBSIDIAN_AGENT_PYDEPS_FINANCE:-}" ] && [[ "$bot_root" == *finance_bot* ]]; then
+        sp="${OBSIDIAN_AGENT_PYDEPS_FINANCE}"
+    elif [ -n "${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}" ] && [[ "$bot_root" == *planning_bot* ]]; then
+        sp="${OBSIDIAN_AGENT_PYDEPS_PLANNING}"
+    else
+        sp="$(common_bot_site_packages "$bot_root" 2>/dev/null || true)"
+    fi
+    if [ -n "${OBSIDIAN_AGENT_PYDEPS_FINANCE:-}" ] && [[ "$bot_root" == *finance_bot* ]]; then
+        extra="${OBSIDIAN_AGENT_PYDEPS_PLANNING:+:$OBSIDIAN_AGENT_PYDEPS_PLANNING}"
+    fi
+    export PYTHONPATH="$bot_root:$monorepo${sp:+:$sp}${extra}${PYTHONPATH:+:$PYTHONPATH}"
 }
 
 common_python_for_venv() {

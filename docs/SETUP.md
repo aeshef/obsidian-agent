@@ -113,11 +113,17 @@ Legacy (отладка одного домена): `finance_bot/scripts/run.sh`,
 
 ## 6. Mac: синхронизация vault
 
-1. SSH-ключ, `SERVER` в `.env`
-2. Full Disk Access для Terminal/iTerm (LaunchAgent → `~/Documents`)
-3. `./scripts/install_launchagent.sh`
+Модульный sync (`capabilities.yaml` + `obsidian_sync.sh`): пути из `vault_paths.yaml`, шаги включаются через capability flags, интервал LaunchAgent — `config/agent/platform.yaml` (`obsidian_sync.launchagent_interval_sec`).
 
-Ручной прогон: `./scripts/obsidian_sync.sh` — лог `/tmp/obsidian_sync_debug.log`.
+1. SSH-ключ, `SERVER` и `VAULT_PATH` в `.env`
+2. `./scripts/install_launchagent.sh`:
+   - зеркалирует Agent в `~/Library/Application Support/obsidian-agent/runtime/` (код вне `~/Documents` — обход macOS TCC для фонового launchd);
+   - plist: `/bin/zsh`, `WorkingDirectory=$HOME`;
+   - label: `LAUNCHAGENT_LABEL` в `.env` (по умолчанию `com.example.obsidian-sync`).
+3. После изменений в коде Agent — снова `./scripts/install_launchagent.sh` (обновляет runtime mirror).
+4. Если mirror недостаточен: **Полный доступ к диску** для `/bin/zsh` (после обновления macOS права часто сбрасываются).
+
+Ручной прогон (из vault, как в dev): `~/bin/obsidian_sync.sh` — лог `/tmp/obsidian_sync_debug.log`.
 
 ---
 

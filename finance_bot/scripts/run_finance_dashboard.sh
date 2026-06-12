@@ -43,7 +43,7 @@ if ! "$PY" -c "import matplotlib" 2>/dev/null; then
   exit 1
 fi
 
-exec "$PY" scripts/build_finance_dashboard.py \
+common_run_python_script "$PY" "$ROOT/scripts/build_finance_dashboard.py" \
   --vault "$VAULT_PATH" \
   --db "$DB_PATH" \
   --user-id "$USER_ID" \

@@ -1,10 +1,9 @@
 #!/bin/zsh
-_SAVED_AGENT_ROOT="${AGENT_ROOT:-}"
+_LAUNCH_AGENT_ROOT="${AGENT_ROOT:-}"
 AGENT_ROOT="${0:A:h}/.."
-if [[ -n "$_SAVED_AGENT_ROOT" && -f "$_SAVED_AGENT_ROOT/config/vault_paths.yaml" ]]; then
-  AGENT_ROOT="$_SAVED_AGENT_ROOT"
+if [[ -n "$_LAUNCH_AGENT_ROOT" && -f "$_LAUNCH_AGENT_ROOT/config/vault_paths.yaml" ]]; then
+  AGENT_ROOT="$_LAUNCH_AGENT_ROOT"
 fi
-unset _SAVED_AGENT_ROOT
 export AGENT_ROOT
 if [[ -f "$AGENT_ROOT/.env" ]]; then
   set -a
@@ -28,12 +27,20 @@ if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   _SDIR="$(dirname "${0:A}")"
   if [[ "$(basename "$_SDIR")" == "scripts" ]]; then
     P="$(cd "$_SDIR/../../.." 2>/dev/null && pwd)"
-    AGENT_ROOT="$(cd "$_SDIR/.." && pwd)"
+    if [[ -z "$_LAUNCH_AGENT_ROOT" ]]; then
+      AGENT_ROOT="$(cd "$_SDIR/.." && pwd)"
+    fi
   else
     P="$(cd "$_SDIR/../.." 2>/dev/null && pwd)"
-    AGENT_ROOT="$_SDIR"
+    if [[ -z "$_LAUNCH_AGENT_ROOT" ]]; then
+      AGENT_ROOT="$_SDIR"
+    fi
   fi
   [[ -n "$P" && -d "$P/.obsidian" ]] && LOCAL_VAULT="$P"
+fi
+unset _LAUNCH_AGENT_ROOT
+if [[ -n "${OBSIDIAN_AGENT_RUNTIME_ROOT:-}" && -f "${OBSIDIAN_AGENT_RUNTIME_ROOT}/agent/config/vault_paths.yaml" ]]; then
+  AGENT_ROOT="${OBSIDIAN_AGENT_RUNTIME_ROOT}/agent"
 fi
 LOCAL_VAULT="${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}"
 # Fallback если Documents/Obsidian Vault не существует
@@ -45,6 +52,8 @@ export AGENT_ROOT LOCAL_VAULT
 
 # shellcheck source=scripts/lib/sh_msg.sh
 source "$AGENT_ROOT/scripts/lib/sh_msg.sh"
+# shellcheck source=scripts/lib/common.sh
+source "$AGENT_ROOT/scripts/lib/common.sh"
 
 # До cap_load: LaunchAgent PATH без pyenv — иначе planning .venv → pyenv shim падает на export_vault_paths.
 unset PYENV_VERSION PYENV_VIRTUAL_ENV PYENV_SHELL
@@ -109,19 +118,38 @@ fi
 source "${AGENT_ROOT}/scripts/lib/vault_knowledge_dir.sh"
 KNOWLEDGE_SUBDIR="$(vault_knowledge_subdir)"
 # Planning/knowledge: bare python3 often lacks PyYAML → context_sync / iphone_* fail in logs.
-_py_imports_yaml() { "$1" -c "import yaml" 2>/dev/null; }
-PLAN_PYTHON=""
-for _candidate in \
-  "$AGENT_ROOT/finance_bot/.venv/bin/python" \
-  "$AGENT_ROOT/planning_bot/venv/bin/python" \
-  "/opt/homebrew/bin/python3" \
-  python3; do
-  if command -v "$_candidate" >/dev/null 2>&1 && _py_imports_yaml "$_candidate"; then
-    PLAN_PYTHON="$_candidate"
-    break
+_py_imports_yaml() {
+  local py="$1" sp="${2:-}"
+  if [ -n "$sp" ]; then
+    PYTHONPATH="${sp}${PYTHONPATH:+:$PYTHONPATH}" "$py" -c "import yaml" 2>/dev/null
+  else
+    "$py" -c "import yaml" 2>/dev/null
   fi
-done
-unset _candidate _py_imports_yaml
+}
+_pb_sp_early="${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}"
+if [[ -z "$_pb_sp_early" ]]; then
+  _pb_sp_early="$(ls -d "$AGENT_ROOT/planning_bot/venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+fi
+PLAN_PYTHON=""
+if ! [ -t 0 ]; then
+  _la_py="$(common_launchagent_python "$AGENT_ROOT/finance_bot")"
+  if [ -n "$_la_py" ] && _py_imports_yaml "$_la_py" "$_pb_sp_early"; then
+    PLAN_PYTHON="$_la_py"
+  fi
+fi
+if [ -z "$PLAN_PYTHON" ]; then
+  for _candidate in \
+    "$AGENT_ROOT/finance_bot/.venv/bin/python" \
+    "$AGENT_ROOT/planning_bot/venv/bin/python" \
+    "$(common_launchagent_python "$AGENT_ROOT/finance_bot")" \
+    python3; do
+    if [ -n "$_candidate" ] && command -v "$_candidate" >/dev/null 2>&1 && _py_imports_yaml "$_candidate" "$_pb_sp_early"; then
+      PLAN_PYTHON="$_candidate"
+      break
+    fi
+  done
+fi
+unset _candidate _pb_sp_early _la_py
 RSYNC_BIN="${RSYNC_BIN:-rsync}"
 FLAGS=(-avz)
 # Не создаём и не синхронизируем бэкапы rsync
@@ -294,20 +322,38 @@ fi
 # Python для графиков: LaunchAgent часто не читает planning_bot/venv/pyvenv.cfg (TCC/FDA).
 # Сначала homebrew из LaunchAgent; venv — если реально импортирует yaml.
 _pb_venv="$AGENT_ROOT/planning_bot/venv"
-_pb_sp="$(ls -d "$_pb_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
-_chart_py_ok() { "$1" -c "import yaml" 2>/dev/null; }
+_pb_sp="${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}"
+if [[ -z "$_pb_sp" ]]; then
+  _pb_sp="$(ls -d "$_pb_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+fi
+_chart_py_ok() {
+  local py="$1" sp="${2:-}"
+  if [ -n "$sp" ]; then
+    PYTHONPATH="${sp}${PYTHONPATH:+:$PYTHONPATH}" "$py" -c "import yaml" 2>/dev/null
+  else
+    "$py" -c "import yaml" 2>/dev/null
+  fi
+}
 CHART_PYTHON="${PLAN_PYTHON:-}"
 if [ -z "$CHART_PYTHON" ]; then
-  if ! [ -t 0 ] && [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
-    CHART_PYTHON="/opt/homebrew/bin/python3"
-  elif [ -x "$_pb_venv/bin/python" ] && _chart_py_ok "$_pb_venv/bin/python"; then
+  if ! [ -t 0 ]; then
+    _la_chart="$(common_launchagent_python "$AGENT_ROOT/finance_bot")"
+    if [ -n "$_la_chart" ] && _chart_py_ok "$_la_chart" "$_pb_sp"; then
+      CHART_PYTHON="$_la_chart"
+    fi
+  fi
+  if [ -z "$CHART_PYTHON" ] && [ -x "$_pb_venv/bin/python" ] && _chart_py_ok "$_pb_venv/bin/python" "$_pb_sp"; then
     CHART_PYTHON="$_pb_venv/bin/python"
-  elif [ -x "/opt/homebrew/bin/python3" ] && _chart_py_ok "/opt/homebrew/bin/python3"; then
-    CHART_PYTHON="/opt/homebrew/bin/python3"
-  elif command -v python3 >/dev/null 2>&1 && _chart_py_ok python3; then
-    CHART_PYTHON=python3
+  elif [ -z "$CHART_PYTHON" ]; then
+    _la_fb="$(common_launchagent_python "$AGENT_ROOT/finance_bot")"
+    if [ -n "$_la_fb" ] && _chart_py_ok "$_la_fb" "$_pb_sp"; then
+      CHART_PYTHON="$_la_fb"
+    elif command -v python3 >/dev/null 2>&1 && _chart_py_ok python3 "$_pb_sp"; then
+      CHART_PYTHON=python3
+    fi
   fi
 fi
+unset _la_chart _la_fb
 if [ -n "$_pb_sp" ]; then
   CHART_PYTHONPATH="${AGENT_ROOT}:${_pb_sp}"
 else
@@ -358,10 +404,10 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
     echo "$(sh_msgf scripts.obsidian_sync.step_5_charts '{"python":"'$CHART_PYTHON'","log":"'$PLANNING_BOT/logs/charts.log'"}')" >&2
     export LOCAL_VAULT
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && "$CHART_PYTHON" scripts/build_daily_task_activity_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && "$CHART_PYTHON" scripts/build_daily_completions_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && "$CHART_PYTHON" scripts/build_open_pipeline_by_category_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && "$CHART_PYTHON" scripts/build_deadline_horizon_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_completions_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_open_pipeline_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_deadline_horizon_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$MARKER"
     else
       echo "$(sh_msg scripts.obsidian_sync.step_5_charts_fail)" >&2
@@ -394,7 +440,7 @@ if [ "$_SHOULD_CAL" = "1" ]; then
     echo "$(sh_msgf scripts.obsidian_sync.step_5c '{"python":"'$CHART_PYTHON'","log":"logs/charts.log"}')" >&2
     export LOCAL_VAULT
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && "$CHART_PYTHON" -m planning_bot.tools.calendar_sync >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/tools/calendar_sync.py" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$CAL_MARKER"
     else
       echo "$(sh_msg scripts.obsidian_sync.step_5c_fail)" >&2
@@ -418,14 +464,21 @@ KNOWLEDGE_BOT="$AGENT_ROOT/knowledge_bot"
 # /opt/homebrew/bin/python3 или PATH-level python3 НЕ попадают под это ограничение и имеют доступ к Documents.
 # PYTHONPATH: venv site-packages (yaml и др.) + knowledge_bot как пакет + Agent root.
 _kn_venv="$KNOWLEDGE_BOT/venv"
-_kn_sp="$(ls -d "$_kn_venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+_kn_sp="${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}"
+if [[ -z "$_kn_sp" ]]; then
+  _kn_sp="$(find "$_kn_venv/lib" -maxdepth 2 -name site-packages -type d 2>/dev/null | head -1)"
+fi
 if [ -n "$_kn_sp" ]; then
   export PYTHONPATH="${KNOWLEDGE_BOT}:${AGENT_ROOT}:${_kn_sp}${PYTHONPATH:+:$PYTHONPATH}"
+elif [ -n "${OBSIDIAN_AGENT_PYDEPS_KNOWLEDGE:-}" ]; then
+  export PYTHONPATH="${KNOWLEDGE_BOT}:${AGENT_ROOT}:${OBSIDIAN_AGENT_PYDEPS_KNOWLEDGE}${PYTHONPATH:+:$PYTHONPATH}"
 else
   export PYTHONPATH="${KNOWLEDGE_BOT}:${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 fi
-if [ -x "/opt/homebrew/bin/python3" ]; then
-  KN_PYTHON="/opt/homebrew/bin/python3"
+if [ -x "/opt/homebrew/bin/python3.12" ]; then
+  KN_PYTHON="/opt/homebrew/bin/python3.12"
+elif [ -n "$(common_launchagent_python "$AGENT_ROOT/finance_bot" 2>/dev/null)" ]; then
+  KN_PYTHON="$(common_launchagent_python "$AGENT_ROOT/finance_bot")"
 elif command -v python3 >/dev/null 2>&1; then
   KN_PYTHON=python3
 else
@@ -498,7 +551,7 @@ if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}"
       echo "$(sh_msgf scripts.obsidian_sync.step_5b_2_tail '{"log":"'$PLANNING_BOT/logs/vault_write_maintenance.log'"}')" >&2
       export VAULT_PATH="$LOCAL_VAULT"
       export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-      if (cd "$KNOWLEDGE_BOT" && PYTHONUNBUFFERED=1 "$KN_PYTHON" -u tools/vault_daily_maintenance.py --sync-dir "$SYNC_DIR" --json) >> "$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1; then
+      if (cd "$KNOWLEDGE_BOT" && PYTHONUNBUFFERED=1 common_run_python_script "$KN_PYTHON" "$KNOWLEDGE_BOT/tools/vault_daily_maintenance.py" --sync-dir "$SYNC_DIR" --json) >> "$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1; then
         : # runner.py уже записал VM_MARKER в начале успешного прогона
         # 5b.2b Удаление дублей на VPS — канон тот же, что локально: analyze_vault_duplicates + apply_duplicates_resolution.
         # Иначе следующий шаг 1 (pull 700_) вернёт файлы, которые остались только на сервере (rsync без --delete).
@@ -575,7 +628,7 @@ PY_CLEANUP
         fi
       else
         # Упал — проверяем причину:
-        if "$KN_PYTHON" -c "open('$KNOWLEDGE_BOT/config/vault_maintenance.yaml').close()" >/dev/null 2>&1; then
+        if [ -r "$KNOWLEDGE_BOT/config/vault_maintenance.yaml" ]; then
           # Python работает, но скрипт упал по другой причине — пишем маркер чтобы не повторять весь день
           [ "$(cat "$VM_MARKER" 2>/dev/null)" != "$TODAY" ] && echo "$TODAY" > "$VM_MARKER" 2>/dev/null || true
         else
@@ -605,10 +658,10 @@ if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ]
     echo "$(sh_msg scripts.obsidian_sync.step_5b_3)" >&2
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if (cd "$KNOWLEDGE_BOT" && "$KN_PYTHON" tools/analyze_vault_report.py --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
+    if (cd "$KNOWLEDGE_BOT" && common_run_python_script "$KN_PYTHON" "$KNOWLEDGE_BOT/tools/analyze_vault_report.py" --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
       echo "$TODAY" > "$KN_AUDIT_MARKER"
     else
-      if "$KN_PYTHON" -c "open('$KNOWLEDGE_BOT/config/vault_maintenance.yaml').close()" >/dev/null 2>&1; then
+      if [ -r "$KNOWLEDGE_BOT/config/vault_maintenance.yaml" ]; then
         echo "$TODAY" > "$KN_AUDIT_MARKER"  # упал по другой причине — не повторять
       else
         echo "$TODAY" > "$KN_SKIP_MARKER" 2>/dev/null || true  # TCC-блок — ждём Terminal
@@ -669,7 +722,7 @@ if cap_step_enabled SYNC_GMAIL_HEALTH && [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLA
     # Защита от «вечного» зависания IMAP: если шаг висит слишком долго, убиваем и продолжаем цикл синка.
     _IMAP_TIMEOUT="${IPHONE_MAIL_SYNC_TIMEOUT_SECS:-480}"
     (
-      cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_mail_sync.py
+      cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 common_run_python_script "$PLAN_PYTHON" "$PLANNING_BOT/tools/iphone_mail_sync.py"
     ) >> "$PLANNING_BOT/logs/iphone_mail_sync.log" 2>&1 &
     _imap_pid=$!
     (
@@ -701,7 +754,7 @@ if cap_step_enabled SYNC_MAC_IPHONE && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING
   touch "$PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_context_sync.py) >> "$PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
+  (cd "$PLANNING_BOT" && PYTHONUNBUFFERED=1 common_run_python_script "$PLAN_PYTHON" "$PLANNING_BOT/tools/iphone_context_sync.py") >> "$PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
 fi
 
 # 5d. График КБЖУ — после 5b.4 + 5b.4b. Раз в сутки по маркеру, НО также если появился новый IPhone/*.txt
@@ -733,7 +786,7 @@ if [ "$_SHOULD_NUTR" = "1" ]; then
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
     _nutr_py="${CHART_PYTHON:-python3}"
-    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_iphone_nutrition_chart.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_iphone_nutrition_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$NUTR_MARKER"
     fi
   fi
@@ -766,7 +819,7 @@ if [ "$_SHOULD_HEALTH" = "1" ]; then
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
     _nutr_py="${CHART_PYTHON:-python3}"
-    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_health_analytics.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_health_analytics.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$_HEALTH_MARKER"
     fi
   fi
@@ -789,7 +842,7 @@ if [ "$_SHOULD_CROSS" = "1" ]; then
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
     _nutr_py="${CHART_PYTHON:-python3}"
-    if cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_cross_domain_analytics.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_cross_domain_analytics.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$_CROSS_MARKER"
     fi
   fi
@@ -801,7 +854,7 @@ if cap_step_enabled SYNC_HEALTH_ANALYTICS && [ -d "$PLANNING_BOT" ] && [ -f "$PL
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
   _nutr_py="${CHART_PYTHON:-python3}"
-  cd "$PLANNING_BOT" && "$_nutr_py" scripts/build_health_dashboard_hub.py --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
+  cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_health_dashboard_hub.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
 fi
 
 # 6. Финансы: каждый синк — pull канонической БД с сервера; PNG/markdown — раз в день или FORCE

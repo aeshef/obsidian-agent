@@ -1,9 +1,16 @@
 # shellcheck shell=bash
 # Capability gates for obsidian_sync.sh — source after AGENT_ROOT is set.
 _cap_python() {
-  local root="${AGENT_ROOT:-}" py="${CAPABILITIES_PYTHON:-python3}"
+  local root="${AGENT_ROOT:-}" py="${CAPABILITIES_PYTHON:-python3}" candidate
   [[ -z "$root" ]] && return 1
-  # finance_bot venv → homebrew python (LaunchAgent PATH); planning .venv often → pyenv.
+  if [[ ! -t 0 ]]; then
+    for candidate in /opt/homebrew/bin/python3.12 python3.12; do
+      if command -v "$candidate" >/dev/null 2>&1; then
+        CAPABILITIES_PYTHON="$(command -v "$candidate")"
+        return 0
+      fi
+    done
+  fi
   for candidate in \
     "$root/finance_bot/.venv/bin/python" \
     "$root/planning_bot/.venv/bin/python" \
@@ -17,6 +24,15 @@ _cap_python() {
   return 0
 }
 
+_cap_run_py() {
+  local py="$1" script="$2"
+  if [[ ! -t 0 && -f "$script" ]]; then
+    cat "$script" | "$py" -u - 2>/dev/null
+  else
+    "$py" "$script" 2>/dev/null
+  fi
+}
+
 cap_load_env() {
   local root="${AGENT_ROOT:-}"
   if [[ -z "$root" ]] || ! _cap_python; then
@@ -26,7 +42,7 @@ cap_load_env() {
   local cap_exporter="$root/scripts/export_capabilities_env.py"
   local vault_exporter="$root/scripts/export_vault_paths_env.py"
   if [[ -f "$cap_exporter" ]]; then
-    if ! eval "$("$py" "$cap_exporter" 2>/dev/null)"; then
+    if ! eval "$(_cap_run_py "$py" "$cap_exporter")"; then
       export CAPABILITIES_SYNC_PROFILE="${CAPABILITIES_SYNC_PROFILE:-full}"
       export CAP_MODULE_FINANCE="${CAP_MODULE_FINANCE:-1}"
       export CAP_MODULE_PLANNING="${CAP_MODULE_PLANNING:-1}"
@@ -44,7 +60,7 @@ cap_load_env() {
     fi
   fi
   if [[ -f "$vault_exporter" ]]; then
-    eval "$("$py" "$vault_exporter" 2>/dev/null)" || true
+    eval "$(_cap_run_py "$py" "$vault_exporter")" || true
   fi
 }
 
