@@ -26,6 +26,7 @@ cross:
 
 files:
   kanban_board: "📋 Доска_Задач.md"
+  kanban_archive_board: "📦 Задачи_Закрытые.md"
   goals_template: "🎯 {year}_Цели.md"
   action_log_prefix: "📊 Логи_Действий_"
   calendar_txt: "Календарь.txt"

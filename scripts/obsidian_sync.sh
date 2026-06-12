@@ -267,6 +267,7 @@ unset _PLANNING_BOT
 # Не пушить устаревший график (выпилен из build_finance_dashboard; иначе вернётся с мака на сервер)
 PUSH_EXCLUDE_300=(
   --exclude='kanban_state.json'
+  --exclude='kanban_archive_meta.json'
   --exclude='.kanban_monitor_state.json'
   --exclude="${VAULT_DASH_LOGS}/"
   --exclude='goals_task_mapping.json'

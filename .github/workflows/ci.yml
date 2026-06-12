@@ -68,9 +68,8 @@ jobs:
           AGENT_LOCALE: ru
         run: |
           bash scripts/ensure_bot_venv.sh finance_bot --recreate
-          # shellcheck source=scripts/lib/common.sh
-          source scripts/lib/common.sh
-          FIN_PY="$(common_resolve_python_usable "$PWD/finance_bot")"
+          FIN_PY="$PWD/finance_bot/.venv/bin/python"
+          [ -x "$FIN_PY" ] || { echo "missing finance_bot venv: $FIN_PY" >&2; exit 1; }
           export PYTHONPATH="$PWD:$PWD/finance_bot:$PWD/knowledge_bot:$PWD/planning_bot"
           export VAULT_PATH="${RUNNER_TEMP}/ci-vault"
           mkdir -p "$VAULT_PATH"

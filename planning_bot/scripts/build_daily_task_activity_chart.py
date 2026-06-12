@@ -39,37 +39,9 @@ def _iter_days(d0: date, d1: date) -> list[date]:
 
 
 def _load_kanban_priority_index(vault: Path) -> tuple[dict[str, str], dict[str, str], set[str]]:
-    'Operation implementation.'
-    kanban_path = vault / pdmsg("auto_0785c86cb9") / pdmsg("auto_1f311a1964")
-    if not kanban_path.exists():
-        return {}, {}, set()
+    from planning_bot.services.kanban_index import load_kanban_priority_index
 
-    text = kanban_path.read_text(encoding="utf-8", errors="replace")
-    prio_by_id: dict[str, str] = {}
-    prio_by_title: dict[str, str] = {}
-    active_ids: set[str] = set()
-
-    task_pattern = r"- \[[ x]\] (.+?)(?=\n- \[|$)"
-    for m in re.finditer(task_pattern, text, re.DOTALL):
-        task_text = m.group(1).strip()
-        title_line = task_text.splitlines()[0].strip() if task_text else ""
-        title = title_line.strip()
-
-        priority_match = re.search(pdmsg("auto_a1fb4d656a"), task_text)
-        id_match = re.search(r"🆔 ID:\s*([a-f0-9-]{6,})", task_text, re.IGNORECASE)
-
-        pr = priority_match.group(1).strip() if priority_match else ""
-        tid = id_match.group(1).strip() if id_match else ""
-        if tid:
-            active_ids.add(tid)
-        if not pr:
-            continue
-        if tid:
-            prio_by_id[tid] = pr
-        if title:
-            prio_by_title[title] = pr
-
-    return prio_by_id, prio_by_title, active_ids
+    return load_kanban_priority_index(vault)
 
 
 def main() -> None:

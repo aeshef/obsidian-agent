@@ -119,6 +119,10 @@ def build_scaffold_context(
 
     goals_page = f"{folder('goals')}/{vault_file('goals_template', year=year)}"
     kanban_page = f"{folder('tasks')}/{vault_file('kanban_board')}"
+    try:
+        kanban_archive_page = f"{folder('tasks')}/{vault_file('kanban_archive_board')}"
+    except KeyError:
+        kanban_archive_page = ""
     dash_folder = folder("dashboards")
     charts_sub = dashboards_sub("charts")
     data_sub = dashboards_sub("data")
@@ -137,6 +141,7 @@ def build_scaffold_context(
         "year": str(year),
         "goals_page": goals_page,
         "kanban_page": kanban_page,
+        "kanban_archive_page": kanban_archive_page,
         "mapping_path": mapping_path,
         "charts_subdir": charts_sub,
         "data_subdir": data_sub,

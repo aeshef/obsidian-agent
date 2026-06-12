@@ -182,6 +182,9 @@ rsync_agent_paths() {
 
 install_deps() {
   local name="$1"
+  case "$name" in
+    shared|unified_bot) return 0 ;;
+  esac
   [ "$INSTALL_DEPS" = 1 ] || return 0
   echo "📦 ensure .venv + pip install ($name)"
   [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
@@ -421,7 +424,8 @@ if [ "$DRYRUN" = 0 ]; then
   echo "📥 pull prod prompts from server (keep local non-stub)..."
   bash "$MONOREPO/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
   export PYTHONPATH="${MONOREPO}${PYTHONPATH:+:$PYTHONPATH}"
-  python3 "$MONOREPO/scripts/seed_planning_prompts.py" 2>/dev/null || true
+  _DEP_PY="$(common_resolve_python_usable "$MONOREPO/finance_bot")"
+  "$_DEP_PY" "$MONOREPO/scripts/seed_planning_prompts.py" 2>/dev/null || true
   bash "$MONOREPO/scripts/ensure_hubs_registry.sh" 2>/dev/null || true
 fi
 

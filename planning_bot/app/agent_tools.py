@@ -36,7 +36,11 @@ async def get_kanban(ctx: AgentContext, column: Optional[str] = None) -> str:
     from shared.agent.platform_config import platform_int
 
     bot.kanban.load()
-    tasks = bot.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
+    tasks = bot.kanban.get_tasks(
+        exclude_today=False,
+        exclude_blocked=False,
+        include_archive=False,
+    )
     done_preview = max(1, platform_int("planning", "kanban_done_preview_max", default=1000))
 
     from planning_bot.services.reference_date import format_deadline_hint, reference_today_iso
@@ -257,7 +261,11 @@ async def search_tasks(
 
     bot = _bot(ctx)
     bot.kanban.load()
-    tasks = bot.kanban.get_tasks(exclude_today=False, exclude_blocked=False)
+    tasks = bot.kanban.get_tasks(
+        exclude_today=False,
+        exclude_blocked=False,
+        include_archive=True,
+    )
     matched = filter_tasks(
         tasks,
         query=query,

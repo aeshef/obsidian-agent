@@ -1,4 +1,4 @@
-# cp config/vault_paths.en.yaml.example → config/vault_paths.yaml (or run materialize_locale.py)
+# cp config/vault_paths.en.yaml.example → config/vault_paths.yaml (AGENT_LOCALE=en)
 # Vault folder and file name segments — locale-specific; not hardcoded in .py.
 
 folders:
@@ -15,8 +15,18 @@ dashboards:
   charts: "Charts"
   data: "Data"
 
+planning:
+  graphs_planning: "Planning"
+
+health:
+  graphs_health: "Health"
+
+cross:
+  graphs_cross: "Cross"
+
 files:
   kanban_board: "📋 Task_Board.md"
+  kanban_archive_board: "📦 Closed_Tasks.md"
   goals_template: "🎯 {year}_Goals.md"
   action_log_prefix: "📊 Action_Logs_"
   calendar_txt: "Calendar.txt"
@@ -25,19 +35,34 @@ files:
   calendar_week_analytics_json: "Calendar_week_analytics.json"
   calendar_insights_cache_json: "Calendar_insights_cache.json"
   goals_mapping_json: "goals_task_mapping.json"
-  chart_deadline_horizon_png: "Deadlines_horizon.png"
-  chart_deadline_horizon_md: "Deadlines_horizon.md"
-  chart_daily_activity_png: "Daily_activity.png"
-  chart_daily_activity_md: "Daily_activity.md"
-  chart_completions_by_category_png: "Completed_by_category_days.png"
-  chart_completions_by_category_md: "Completed_by_category_days.md"
-  chart_open_pipeline_png: "Open_by_category_days.png"
-  chart_open_pipeline_md: "Open_by_category_days.md"
-  chart_nutrition_png: "Nutrition_macros_by_day.png"
-  chart_nutrition_md: "Nutrition_macros_by_day.md"
-  chart_calendar_week_png: "Meetings_workload_week.png"
+  chart_deadline_horizon_png: "Planning/Deadlines_horizon.png"
+  chart_deadline_horizon_md: "Planning/Deadlines_horizon.md"
+  chart_daily_activity_png: "Planning/Daily_activity.png"
+  chart_daily_activity_md: "Planning/Daily_activity.md"
+  chart_completions_by_category_png: "Planning/Completed_by_category_days.png"
+  chart_completions_by_category_md: "Planning/Completed_by_category_days.md"
+  chart_open_pipeline_png: "Planning/Open_by_category_days.png"
+  chart_open_pipeline_md: "Planning/Open_by_category_days.md"
+  chart_calendar_week_png: "Planning/Meetings_workload_week.png"
+  chart_calendar_sections_png: "Planning/Meetings_life_sections.png"
+  chart_calendar_sections_md: "Planning/Meetings_life_sections.md"
+  open_tasks_history_json: "Planning/open_tasks_by_day_history.json"
+  completed_tasks_soc_json: "Planning/completed_tasks_soc.json"
+  chart_nutrition_png: "Health/Nutrition_macros_by_day.png"
+  chart_nutrition_md: "Health/Nutrition_macros_by_day.md"
+  chart_health_trends_png: "Health/Health_metrics_trends.png"
+  chart_health_trends_md: "Health/Health_metrics_trends.md"
+  chart_health_correlations_png: "Health/Health_metrics_correlations.png"
+  chart_health_correlations_md: "Health/Health_metrics_correlations.md"
+  chart_cross_correlations_png: "Cross/Domain_correlations.png"
+  chart_cross_correlations_md: "Cross/Domain_correlations.md"
+  chart_cross_tasks_steps_png: "Cross/Tasks_and_steps.png"
+  chart_cross_tasks_steps_md: "Cross/Tasks_and_steps.md"
+  chart_cross_tasks_spending_png: "Cross/Tasks_and_spending.png"
+  chart_cross_tasks_spending_md: "Cross/Tasks_and_spending.md"
   main_dashboard_md: "🎯 Main_Dashboard.md"
-  nutrition_dashboard_md: "🥗 Nutrition_macros.md"
+  health_dashboard_md: "🏥 Health.md"
+  nutrition_dashboard_md: "🏥 Health.md"
   system_audit_report_md: "System_audit_report.md"
   vault_audit_report_md: "Vault_audit_report.md"
   reflection_weekly_file: "Reflection_{date}.md"
@@ -65,5 +90,6 @@ paths:
   context_week_json: "Actions/context_week.json"
   iphone_today_json: "Actions/iphone_today.json"
   iphone_week_json: "Actions/iphone_week.json"
+  cross_daily_features_json: "cross_daily_features.json"
   agent_subdir: "Agent"
   templates_clones: "Templates/Clones"

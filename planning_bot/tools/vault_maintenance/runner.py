@@ -105,6 +105,15 @@ def run_all() -> bool:
     
     results.append((pdmsg("auto_28dd89327d"), sort_kanban_tasks()))
     print()
+
+    try:
+        from planning_bot.tools.vault_maintenance.kanban_archive import archive_done_tasks
+
+        results.append((pdmsg("kanban_archive_step_name"), archive_done_tasks()))
+    except Exception as e:
+        print(pdmsg("kanban_archive_step_fail", e=e))
+        results.append((pdmsg("kanban_archive_step_name"), False))
+    print()
     
     # (comment)
     try:

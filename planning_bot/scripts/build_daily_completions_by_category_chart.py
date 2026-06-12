@@ -36,34 +36,9 @@ def _iter_days(d0: date, d1: date) -> list[date]:
 
 
 def _load_kanban_category_index(vault: Path):
-    'Operation implementation.'
-    kanban_path = vault / pdmsg("auto_0785c86cb9") / pdmsg("auto_1f311a1964")
-    if not kanban_path.exists():
-        return {}, {}
+    from planning_bot.services.kanban_index import load_kanban_category_index
 
-    text = kanban_path.read_text(encoding="utf-8", errors="replace")
-    cat_by_id: dict[str, str] = {}
-    cat_by_title: dict[str, str] = {}
-
-    task_pattern = r"- \[[ x]\] (.+?)(?=\n- \[|$)"
-    for m in re.finditer(task_pattern, text, re.DOTALL):
-        task_text = m.group(1).strip()
-        title_line = task_text.splitlines()[0].strip() if task_text else ""
-        title = title_line.strip()
-
-        category_match = re.search(pdmsg("auto_8d7e383ebe"), task_text)
-        id_match = re.search(r"🆔 ID:\s*([a-f0-9-]{6,})", task_text, re.IGNORECASE)
-
-        cat = category_match.group(1).strip() if category_match else ""
-        tid = id_match.group(1).strip() if id_match else ""
-        if not cat:
-            continue
-        if tid:
-            cat_by_id[tid] = cat
-        if title:
-            cat_by_title[title] = cat
-
-    return cat_by_id, cat_by_title
+    return load_kanban_category_index(vault)
 
 
 def main() -> None:

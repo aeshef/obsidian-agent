@@ -1,9 +1,11 @@
 # shellcheck shell=bash
 # Общие функции для скриптов монорепо (source из bot scripts или scripts/*).
 
-# Канонический дефолт SERVER_BOTS (prod: /root/bots; override через .env)
-readonly COMMON_SERVER_BOTS_DEFAULT="/root/bots"
-readonly COMMON_SERVER_VAULT_DEFAULT="/root/obsidian-vault"
+if [ -z "${_COMMON_SH_LOADED:-}" ]; then
+  readonly COMMON_SERVER_BOTS_DEFAULT="/root/bots"
+  readonly COMMON_SERVER_VAULT_DEFAULT="/root/obsidian-vault"
+  _COMMON_SH_LOADED=1
+fi
 
 common_monorepo_root() {
     local here="${BASH_SOURCE[1]:-${BASH_SOURCE[0]}}"
@@ -91,14 +93,12 @@ common_venv_python_tag() {
 # Fallback: Homebrew python той же minor + site-packages venv на PYTHONPATH.
 common_resolve_python_usable() {
     local bot_root="$1" py ver candidate
-  if [ -t 0 ]; then
     for py in "$bot_root/.venv/bin/python" "$bot_root/venv/bin/python"; do
         if [ -x "$py" ] && "$py" -c "import site" 2>/dev/null; then
             echo "$py"
             return 0
         fi
     done
-  fi
     ver="$(common_venv_python_tag "$bot_root")"
     for candidate in \
         "/opt/homebrew/bin/python${ver}" \

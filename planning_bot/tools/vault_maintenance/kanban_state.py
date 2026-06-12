@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+from __future__ import annotations
+
 from planning_bot.core.pdmsg import pdmsg
 import hashlib
 import json
@@ -64,36 +66,34 @@ def get_task_id_from_text(task_text: str) -> Optional[str]:
 
 def get_kanban_state() -> Dict[str, str]:
     'Operation implementation.'
-    if not KANBAN_FILE.exists():
-        return {}
-    
-    with open(KANBAN_FILE, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    state = {}
-    
-    # (comment)
-    section_pattern = r'## ([^\n]+)\n\n(.*?)(?=\n## |\n%%|$)'
-    
-    for match in re.finditer(section_pattern, content, re.DOTALL):
-        column_name = match.group(1).strip()
-        if not column_name:
+    state: Dict[str, str] = {}
+    from shared.kanban_paths import iter_kanban_read_paths
+
+    for path in iter_kanban_read_paths():
+        if not path.is_file():
             continue
-        section_content = match.group(2).strip()
-        
-        # (comment)
-        task_pattern = r'- \[[ x]\]\s+(.+?)(?=\n- \[|$)'
-        task_matches = re.finditer(task_pattern, section_content, re.DOTALL)
-        
-        for task_match in task_matches:
-            task_text = task_match.group(1).strip()
-            
-            # (comment)
-            task_id = get_task_id_from_text(task_text)
-            
-            if task_id:
-                state[task_id] = column_name
-    
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        is_archive = path != KANBAN_FILE
+        section_pattern = r"## ([^\n]+)\n\n(.*?)(?=\n## |\n%%|$)"
+
+        for match in re.finditer(section_pattern, content, re.DOTALL):
+            column_name = match.group(1).strip()
+            if not column_name:
+                continue
+            if is_archive:
+                column_name = DONE_COLUMN
+            section_content = match.group(2).strip()
+
+            task_pattern = r"- \[[ x]\]\s+(.+?)(?=\n- \[|$)"
+            task_matches = re.finditer(task_pattern, section_content, re.DOTALL)
+
+            for task_match in task_matches:
+                task_text = task_match.group(1).strip()
+                task_id = get_task_id_from_text(task_text)
+                if task_id:
+                    state[task_id] = column_name
+
     return state
 
 
@@ -105,8 +105,12 @@ def _trim_task_text_to_item(text: str) -> str:
     return text.strip()
 
 
-def get_task_title_by_id(task_id: str, kanban_content: str) -> Optional[str]:
+def get_task_title_by_id(task_id: str, kanban_content: str | None = None) -> Optional[str]:
     'Operation implementation.'
+    if kanban_content is None:
+        from shared.kanban_paths import read_merged_kanban_text
+
+        kanban_content = read_merged_kanban_text()
     # (comment)
     task_pattern = r'- \[[ x]\]\s+(.+?)(?=\n- \[|\n## |\n%%|$)'
     for match in re.finditer(task_pattern, kanban_content, re.DOTALL):
@@ -133,8 +137,12 @@ def get_task_category_from_text(task_text: str) -> Optional[str]:
     return m.group(1) if m else None
 
 
-def get_task_category_by_id(task_id: str, kanban_content: str) -> Optional[str]:
+def get_task_category_by_id(task_id: str, kanban_content: str | None = None) -> Optional[str]:
     'Operation implementation.'
+    if kanban_content is None:
+        from shared.kanban_paths import read_merged_kanban_text
+
+        kanban_content = read_merged_kanban_text()
     task_pattern = r'- \[[ x]\]\s+(.+?)(?=\n- \[|\n## |\n%%|$)'
     for match in re.finditer(task_pattern, kanban_content, re.DOTALL):
         task_text = _trim_task_text_to_item(match.group(1).strip())
@@ -145,12 +153,12 @@ def get_task_category_by_id(task_id: str, kanban_content: str) -> Optional[str]:
 
 def log_task_movements(logger: 'ActionLogger', previous_state: Dict[str, str], current_state: Dict[str, str]):
     'Operation implementation.'
-    # (comment)
+    from shared.kanban_paths import read_merged_kanban_text
+
     if not KANBAN_FILE.exists():
         return
-    
-    with open(KANBAN_FILE, 'r', encoding='utf-8') as f:
-        kanban_content = f.read()
+
+    kanban_content = read_merged_kanban_text()
     
     # (comment)
     for task_id, current_column in current_state.items():

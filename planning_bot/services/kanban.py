@@ -161,35 +161,57 @@ class KanbanBoard:
             self._verify_tasks_persisted(ids)
         return ids
 
-    def get_tasks(self, exclude_today: bool = True, exclude_blocked: bool = False) -> List[Dict]:
+    def get_tasks(
+        self,
+        exclude_today: bool = True,
+        exclude_blocked: bool = False,
+        include_archive: bool = True,
+    ) -> List[Dict]:
         'Operation implementation.'
-        # (comment)
         self.load()
         self.load_state()
-        tasks = []
+        tasks: List[Dict] = []
         today = datetime.now().strftime("%Y-%m-%d")
 
-        for column, block in kp.iter_tasks_with_columns(self.content):
-            meta = kp.metadata_from_block(block)
-            task_id = meta.get("task_id")
-            if task_id:
-                column = self.get_task_column(task_id) or column
-            if exclude_blocked and column == BLOCKED_COLUMN:
-                continue
-            created_date = meta.get("created_date")
-            if exclude_today and created_date == today:
-                continue
-            tasks.append({
-                "title": meta.get("title") or "",
-                "category": meta.get("category"),
-                "priority": meta.get("priority"),
-                "completed": meta.get("completed"),
-                "created_date": created_date,
-                "deadline": meta.get("deadline"),
-                "task_id": task_id,
-                "column": column,
-                "raw_text": block,
-            })
+        sources: list[tuple[str, str, str]] = [(self.content, "active", self.file_path)]
+        if include_archive:
+            from shared.kanban_paths import kanban_archive_enabled, kanban_archive_path
+
+            if kanban_archive_enabled():
+                archive_path = kanban_archive_path(self.file_path.parent.parent)
+                if archive_path and archive_path.is_file():
+                    try:
+                        archive_text = archive_path.read_text(encoding="utf-8")
+                        sources.append((archive_text, "archive", archive_path))
+                    except OSError:
+                        pass
+
+        for content, source, path in sources:
+            for column, block in kp.iter_tasks_with_columns(content):
+                meta = kp.metadata_from_block(block)
+                task_id = meta.get("task_id")
+                if task_id:
+                    column = self.get_task_column(task_id) or column
+                if source == "archive":
+                    column = DONE_COLUMN
+                if exclude_blocked and column == BLOCKED_COLUMN:
+                    continue
+                created_date = meta.get("created_date")
+                if exclude_today and created_date == today and source == "active":
+                    continue
+                tasks.append({
+                    "title": meta.get("title") or "",
+                    "category": meta.get("category"),
+                    "priority": meta.get("priority"),
+                    "completed": meta.get("completed"),
+                    "created_date": created_date,
+                    "deadline": meta.get("deadline"),
+                    "task_id": task_id,
+                    "column": column,
+                    "raw_text": block,
+                    "source": source,
+                    "board_path": str(path),
+                })
 
         return tasks
 

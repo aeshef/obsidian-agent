@@ -73,3 +73,6 @@ goal_strip_priority_regex: '#(?:приоритет|priority)/[^\s#]+'
 goal_strip_deadline_regex: '#(?:дедлайн|deadline)/[^\s#]+'
 goal_focus_quarter_regex_template: '#(?:фокус|focus)/{quarter}\\b'
 tag_created_regex: '📅 Создано:\s*(\d{4}-\d{2}-\d{2})'
+
+archive:
+  section_title_template: "{done_column} · {year}-{month:02d}"

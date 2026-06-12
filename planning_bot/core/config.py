@@ -32,6 +32,15 @@ _logs = _dash / dashboards_sub("logs")
 _graphics = _dash / dashboards_sub("charts")
 
 KANBAN_FILE = VAULT_PATH / folder("tasks") / vault_file("kanban_board")
+
+
+def kanban_archive_file() -> Path | None:
+    from shared.kanban_paths import kanban_archive_path
+
+    return kanban_archive_path(VAULT_PATH)
+
+
+KANBAN_ARCHIVE_FILE = kanban_archive_file()
 GOALS_FILE = VAULT_PATH / folder("goals") / vault_file("goals_template", year=GOALS_YEAR)
 REFLECTION_DIR = VAULT_PATH / folder("handwritten") / vault_rel_path("reflection_subdir")
 LOGS_DIR = _dash

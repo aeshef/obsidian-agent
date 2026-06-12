@@ -536,6 +536,17 @@ planning:
     Слоты в календаре не равны по «стоимости внимания». Настрой свой режим (офис/удалёнка/гибрид) в этом ключе — это шаблон для владельца vault, не факты о конкретном человеке.
     События на весь день (отпуск, поездка) могут отменять рабочую нагрузку.
   kanban_sort_skip_no_columns: "kanban_sort: пропуск — в planning_bot/config/kanban_schema.yaml нет columns (скопируйте из kanban_schema.yaml.example)."
+  kanban_archive_step_name: Архивация канбана (месячная)
+  kanban_archive_step_fail: "kanban_archive: ошибка: {e}"
+  kanban_archive_default_title: Задачи закрытые
+  kanban_archive_skip_disabled: "kanban_archive: отключено (platform kanban_archive_enabled=0)"
+  kanban_archive_skip_month: "kanban_archive: уже выполнена для {month}"
+  kanban_archive_nothing_done: "kanban_archive: на активной доске нет закрытых задач"
+  kanban_archive_keep_current_month: "kanban_archive: нечего переносить (оставляем текущий месяц {month})"
+  kanban_archive_plan: "kanban_archive: перенос {count} задач в архив, на доске остаётся {keep} (до {cutoff})"
+  kanban_archive_skip_not_from_sync: "kanban_archive: пропуск (нужен FROM_SYNC=1 на VPS maintenance)"
+  kanban_archive_done: "kanban_archive: перенесено {count} задач в архив"
+  kanban_archive_monitor_sync_warn: "kanban_archive: предупреждение синка monitor: {e}"
   kanban_sort_recent_warning: "⚠️ Файл канбана изменён {seconds:.0f} с назад (< {window} с), пропускаем сортировку."
   auto_2710b69820: "📝 Обнаружено изменение файла канбана: {_p1}"
   auto_528da68a5f: "👀 Запуск watcher для файла: {_p1}"

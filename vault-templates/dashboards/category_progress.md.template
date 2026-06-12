@@ -2,13 +2,22 @@
 
 ```dataviewjs
 const TAG_GOAL = "{{tag_goal}}";
-const kanbanFile = dv.page("{{kanban_page}}")
+const kanbanPages = ["{{kanban_page}}"]
+  .concat("{{kanban_archive_page}}" ? ["{{kanban_archive_page}}"] : [])
+  .filter(Boolean);
 const categories = {{categories_json}};
 
-if (!kanbanFile) {
+const allTasks = [];
+for (const pagePath of kanbanPages) {
+  const page = dv.page(pagePath);
+  if (page && page.file.tasks) {
+    allTasks.push(...page.file.tasks);
+  }
+}
+
+if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0])) {
   dv.paragraph("{{kanban_not_found}}")
 } else {
-  const allTasks = kanbanFile.file.tasks || []
   const categoryStats = {}
   categories.forEach(cat => { categoryStats[cat] = { total: 0, completed: 0 } })
 

@@ -15,14 +15,6 @@ _sh_msg_repo_root() {
 _sh_msg_python() {
   local root candidate
   root="$(_sh_msg_repo_root)"
-  if [ ! -t 0 ]; then
-    for candidate in /opt/homebrew/bin/python3.12 python3.12; do
-      if command -v "$candidate" >/dev/null 2>&1; then
-        echo "$candidate"
-        return 0
-      fi
-    done
-  fi
   if [ -x "$root/finance_bot/.venv/bin/python" ]; then
     echo "$root/finance_bot/.venv/bin/python"
     return 0
@@ -31,6 +23,16 @@ _sh_msg_python() {
     echo "$root/planning_bot/.venv/bin/python"
     return 0
   fi
+  if [ -x "$root/planning_bot/venv/bin/python" ]; then
+    echo "$root/planning_bot/venv/bin/python"
+    return 0
+  fi
+  for candidate in /opt/homebrew/bin/python3.12 python3.12; do
+    if command -v "$candidate" >/dev/null 2>&1; then
+      echo "$candidate"
+      return 0
+    fi
+  done
   command -v python3
 }
 

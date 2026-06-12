@@ -78,7 +78,7 @@ class KanbanMonitor:
     
     def get_task_by_id(self, task_id: str) -> Optional[Dict]:
         'Operation implementation.'
-        all_tasks = self.kanban.get_tasks(exclude_today=False)
+        all_tasks = self.kanban.get_tasks(exclude_today=False, include_archive=True)
         for task in all_tasks:
             if task.get("task_id") == task_id:
                 return task
@@ -165,6 +165,8 @@ class KanbanMonitor:
             if task_id not in current_state:
                 task = self.get_task_by_id(task_id)
                 if task:
+                    if task.get("source") == "archive":
+                        continue
                     task_title = task.get("title", pdmsg("auto_29940f450a"))
                     changes.append({
                         "task_id": task_id,
@@ -238,7 +240,9 @@ class KanbanMonitor:
 
     def _sync_kanban_state_json(self) -> None:
         'Operation implementation.'
-        st = self.load_state_from_markdown()
+        from planning_bot.tools.vault_maintenance.kanban_state import get_kanban_state
+
+        st = get_kanban_state()
         if st:
             self._save_kanban_state_json(st)
 

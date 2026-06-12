@@ -4849,6 +4849,17 @@ planning:
     sec), skipping sort.
   kanban_sort_skip_no_columns: 'kanban_sort: skipped — no columns in planning_bot/config/kanban_schema.yaml
     (copy from kanban_schema.yaml.example).'
+  kanban_archive_step_name: Kanban archive (monthly)
+  kanban_archive_step_fail: 'kanban_archive failed: {e}'
+  kanban_archive_default_title: Closed tasks
+  kanban_archive_skip_disabled: 'kanban_archive: disabled (platform kanban_archive_enabled=0)'
+  kanban_archive_skip_month: 'kanban_archive: already ran for {month}'
+  kanban_archive_nothing_done: 'kanban_archive: no done tasks on active board'
+  kanban_archive_keep_current_month: 'kanban_archive: nothing to move (keeping current month {month})'
+  kanban_archive_plan: 'kanban_archive: will move {count} tasks to archive, keep {keep} on board (before {cutoff})'
+  kanban_archive_skip_not_from_sync: 'kanban_archive: skipped (set FROM_SYNC=1 on VPS maintenance)'
+  kanban_archive_done: 'kanban_archive: moved {count} tasks to archive'
+  kanban_archive_monitor_sync_warn: 'kanban_archive: monitor state sync warning: {e}'
   log_entry_data: '**Data:**
 
 
