@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from planning_bot.services.routines_config import section_config_header
+from planning_bot.services.routines_manager import parse_legacy_today_date
 from shared.routines_paths import (
     routines_charts_dir,
     routines_data_dir,
@@ -17,6 +18,8 @@ from shared.routines_paths import (
     routines_stats_path,
     routines_today_json_path,
     routines_today_legacy_path,
+    signals_config_md_path,
+    signals_config_yaml_legacy_path,
     signals_dir,
     signals_history_path,
 )
@@ -39,10 +42,7 @@ def _migrate_today_md_to_json(vault_root: Path | None = None) -> bool:
         except OSError:
             return False
     content = legacy.read_text(encoding="utf-8")
-    date_match = re.search(r"\*\*Дата:\*\*\s*(\d{4}-\d{2}-\d{2})", content)
-    if not date_match:
-        date_match = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", content)
-    day = date_match.group(1) if date_match else ""
+    day = parse_legacy_today_date(content) or ""
     status: dict[str, dict[str, bool]] = {"morning": {}, "day": {}, "evening": {}}
     current_section: str | None = None
     for line in content.split("\n"):
@@ -82,6 +82,41 @@ def _move_stats_if_needed(
     return True
 
 
+def _migrate_signals_yaml_to_md(vault_root: Path | None = None) -> bool:
+    """If editable md is missing or has no yaml block, scaffold from legacy yaml or template."""
+    md_path = signals_config_md_path(vault_root)
+    legacy = signals_config_yaml_legacy_path(vault_root)
+
+    def _has_yaml_block(path: Path) -> bool:
+        if not path.is_file():
+            return False
+        return bool(re.search(r"```yaml\s*\n[\s\S]*?```", path.read_text(encoding="utf-8")))
+
+    if md_path.is_file() and _has_yaml_block(md_path):
+        return False
+
+    yaml_body = ""
+    if legacy is not None and legacy.is_file():
+        yaml_body = legacy.read_text(encoding="utf-8").strip()
+
+    if yaml_body:
+        title = "# Signals configuration"
+        intro = "Edit the yaml block below — the bot picks up overrides on the next check-in."
+        if md_path.is_file():
+            lines = md_path.read_text(encoding="utf-8").splitlines()
+            if lines and lines[0].startswith("#"):
+                title = lines[0]
+        body = f"{title}\n\n{intro}\n\n```yaml\n{yaml_body}\n```\n"
+        _mkdir(md_path.parent)
+        md_path.write_text(body, encoding="utf-8")
+        return True
+
+    from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+
+    scaffold_vault_routines(vault_root=vault_root)
+    return md_path.is_file() and _has_yaml_block(md_path)
+
+
 def cleanup_legacy_routines_files(vault_root: Path | None = None) -> list[str]:
     """Remove deprecated paths so rsync --update cannot resurrect them locally."""
     actions: list[str] = []
@@ -98,7 +133,6 @@ def cleanup_legacy_routines_files(vault_root: Path | None = None) -> list[str]:
 def ensure_routines_layout(vault_root: Path | None = None, *, scaffold_stats: bool = True) -> list[str]:
     """Create dirs, migrate legacy paths, scaffold stats pages. Returns action log."""
     actions: list[str] = []
-    actions.extend(cleanup_legacy_routines_files(vault_root))
     _mkdir(routines_operational_dir(vault_root))
     _mkdir(routines_data_dir(vault_root))
     _mkdir(routines_charts_dir(vault_root) / routines_sub("charts_routines"))
@@ -111,6 +145,11 @@ def ensure_routines_layout(vault_root: Path | None = None, *, scaffold_stats: bo
     legacy_stats = routines_stats_legacy_path(vault_root)
     if _move_stats_if_needed(routines_stats_path(vault_root), legacy_stats):
         actions.append(f"moved routines stats → {routines_stats_path(vault_root).name}")
+
+    if _migrate_signals_yaml_to_md(vault_root):
+        actions.append("migrated signals yaml → editable md config")
+
+    actions.extend(cleanup_legacy_routines_files(vault_root))
 
     hist = signals_history_path(vault_root)
     if not hist.is_file():

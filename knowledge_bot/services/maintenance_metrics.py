@@ -220,7 +220,7 @@ def append_daily_record(
         except Exception:
             existing = []
 
-    d = date.today().isoformat()
+    d = ts_start[:10] if len(ts_start) >= 10 else date.today().isoformat()
     run_flat = _flatten_run_metrics(steps)
 
     prev = next((x for x in existing if isinstance(x, dict) and x.get("date") == d), None)

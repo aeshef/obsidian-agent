@@ -82,10 +82,10 @@ files:
   routines_stats_md: "Графики/Рутины/📊 Рутины_Статистика.md"
   routines_stats_legacy_md: "📊 Рутины_Статистика.md"
   signals_subdir: "📊 Сигналы/"
+  signals_config_md: "📋 Конфиг_Сигналов.md"
   signals_config_yaml: "📋 Конфиг_Сигналов.yaml"
   signals_history_md: "📊 История_Сигналов.md"
   signals_stats_md: "Графики/Сигналы/📊 Сигналы_Статистика.md"
-  signals_config_stub_md: "📋 Конфиг_Сигналов.md"
 
 finance:
   dashboard_md: "📊 Финансы_Дашборд.md"

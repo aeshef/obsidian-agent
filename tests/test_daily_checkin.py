@@ -33,6 +33,7 @@ def vault_env(tmp_path, monkeypatch):
         },
         "files": {
             "signals_subdir": "Signals/",
+            "signals_config_md": "Signals_Config.md",
             "signals_config_yaml": "Signals_Config.yaml",
             "signals_history_md": "Signals_History.md",
             "signals_stats_md": "Charts/Signals/Signals_statistics.md",

@@ -7,12 +7,9 @@ strings:
   signals_stats_title: "# 📊 Статистика сигналов"
   signals_stats_subtitle: "_Тренды настроения, энергии и стресса из вечернего чек-ина_"
   signals_config_title: "📋 Конфигурация сигналов"
-  signals_config_body: |
-    > Схема вечернего чек-ина. Редактируй YAML-файл в этой папке — бот подхватит override при следующем чек-ине.
-    >
-    > Файл: [[{{signals_config_yaml_link}}|📋 Конфиг_Сигналов.yaml]]
-    >
-    > Базовая схема (если vault-файл пуст): `planning_bot/config/daily_checkin.yaml` в репозитории Agent.
+  signals_config_intro: |
+    Схема вечернего чек-ина. Редактируй блок `yaml` ниже — бот подхватит override при следующем чек-ине.
+    Базовая схема (если блок пуст): `planning_bot/config/daily_checkin.yaml` в репозитории Agent.
 
 dashboards:
   routines_stats:

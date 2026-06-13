@@ -73,18 +73,31 @@ def signals_history_path(vault_root: Path | None = None) -> Path:
     return signals_dir(vault_root) / vault_file("signals_history_md")
 
 
+def signals_config_md_path(vault_root: Path | None = None) -> Path:
+    return signals_dir(vault_root) / vault_file("signals_config_md")
+
+
+def signals_config_yaml_legacy_path(vault_root: Path | None = None) -> Path | None:
+    block = __import__(
+        "shared.vault_paths_config", fromlist=["vault_paths_config"]
+    ).vault_paths_config().get("files") or {}
+    legacy = block.get("signals_config_yaml")
+    if not legacy:
+        return None
+    return signals_dir(vault_root) / str(legacy)
+
+
 def signals_config_path(vault_root: Path | None = None) -> Path:
-    return signals_dir(vault_root) / vault_file("signals_config_yaml")
+    """Editable signals config (markdown with YAML block)."""
+    return signals_config_md_path(vault_root)
 
 
-def signals_config_stub_path(vault_root: Path | None = None) -> Path:
-    return signals_dir(vault_root) / vault_file("signals_config_stub_md")
-
-
-def signals_config_yaml_wikilink() -> str:
+@lru_cache(maxsize=1)
+def signals_config_wikilink() -> str:
     sub = vault_file("signals_subdir").rstrip("/")
-    yaml_name = vault_file("signals_config_yaml")
-    return f"{folder('routines')}/{sub}/{yaml_name}"
+    name = vault_file("signals_config_md")
+    rel = f"{folder('routines')}/{sub}/{name}"
+    return rel.replace(".md", "")
 
 
 def signals_stats_path(vault_root: Path | None = None) -> Path:

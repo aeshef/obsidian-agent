@@ -19,10 +19,11 @@ from planning_bot.services.action_log_format import (
 _log = logging.getLogger(__name__)
 
 _TASK_EVENT_TYPES = frozenset({"task_moved", "task_completed", "task_created"})
-_LOG_ENTRY_RE = re.compile(
-    pdmsg("auto_9158eed63e"),
-    re.DOTALL,
-)
+
+
+@lru_cache(maxsize=1)
+def _log_entry_re() -> re.Pattern[str]:
+    return re.compile(pdmsg("auto_9158eed63e"), re.DOTALL)
 
 
 def _read_log_file(path: Path) -> str:
@@ -88,7 +89,7 @@ class ActionLogger:
             if not log_file.exists():
                 continue
             content = _read_log_file(log_file)
-            for match in list(_LOG_ENTRY_RE.finditer(content)) + list(
+            for match in list(_log_entry_re().finditer(content)) + list(
                 _legacy_log_entry_re().finditer(content)
             ):
                 timestamp_str = match.group(1)

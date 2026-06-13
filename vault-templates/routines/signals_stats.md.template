@@ -6,20 +6,10 @@
 
 ```dataviewjs
 await (async () => {
+{{dv_read_note}}
 const HISTORY = "{{signals_history_page}}";
 
-async function loadHistory() {
-  const page = dv.page(HISTORY);
-  if (page?.file?.path) {
-    try { return await app.vault.read(page.file.path); } catch (e) { /* fall through */ }
-  }
-  const files = app.vault.getMarkdownFiles();
-  const f = files.find(x => x.path.includes("История_Сигналов") || x.path.includes("Signals_History"));
-  if (f) return await app.vault.read(f.path);
-  return "";
-}
-
-const content = await loadHistory();
+const content = await readVaultNote(HISTORY);
 if (!content || content.trim().length < 20) {
   dv.paragraph("{{stats_empty_history}}");
   return;

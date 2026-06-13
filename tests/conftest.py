@@ -108,9 +108,15 @@ def _domain_messages_merge_example(monkeypatch):
     monkeypatch.setattr(dm, "_domain", _merged_domain)
     dm.clear_domain_messages_cache()
     try:
+        from planning_bot.services import action_log_parser as alp
         from planning_bot.services import action_logger as al
+        from planning_bot.services.action_log_format import _glued_type_re, _loose_json_block_re
 
+        alp._log_entry_pattern.cache_clear()
+        al._log_entry_re.cache_clear()
         al._legacy_log_entry_re.cache_clear()
+        _glued_type_re.cache_clear()
+        _loose_json_block_re.cache_clear()
     except Exception:
         pass
     yield

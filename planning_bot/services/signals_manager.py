@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from planning_bot.services.daily_checkin_config import signals_config
+from planning_bot.services.signals_config_vault import load_vault_signals_config
 from planning_bot.services.routines_lock import routines_transaction
 from planning_bot.services.routines_manager import get_today_date
-from shared.routines_paths import signals_config_path, signals_history_path
+from shared.routines_paths import signals_history_path
+
 from shared.tz import get_tz
-from shared.yaml_config import load_yaml
 
 
 def ensure_signals_layout() -> None:
@@ -21,13 +22,11 @@ def ensure_signals_layout() -> None:
 
 def effective_signals() -> list[dict[str, Any]]:
     base = list(signals_config())
-    vault_path = signals_config_path()
-    if vault_path.is_file():
-        over = load_yaml(vault_path, default={})
-        if isinstance(over, dict):
-            raw = over.get("signals")
-            if isinstance(raw, list) and raw:
-                return [dict(x) for x in raw if isinstance(x, dict) and x.get("id")]
+    over = load_vault_signals_config()
+    if over:
+        raw = over.get("signals")
+        if isinstance(raw, list) and raw:
+            return [dict(x) for x in raw if isinstance(x, dict) and x.get("id")]
     return base
 
 

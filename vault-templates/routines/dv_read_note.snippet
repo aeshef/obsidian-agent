@@ -1,0 +1,33 @@
+async function readVaultNote(link) {
+  const page = dv.page(link);
+  if (page && page.file) {
+    if (typeof page.file.contents === "string" && page.file.contents.length > 0)
+      return page.file.contents;
+    try {
+      const fp = dv.filePath(page.file);
+      if (fp && typeof dv.io !== "undefined" && dv.io.load) {
+        const text = await dv.io.load(fp);
+        if (typeof text === "string") return text;
+      }
+    } catch (e) { /* fall through */ }
+  }
+  const mdPath = link.endsWith(".md") ? link : link + ".md";
+  if (typeof dv.io !== "undefined" && dv.io.load) {
+    try {
+      const text = await dv.io.load(mdPath);
+      if (typeof text === "string") return text;
+    } catch (e) { /* fall through */ }
+  }
+  const hint = link.split("/").pop();
+  const files = app.vault.getMarkdownFiles();
+  const f = files.find(x => x.path.includes(hint) || (x.basename && x.basename.includes(hint)));
+  if (f) {
+    if (typeof f.contents === "string" && f.contents.length > 0) return f.contents;
+    try {
+      const fp = f.path;
+      if (fp && typeof dv.io !== "undefined" && dv.io.load)
+        return await dv.io.load(fp);
+    } catch (e) { /* fall through */ }
+  }
+  return "";
+}

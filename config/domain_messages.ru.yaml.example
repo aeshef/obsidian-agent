@@ -434,6 +434,8 @@ planning:
   routines_problematic_line: "• {task} ({section}): отказ {fail_rate}%"
   routines_no_problematic: "Проблемных рутин не найдено."
   routines_uncompleted_morning: "🌅 Утро (не сделано): {tasks}"
+  routines_legacy_today_date_regex: '\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})'
+  routines_legacy_today_date_regex_alt: '\*\*Дата:\*\*\s*(\d{4}-\d{2}-\d{2})'
   routines_uncompleted_day: "☀️ День (не сделано): {tasks}"
   routines_uncompleted_evening: "🌙 Вечер (не сделано): {tasks}"
   routines_all_done: "Все рутины на сегодня выполнены."

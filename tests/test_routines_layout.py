@@ -35,10 +35,10 @@ def vault_env(tmp_path, monkeypatch):
             "routines_stats_md": "Charts/Routines/stats.md",
             "routines_stats_legacy_md": "Routine_statistics.md",
             "signals_subdir": "Signals/",
+            "signals_config_md": "Signals_Config.md",
             "signals_config_yaml": "Signals_Config.yaml",
             "signals_history_md": "Signals_History.md",
             "signals_stats_md": "Charts/Signals/signals_stats.md",
-            "signals_config_stub_md": "Signals_Config.md",
         },
     }
     (ROOT / "config" / "vault_paths.yaml").write_text(

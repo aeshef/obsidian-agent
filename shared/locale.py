@@ -35,7 +35,8 @@ def _infer_locale_from_vault_paths() -> str | None:
 
         cfg = vault_paths_config()
         blob = str(cfg.get("folders") or {}) + str(cfg.get("files") or {})
-        if any("\u0400" <= c <= "\u04FF" for c in blob):
+        cyr_start, cyr_end = 0x0400, 0x04FF
+        if any(cyr_start <= ord(c) <= cyr_end for c in blob):
             return "ru"
     except Exception:
         return None

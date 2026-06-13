@@ -7,19 +7,22 @@ from pathlib import Path
 from planning_bot.core.pdmsg import pdmsg
 from planning_bot.services.action_log_format import content_for_parse
 from typing import Callable, List
+from functools import lru_cache
 
 # (comment)
-LOG_ENTRY_PATTERN = re.compile(
-    pdmsg("auto_9158eed63e"),
-    re.DOTALL,
-)
+
+
+@lru_cache(maxsize=1)
+def _log_entry_pattern() -> re.Pattern[str]:
+    return re.compile(pdmsg("auto_9158eed63e"), re.DOTALL)
 
 
 def parse_log_content(content: str) -> List[dict]:
     'Operation implementation.'
     content = content_for_parse(content)
     events = []
-    for m in LOG_ENTRY_PATTERN.finditer(content):
+    pattern = _log_entry_pattern()
+    for m in pattern.finditer(content):
         ts = m.group(1)
         try:
             dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")

@@ -348,6 +348,7 @@ planning:
     signals_stats_title: "# 📊 Статистика сигналов"
     signals_stats_subtitle: "_Тренды настроения, энергии и стресса из вечернего чек-ина_"
     signals_stats_footer: "_Данные из [[{{signals_history_link}}|истории сигналов]]; append-only лог из Telegram._"
+    checkin_signal_mood: "Как настроение на конец дня?"
     checkin_signal_energy: "Уровень энергии?"
     checkin_signal_stress: "Уровень стресса?"
     checkin_signal_focus: "Куда ушёл фокус дня?"

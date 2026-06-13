@@ -17,7 +17,6 @@ from shared.routines_paths import (
     routines_history_wikilink,
     routines_root,
     routines_stats_path,
-    signals_config_yaml_wikilink,
     signals_dir,
     signals_history_wikilink,
     signals_stats_path,
@@ -27,6 +26,7 @@ from shared.yaml_config import load_runtime_config, load_yaml
 
 _REPO = Path(__file__).resolve().parents[2]
 _TEMPLATES = _REPO / "vault-templates" / "routines"
+_DV_READ = _TEMPLATES / "dv_read_note.snippet"
 
 
 def _locale() -> str:
@@ -59,6 +59,19 @@ def _msg(key: str, catalog: dict, catalog_key: str, default: str = "") -> str:
     return str(strings.get(catalog_key) or default)
 
 
+def _signals_yaml_template_body() -> str:
+    path = _TEMPLATES / "signals_config.yaml.template"
+    if not path.is_file():
+        return ""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    out: list[str] = []
+    for line in lines:
+        if line.startswith("#"):
+            continue
+        out.append(line)
+    return "\n".join(out).strip()
+
+
 def build_scaffold_context(
     prof: Optional[CapabilityProfile] = None,
     vault_root: Optional[Path] = None,
@@ -85,10 +98,11 @@ def build_scaffold_context(
         "signals_history_page": signals_history_wikilink(),
         "routines_history_link": routines_history_wikilink(),
         "signals_history_link": signals_history_wikilink(),
-        "signals_config_yaml_link": signals_config_yaml_wikilink(),
         "signals_config_title": _msg(
             "signals_config_title", catalog, "signals_config_title", "📋 Signals configuration"
         ),
+        "signals_config_intro": str(strings.get("signals_config_intro") or ""),
+        "signals_config_yaml_body": _signals_yaml_template_body(),
         "morning_config_header": section_config_header("morning"),
         "day_config_header": section_config_header("day"),
         "evening_config_header": section_config_header("evening"),
@@ -97,16 +111,13 @@ def build_scaffold_context(
         "evening_history_label": section_history_label("evening"),
         "stats_empty_history": str(strings.get("stats_empty_history") or ""),
         "stats_no_dates": str(strings.get("stats_no_dates") or ""),
+        "dv_read_note": _DV_READ.read_text(encoding="utf-8") if _DV_READ.is_file() else "",
     }
-    link = ctx["signals_config_yaml_link"]
-    raw_body = str(strings.get("signals_config_body") or "")
-    ctx["signals_config_body"] = _substitute(raw_body, {"signals_config_yaml_link": link})
     return ctx
 
 
 _SIGNALS_FILE_TEMPLATES = (
-    ("signals_config_yaml", "signals_config.yaml.template"),
-    ("signals_config_stub_md", "signals_config_stub.md.template"),
+    ("signals_config_md", "signals_config.md.template"),
 )
 
 
@@ -124,8 +135,6 @@ def _scaffold_signals_files(
         if not tpl_path.is_file():
             continue
         out_path = base / vault_file(file_key)
-        if file_key == "signals_config_yaml" and out_path.is_file():
-            continue
         if out_path.is_file() and not force:
             continue
         body = _substitute(tpl_path.read_text(encoding="utf-8"), ctx).strip() + "\n"

@@ -3,9 +3,11 @@ from __future__ import annotations
 import json
 import re
 from datetime import datetime, timedelta, timezone
+from functools import lru_cache
 from typing import Dict, List, Tuple
 
 from planning_bot.app.ui import pmsg
+from planning_bot.core.pdmsg import pdmsg
 from planning_bot.services.routines_config import (
     SECTION_ORDER,
     section_config_header,
@@ -21,6 +23,22 @@ from shared.routines_paths import (
 from shared.tz import get_tz
 
 msk_tz = get_tz()
+
+
+@lru_cache(maxsize=1)
+def _legacy_today_date_re() -> re.Pattern[str]:
+    primary = pdmsg("routines_legacy_today_date_regex").strip()
+    alt = pdmsg("routines_legacy_today_date_regex_alt").strip()
+    if primary and alt:
+        return re.compile(f"(?:{primary}|{alt})")
+    if primary:
+        return re.compile(primary)
+    return re.compile(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})")
+
+
+def parse_legacy_today_date(content: str) -> str | None:
+    match = _legacy_today_date_re().search(content)
+    return match.group(1) if match else None
 
 
 def _empty_status() -> Dict[str, Dict[str, bool]]:
@@ -60,10 +78,7 @@ def load_tasks_config() -> Tuple[List[str], List[str], List[str]]:
 
 def _parse_legacy_today_md(content: str) -> tuple[str, Dict[str, Dict[str, bool]]]:
     status = _empty_status()
-    date_match = re.search(r"\*\*Дата:\*\*\s*(\d{4}-\d{2}-\d{2})", content)
-    if not date_match:
-        date_match = re.search(r"\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})", content)
-    day = date_match.group(1) if date_match else ""
+    day = parse_legacy_today_date(content) or ""
     current_section: str | None = None
     for line in content.split("\n"):
         for section in SECTION_ORDER:

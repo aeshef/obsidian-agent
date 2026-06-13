@@ -4936,6 +4936,8 @@ planning:
   routines_uncompleted_day: '☀️ Day (not done): {tasks}'
   routines_uncompleted_evening: '🌙 Evening (not done): {tasks}'
   routines_uncompleted_morning: '🌅 Morning (not done): {tasks}'
+  routines_legacy_today_date_regex: '\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})'
+  routines_legacy_today_date_regex_alt: ''
 planning_forecast:
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'

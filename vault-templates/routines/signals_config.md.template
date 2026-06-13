@@ -1,0 +1,7 @@
+# {{signals_config_title}}
+
+{{signals_config_intro}}
+
+```yaml
+{{signals_config_yaml_body}}
+```

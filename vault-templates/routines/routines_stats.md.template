@@ -6,6 +6,7 @@
 
 ```dataviewjs
 await (async () => {
+{{dv_read_note}}
 const HISTORY = "{{history_page}}";
 const CONFIG = "{{config_page}}";
 const MORNING_HDR = "{{morning_config_header}}";
@@ -16,15 +17,7 @@ const DAY_LBL = "{{day_history_label}}";
 const EVENING_LBL = "{{evening_history_label}}";
 
 async function readNote(link) {
-  const page = dv.page(link);
-  if (page?.file?.path) {
-    try { return await app.vault.read(page.file.path); } catch (e) { /* fall through */ }
-  }
-  const files = app.vault.getMarkdownFiles();
-  const hint = link.split("/").pop();
-  const f = files.find(x => x.path.includes(hint));
-  if (f) return await app.vault.read(f.path);
-  return "";
+  return await readVaultNote(link);
 }
 
 const fileContent = await readNote(HISTORY);
