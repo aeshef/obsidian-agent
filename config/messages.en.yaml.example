@@ -727,10 +727,12 @@ planning:
     routines_stats_error: ❌ Error loading routine statistics.
     checkin_phrase_close_day: close the day
     checkin_phrase_close_day_alt: close day
-    checkin_offer: '🌙 Close your day?
+    checkin_offer: '🌙 Close day {date}?
 
       Quick routine check-in and a few subjective signals for analytics.'
     checkin_btn_start: '▶️ Start'
+    checkin_btn_start_date: '▶️ {date}'
+    checkin_btn_start_calendar: '📅 {date}'
     checkin_btn_later: '⏰ Later'
     checkin_btn_skip_today: 'Skip today'
     checkin_btn_done: '✅ Done'
@@ -785,8 +787,8 @@ planning:
       # Daily signals history
 
       > Append-only log from Telegram check-in. Do not edit manually.
-    checkin_complete_title: '✅ Day closed. Thanks!'
-    checkin_complete_signals_saved: 'Signals saved to vault.'
+    checkin_complete_title: '✅ Day {date} closed. Thanks!'
+    checkin_complete_signals_saved: 'Signals for {date} saved to vault.'
     stats_active: '📋 Active tasks: {count}
 
 

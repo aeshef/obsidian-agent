@@ -155,8 +155,10 @@ async def send_daily_checkin_prompt(self, bot: Bot):
             return
         from planning_bot.app.handlers.daily_checkin import send_daily_checkin_prompt
 
-        await send_daily_checkin_prompt(bot, self.chat_id)
-        logger.info("Sent daily check-in prompt")
+        if await send_daily_checkin_prompt(bot, self.chat_id):
+            logger.info("Sent daily check-in prompt")
+        else:
+            logger.info("Daily check-in prompt skipped (already closed or snoozed)")
     except Exception as e:
         logger.error("Daily check-in prompt failed: %s", e)
 

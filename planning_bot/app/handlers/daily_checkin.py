@@ -33,7 +33,10 @@ from planning_bot.services.daily_checkin import (
     signal_prompt_text,
 )
 from planning_bot.services.daily_checkin_config import checkin_snooze_minutes as cfg_snooze
+from planning_bot.services.ritual_day import ritual_day_date
+from planning_bot.services.routines_manager import ensure_routines_bucket
 from planning_bot.services.signals_manager import append_signals_entry, ensure_signals_layout
+from shared.ritual_day import parse_close_date
 
 logger = logging.getLogger(__name__)
 
@@ -95,23 +98,33 @@ async def start_daily_checkin(self, message: Message, state: FSMContext) -> None
     await _begin_checkin(message, state)
 
 
-async def send_daily_checkin_prompt(bot: Bot, chat_id: int) -> None:
+async def send_daily_checkin_prompt(bot: Bot, chat_id: int) -> bool:
     if not should_send_scheduled_prompt():
-        return
+        return False
     mark_prompt_sent()
+    day = ritual_day_date()
     await bot.send_message(
         chat_id=chat_id,
-        text=pmsg("checkin_offer"),
+        text=pmsg("checkin_offer", date=day),
         reply_markup=offer_keyboard(),
     )
+    return True
 
 
-async def _begin_checkin(message: Message, state: FSMContext) -> None:
+async def _begin_checkin(
+    message: Message,
+    state: FSMContext,
+    *,
+    close_date: str | None = None,
+) -> None:
+    day = parse_close_date(close_date or "") or ritual_day_date()
     ensure_signals_layout()
+    ensure_routines_bucket(day)
     routines = build_routine_queue()
     signals = build_signal_queue()
     await state.set_state(DailyCheckinState.active)
     await state.update_data(
+        close_date=day,
         phase=_STATE_ROUTINES if routines else _STATE_SIGNALS,
         routine_queue=_serialize_routines(routines),
         signal_queue=_serialize_signals(signals),
@@ -175,13 +188,14 @@ async def _send_signal_step(target: Message | CallbackQuery, state: FSMContext) 
 
 async def _finish(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
+    close_date = str(data.get("close_date") or ritual_day_date())
     answers = dict(data.get("signal_answers") or {})
     if answers:
-        append_signals_entry(answers)
-    mark_completed()
+        append_signals_entry(answers, date_str=close_date)
+    mark_completed(close_date)
     await state.clear()
     await message.answer(
-        completion_summary(answers),
+        completion_summary(answers, close_date),
         reply_markup=keyboards.get_main_keyboard(),
     )
 
@@ -199,6 +213,12 @@ async def handle_checkin_callback(callback: CallbackQuery, state: FSMContext) ->
         await _begin_checkin(callback.message, state)
         return
 
+    if action == "gd" and len(parts) >= 3:
+        day = parse_close_date(parts[2])
+        if day:
+            await _begin_checkin(callback.message, state, close_date=day)
+        return
+
     if action == "snooze":
         mark_snooze(cfg_snooze())
         await state.clear()
@@ -207,7 +227,7 @@ async def handle_checkin_callback(callback: CallbackQuery, state: FSMContext) ->
         return
 
     if action == "skip":
-        mark_completed()
+        mark_completed(ritual_day_date())
         await state.clear()
         await callback.message.edit_text(pmsg("checkin_skipped_today"))
         await callback.answer()

@@ -135,9 +135,9 @@ def load_today_status() -> Dict[str, Dict[str, bool]]:
 
 
 def get_today_date() -> str:
-    now_utc = datetime.now(timezone.utc)
-    now_msk = now_utc.astimezone(msk_tz)
-    return now_msk.strftime("%Y-%m-%d")
+    from planning_bot.services.ritual_day import ritual_day_date
+
+    return ritual_day_date()
 
 
 def get_today_date_from_state() -> str | None:
@@ -156,10 +156,7 @@ def format_status_for_history(
     if date_to_save:
         date_str = date_to_save
     else:
-        now_utc = datetime.now(timezone.utc)
-        now_msk = now_utc.astimezone(msk_tz)
-        yesterday_msk = now_msk - timedelta(days=1)
-        date_str = yesterday_msk.strftime("%Y-%m-%d")
+        date_str = get_today_date()
 
     lines.append(f"## {date_str}")
     lines.append("")
@@ -198,6 +195,18 @@ def reset_today_state(
     _write_today_payload(get_today_date(), status)
 
 
+def ensure_routines_bucket(day: str) -> None:
+    """Align routines_today.json to ritual close date."""
+    check_and_update()
+    state_date = get_today_date_from_state()
+    if state_date == day:
+        return
+    morning, day_tasks, evening = load_tasks_config()
+    status = load_today_status()
+    synced = _sync_status_with_config(morning, day_tasks, evening, status)
+    _write_today_payload(day, synced)
+
+
 def append_to_history(history_entry: str) -> None:
     path = routines_history_path()
     if path.is_file():
@@ -230,7 +239,7 @@ def set_task_done(section: str, task: str, done: bool) -> bool:
         status[section][task] = done
     else:
         status[section][task] = done
-    _write_today_payload(get_today_date_from_state() or get_today_date(), status)
+    _write_today_payload(get_today_date(), status)
     return True
 
 
@@ -273,6 +282,13 @@ def check_and_update() -> None:
         )
         append_to_history(history_entry)
         reset_today_state(morning_tasks_config, day_tasks_config, evening_tasks_config)
+        return
+
+    if state_date and state_date > current_date:
+        synced = _sync_status_with_config(
+            morning_tasks_config, day_tasks_config, evening_tasks_config, today_status
+        )
+        _write_today_payload(current_date, synced)
         return
 
     if not state_date:

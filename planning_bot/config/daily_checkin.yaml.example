@@ -21,6 +21,9 @@ checkin:
     - day
   replace_passive_evening_reminders: true
   skip_already_checked_routines: true
+  # Before end_hour (MSK/TIMEZONE) «день» для закрытия = вчера по календарю (ночь до 04:00).
+  ritual_day:
+    end_hour: 4
 
 scales:
   apple_mood_7:

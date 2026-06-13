@@ -115,6 +115,7 @@ planning_checkin:
   minute: 45
   snooze_minutes: 30
   replace_passive_evening_reminders: true
+  ritual_day_end_hour: 4
 
 planning_llm:
   task_parsing: 0.3

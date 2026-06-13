@@ -58,6 +58,13 @@ def replace_passive_evening_reminders() -> bool:
     return str(raw).strip().lower() in ("1", "true", "yes", "on")
 
 
+def ritual_day_end_hour() -> int:
+    block = _checkin_block()
+    ritual = block.get("ritual_day") if isinstance(block.get("ritual_day"), dict) else {}
+    default = int(ritual.get("end_hour", 4))
+    return platform_int("planning_checkin", "ritual_day_end_hour", default=default)
+
+
 def skip_already_checked_routines() -> bool:
     block = _checkin_block()
     return bool(block.get("skip_already_checked_routines", True))

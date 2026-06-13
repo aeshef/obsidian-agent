@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from planning_bot.services.routines_manager import get_today_date
+from planning_bot.services.ritual_day import ritual_day_date
 from shared.paths import vault_root_optional
 from shared.tz import get_tz
 
@@ -37,14 +37,17 @@ def _save(data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _active_ritual_day() -> str:
+    return ritual_day_date()
+
+
 def completed_for_today() -> bool:
-    today = get_today_date()
-    return _load().get("completed_date") == today
+    return _load().get("completed_date") == _active_ritual_day()
 
 
-def mark_completed() -> None:
+def mark_completed(day: str | None = None) -> None:
     data = _load()
-    data["completed_date"] = get_today_date()
+    data["completed_date"] = (day or "").strip() or _active_ritual_day()
     data.pop("snooze_until", None)
     _save(data)
 
@@ -54,7 +57,7 @@ def mark_snooze(minutes: int) -> None:
     until = datetime.now(timezone.utc).astimezone(tz) + timedelta(minutes=minutes)
     data = _load()
     data["snooze_until"] = until.isoformat(timespec="seconds")
-    data["last_prompt_date"] = get_today_date()
+    data["last_prompt_date"] = _active_ritual_day()
     _save(data)
 
 
@@ -78,5 +81,5 @@ def should_send_scheduled_prompt() -> bool:
 
 def mark_prompt_sent() -> None:
     data = _load()
-    data["last_prompt_date"] = get_today_date()
+    data["last_prompt_date"] = _active_ritual_day()
     _save(data)

@@ -122,8 +122,34 @@ def routine_keyboard(section: str, task_index: int) -> InlineKeyboardMarkup:
 
 
 def offer_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
+    from planning_bot.services.ritual_day import calendar_day_date, ritual_day_active, ritual_day_date
+
+    ritual = ritual_day_date()
+    rows: list[list[InlineKeyboardButton]] = []
+    if ritual_day_active():
+        cal = calendar_day_date()
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=pmsg("checkin_btn_start_date", date=ritual),
+                    callback_data="chk:go",
+                ),
+                InlineKeyboardButton(
+                    text=pmsg("checkin_btn_start_calendar", date=cal),
+                    callback_data=f"chk:gd:{cal}",
+                ),
+            ]
+        )
+        rows.append(
+            [
+                InlineKeyboardButton(
+                    text=pmsg("checkin_btn_later"),
+                    callback_data="chk:snooze",
+                ),
+            ]
+        )
+    else:
+        rows.append(
             [
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_start"),
@@ -133,15 +159,17 @@ def offer_keyboard() -> InlineKeyboardMarkup:
                     text=pmsg("checkin_btn_later"),
                     callback_data="chk:snooze",
                 ),
-            ],
-            [
-                InlineKeyboardButton(
-                    text=pmsg("checkin_btn_skip_today"),
-                    callback_data="chk:skip",
-                ),
-            ],
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton(
+                text=pmsg("checkin_btn_skip_today"),
+                callback_data="chk:skip",
+            ),
         ]
     )
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 def scale_keyboard(signal_index: int, scale_id: str) -> InlineKeyboardMarkup:
@@ -204,8 +232,8 @@ def resolve_category_index(index: int) -> str:
     return CATEGORIES[0] if CATEGORIES else "other"
 
 
-def completion_summary(signal_answers: dict[str, Any]) -> str:
-    lines = [pmsg("checkin_complete_title")]
+def completion_summary(signal_answers: dict[str, Any], close_date: str) -> str:
+    lines = [pmsg("checkin_complete_title", date=close_date)]
     if signal_answers:
-        lines.append(pmsg("checkin_complete_signals_saved"))
+        lines.append(pmsg("checkin_complete_signals_saved", date=close_date))
     return "\n".join(lines)
