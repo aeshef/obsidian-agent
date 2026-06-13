@@ -9,21 +9,16 @@ from pathlib import Path
 from typing import Any
 
 from planning_bot.services.routines_config import section_config_header
-from planning_bot.services.routines_lock import routines_transaction
 from shared.routines_paths import (
     routines_charts_dir,
-    routines_config_path,
     routines_data_dir,
-    routines_history_path,
     routines_operational_dir,
     routines_stats_legacy_path,
     routines_stats_path,
     routines_today_json_path,
     routines_today_legacy_path,
-    signals_config_path,
     signals_dir,
     signals_history_path,
-    signals_stats_path,
 )
 from shared.vault_paths_config import routines_sub
 
@@ -87,43 +82,6 @@ def _move_stats_if_needed(
     return True
 
 
-def _default_signals_config() -> str:
-    from planning_bot.services.daily_checkin_config import scales_config, signals_config
-
-    lines = [
-        "# Optional vault override for daily check-in signals.",
-        "# Copy from agent planning_bot/config/daily_checkin.yaml or edit below.",
-        "# focus_direction choices use planning categories from agent config.",
-        "",
-        "scales:",
-    ]
-    scales = scales_config()
-    for scale_id, spec in scales.items():
-        if not isinstance(spec, dict):
-            continue
-        vals = spec.get("values") or []
-        keys = spec.get("label_keys") or []
-        lines.append(f"  {scale_id}:")
-        lines.append(f"    values: {json.dumps(list(vals))}")
-        lines.append(f"    label_keys: {json.dumps(list(keys))}")
-    lines.append("")
-    lines.append("signals:")
-    for sig in signals_config():
-        sid = sig.get("id")
-        if not sid:
-            continue
-        lines.append(f"  - id: {sid}")
-        for k in ("scale", "type", "question_key", "required"):
-            if k in sig:
-                val = sig[k]
-                if isinstance(val, bool):
-                    lines.append(f"    {k}: {'true' if val else 'false'}")
-                else:
-                    lines.append(f"    {k}: {val}")
-    lines.append("")
-    return "\n".join(lines)
-
-
 def cleanup_legacy_routines_files(vault_root: Path | None = None) -> list[str]:
     """Remove deprecated paths so rsync --update cannot resurrect them locally."""
     actions: list[str] = []
@@ -153,11 +111,6 @@ def ensure_routines_layout(vault_root: Path | None = None, *, scaffold_stats: bo
     legacy_stats = routines_stats_legacy_path(vault_root)
     if _move_stats_if_needed(routines_stats_path(vault_root), legacy_stats):
         actions.append(f"moved routines stats → {routines_stats_path(vault_root).name}")
-
-    cfg = signals_config_path(vault_root)
-    if not cfg.is_file():
-        cfg.write_text(_default_signals_config(), encoding="utf-8")
-        actions.append("created signals config yaml")
 
     hist = signals_history_path(vault_root)
     if not hist.is_file():

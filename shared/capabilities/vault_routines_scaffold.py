@@ -17,6 +17,8 @@ from shared.routines_paths import (
     routines_history_wikilink,
     routines_root,
     routines_stats_path,
+    signals_config_yaml_wikilink,
+    signals_dir,
     signals_history_wikilink,
     signals_stats_path,
 )
@@ -83,6 +85,10 @@ def build_scaffold_context(
         "signals_history_page": signals_history_wikilink(),
         "routines_history_link": routines_history_wikilink(),
         "signals_history_link": signals_history_wikilink(),
+        "signals_config_yaml_link": signals_config_yaml_wikilink(),
+        "signals_config_title": _msg(
+            "signals_config_title", catalog, "signals_config_title", "📋 Signals configuration"
+        ),
         "morning_config_header": section_config_header("morning"),
         "day_config_header": section_config_header("day"),
         "evening_config_header": section_config_header("evening"),
@@ -92,7 +98,44 @@ def build_scaffold_context(
         "stats_empty_history": str(strings.get("stats_empty_history") or ""),
         "stats_no_dates": str(strings.get("stats_no_dates") or ""),
     }
+    link = ctx["signals_config_yaml_link"]
+    raw_body = str(strings.get("signals_config_body") or "")
+    ctx["signals_config_body"] = _substitute(raw_body, {"signals_config_yaml_link": link})
     return ctx
+
+
+_SIGNALS_FILE_TEMPLATES = (
+    ("signals_config_yaml", "signals_config.yaml.template"),
+    ("signals_config_stub_md", "signals_config_stub.md.template"),
+)
+
+
+def _scaffold_signals_files(
+    root: Path,
+    ctx: dict[str, str],
+    *,
+    dry_run: bool = False,
+    force: bool = False,
+) -> list[str]:
+    written: list[str] = []
+    base = signals_dir(root)
+    for file_key, template_name in _SIGNALS_FILE_TEMPLATES:
+        tpl_path = _TEMPLATES / template_name
+        if not tpl_path.is_file():
+            continue
+        out_path = base / vault_file(file_key)
+        if file_key == "signals_config_yaml" and out_path.is_file():
+            continue
+        if out_path.is_file() and not force:
+            continue
+        body = _substitute(tpl_path.read_text(encoding="utf-8"), ctx).strip() + "\n"
+        if dry_run:
+            written.append(f"(dry-run) {out_path}")
+            continue
+        base.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(body, encoding="utf-8")
+        written.append(str(out_path))
+    return written
 
 
 def scaffold_vault_routines(
@@ -111,6 +154,7 @@ def scaffold_vault_routines(
     dashboards = catalog.get("dashboards") if isinstance(catalog.get("dashboards"), dict) else {}
     ctx = build_scaffold_context(prof, root, locale=locale)
     written: list[str] = []
+    written.extend(_scaffold_signals_files(root, ctx, dry_run=dry_run, force=force))
 
     for dash_id, spec in dashboards.items():
         if not isinstance(spec, dict):

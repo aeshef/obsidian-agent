@@ -5,7 +5,7 @@
 ## 📈 Общая статистика и динамика по дням
 
 ```dataviewjs
-(async () => {
+await (async () => {
 const HISTORY = "{{history_page}}";
 const CONFIG = "{{config_page}}";
 const MORNING_HDR = "{{morning_config_header}}";

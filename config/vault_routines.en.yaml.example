@@ -6,6 +6,13 @@ strings:
   routines_stats_subtitle: "_Auto-updated completion stats for morning, day, and evening routines_"
   signals_stats_title: "# 📊 Signals statistics"
   signals_stats_subtitle: "_Mood, energy, and stress trends from evening check-in_"
+  signals_config_title: "📋 Signals configuration"
+  signals_config_body: |
+    > Evening check-in schema. Edit the YAML file in this folder — the bot picks up overrides on the next check-in.
+    >
+    > File: [[{{signals_config_yaml_link}}|📋 Signals_Config.yaml]]
+    >
+    > Base schema (if vault file missing): `planning_bot/config/daily_checkin.yaml` in the Agent repo.
 
 dashboards:
   routines_stats:

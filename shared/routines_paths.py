@@ -77,6 +77,16 @@ def signals_config_path(vault_root: Path | None = None) -> Path:
     return signals_dir(vault_root) / vault_file("signals_config_yaml")
 
 
+def signals_config_stub_path(vault_root: Path | None = None) -> Path:
+    return signals_dir(vault_root) / vault_file("signals_config_stub_md")
+
+
+def signals_config_yaml_wikilink() -> str:
+    sub = vault_file("signals_subdir").rstrip("/")
+    yaml_name = vault_file("signals_config_yaml")
+    return f"{folder('routines')}/{sub}/{yaml_name}"
+
+
 def signals_stats_path(vault_root: Path | None = None) -> Path:
     return routines_root(vault_root) / vault_file("signals_stats_md")
 
