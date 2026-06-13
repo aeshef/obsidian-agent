@@ -300,7 +300,7 @@ sync_repo_config_remote() {
     echo "  ↑ vault-templates/"
   fi
   # vault_paths.yaml is author-specific (gitignored); server materializes from locale example via ensure_repo_config.sh
-  for prod in domain_messages.en.yaml domain_messages.ru.yaml messages.en.yaml messages.ru.yaml domain_messages.yaml; do
+  for prod in domain_messages.en.yaml domain_messages.ru.yaml messages.en.yaml messages.ru.yaml domain_messages.yaml vault_paths.yaml; do
     [ -f "$cfg/$prod" ] || continue
     rsync -az "$cfg/$prod" "$SERVER:$SERVER_BOTS/config/"
     echo "  ↑ prod $prod"
