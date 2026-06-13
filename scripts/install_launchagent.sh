@@ -61,6 +61,31 @@ if [[ -n "$_KN_SP" && -d "$_KN_SP" ]]; then
 fi
 unset _FIN_SP _PLAN_SP _KN_SP
 
+# Author prod configs (gitignored) must live in runtime copy for LaunchAgent sync.
+for _cfg in vault_paths.yaml messages.ru.yaml domain_messages.ru.yaml domain_messages.yaml; do
+  if [[ -f "$AGENT_DIR/config/$_cfg" ]]; then
+    cp -f "$AGENT_DIR/config/$_cfg" "$RUNTIME_AGENT/config/$_cfg"
+  fi
+done
+if [[ ! -f "$RUNTIME_AGENT/config/vault_paths.yaml" && -f "$AGENT_DIR/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$AGENT_DIR/.env"
+  set +a
+  _mat_py=""
+  for _c in /opt/homebrew/bin/python3.12 python3.12 python3; do
+    command -v "$_c" >/dev/null 2>&1 && _mat_py="$_c" && break
+  done
+  if [[ -n "$_mat_py" && -f "$AGENT_DIR/scripts/setup/materialize_locale.py" ]]; then
+  AGENT_LOCALE="${AGENT_LOCALE:-ru}" "$_mat_py" "$AGENT_DIR/scripts/setup/materialize_locale.py" \
+    "${AGENT_LOCALE:-ru}" --refresh-vault-paths 2>/dev/null || true
+  if [[ -f "$AGENT_DIR/config/vault_paths.yaml" ]]; then
+    cp -f "$AGENT_DIR/config/vault_paths.yaml" "$RUNTIME_AGENT/config/vault_paths.yaml"
+  fi
+  fi
+fi
+unset _cfg _mat_py _c
+
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/bin"
 chmod +x "$AGENT_DIR/scripts/obsidian_sync.sh" "$RUNTIME_AGENT/scripts/obsidian_sync.sh"
 
@@ -77,6 +102,12 @@ export AGENT_ROOT="$RUNTIME_AGENT"
 export LOCAL_VAULT="$VAULT_PATH"
 export VAULT_PATH="$VAULT_PATH"
 export PYTHONPATH="$RUNTIME_AGENT:$RUNTIME_ROOT/pydeps/finance:$RUNTIME_ROOT/pydeps/planning:$RUNTIME_ROOT/pydeps/knowledge"
+if [[ -f "$RUNTIME_AGENT/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$RUNTIME_AGENT/.env"
+  set +a
+fi
 DEBUG_LOG="/tmp/obsidian_sync_launchagent_wrapper.log"
 echo "\$(date '+%Y-%m-%dT%H:%M:%S') pid=\$\$ wrapper START runtime=$RUNTIME_AGENT" >> "\$DEBUG_LOG" 2>/dev/null || true
 _CAP_PY=""

@@ -64,6 +64,11 @@ def main() -> int:
     else:
         print(f"Vault layout OK ({len(planned)} dirs checked) under {root}")
 
+    from shared.capabilities.vault_paths_locale import cleanup_ghost_locale_folders
+
+    for line in cleanup_ghost_locale_folders(root):
+        print(f"  ghost: {line}")
+
     from shared.capabilities.vault_dashboard_scaffold import scaffold_vault_dashboards
 
     dashed = scaffold_vault_dashboards(prof, root)

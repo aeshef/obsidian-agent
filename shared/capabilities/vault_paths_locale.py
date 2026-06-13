@@ -1,6 +1,7 @@
 """Detect default locale vault_paths stubs (onboarding reset)."""
 from __future__ import annotations
 
+import shutil
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -46,3 +47,33 @@ def should_replace_vault_paths_for_locale(doc: dict[str, Any], locale: str) -> b
     if loc.startswith("ru"):
         return is_default_en_vault_paths(doc)
     return is_default_ru_vault_paths(doc)
+
+
+def ghost_folder_segments(locale: str | None = None) -> list[str]:
+    """Top-level vault folder names from the *other* locale (empty ghosts to remove)."""
+    from shared.locale import agent_locale
+
+    loc = (locale or agent_locale() or "en").strip().lower()
+    other = "en" if loc.startswith("ru") else "ru"
+    folders = _default_folders(other)
+    return [folders[k] for k in _FOLDER_KEYS if k in folders]
+
+
+def cleanup_ghost_locale_folders(vault_root: Path, *, locale: str | None = None) -> list[str]:
+    """Remove empty wrong-locale top-level folders (idempotent)."""
+    actions: list[str] = []
+    root = Path(vault_root)
+    if not root.is_dir():
+        return actions
+    for name in ghost_folder_segments(locale):
+        path = root / name
+        if not path.is_dir():
+            continue
+        if any(p.is_file() for p in path.rglob("*")):
+            continue
+        try:
+            shutil.rmtree(path)
+            actions.append(f"removed ghost folder {name}")
+        except OSError:
+            continue
+    return actions

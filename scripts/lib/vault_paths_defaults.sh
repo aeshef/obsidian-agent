@@ -25,6 +25,19 @@ vault_paths_apply_defaults() {
       : "${VAULT_DASH_DATA:=Data}"
     fi
   elif [[ "$locale" == ru* ]]; then
+    if [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Dashboards" || "${VAULT_FOLDER_TASKS:-}" == "100_Tasks" ]]; then
+      unset VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS VAULT_FOLDER_ROUTINES \
+        VAULT_FOLDER_HANDWRITTEN VAULT_FOLDER_AUTOMATION VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
+      vault_paths_apply_defaults
+      return
+    fi
+  elif [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Дашборды" || "${VAULT_FOLDER_TASKS:-}" == "100_Задачи" ]]; then
+    unset VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS VAULT_FOLDER_ROUTINES \
+      VAULT_FOLDER_HANDWRITTEN VAULT_FOLDER_AUTOMATION VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
+    vault_paths_apply_defaults
+    return
+  fi
+  if [[ "$locale" == ru* ]]; then
     : "${VAULT_DASH_LOGS:=Логи}"
     : "${VAULT_DASH_CHARTS:=Графики}"
     : "${VAULT_DASH_DATA:=Данные}"

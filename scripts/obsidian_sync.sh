@@ -77,6 +77,15 @@ vault_paths_load_from_agent "$AGENT_ROOT" || {
   echo "obsidian_sync: vault_paths export failed — sync aborted" >&2
   exit 1
 }
+# 0g. Drop empty wrong-locale top folders (300_Dashboards when locale=ru, etc.)
+if [[ -d "$AGENT_ROOT/shared" ]]; then
+  export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
+from shared.capabilities.vault_paths_locale import cleanup_ghost_locale_folders
+for line in cleanup_ghost_locale_folders('${LOCAL_VAULT}'):
+    print('[ghost]', line)
+" ) 2>/dev/null || true
+fi
 # Fallback: no manifest exporter → run full sync (backward compatible)
 if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
   cap_step_enabled() { return 0; }

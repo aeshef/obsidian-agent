@@ -91,6 +91,17 @@ def test_materialize_vault_paths_ru_ignores_en_generic():
     assert merged["folders"]["tasks"] == "100_Задачи"
 
 
+def test_cleanup_ghost_locale_folders_ru(tmp_path: Path):
+    from shared.capabilities.vault_paths_locale import cleanup_ghost_locale_folders, ghost_folder_segments
+
+    ghost = tmp_path / "300_Dashboards"
+    (ghost / "Logs").mkdir(parents=True)
+    assert "300_Dashboards" in ghost_folder_segments("ru")
+    actions = cleanup_ghost_locale_folders(tmp_path, locale="ru")
+    assert any("300_Dashboards" in a for a in actions)
+    assert not ghost.exists()
+
+
 def test_planned_dirs_finance_only(tmp_path: Path, monkeypatch):
     cfg = tmp_path / "cap.yaml"
     cfg.write_text(yaml.dump(preset_document(PRESET_FINANCE_ONLY)), encoding="utf-8")
