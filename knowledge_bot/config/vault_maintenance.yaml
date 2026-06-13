@@ -34,6 +34,12 @@ retag_notes:
   # Если LLM добавил устоявшийся topic/* — убрать старые topic/* с count≤threshold (шум в графе)
   strip_obsolete_singleton_topics: true
 
+# Заметки без тегов (сбой tags generation или пустой tags: []) — отдельный шаг
+retag_untagged:
+  enabled: true
+  apply: true
+  limit: 40          # пачка в сутки; единоразово: tools/retag_notes.py --no-tags --all --apply
+
 # Переобработка «плохих» имён (ASR/Vision, дорого): поставь 0 — отключить шаг, или 8+ если готов(а) к длинным sync
 # Заметки с title="Без_названия"/"Субтитры"/"IMG*" обрабатываются первыми
 reprocess_notes:

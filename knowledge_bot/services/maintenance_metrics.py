@@ -74,6 +74,13 @@ def collect_vault_snapshot(vault: Path) -> dict[str, Any]:
     exp = db / "Export"
     notes_all = _count_md(db)
     notes_no_exp = _count_md_excluding_subdir(db, "Export")
+    untagged = 0
+    try:
+        from knowledge_bot.services.untagged_notes import count_untagged_notes
+
+        untagged = count_untagged_notes(vault)
+    except Exception:
+        pass
     return {
         "notes_md_db700": notes_all,
         "notes_md_excl_export": notes_no_exp,
@@ -81,6 +88,7 @@ def collect_vault_snapshot(vault: Path) -> dict[str, Any]:
         "bytes_export": _dir_size(exp),
         "reprocess_total": len(discover_candidate_paths(vault, rpcfg, skip_if_flag=False)),
         "reprocess_eligible": len(discover_candidate_paths(vault, rpcfg, skip_if_flag=True)),
+        "notes_without_tags": untagged,
     }
 
 
@@ -92,7 +100,7 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
     if not text.strip() and not (stderr or "").strip():
         return {}
     out: dict[str, Any] = {}
-    if step_name == "retag_notes":
+    if step_name in ("retag_notes", "retag_untagged"):
         m = re.search(mm("regex_retag_total"), text)
         if m:
             out["retag_touched"] = int(m.group(1))

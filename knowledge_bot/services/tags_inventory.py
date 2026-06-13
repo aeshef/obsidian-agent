@@ -73,7 +73,8 @@ def scan_all_notes(vault_path: Path) -> Dict[str, Dict[str, Any]]:
         "tags": tags_dict,
         "namespaces": namespaces_dict,
         "total_notes": total_notes,
-        "notes_with_tags": notes_with_tags
+        "notes_with_tags": notes_with_tags,
+        "notes_without_tags": total_notes - notes_with_tags,
     }
 
 

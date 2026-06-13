@@ -206,6 +206,21 @@ def run_daily_maintenance(
         if _step_failed(_run("refill_singleton_tags", fargs)):
             out["ok"] = False
 
+    utcfg = mcfg.get("retag_untagged") or {}
+    if utcfg.get("enabled", True):
+        utargs = [
+            "tools/retag_notes.py",
+            "--vault",
+            str(vault),
+            "--no-tags",
+            "--limit",
+            str(int(utcfg.get("limit", 40))),
+        ]
+        if utcfg.get("apply", True):
+            utargs.append("--apply")
+        if _step_failed(_run("retag_untagged", utargs)):
+            out["ok"] = False
+
     rtcfg = mcfg.get("retag_notes") or {}
     if rtcfg.get("enabled", True):
         rtargs = [

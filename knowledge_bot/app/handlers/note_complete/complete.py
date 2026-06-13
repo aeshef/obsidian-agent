@@ -24,6 +24,11 @@ from knowledge_bot.core.settings import (
 from knowledge_bot.services.extract import extract_from_path, fetch_youtube_transcript, simple_from_text
 from knowledge_bot.services.render import render_note
 from knowledge_bot.services.routing import route_and_fill
+from knowledge_bot.services.tag_normalize import (
+    fallback_tags_for_type,
+    normalize_tags,
+    parse_tag_llm_response,
+)
 from knowledge_bot.services.tags_inventory import get_tags_inventory_for_prompt
 from knowledge_bot.services.wikilinks import inject_wikilinks
 
@@ -371,75 +376,36 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
             "fields": fields_for_tags,
         }
         tag_resp = llm.chat_json(tags_system, json.dumps(tags_user, ensure_ascii=False)).content or []
-        # Normalize to list of strings
-        if isinstance(tag_resp, dict) and "tags" in tag_resp:
-            tag_candidates = tag_resp.get("tags") or []
-        else:
-            tag_candidates = tag_resp if isinstance(tag_resp, list) else []
-        # Normalize tags to all-English ASCII slugs (free namespaces), lower-case namespaces
-        _slug_map_path = Path(__file__).resolve().parents[2] / "config" / "cyrillic_slug_map.json"
-        _slug_map = json.loads(_slug_map_path.read_text(encoding="utf-8"))
-
-        def _translit_ru(s: str) -> str:
-            return s.translate(str.maketrans(_slug_map))
-
-        def _slug_ascii(s: str) -> str:
-            import re
-            s = _translit_ru(s)
-            s = s.lower()
-            s = s.replace(" ", "-").replace("_", "-")
-            s = re.sub(r"[^a-z0-9\-/]", "", s)
-            s = re.sub(r"-+", "-", s).strip("-")
-            return s
-
-        tag_values = []
-        for tag in tag_candidates:
-            if isinstance(tag, str) and "/" in tag:
-                ns, _, val = tag.strip().partition("/")
-                ns = (ns or "").strip().lower()
-                raw_val = (val or "").strip()
-                # apply synonyms if provided for namespace (exact match, case-insensitive)
-                syn_map = getattr(enums_cfg, "synonyms", {}).get(ns, {}) if 'enums_cfg' in locals() else {}
-                mapped = syn_map.get(raw_val.lower())
-                if mapped:
-                    raw_val = mapped
-                # candidate ascii slug
-                cand_slug = _slug_ascii(raw_val)
-                # if namespace is controlled (per config), try to map to allowed canonical values
-                per_type_enums = enums_cfg.per_type.get(routed.get("type", ""), {})
-                allowed_list = (enums_cfg.common.get(ns) or per_type_enums.get(ns)) or []
-                is_controlled = ns in enums_cfg.namespaces_controlled
-                if is_controlled and allowed_list:
-                    # pick allowed value whose slug matches candidate
-                    chosen = None
-                    for allowed_val in allowed_list:
-                        if _slug_ascii(str(allowed_val)) == cand_slug:
-                            chosen = allowed_val
-                            break
-                    if chosen:
-                        tag_values.append(f"{ns}/{chosen}")
-                    else:
-                        # no good match -> skip to avoid non-canonical values
-                        continue
-                else:
-                    # free namespace
-                    if ns and cand_slug:
-                        tag_values.append(f"{ns}/{cand_slug}")
-        # Filter controlled namespaces against enums
-        filtered = []
-        per_type_enums = enums_cfg.per_type.get(routed.get("type", ""), {})
-        for tag in tag_values:
-            ns, _, value = tag.partition("/")
-            if ns in enums_cfg.namespaces_controlled:
-                allowed = enums_cfg.common.get(ns) or per_type_enums.get(ns)
-                if allowed and value in allowed:
-                    filtered.append(tag)
-            else:
-                filtered.append(tag)
-        routed["tags"] = sorted(dict.fromkeys(filtered))
+        note_type = str(routed.get("type") or "unknown")
+        tag_candidates = parse_tag_llm_response(tag_resp)
+        tags = normalize_tags(tag_candidates, enums_cfg, note_type)
+        if not tags:
+            tags = normalize_tags(
+                fallback_tags_for_type(
+                    note_type,
+                    form=routed.get("form"),
+                    source=routed.get("source"),
+                ),
+                enums_cfg,
+                note_type,
+            )
+        routed["tags"] = tags
     except Exception as e:
         logging.getLogger("kb.bot").warning("tags generation failed: %s", e)
-        routed.setdefault("tags", [])
+        try:
+            note_type = str(routed.get("type") or "unknown")
+            enums_cfg = load_enums_config(cfg.agent_config_path)
+            routed["tags"] = normalize_tags(
+                fallback_tags_for_type(
+                    note_type,
+                    form=routed.get("form"),
+                    source=routed.get("source"),
+                ),
+                enums_cfg,
+                note_type,
+            )
+        except Exception:
+            routed.setdefault("tags", [])
 
     #      (   ..)
     routed["vision_text"] = (summary_obj["derived"].get("vision_text") or "").strip()
