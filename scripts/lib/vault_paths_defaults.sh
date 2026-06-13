@@ -42,6 +42,15 @@ vault_paths_apply_defaults() {
   : "${VAULT_FILE_CHART_DAILY_ACTIVITY:=Daily_activity.png}"
   : "${VAULT_FILE_AUDIT_SYSTEM:=System_audit_report.md}"
   : "${VAULT_FILE_AUDIT_VAULT:=Vault_audit_report.md}"
+  if [[ "$locale" == ru* ]]; then
+    : "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:=📊 Рутины_Статистика.md}"
+    : "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:=📅 Сегодня.md}"
+    : "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:=📅 Рутины/}"
+  else
+    : "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:=📊 Routine_statistics.md}"
+    : "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:=📅 Today.md}"
+    : "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:=📅 Routines/}"
+  fi
 }
 
 _vault_segment_sane() {

@@ -5,7 +5,7 @@
 ## 📈 Динамика сигналов
 
 ```dataviewjs
-await (async () => {
+(async () => {
 const HISTORY = "{{signals_history_page}}";
 
 async function loadHistory() {

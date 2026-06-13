@@ -191,10 +191,22 @@ EXCLUDE_300=(
   --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_CONTEXT_WEEK}"
 )
 # Не подтягивать устаревшие пути рутин (корневой stats, markdown «Сегодня») — только новая структура.
-EXCLUDE_ROUTINES=(
-  --exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}"
-  --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}"
-)
+EXCLUDE_ROUTINES=()
+if [[ -n "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:-}" ]]; then
+  EXCLUDE_ROUTINES+=(--exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}")
+fi
+if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:-}" ]]; then
+  EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
+fi
+# 0r. Локально: миграция + удаление legacy до pull (чтобы --update не подтянул мусор с VPS).
+if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
+  export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
+from planning_bot.services.routines_layout import ensure_routines_layout
+for line in ensure_routines_layout(scaffold_stats=False):
+    print('[0r]', line)
+" ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || true
+fi
 # 1. Сервер → Локальный.
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
@@ -293,10 +305,13 @@ PUSH_EXCLUDE_300=(
   --exclude="${VAULT_DASH_DATA}/finance.db"
   --exclude="${VAULT_DASH_DATA}/finance.db-*"
 )
-PUSH_EXCLUDE_ROUTINES=(
-  --exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}"
-  --exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}"
-)
+PUSH_EXCLUDE_ROUTINES=()
+if [[ -n "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:-}" ]]; then
+  PUSH_EXCLUDE_ROUTINES+=(--exclude="/${VAULT_FILE_ROUTINES_STATS_LEGACY_MD}")
+fi
+if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:-}" ]]; then
+  PUSH_EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
+fi
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
@@ -313,6 +328,18 @@ fi
 # 2r. VPS: миграция рутин + удаление legacy paths на сервере.
 if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
   echo "[2r] routines layout on server" >&2
+  _legacy_stats="${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:-}"
+  _legacy_today="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:-}"
+  if [[ -n "$_legacy_stats" || -n "$_legacy_today" ]]; then
+    ssh "${SSH_OPTS[@]}" "$SERVER" \
+      "SVAULT='${SERVER_VAULT}' FOLDER='${VAULT_FOLDER_ROUTINES}' LEGACY_STATS='${_legacy_stats}' LEGACY_TODAY='${_legacy_today}'
+       for rel in \"\$LEGACY_STATS\" \"\$LEGACY_TODAY\"; do
+         if [[ -n \"\$rel\" ]]; then
+           target=\"\$SVAULT/\$FOLDER/\$rel\"
+           if [[ -f \"\$target\" ]]; then rm -f \"\$target\" && echo \"[2r-remote] deleted \$rel\"; fi
+         fi
+       done" >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
+  fi
   ssh "${SSH_OPTS[@]}" "$SERVER" \
     "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
 from planning_bot.services.routines_layout import ensure_routines_layout
