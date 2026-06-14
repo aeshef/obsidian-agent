@@ -716,18 +716,18 @@ PY_CLEANUP
 fi
 unset _vm_skip_today
 
-# 5b.3 Аудит 700_База_Данных (analyze_vault_tags + дубли + секция maintenance в логе → Аудит_хранилища_отчет.md) — тяжёлый, 1–3+ мин
+# 5b.3 Vault audit (vault_audit_report.py → VAULT_FILE_AUDIT_VAULT) — heavy, 1–3+ min
 KN_SKIP_MARKER="$SYNC_DIR/daily_knowledge_vault_audit_skip_date.txt"
 _kn_skip_today=0
 [ "$(cat "$KN_SKIP_MARKER" 2>/dev/null)" = "$TODAY" ] && ! [ -t 0 ] && _kn_skip_today=1
 if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] \
      || { [ ! -f "$KN_AUDIT_MARKER" ] || [ "$(cat "$KN_AUDIT_MARKER" 2>/dev/null)" != "$TODAY" ]; } \
    } && [ "$_kn_skip_today" = "0" ]; then
-  if [ -d "$KNOWLEDGE_BOT" ] && [ -f "$KNOWLEDGE_BOT/tools/analyze_vault_report.py" ]; then
+  if [ -d "$KNOWLEDGE_BOT" ] && [ -f "$KNOWLEDGE_BOT/tools/vault_audit_report.py" ]; then
     echo "$(sh_msg scripts.obsidian_sync.step_5b_3)" >&2
     export VAULT_PATH="$LOCAL_VAULT"
     export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if (cd "$KNOWLEDGE_BOT" && common_run_python_script "$KN_PYTHON" "$KNOWLEDGE_BOT/tools/analyze_vault_report.py" --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
+    if (cd "$KNOWLEDGE_BOT" && common_run_python_script "$KN_PYTHON" "$KNOWLEDGE_BOT/tools/vault_audit_report.py" --vault "$LOCAL_VAULT" --out "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_VAULT}") >> "$PLANNING_BOT/logs/system_audit.log" 2>&1; then
       echo "$TODAY" > "$KN_AUDIT_MARKER"
     else
       if [ -r "$KNOWLEDGE_BOT/config/vault_maintenance.yaml" ]; then

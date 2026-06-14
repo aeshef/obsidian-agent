@@ -332,6 +332,68 @@ knowledge_maintenance:
   report_table_days: 'Last **{days}** days (newest at bottom):'
   report_table_header: '| Date | # | 700_ Notes (before→after) | Export MB before
     | Reprocess queue | retag | reprocess ✓ | empty del. | duplicates MB | OK |'
+knowledge_vault_audit:
+  line_sep: '================================================================================'
+  line_dash: '--------------------------------------------------------------------------------'
+  report_title: '# Vault audit — {knowledge_dir}'
+  report_updated: 'Updated: {timestamp}'
+  section_tags: '## 1. Tags'
+  section_duplicates: '## 2. Duplicates (_1, _2, _3)'
+  section_maintenance: '## 3. Daily maintenance (vault_daily_maintenance)'
+  tool_missing: 'Maintainer tool not found: {script} ({path})'
+  tool_error: '{script} exited with code {code}'
+  tags_title: 'TAGS IN {knowledge_dir}'
+  tags_summary: 'Total notes: {total} | with tags: {with_tags} | without tags: {without_tags}'
+  tags_untagged_header: 'Notes without tags (fix via retag_untagged or ingest):'
+  tags_untagged_more: '  … and {count} more'
+  tags_unique: 'Unique tags: {count}'
+  tags_domain_header: 'DOMAIN (domain/):'
+  tags_row: '  {name}: {count}'
+  tags_topic_header: 'TOPIC (topic/):'
+  tags_topic_single_header: 'TOPIC with 1–2 notes (candidates for merge or removal):'
+  tags_topic_single_count: 'Count: {count}'
+  tags_topic_single_row: '  topic/{topic}: {count}'
+  tags_domain_single_header: 'DOMAIN with 1–2 notes:'
+  tags_domain_single_count: 'Count: {count}'
+  tags_domain_single_row: '  domain/{domain}: {count}'
+  tags_other_ns_header: 'Other namespaces (excluding legacy priority/language/vibe):'
+  tags_other_ns_row: '  {namespace}/: {count} tags, top: {top}'
+  status_ok: ok
+  status_fail: failed
+  maint_run_skipped_marker: ' (day marker written, steps skipped)'
+  maint_run_skipped: '**Last maintenance run**: skipped — `{reason}`{extra}. Re-running the same day does not repeat steps (expected).'
+  maint_run_header: '**Last maintenance run** ({status}), {count} steps:'
+  maint_llm_dns_note: '_If DNS failed at midnight, LLM steps are skipped; note counts may rise from VPS ingest between runs — not a rollback of prior cleanup._'
+  step_sync_hubs: Hubs (sync_hubs)
+  step_apply_wikilinks: Wikilinks (apply_wikilinks_batch)
+  step_retag: Retag (retag_notes)
+  step_retag_untagged: Untagged retag (retag_untagged)
+  step_reprocess: Reprocess stems (reprocess_notes)
+  step_llm_preflight: Network / LLM preflight
+  step_refill_singleton: Refill singleton tags
+  step_dup_dryrun: Duplicates dry-run
+  step_dup_apply: Duplicates apply
+  step_unknown: '{step}'
+  step_ok: ok
+  step_fail: fail
+  maint_step_line: '  - [{status}] **{label}** — {seconds:.1f}s'
+  maint_stdout_line: '    > {line}'
+  maint_stderr_line: '    ! {line}'
+  maint_hubs_header: '**Hubs** (`{knowledge_dir}/{hubs_rel}/`): {count} files'
+  maint_hub_row: '  - `{name}` — {links} links (updated {mtime})'
+  maint_hub_row_short: '  - `{name}` (updated {mtime})'
+  maint_hubs_missing: '**Hubs**: `{hubs_rel}/` not created yet (run `sync_hubs.py --apply`)'
+  maint_ontology: '**Tag ontology**: {count} mappings in `config/tag_ontology.yaml`'
+  maint_ontology_error: '**Tag ontology**: config read error'
+  maint_ontology_missing: '**Tag ontology**: config not found'
+  maint_marker: '**Last maintenance date marker**: `{date}`'
+  maint_marker_missing: '**Last maintenance date marker**: not set'
+  maint_run_details_missing: '**Run details**: no `.sync/last_vault_maintenance_run.json` and no parseable JSON in `planning_bot/logs/vault_write_maintenance.log`.'
+  maint_reprocess_header: '**Reprocess queue** (`bad_stem_pattern` in `config/reprocess.yaml`): **{total}** total, **{eligible}** without `reprocess_skip`{skipped_suffix}'
+  maint_reprocess_skipped: ' ({count} skipped)'
+  maint_reprocess_more: '  - … and {count} more'
+  maint_reprocess_all_skipped: '  - Queue empty: all matches have `reprocess_skip: true` in frontmatter.'
+  maint_reprocess_empty: '**Reprocess queue**: none matched `config/reprocess.yaml`'
 knowledge_ocr:
   text_absent: text missing
   text_absent_bracket: '[text missing]'

@@ -1,4 +1,4 @@
-# reprocess_notes.py + аудит в analyze_vault_report: одни и те же правила
+# reprocess_notes.py + vault_audit report (section 3) share these rules
 bad_stem_pattern: "^(IMG|YouTube|Без_названия|Субтитры|Редактор_субтитров|Динамичная_музыка|Позитивная_музыка|Позитивирующая_музыка|Спокойная_музыка|OCR_текст)"
 allowed_folders:
   - Видео

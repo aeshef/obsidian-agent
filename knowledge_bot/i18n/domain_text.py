@@ -50,6 +50,10 @@ def maintenance(key: str, **kwargs: object) -> str:
     return dmsg("knowledge_maintenance", key, **kwargs)
 
 
+def vault_audit(key: str, **kwargs: object) -> str:
+    return dmsg("knowledge_vault_audit", key, **kwargs)
+
+
 def serendipity(key: str, **kwargs: object) -> str:
     return dmsg("knowledge_serendipity", key, **kwargs)
 
