@@ -45,6 +45,7 @@ def test_ritual_day_service(monkeypatch):
             return fixed
 
     monkeypatch.setattr("planning_bot.services.ritual_day.datetime", _FixedDatetime)
+    monkeypatch.setattr("planning_bot.services.ritual_day.get_tz", lambda: tz)
     assert calendar_day_date() == "2026-06-14"
     assert ritual_day_date() == "2026-06-13"
 
@@ -66,6 +67,7 @@ def test_checkin_state_uses_ritual_day(monkeypatch, tmp_path):
 
     load_daily_checkin_config.cache_clear()
     monkeypatch.setattr("planning_bot.services.ritual_day.datetime", _FixedDatetime)
+    monkeypatch.setattr("planning_bot.services.ritual_day.get_tz", lambda: tz)
 
     from planning_bot.services.checkin_state import (
         completed_for_today,
