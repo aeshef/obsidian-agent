@@ -125,7 +125,9 @@ knowledge_maintenance:
   report_chart_pending: "*График появится после ≥1 записи в истории и при установленном `matplotlib` в окружении, где генерируется отчёт.*"
   report_no_history: "*Пока нет записей истории — прогоните обслуживание хотя бы раз.*"
   report_table_days: "Последние **{days}** дней (новые снизу):"
-  report_table_header: "| Дата | № | Заметок 700_ (до→после) | Export МБ до | Очередь reprocess | retag | reprocess ✓ | пустых уд. | дубли МБ | OK |"
+  report_table_header: "| Дата | № | Δ .md | −дуб | −repr∅ | retag | repr✓ | Export−MB | OK |"
+  report_last_deletions_header: "**Удалённые пути (последний прогон, {ts}):**"
+  report_last_deletions_more: "… и ещё {count} (см. `.sync/last_maintenance_deleted_paths.json`)"
   regex_retag_total: 'Итого:\s*затронуто=(\d+),\s*пропущено=(\d+)(?:,\s*llm_fallback=(\d+))?'
   regex_changed: 'Изменено:\s*(\d+)'
   marker_saved: "✓ Записано:"
@@ -135,6 +137,12 @@ knowledge_maintenance:
   regex_dup_freed: 'Файлов:\s*(\d+),\s*освобождено\s*~([0-9.]+)\s*МБ'
   regex_refill_total: 'Итого refill: затронуто=(\d+), пропущено=(\d+), llm_errors=(\d+)'
   regex_singleton_count: 'Заметок, из которых будут/были удалены singleton-теги:\s*(\d+)'
+  regex_export_orphans_summary: 'EXPORT_ORPHANS_SUMMARY:\s*total=(\d+)\s+bytes=(\d+)\s+referenced=(\d+)\s+export_total=(\d+)'
+  regex_export_broken_refs: 'EXPORT_BROKEN_REFS:\s*count=(\d+)'
+  regex_export_rehydrated_total: 'EXPORT_REHYDRATED_TOTAL:\s*count=(\d+)'
+  regex_export_deleted_total: 'EXPORT_ORPHANS_DELETED_TOTAL:\s*count=(\d+)\s+bytes=(\d+)'
+  regex_export_broken_refs_cleaned: EXPORT_BROKEN_REFS_CLEANED_NOTES:\s*count=(\d+)
+  regex_export_broken_body_refs_cleaned: EXPORT_BROKEN_BODY_REFS_CLEANED_NOTES:\s*count=(\d+)
 
 knowledge_vault_audit:
   line_sep: '================================================================================'
@@ -568,6 +576,7 @@ planning:
   agent_mac_series_hint: "Сводка: последний Mac-снимок на день. Лента → get_mac_snapshots(from_ts, to_ts)."
   agent_mac_snapshots_need_range: "Укажи from_ts и/или to_ts (ISO: YYYY-MM-DD или YYYY-MM-DDTHH:MM)."
   agent_mac_snapshots_empty: "Нет Mac-снапшотов за {start} … {end}."
+  agent_mac_context_content_day_note: "  ⚠ content_day={content_day} ≠ as_of_today={as_of} — «сегодня» только as_of_today"
   agent_mac_snapshots_header: "Mac-снапшоты {start} … {end}: показано {shown}/{total}"
   agent_mac_snapshots_columns: "ts\tapp\tfocus\tbattery_pct\tsafari"
   agent_mac_snapshots_truncated: "… последние {shown} из {total}; сузь интервал или limit=0"
@@ -4221,7 +4230,7 @@ planning:
   auto_a7eaeaeabc: "Открыто_по_категориям_дни.png"
   auto_a83ae93d8e: "✅ Watcher остановлен"
   auto_a94bea83e7: "Таблица граммов Б/Ж/У + ккал + % жира для заметки под графиком."
-  auto_a9e6f3071c: "🥗 Питание_КБЖУ.md"
+  auto_a9e6f3071c: "🏥 Здоровье.md"
   auto_ab7068555f: "Аудит_системы_отчет.md"
   auto_abbea6bcae: "_При проблемах смотри `planning_bot/logs/charts.log` (графики) и логи бота в `planning_bot/logs/`._"
   auto_ac1b3fb421: "Только показать, что будет исправлено"

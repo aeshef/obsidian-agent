@@ -1,12 +1,18 @@
 """Vault maintenance snapshots, history YAML, and chart generation."""
 from __future__ import annotations
 
+import json
 import re
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+_DELETED_NOTE_RE = re.compile(r"^DELETED_NOTE:\s*(\S+)\s+(.+)\s*$")
+_DELETED_ORIGINAL_RE = re.compile(r"^DELETED_ORIGINAL:\s*(.+)\s*$")
+_DELETED_LINE_RE = re.compile(r"^\s*удалён:\s*(.+?)(?:\s+#.*)?\s*$")
+_EXPORT_SECTION_RE = re.compile(r"^---\s*Сиротские Export")
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.reprocess_candidates import (
@@ -22,9 +28,26 @@ def history_path(vault: Path) -> Path:
 
 
 def charts_dir(vault: Path) -> Path:
-    from shared.vault_paths_config import dashboards_sub, folder
+    from shared.chart_paths import chart_path
 
-    return vault / folder("dashboards") / dashboards_sub("charts")
+    return chart_path(vault, "chart_maintenance_dynamics_png").parent
+
+
+LEGACY_MAINTENANCE_CHART_NAME = "vault_maintenance_dynamics.png"
+
+
+def cleanup_legacy_maintenance_chart(vault: Path) -> bool:
+    """Remove flat charts-root PNG superseded by Хранилище/… path."""
+    from shared.chart_paths import charts_root
+
+    legacy = charts_root(vault) / LEGACY_MAINTENANCE_CHART_NAME
+    if legacy.is_file():
+        try:
+            legacy.unlink()
+            return True
+        except OSError:
+            return False
+    return False
 
 
 def _count_md(root: Path) -> int:
@@ -139,13 +162,155 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
         if m:
             out["duplicates_export_files"] = int(m.group(1))
             out["duplicates_mb_freed"] = float(m.group(2))
+    elif step_name == "export_orphans":
+        m = re.search(mm("regex_export_orphans_summary"), text)
+        if m:
+            out["export_orphans_found"] = int(m.group(1))
+            out["export_orphans_bytes"] = int(m.group(2))
+            out["export_referenced_files"] = int(m.group(3))
+            out["export_total_files"] = int(m.group(4))
+        m = re.search(mm("regex_export_broken_refs"), text)
+        if m:
+            out["export_broken_refs"] = int(m.group(1))
+        m = re.search(mm("regex_export_rehydrated_total"), text)
+        if m:
+            out["export_rehydrated"] = int(m.group(1))
+        m = re.search(mm("regex_export_deleted_total"), text)
+        if m:
+            out["export_orphans_deleted"] = int(m.group(1))
+            out["export_orphans_deleted_bytes"] = int(m.group(2))
+        m = re.search(mm("regex_export_broken_refs_cleaned"), text)
+        if m:
+            out["export_broken_refs_cleaned_notes"] = int(m.group(1))
+        m = re.search(mm("regex_export_broken_body_refs_cleaned"), text)
+        if m:
+            out["export_broken_body_refs_cleaned_notes"] = int(m.group(1))
     elif step_name == "singleton_tags_report":
         m = re.search(mm("regex_singleton_count"), text)
         if m:
             out["singleton_tag_notes_reported"] = int(m.group(1))
     elif step_name == "sync_hubs":
         out["hubs_writes"] = len(re.findall(r"write:", text))
+    deleted = extract_deleted_paths_from_stdout(step_name, text)
+    if deleted:
+        out["deleted_paths"] = deleted
+        if step_name == "apply_duplicates":
+            out["duplicates_notes_deleted"] = sum(
+                1 for d in deleted if d.get("reason") == "duplicate"
+            )
     return out
+
+
+def _is_note_path(path: str) -> bool:
+    return path.strip().lower().endswith(".md")
+
+
+def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[str, str]]:
+    """Parse deleted vault-relative paths from maintenance step stdout."""
+    if not stdout:
+        return []
+    out: list[dict[str, str]] = []
+    if step_name == "reprocess_notes":
+        for m in _DELETED_NOTE_RE.finditer(stdout, re.MULTILINE):
+            out.append({"path": m.group(2).strip(), "reason": m.group(1).strip()})
+        for m in _DELETED_ORIGINAL_RE.finditer(stdout, re.MULTILINE):
+            out.append({"path": m.group(1).strip(), "reason": "reprocess_relocated"})
+        return out
+    if step_name == "export_orphans":
+        for line in stdout.splitlines():
+            m = _DELETED_LINE_RE.match(line)
+            if not m:
+                continue
+            path = m.group(1).strip()
+            if path:
+                out.append({"path": path, "reason": "export_orphan"})
+        return out
+    if step_name != "apply_duplicates":
+        return out
+    in_export = False
+    for line in stdout.splitlines():
+        if _EXPORT_SECTION_RE.match(line.strip()):
+            in_export = True
+            continue
+        m = _DELETED_LINE_RE.match(line)
+        if not m:
+            continue
+        path = m.group(1).strip()
+        if in_export or not _is_note_path(path):
+            reason = "export_orphan"
+        else:
+            reason = "duplicate"
+        out.append({"path": path, "reason": reason})
+    return out
+
+
+def collect_deletions_from_steps(steps: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Merge deleted path entries from all maintenance steps (unique by path)."""
+    seen: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for step in steps:
+        metrics = step.get("metrics") if isinstance(step.get("metrics"), dict) else {}
+        raw = metrics.get("deleted_paths") if isinstance(metrics, dict) else None
+        if not isinstance(raw, list):
+            continue
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            path = str(item.get("path") or "").strip()
+            reason = str(item.get("reason") or "unknown").strip()
+            if not path or path in seen:
+                continue
+            seen.add(path)
+            merged.append({"path": path, "reason": reason})
+    return merged
+
+
+def write_deletion_manifest(sync_dir: Path, deletions: list[dict[str, str]], ts: str) -> None:
+    """Write `.sync/last_maintenance_deleted_paths.json` for audit and VPS cleanup (5b.2c)."""
+    sync_dir.mkdir(parents=True, exist_ok=True)
+    by_reason: dict[str, int] = {}
+    for item in deletions:
+        reason = str(item.get("reason") or "unknown")
+        by_reason[reason] = by_reason.get(reason, 0) + 1
+    payload = {
+        "ts": ts,
+        "deleted": deletions,
+        "summary": by_reason,
+    }
+    (sync_dir / "last_maintenance_deleted_paths.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def write_maintenance_run_sidecar(sync_dir: Path, out: dict[str, Any]) -> None:
+    """Persist last run JSON for vault audit §3 (steps + deletions)."""
+    sync_dir.mkdir(parents=True, exist_ok=True)
+    sidecar = dict(out)
+    sidecar["deleted"] = collect_deletions_from_steps(out.get("steps") or [])
+    (sync_dir / "last_vault_maintenance_run.json").write_text(
+        json.dumps(sidecar, ensure_ascii=False, default=str, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _merge_deleted_entries(
+    prev: list[Any] | None, new: list[dict[str, str]], *, cap: int = 40
+) -> list[dict[str, str]]:
+    seen: set[str] = set()
+    merged: list[dict[str, str]] = []
+    for item in list(prev or []) + list(new):
+        if not isinstance(item, dict):
+            continue
+        path = str(item.get("path") or "").strip()
+        reason = str(item.get("reason") or "unknown").strip()
+        if not path or path in seen:
+            continue
+        seen.add(path)
+        merged.append({"path": path, "reason": reason})
+        if len(merged) >= cap:
+            break
+    return merged
 
 
 def _flatten_run_metrics(steps: list[dict[str, Any]]) -> dict[str, Any]:
@@ -160,8 +325,11 @@ def _flatten_run_metrics(steps: list[dict[str, Any]]) -> dict[str, Any]:
                 "duplicates_mb_freed",
                 "duplicates_export_files",
                 "duplicates_deleted_lines",
+                "duplicates_notes_deleted",
             }:
                 merged[k] = merged.get(k, 0) + v
+            elif k == "deleted_paths" and isinstance(v, list):
+                merged[k] = _merge_deleted_entries(merged.get(k), v, cap=100)
             else:
                 merged[k] = v
     return merged
@@ -178,8 +346,16 @@ _RUN_SUM_KEYS = frozenset({
     "reprocess_saved",
     "reprocess_deleted_empty",
     "duplicates_deleted_lines",
+    "duplicates_notes_deleted",
     "duplicates_export_files",
     "duplicates_mb_freed",
+    "export_orphans_found",
+    "export_orphans_deleted",
+    "export_orphans_deleted_bytes",
+    "export_broken_refs",
+    "export_broken_refs_cleaned_notes",
+    "export_broken_body_refs_cleaned_notes",
+    "export_rehydrated",
     "hubs_writes",
 })
 _RUN_LAST_KEYS = frozenset({
@@ -230,6 +406,12 @@ def append_daily_record(
 
     d = ts_start[:10] if len(ts_start) >= 10 else date.today().isoformat()
     run_flat = _flatten_run_metrics(steps)
+    deleted_entries = _merge_deleted_entries(
+        (run_flat.get("deleted_paths") if isinstance(run_flat.get("deleted_paths"), list) else None),
+        collect_deletions_from_steps(steps),
+    )
+    if deleted_entries:
+        run_flat["deleted_paths"] = deleted_entries
 
     prev = next((x for x in existing if isinstance(x, dict) and x.get("date") == d), None)
 
@@ -246,11 +428,18 @@ def append_daily_record(
             - int(before.get("notes_md_db700", 0)),
             "delta_bytes_export": int(after.get("bytes_export", 0)) - int(before.get("bytes_export", 0)),
             "run": run_flat,
+            "deleted_notes": deleted_entries,
         }
     else:
         before_first = prev.get("before") if isinstance(prev.get("before"), dict) else before
         after_latest = after
         merged_run = merge_run_totals(prev.get("run") or {}, run_flat)
+        if deleted_entries:
+            merged_run["deleted_paths"] = _merge_deleted_entries(
+                merged_run.get("deleted_paths") if isinstance(merged_run.get("deleted_paths"), list) else None,
+                deleted_entries,
+            )
+        merged_deleted = _merge_deleted_entries(prev.get("deleted_notes"), deleted_entries)
         ts_s = min(str(prev.get("ts_start") or ts_start), ts_start)
         ts_e = max(str(prev.get("ts_end") or ts_end), ts_end)
         runs_count = int(prev.get("runs_count") or 1) + 1
@@ -269,6 +458,7 @@ def append_daily_record(
             "delta_bytes_export": int(after_latest.get("bytes_export", 0))
             - int(before_first.get("bytes_export", 0)),
             "run": merged_run,
+            "deleted_notes": merged_deleted,
         }
 
     existing = [x for x in existing if isinstance(x, dict) and x.get("date") != d]
@@ -323,11 +513,12 @@ def render_maintenance_charts(vault: Path) -> list[Path]:
     repro_d = [int((r.get("run") or {}).get("reprocess_deleted_empty", 0) or 0) for r in rows]
     dup_mb = [float((r.get("run") or {}).get("duplicates_mb_freed", 0) or 0) for r in rows]
 
-    out_dir = charts_dir(vault)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "vault_maintenance_dynamics.png"
-
     from knowledge_bot.i18n.domain_text import maintenance as mm
+    from shared.chart_paths import chart_path, ensure_parent
+
+    out_path = chart_path(vault, "chart_maintenance_dynamics_png")
+    ensure_parent(out_path)
+    cleanup_legacy_maintenance_chart(vault)
 
     fig, axes = plt.subplots(2, 2, figsize=(11, 7))
     fig.suptitle(mm("chart_suptitle"), fontsize=12)
@@ -401,23 +592,47 @@ def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str
     lines.append(mm("report_table_days", days=min(table_days, len(rows))))
     lines.append("")
     lines.append(mm("report_table_header"))
-    lines.append("|---|:---:|---:|---:|---:|---:|---:|---:|---:|:---:|")
+    lines.append("|---|:---:|---:|---:|---:|---:|---:|---:|---:|")
     for r in rows[-table_days:]:
-        b = r.get("before") or {}
-        a = r.get("after") or {}
         run = r.get("run") or {}
-        nb = int(b.get("notes_md_db700", 0))
-        na = int(a.get("notes_md_db700", 0))
-        exp_b = round(int(b.get("bytes_export", 0)) / (1024 * 1024), 1)
-        rqv = int(b.get("reprocess_eligible", 0))
+        delta = int(r.get("delta_notes_md_db700", 0))
+        dup_notes = int(run.get("duplicates_notes_deleted", 0) or 0)
+        if dup_notes == 0 and run.get("duplicates_deleted_lines"):
+            dup_notes = max(
+                0,
+                int(run.get("duplicates_deleted_lines", 0))
+                - int(run.get("reprocess_deleted_empty", 0) or 0),
+            )
+        repr_empty = int(run.get("reprocess_deleted_empty", 0) or 0)
+        retag = int(run.get("retag_touched", 0) or 0)
+        repr_ok = int(run.get("reprocess_saved", 0) or 0)
+        dup_mb = float(run.get("duplicates_mb_freed", 0) or 0)
         ok = "✓" if r.get("ok") else "✗"
-        nruns = int(r.get("runs_count") or 1)
+        delta_s = f"{delta:+d}" if delta else "0"
         lines.append(
-            f"| {r.get('date','')} | {nruns} | {nb}→{na} | {exp_b} | {rqv} | "
-            f"{int(run.get('retag_touched', 0) or 0)} | "
-            f"{int(run.get('reprocess_saved', 0) or 0)} | "
-            f"{int(run.get('reprocess_deleted_empty', 0) or 0)} | "
-            f"{float(run.get('duplicates_mb_freed', 0) or 0):.1f} | {ok} |"
+            f"| {r.get('date','')} | {int(r.get('runs_count') or 1)} | {delta_s} | "
+            f"{dup_notes} | {repr_empty} | {retag} | {repr_ok} | {dup_mb:.1f} | {ok} |"
         )
     lines.append("")
+    manifest = vault / ".sync" / "last_maintenance_deleted_paths.json"
+    if manifest.is_file():
+        try:
+            raw = json.loads(manifest.read_text(encoding="utf-8"))
+            deleted = raw.get("deleted") if isinstance(raw, dict) else []
+            ts = str(raw.get("ts") or "").strip()
+            if isinstance(deleted, list) and deleted:
+                lines.append(mm("report_last_deletions_header", ts=ts or "—"))
+                lines.append("")
+                for item in deleted[:15]:
+                    if not isinstance(item, dict):
+                        continue
+                    path = str(item.get("path") or "").strip()
+                    reason = str(item.get("reason") or "?").strip()
+                    if path:
+                        lines.append(f"- `{path}` — {reason}")
+                if len(deleted) > 15:
+                    lines.append(mm("report_last_deletions_more", count=len(deleted) - 15))
+                lines.append("")
+        except (OSError, json.JSONDecodeError):
+            pass
     return "\n".join(lines)

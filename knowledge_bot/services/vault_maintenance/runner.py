@@ -14,9 +14,12 @@ import yaml
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.maintenance_metrics import (
     append_daily_record,
+    collect_deletions_from_steps,
     collect_vault_snapshot,
     extract_step_metrics,
     render_maintenance_charts,
+    write_deletion_manifest,
+    write_maintenance_run_sidecar,
 )
 
 # retag/refill/reprocess exit 3 when DeepSeek DNS is down (--apply skipped, not a hard failure)
@@ -253,6 +256,42 @@ def run_daily_maintenance(
         if _step_failed(_run("reprocess_notes", rargs)):
             out["ok"] = False
 
+    ecfg = mcfg.get("export_orphans") or {}
+    if ecfg.get("enabled", True):
+        eargs = [
+            "tools/export_orphans_maintenance.py",
+            "--vault",
+            str(vault),
+            "--print-limit",
+            str(int(ecfg.get("print_limit", 100))),
+        ]
+        if ecfg.get("apply", True):
+            eargs.append("--apply")
+        rehydrate_limit = int(ecfg.get("rehydrate_limit", 0) or 0)
+        if rehydrate_limit > 0:
+            eargs.extend(
+                [
+                    "--rehydrate-limit",
+                    str(rehydrate_limit),
+                    "--rehydrate-max-mb",
+                    str(int(ecfg.get("rehydrate_max_mb", 25))),
+                ]
+            )
+        if (ecfg.get("cleanup") or {}).get("enabled", True):
+            eargs.append("--allow-delete")
+            eargs.extend(
+                [
+                    "--delete-cap",
+                    str(int((ecfg.get("cleanup") or {}).get("delete_cap", 300))),
+                ]
+            )
+        if bool((ecfg.get("cleanup") or {}).get("fix_broken_refs", True)):
+            eargs.append("--cleanup-broken-refs")
+        if bool((ecfg.get("cleanup") or {}).get("fix_broken_body_refs", False)):
+            eargs.append("--cleanup-broken-body-refs")
+        if _step_failed(_run("export_orphans", eargs)):
+            out["ok"] = False
+
     dcfg = mcfg.get("apply_duplicates") or {}
     if dcfg.get("enabled", True):
         cap = int(dcfg.get("max_delete_per_run", 100))
@@ -297,6 +336,12 @@ def run_daily_maintenance(
     after = collect_vault_snapshot(vault)
     out["before"] = before
     out["after"] = after
+    deletions = collect_deletions_from_steps(out["steps"])
+    try:
+        write_deletion_manifest(sdir, deletions, ts_end)
+        write_maintenance_run_sidecar(sdir, out)
+    except OSError as e:
+        out["manifest_error"] = str(e)
     try:
         append_daily_record(
             vault,

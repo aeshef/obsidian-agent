@@ -126,6 +126,48 @@ fi
 # shellcheck source=scripts/lib/vault_knowledge_dir.sh
 source "${AGENT_ROOT}/scripts/lib/vault_knowledge_dir.sh"
 KNOWLEDGE_SUBDIR="$(vault_knowledge_subdir)"
+
+_cleanup_remote_deleted_from_manifest() {
+  local label="${1:-manifest}" manifest="$SYNC_DIR/last_maintenance_deleted_paths.json"
+  [ -f "$manifest" ] || return 0
+  [ -n "${SERVER:-}" ] || return 0
+  local deleted_lines
+  deleted_lines=$(
+    python3 - "$manifest" "$LOCAL_VAULT" 2>/dev/null <<'PY_CLEANUP_REMOTE'
+import json, sys, pathlib
+manifest_path, vault_str = sys.argv[1], sys.argv[2]
+vault = pathlib.Path(vault_str).resolve()
+data = json.load(open(manifest_path, encoding="utf-8"))
+for item in (data.get("deleted") or []):
+    p = item.get("path") if isinstance(item, dict) else item
+    if not p or ".." in str(p):
+        continue
+    try:
+        resolved = (vault / str(p)).resolve()
+        resolved.relative_to(vault)
+        print(str(p))
+    except (ValueError, Exception):
+        pass
+PY_CLEANUP_REMOTE
+  )
+  [ -n "$deleted_lines" ] || return 0
+  local maintenance_log="${AGENT_ROOT}/planning_bot/logs/vault_write_maintenance.log"
+  mkdir -p "$(dirname "$maintenance_log")" 2>/dev/null || true
+  echo "$(sh_msgf scripts.obsidian_sync.step_5b_2c '{"count":"'$(echo "$deleted_lines" | wc -l | tr -d ' ')'","server":"'$SERVER'"}')" >&2
+  printf '%s\n' "$deleted_lines" | ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "SVAULT='$SERVER_VAULT' LABEL='$label'
+     while IFS= read -r rel; do
+       target=\"\$SVAULT/\$rel\"
+       if [ -f \"\$target\" ]; then
+         rm -f \"\$target\" && echo \"[\$LABEL] remote deleted: \$rel\" || true
+       fi
+     done" >> "$maintenance_log" 2>&1 \
+    || echo "$(sh_msg scripts.obsidian_sync.step_5b_2c_fail)" >&2
+}
+
+# Если прошлый maintenance удалил Export/дубли, повторяем удаление на VPS до первого pull:
+# иначе rsync --update снова вернёт серверные копии в локальный vault.
+_cleanup_remote_deleted_from_manifest "prepull-manifest"
 # Planning/knowledge: bare python3 often lacks PyYAML → context_sync / iphone_* fail in logs.
 _py_imports_yaml() {
   local py="$1" sp="${2:-}"
@@ -235,9 +277,20 @@ if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
   export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
   (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
 from planning_bot.services.routines_layout import ensure_routines_layout
+from planning_bot.services.dashboard_layout import cleanup_legacy_dashboard_files
 for line in ensure_routines_layout():
     print('[1r]', line)
+for line in cleanup_legacy_dashboard_files():
+    print('[1r]', line)
 " ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
+fi
+if cap_module_enabled KNOWLEDGE && [ -d "${AGENT_ROOT}/knowledge_bot" ]; then
+  export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
+from knowledge_bot.services.chart_layout import cleanup_legacy_vault_charts
+for line in cleanup_legacy_vault_charts():
+    print('[1r-kb]', line)
+" ) >> "${AGENT_ROOT}/knowledge_bot/logs/chart_layout.log" 2>&1 || SYNC_OK=0
 fi
 
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
@@ -352,9 +405,21 @@ if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
   ssh "${SSH_OPTS[@]}" "$SERVER" \
     "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
 from planning_bot.services.routines_layout import ensure_routines_layout
+from planning_bot.services.dashboard_layout import cleanup_legacy_dashboard_files
 for line in ensure_routines_layout():
     print('[2r]', line)
+for line in cleanup_legacy_dashboard_files():
+    print('[2r]', line)
 \"" >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
+fi
+if cap_module_enabled KNOWLEDGE && [ -d "${AGENT_ROOT}/knowledge_bot" ]; then
+  echo "[2r-kb] legacy vault charts on server" >&2
+  ssh "${SSH_OPTS[@]}" "$SERVER" \
+    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
+from knowledge_bot.services.chart_layout import cleanup_legacy_vault_charts
+for line in cleanup_legacy_vault_charts():
+    print('[2r-kb]', line)
+\"" >> "${AGENT_ROOT}/knowledge_bot/logs/chart_layout.log" 2>&1 || SYNC_OK=0
 fi
 
 # 2b. На VPS: тот же cleanup/JSON для IPhone (старый мусор мог остаться только на сервере)
@@ -653,7 +718,7 @@ REMOTE_DUP
           # 5b.2c: удаление на VPS файлов, чьи оригиналы были удалены локально при reprocess
           # (заметка переехала в другую папку/тип — файл с generic-именем остался только на сервере
           #  и возвращался при следующем rsync --update pull 700_).
-          # runner.py пишет манифест .sync/last_maintenance_deleted_paths.json после каждого прогона.
+          # vault_daily_maintenance (runner.py) пишет .sync/last_maintenance_deleted_paths.json
           # Не хардкодим пути и паттерны: всё берётся из манифеста, созданного reprocess_notes.
           _CLEANUP_MANIFEST="$SYNC_DIR/last_maintenance_deleted_paths.json"
           if [ -f "$_CLEANUP_MANIFEST" ] && [ -n "$KN_PYTHON" ]; then

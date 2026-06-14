@@ -47,6 +47,22 @@ reprocess_notes:
   apply: true
   limit: 8
 
+# Полный цикл по сиротским Export:
+# 1) аудит и broken refs
+# 2) опциональный rehydrate через пайплайн (создать заметки по файлам)
+# 3) удаление оставшихся сирот с safety-cap
+export_orphans:
+  enabled: true
+  apply: true
+  print_limit: 120
+  rehydrate_limit: 12
+  rehydrate_max_mb: 25
+  cleanup:
+    enabled: true
+    delete_cap: 500
+    fix_broken_refs: true
+    fix_broken_body_refs: true
+
 # Дедупликация: content dups (keep_base/keep_fullest) + generic-серии (Без_названия_N) + сиротские Export.
 # Сначала dry-run → подсчёт; если count > max_delete_per_run — отмена + Telegram-алерт; иначе apply.
 apply_duplicates:

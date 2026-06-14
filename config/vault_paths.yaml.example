@@ -23,6 +23,9 @@ health:
 cross:
   graphs_cross: "Cross"
 
+knowledge:
+  graphs_knowledge: "Vault"
+
 routines:
   operational: "📅 Routines"
   signals: "📊 Signals"
@@ -67,6 +70,7 @@ files:
   chart_cross_tasks_steps_md: "Cross/Tasks_and_steps.md"
   chart_cross_tasks_spending_png: "Cross/Tasks_and_spending.png"
   chart_cross_tasks_spending_md: "Cross/Tasks_and_spending.md"
+  chart_maintenance_dynamics_png: "Vault/Maintenance_Dynamics.png"
   main_dashboard_md: "🎯 Main_Dashboard.md"
   progress_year_dashboard_md: "📊 Progress_{year}.md"
   templater_add_task_md: "Add_Task.md"

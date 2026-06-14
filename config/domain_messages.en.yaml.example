@@ -314,6 +314,12 @@ knowledge_maintenance:
   regex_refill_total: 'Total refill: affected=(\d+), skipped=(\d+), llm_errors=(\d+)'
   regex_retag_total: Total:\s*affected=(\d+),\s*skipped=(\d+)(?:,\s*llm_fallback=(\d+))?
   regex_singleton_count: Notes from which singleton tags will be/were removed:\s*(\d+)
+  regex_export_orphans_summary: EXPORT_ORPHANS_SUMMARY:\s*total=(\d+)\s+bytes=(\d+)\s+referenced=(\d+)\s+export_total=(\d+)
+  regex_export_broken_refs: EXPORT_BROKEN_REFS:\s*count=(\d+)
+  regex_export_rehydrated_total: EXPORT_REHYDRATED_TOTAL:\s*count=(\d+)
+  regex_export_deleted_total: EXPORT_ORPHANS_DELETED_TOTAL:\s*count=(\d+)\s+bytes=(\d+)
+  regex_export_broken_refs_cleaned: EXPORT_BROKEN_REFS_CLEANED_NOTES:\s*count=(\d+)
+  regex_export_broken_body_refs_cleaned: EXPORT_BROKEN_BODY_REFS_CLEANED_NOTES:\s*count=(\d+)
   report_chart_pending: '*Chart will appear after ≥1 history entry and with `matplotlib`
     installed in report generation environment.*'
   report_intro: 'Snapshot history and step totals (`vault_daily_maintenance`): data
@@ -331,8 +337,9 @@ knowledge_maintenance:
   report_no_history: '*No history records yet — run maintenance at least once.*'
   report_section: '## 4. Maintenance dynamics'
   report_table_days: 'Last **{days}** days (newest at bottom):'
-  report_table_header: '| Date | # | 700_ Notes (before→after) | Export MB before
-    | Reprocess queue | retag | reprocess ✓ | empty del. | duplicates MB | OK |'
+  report_table_header: '| Date | # | Δ .md | −dup | −repr∅ | retag | repr✓ | Export−MB | OK |'
+  report_last_deletions_header: '**Deleted paths (last run, {ts}):**'
+  report_last_deletions_more: '… and {count} more (see `.sync/last_maintenance_deleted_paths.json`)'
 knowledge_vault_audit:
   line_sep: '================================================================================'
   line_dash: '--------------------------------------------------------------------------------'
@@ -673,6 +680,7 @@ planning:
   agent_mac_series_hint: "Summary: last Mac snapshot per day. Timeline → get_mac_snapshots(from_ts, to_ts)."
   agent_mac_snapshots_need_range: "Provide from_ts and/or to_ts (ISO: YYYY-MM-DD or YYYY-MM-DDTHH:MM)."
   agent_mac_snapshots_empty: "No Mac snapshots for {start} … {end}."
+  agent_mac_context_content_day_note: "  ⚠ content_day={content_day} ≠ as_of_today={as_of} — use as_of_today as «today»"
   agent_mac_snapshots_header: "Mac snapshots {start} … {end}: showing {shown}/{total}"
   agent_mac_snapshots_columns: "ts\tapp\tfocus\tbattery_pct\tsafari"
   agent_mac_snapshots_truncated: "… last {shown} of {total}; narrow interval or limit=0"
@@ -3328,7 +3336,7 @@ planning:
   auto_a962aee89e: '| Day | h | # | 🌙 | frag. | max |'
   auto_a97f4e4e14: 'Mapping load error: '
   auto_a9cfe5780b: 'Directory not found: {_p1}'
-  auto_a9e6f3071c: 🥗 Nutrition_Macros.md
+  auto_a9e6f3071c: 🏥 Health.md
   auto_aa0b458eec: hours
   auto_aa48fa26be: Sunday
   auto_aa6dcec718: Health / Watch — daily series (

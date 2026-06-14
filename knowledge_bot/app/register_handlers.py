@@ -11,6 +11,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from knowledge_bot.app.ui import kmsg
 from knowledge_bot.core.config import load_config
 from knowledge_bot.core.settings import load_types_config
+from knowledge_bot.services.export_cleanup import cleanup_unreferenced_export_files
 
 from . import state as app_state
 from .handlers.set_type import on_set_type
@@ -22,7 +23,22 @@ log = logging.getLogger("kb.register")
 
 def register_knowledge_callbacks(dp: Dispatcher) -> None:
     async def on_cancel(cb: CallbackQuery):
-        app_state._PENDING.pop(cb.message.message_id, None)
+        st = app_state._PENDING.pop(cb.message.message_id, None)
+        if isinstance(st, dict):
+            payload = st.get("payload") if isinstance(st.get("payload"), dict) else {}
+            files = (
+                ((payload.get("attachments") or {}).get("files") or [])
+                if isinstance(payload, dict)
+                else []
+            )
+            try:
+                cfg_l = load_config()
+                cleanup_unreferenced_export_files(
+                    cfg_l.vault_path,
+                    [str(x) for x in files if x],
+                )
+            except Exception as e:
+                log.warning("Pending draft cleanup failed: %s", e)
         await cb.message.edit_text(kmsg("cancelled"))
         try:
             await cb.answer()

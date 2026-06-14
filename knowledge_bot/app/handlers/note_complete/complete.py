@@ -31,6 +31,7 @@ from knowledge_bot.services.tag_normalize import (
 )
 from knowledge_bot.services.tags_inventory import get_tags_inventory_for_prompt
 from knowledge_bot.services.wikilinks import inject_wikilinks
+from knowledge_bot.services.export_cleanup import cleanup_unreferenced_export_files
 
 from knowledge_bot.app import state as app_state
 from knowledge_bot.app.state import (
@@ -285,45 +286,6 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     except Exception:
         pass
 
-    # Fallback for heavy video via yt-dlp when Telegram refuses to download large files
-    try:
-        if os.environ.get("YTDLP_ENABLED", "0") == "1":
-            has_files = bool((routed.get("attachments", {}) or {}).get("files"))
-            ytdlp_url = None
-            if not has_files:
-                for u in routed.get("attachments", {}).get("links", []) or []:
-                    if any(d in u for d in ("youtube.com", "youtu.be", "vimeo.com", "tiktok.com", "x.com", "twitter.com")):
-                        ytdlp_url = u
-                        break
-            if ytdlp_url:
-                from knowledge_bot.services.extract.youtube import download_via_ytdlp
-                saved_path = download_via_ytdlp(ytdlp_url, cfg.export_root)
-                if saved_path:
-                    try:
-                        rel = saved_path.relative_to(cfg.vault_path)
-                        routed["attachments"]["files"].append(str(rel))
-                        routed["raw_dir"] = str(rel.parent)
-                    except Exception:
-                        routed["attachments"]["files"].append(str(saved_path))
-                        routed["raw_dir"] = str(saved_path.parent)
-                    routed["form"] = routed.get("form") or "video"
-                    routed.setdefault("filenames", []).append(saved_path.name)
-                    # Try ASR on downloaded media
-                    try:
-                        #      ASR 
-                        asr_sem = get_asr_semaphore()
-                        async with asr_sem:
-                            derived = await asyncio.to_thread(extract_from_path, str(saved_path))
-                            import gc
-                            gc.collect()
-                        if derived.asr_text:
-                            summary_obj["derived"]["asr_text"] = derived.asr_text
-                        if derived.vision_text:
-                            summary_obj["derived"]["vision_text"] = derived.vision_text
-                    except Exception as _ee:
-                        logging.getLogger("kb.bot").warning("asr after ytdlp failed: %s", _ee)
-    except Exception as _e:
-        logging.getLogger("kb.bot").warning("ytdlp fallback failed: %s", _e)
     # Field fill: restrict to template fields
     try:
         enums_cfg = load_enums_config(cfg.agent_config_path)
@@ -552,7 +514,21 @@ async def process_complete(main_message: Message, all_messages: list[Message], c
     if len(app_state._PENDING) > limit:
         by_id = sorted(app_state._PENDING.keys())
         for old_id in by_id[:-limit]:
-            app_state._PENDING.pop(old_id, None)
+            st = app_state._PENDING.pop(old_id, None)
+            payload = st.get("payload") if isinstance(st, dict) else None
+            files = (
+                ((payload.get("attachments") or {}).get("files") or [])
+                if isinstance(payload, dict)
+                else []
+            )
+            if files:
+                try:
+                    cleanup_unreferenced_export_files(
+                        cfg.vault_path,
+                        [str(x) for x in files if x],
+                    )
+                except Exception as e:
+                    log.warning("Pending eviction cleanup failed: %s", e)
         log.info("PENDING evicted oldest entries, kept last %d (limit=%d)", limit, limit)
     import gc
     gc.collect()

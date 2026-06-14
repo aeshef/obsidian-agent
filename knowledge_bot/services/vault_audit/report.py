@@ -197,6 +197,22 @@ def build_maintenance_section(vault: Path) -> str:
 
     if last_run_data:
         lines.extend(_format_maintenance_run(last_run_data))
+        deleted = last_run_data.get("deleted")
+        if isinstance(deleted, list) and deleted:
+            from knowledge_bot.i18n.domain_text import maintenance as mm
+
+            ts = str(last_run_data.get("ts_end") or last_run_data.get("ts") or "—")
+            lines.append("")
+            lines.append(mm("report_last_deletions_header", ts=ts))
+            for item in deleted[:12]:
+                if not isinstance(item, dict):
+                    continue
+                path = str(item.get("path") or "").strip()
+                reason = str(item.get("reason") or "?").strip()
+                if path:
+                    lines.append(f"- `{path}` — {reason}")
+            if len(deleted) > 12:
+                lines.append(mm("report_last_deletions_more", count=len(deleted) - 12))
     else:
         lines.append(va("maint_run_details_missing"))
 
