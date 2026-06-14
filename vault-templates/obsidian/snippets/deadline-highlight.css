@@ -1,0 +1,46 @@
+/* Подсветка задач с дедлайнами в канбан-доске */
+
+/* Задачи с дедлайнами сегодня (красная подсветка) */
+.markdown-source-view.mod-cm6 .task-list-item:has([data-task=" "]:has-text("#дедлайн")):has([data-task=" "]:has-text("2026-01-20")),
+.kanban-plugin__item-title:has-text("#дедлайн/2026-01-20") {
+    background-color: rgba(255, 0, 0, 0.15) !important;
+    border-left: 3px solid #ff0000 !important;
+    padding-left: 5px !important;
+}
+
+/* Задачи с дедлайнами завтра (оранжевая подсветка) */
+.kanban-plugin__item-title:has-text("#дедлайн/2026-01-21") {
+    background-color: rgba(255, 165, 0, 0.15) !important;
+    border-left: 3px solid #ffa500 !important;
+    padding-left: 5px !important;
+}
+
+/* Задачи с дедлайнами через 2-3 дня (желтая подсветка) */
+.kanban-plugin__item-title:has-text("#дедлайн/2026-01-22"),
+.kanban-plugin__item-title:has-text("#дедлайн/2026-01-23") {
+    background-color: rgba(255, 255, 0, 0.15) !important;
+    border-left: 3px solid #ffff00 !important;
+    padding-left: 5px !important;
+}
+
+/* Общая подсветка всех задач с дедлайнами */
+.markdown-source-view .task-list-item:has-text("#дедлайн/") {
+    font-weight: 500;
+}
+
+/* Подсветка тега дедлайна */
+a.tag[href="#дедлайн/"] {
+    background-color: #ff6b6b !important;
+    color: white !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-weight: bold !important;
+}
+
+/* Для задач с дедлайном в ближайшие 7 дней */
+a.tag[href^="#дедлайн/"] {
+    background-color: #ffa94d !important;
+    color: white !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+}

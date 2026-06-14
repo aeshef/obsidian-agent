@@ -1,0 +1,27 @@
+# Obsidian vault UX assets (plugins, Templater, CSS snippets).
+# cp via materialize_locale.py → config/obsidian_setup.yaml
+# Install: scripts/install_obsidian_setup.py
+
+plugins:
+  required:
+    - dataview
+    - templater-obsidian
+    - obsidian-kanban
+  optional:
+    - obsidian-tasks-plugin
+    - 3d-graph
+    - 3d-graph-new
+
+strings:
+  add_task_kanban_hint: |
+    If the kanban board is open, close it before running this template, or invoke Templater from the command palette.
+  add_task_prompt_title: "Task title"
+  add_task_prompt_deadline: "Deadline (YYYY-MM-DD):"
+  add_task_suggester_deadline: "Has deadline?"
+  add_task_suggester_deadline_no: "No"
+  add_task_suggester_deadline_yes: "Yes"
+  add_task_notice_bad_date: "Invalid date format. Use YYYY-MM-DD. Deadline skipped."
+  add_task_notice_kanban_missing: "Kanban file not found"
+  add_task_notice_backlog_missing: "Backlog column not found"
+  add_task_notice_ok: "Task added to backlog"
+  add_task_notice_error: "Error"

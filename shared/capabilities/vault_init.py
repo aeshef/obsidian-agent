@@ -67,7 +67,25 @@ def planned_vault_dirs(
         paths.append((root / folder("dashboards") / dashboards_sub("charts")) / finance_sub("graphs_finance"))
     if prof.module(MODULE_KNOWLEDGE):
         kb = root / knowledge_subdir()
-        paths.extend([kb, kb / vault_rel_path("knowledge_attachments"), kb / vault_rel_path("knowledge_hubs")])
+        auto = root / folder("automation")
+        paths.extend(
+            [
+                kb,
+                kb / vault_rel_path("knowledge_attachments"),
+                kb / vault_rel_path("knowledge_hubs"),
+                auto / vault_rel_path("templates_root"),
+                auto / vault_rel_path("templates_clones"),
+            ]
+        )
+    if prof.module(MODULE_PLANNING):
+        auto = root / folder("automation")
+        paths.extend(
+            [
+                auto / vault_rel_path("templates_root"),
+                auto / vault_rel_path("templates_v2"),
+                auto / vault_rel_path("templates_entities"),
+            ]
+        )
     paths.append(root / ".sync")
 
     seen: set[str] = set()

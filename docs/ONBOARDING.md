@@ -57,6 +57,8 @@ python3 scripts/apply_capabilities_profile.py --only-modules finance --broker-sy
 
 python3 scripts/init_vault_layout.py
 ./scripts/setup.sh
+# In Obsidian app: install Community plugins (see docs/OBSIDIAN_SETUP.md)
+python3 scripts/install_obsidian_setup.py
 ./scripts/install_mac_sync.sh
 ```
 
@@ -80,6 +82,8 @@ cp .env.example .env
 python3 scripts/apply_capabilities_profile.py --only-modules planning --write --patch-env
 python3 scripts/init_vault_layout.py
 ./scripts/setup.sh
+# Obsidian app: Community plugins — docs/OBSIDIAN_SETUP.md
+python3 scripts/install_obsidian_setup.py
 
 python3 scripts/onboarding_smoke.py --golden-planning --agent-sanity
 python3 scripts/onboarding_smoke.py --verify-all --require-env   # after each connector / at the end

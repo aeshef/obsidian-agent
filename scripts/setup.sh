@@ -76,12 +76,15 @@ bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
 
 if [ -n "${VAULT_PATH:-}" ] && [ -d "${VAULT_PATH}" ] && [ -f "$ROOT/config/agent/capabilities.yaml" ]; then
   echo ""
+  echo "$(sh_msg scripts.setup.section_obsidian)"
+  "$OA_PY" "$ROOT/scripts/install_obsidian_setup.py" 2>/dev/null || true
   "$OA_PY" "$ROOT/scripts/scaffold_vault_dashboards.py" 2>/dev/null || true
 fi
 
 echo ""
 echo "$(sh_msg scripts.setup.done)"
 echo "$(sh_msg scripts.setup.next_onboarding)"
+echo "$(sh_msg scripts.setup.next_obsidian)"
 echo "$(sh_msg scripts.setup.next_mac_sync)"
 echo "$(sh_msg scripts.setup.next_deploy)"
 echo "$(sh_msg scripts.setup.next_run)"

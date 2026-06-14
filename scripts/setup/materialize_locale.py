@@ -99,7 +99,7 @@ def _materialize_config(stem: str, locale: str, *, refresh_vault_paths: bool = F
 
 def materialize(locale: str | None = None, *, refresh_vault_paths: bool = False) -> None:
     loc = _resolve_locale(locale)
-    for stem in (f"messages.{loc}", f"domain_messages.{loc}", "vault_paths"):
+    for stem in (f"messages.{loc}", f"domain_messages.{loc}", "vault_paths", "obsidian_setup"):
         _materialize_config(
             stem,
             loc,

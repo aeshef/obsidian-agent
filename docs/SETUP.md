@@ -7,7 +7,20 @@
 3. `python -m unified_bot.main` or deploy: `./scripts/deploy.sh --prod`
 4. Switch language: `python3 scripts/setup/env_tools.py set-locale ru`
 
-Details: [LOCALE.md](LOCALE.md), [ONBOARDING.md](ONBOARDING.md).
+Details: [LOCALE.md](LOCALE.md), [ONBOARDING.md](ONBOARDING.md), [OBSIDIAN_SETUP.md](OBSIDIAN_SETUP.md).
+
+---
+
+## Obsidian (required for dashboards + Templater)
+
+Community plugins and vault templates are **not** optional for planning/knowledge modules. See **[OBSIDIAN_SETUP.md](OBSIDIAN_SETUP.md)**.
+
+Quick path after `setup.sh`:
+
+```bash
+python3 scripts/install_obsidian_setup.py --list-plugins   # install these in Obsidian UI
+python3 scripts/install_obsidian_setup.py                # copy Templates/ + Templater config
+```
 
 ---
 
@@ -16,6 +29,8 @@ Details: [LOCALE.md](LOCALE.md), [ONBOARDING.md](ONBOARDING.md).
 Пошаговая настройка **obsidian-agent** на новой машине. Предполагается macOS для Obsidian + опциональный VPS для 24/7.
 
 По умолчанию в `.env.example` задано `AGENT_LOCALE=en` (английский UI). Русский: `python3 scripts/setup/env_tools.py set-locale ru`.
+
+**Obsidian (плагины + шаблоны):** [OBSIDIAN_SETUP.md](OBSIDIAN_SETUP.md) — без Dataview/Templater/Kanban и `Templates/Clones` система не работает.
 
 ---
 

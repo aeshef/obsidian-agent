@@ -1,0 +1,92 @@
+<%*
+// {{add_task_kanban_hint}}
+try {
+  const deleteTemplateFile = async () => {
+    try {
+      if (tp.file && tp.file.path && !tp.file.path.includes("{{kanban_board_basename}}")) {
+        const file = tp.app.vault.getAbstractFileByPath(tp.file.path);
+        if (file) await tp.app.vault.delete(file);
+      }
+    } catch (e) {}
+  };
+
+  const title = await tp.system.prompt("{{add_task_prompt_title}}");
+  if (!title || !title.trim()) {
+    await deleteTemplateFile();
+    return;
+  }
+
+  const categories = {{categories_json}};
+  const categoryLabels = {{category_labels_json}};
+  const category = await tp.system.suggester(categoryLabels, categories);
+  if (category === null || !category) {
+    await deleteTemplateFile();
+    return;
+  }
+
+  const priorities = {{priorities_json}};
+  const priorityLabels = {{priority_labels_json}};
+  const priority = await tp.system.suggester(priorityLabels, priorities);
+  if (priority === null || !priority) {
+    await deleteTemplateFile();
+    return;
+  }
+
+  const createdDate = tp.date.now("YYYY-MM-DD");
+  const hasDeadline = await tp.system.suggester(
+    ["{{add_task_suggester_deadline_no}}", "{{add_task_suggester_deadline_yes}}"],
+    [false, true],
+    false,
+    "{{add_task_suggester_deadline}}"
+  );
+  let deadlineTag = "";
+  if (hasDeadline === true) {
+    const deadlineInput = await tp.system.prompt("{{add_task_prompt_deadline}}", false);
+    if (deadlineInput && deadlineInput.trim()) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(deadlineInput.trim())) {
+        deadlineTag = ` #{{tag_deadline}}/${deadlineInput.trim()}`;
+      } else {
+        new Notice("{{add_task_notice_bad_date}}");
+      }
+    }
+  }
+
+  const taskLine = `- [ ] ${title.trim()}`;
+  const taskMeta = `{{task_meta_js}}`.replace("{category}", category).replace("{priority}", priority) + deadlineTag;
+  const taskDate = `{{task_created_js}}`.replace("{created_date}", createdDate);
+  const newTask = `${taskLine}\n${taskMeta}\n${taskDate}`;
+
+  const kanbanPath = "{{kanban_page}}";
+  const kanbanFile = tp.app.vault.getAbstractFileByPath(kanbanPath);
+  if (!kanbanFile) {
+    new Notice("{{add_task_notice_kanban_missing}}: " + kanbanPath);
+    await deleteTemplateFile();
+    return;
+  }
+
+  let content = await tp.app.vault.read(kanbanFile);
+  const backlogHeader = "{{backlog_column}}";
+  const backlogIndex = content.indexOf(backlogHeader);
+  if (backlogIndex === -1) {
+    new Notice("{{add_task_notice_backlog_missing}}");
+    await deleteTemplateFile();
+    return;
+  }
+
+  const afterHeader = backlogIndex + backlogHeader.length;
+  const nextLineBreak = content.indexOf("\n", afterHeader);
+  const insertPosition = nextLineBreak + 1;
+  const before = content.substring(0, insertPosition);
+  const after = content.substring(insertPosition);
+  const cleanAfter = after.startsWith("\n\n") ? after.substring(1) : after;
+  await tp.app.vault.modify(kanbanFile, before + newTask + "\n" + cleanAfter);
+
+  setTimeout(async () => { await deleteTemplateFile(); }, 200);
+  await tp.app.workspace.getLeaf().openFile(kanbanFile);
+  new Notice(`✅ {{add_task_notice_ok}}: "${title}"`);
+} catch (error) {
+  new Notice(`❌ {{add_task_notice_error}}: ${error.message}`);
+  try { await deleteTemplateFile(); } catch (e) {}
+}
+%>

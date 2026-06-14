@@ -81,6 +81,12 @@ def main() -> int:
     for p in routines:
         print(f"  routines: {p}")
 
+    from shared.capabilities.obsidian_vault_setup import install_obsidian_assets
+
+    obsidian = install_obsidian_assets(prof, root)
+    for p in obsidian:
+        print(f"  obsidian: {p}")
+
     return 0
 
 

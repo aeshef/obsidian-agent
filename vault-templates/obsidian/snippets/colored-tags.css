@@ -1,0 +1,94 @@
+/* Цветные теги для приоритетов */
+.tag[href="#приоритет/высокий"],
+a.tag[href="#приоритет/высокий"] {
+  background-color: #ff4444 !important;
+  color: white !important;
+  border: 1px solid #cc0000 !important;
+}
+
+.tag[href="#приоритет/средний"],
+a.tag[href="#приоритет/средний"] {
+  background-color: #ffaa00 !important;
+  color: white !important;
+  border: 1px solid #cc8800 !important;
+}
+
+.tag[href="#приоритет/низкий"],
+a.tag[href="#приоритет/низкий"] {
+  background-color: #888888 !important;
+  color: white !important;
+  border: 1px solid #666666 !important;
+}
+
+/* Цветные теги для категорий целей */
+.tag[href="#цель/карьера"],
+a.tag[href="#цель/карьера"] {
+  background-color: #4a90e2 !important;
+  color: white !important;
+  border: 1px solid #357abd !important;
+}
+
+.tag[href="#цель/учеба"],
+a.tag[href="#цель/учеба"] {
+  background-color: #7b68ee !important;
+  color: white !important;
+  border: 1px solid #5a4fcf !important;
+}
+
+.tag[href="#цель/развитие"],
+a.tag[href="#цель/развитие"] {
+  background-color: #50c878 !important;
+  color: white !important;
+  border: 1px solid #3da05a !important;
+}
+
+.tag[href="#цель/дом"],
+a.tag[href="#цель/дом"] {
+  background-color: #ff6b9d !important;
+  color: white !important;
+  border: 1px solid #cc5579 !important;
+}
+
+.tag[href="#цель/здоровье"],
+a.tag[href="#цель/здоровье"] {
+  background-color: #32cd32 !important;
+  color: white !important;
+  border: 1px solid #28a828 !important;
+}
+
+.tag[href="#цель/инфраструктура"],
+a.tag[href="#цель/инфраструктура"] {
+  background-color: #9370db !important;
+  color: white !important;
+  border: 1px solid #7559b0 !important;
+}
+
+.tag[href="#цель/творчество"],
+a.tag[href="#цель/творчество"] {
+  background-color: #ff69b4 !important;
+  color: white !important;
+  border: 1px solid #cc5490 !important;
+}
+
+.tag[href="#цель/опыт"],
+a.tag[href="#цель/опыт"] {
+  background-color: #20b2aa !important;
+  color: white !important;
+  border: 1px solid #198b85 !important;
+}
+
+.tag[href="#цель/семья"],
+a.tag[href="#цель/семья"] {
+  background-color: #ff8c42 !important;
+  color: white !important;
+  border: 1px solid #cc7033 !important;
+}
+
+/* Стили для тегов в канбан-карточках */
+.kanban-plugin__item-prefix-button .tag,
+.kanban-plugin__item-title-wrapper .tag {
+  font-size: 0.85em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-right: 4px;
+}
