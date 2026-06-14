@@ -49,6 +49,7 @@ budget:
 charts:
   insufficient_data: Not enough data for the chart «{title}».
   no_data: No data
+  other_slice: Other
   y_label_sum: Amount
 finance_agent:
   balances_header: 'Account balances:'
@@ -4869,13 +4870,13 @@ planning:
     Output:
 
 
-    300_Dashboards/Charts/Nutrition_PFC_by_days.png
+    300_Dashboards/Charts/Health/Nutrition_PFC_by_days.png
 
 
-    300_Dashboards/Charts/Nutrition_PFC_by_days.md
+    300_Dashboards/Charts/Health/Nutrition_PFC_by_days.md
 
 
-    300_Dashboards/🥗 Nutrition_PFC.md (short dashboard, overwritten)
+    Hub: 300_Dashboards/🏥 Health.md (`build_health_dashboard_hub.py`, not overwritten by chart script)
 
     '
   calendar_attendance_context: 'Calendar slots are not equal in "attention cost".

@@ -322,7 +322,6 @@ def _write_out(
         pdmsg("auto_aeb265d6f5", _p1=table_md, _p3=ts),
         encoding="utf-8",
     )
-    body = pdmsg("auto_c01ff6fe9b", _p1=table_md, _p3=ts)
     print(f"OK: {png}, {comp_md}")
 
 

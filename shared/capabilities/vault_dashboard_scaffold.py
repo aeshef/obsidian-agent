@@ -150,6 +150,7 @@ def build_scaffold_context(
         "nutrition_dashboard": nutrition_dash,
         "health_dashboard": nutrition_dash,
         "finance_dashboard": finance_dash,
+        "main_dashboard": f"{dash_folder}/{vault_file('main_dashboard_md')}",
         "done_column": done_column,
         "tag_goal": tag_goal,
         "tag_priority": tag_priority,
@@ -185,6 +186,11 @@ def build_scaffold_context(
         "table_goal": str(strings.get("table_goal") or "Goal"),
         "table_tasks": str(strings.get("table_tasks") or "Tasks"),
         "table_category": str(strings.get("table_category") or "Category"),
+        "table_priority": str(strings.get("table_priority") or "Priority"),
+        "category_progress_year_heading": str(strings.get("category_progress_year_heading") or ""),
+        "goals_priorities_heading": str(strings.get("goals_priorities_heading") or ""),
+        "no_goals_priorities": str(strings.get("no_goals_priorities") or ""),
+        "progress_year_footer": str(strings.get("progress_year_footer") or ""),
         "finance_embed_title": str(strings.get("finance_embed_title") or ""),
         "finance_embed_body": str(strings.get("finance_embed_body") or ""),
         "footer": str(strings.get("footer") or ""),
@@ -196,6 +202,10 @@ def build_scaffold_context(
         if key in ("quarter_names",):
             continue
         if isinstance(val, str) and key not in ctx:
+            ctx[key] = _substitute(val, ctx)
+
+    for key, val in list(ctx.items()):
+        if isinstance(val, str) and "{{" in val:
             ctx[key] = _substitute(val, ctx)
 
     return ctx
@@ -220,6 +230,9 @@ def _render_block(block_id: str, spec: dict, ctx: dict[str, str]) -> str:
         md_name = vault_file(str(chart_md_key))
         stem = re.sub(r"\.md$", "", md_name, flags=re.I)
         extra["chart_embed"] = f"![[{ctx['charts_subdir']}/{stem}]]"
+    cat_heading_key = spec.get("category_heading_key")
+    if cat_heading_key:
+        extra["category_progress_heading"] = ctx.get(str(cat_heading_key), "")
     return _render_template(tpl, extra)
 
 
@@ -239,6 +252,7 @@ def scaffold_vault_dashboards(
     blocks = catalog.get("blocks") if isinstance(catalog.get("blocks"), dict) else {}
     ctx = build_scaffold_context(prof, root, locale=locale)
     written: list[str] = []
+    year = int(ctx.get("year") or goals_year())
 
     for dash_id, dash_spec in dashboards.items():
         if not isinstance(dash_spec, dict):
@@ -246,7 +260,7 @@ def scaffold_vault_dashboards(
         file_key = str(dash_spec.get("file_key") or "")
         if not file_key:
             continue
-        out_name = vault_file(file_key)
+        out_name = vault_file(file_key, year=year)
         out_path = root / folder("dashboards") / out_name
         parts: list[str] = []
         for block_id in dash_spec.get("blocks") or []:

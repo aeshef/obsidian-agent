@@ -5,7 +5,12 @@ from pathlib import Path
 
 import yaml
 
-from shared.capabilities.profile import MODULE_FINANCE, MODULE_PLANNING, CapabilityProfile
+from shared.capabilities.profile import (
+    MODULE_FINANCE,
+    MODULE_KNOWLEDGE,
+    MODULE_PLANNING,
+    CapabilityProfile,
+)
 from shared.capabilities.vault_dashboard_scaffold import (
     build_scaffold_context,
     scaffold_vault_dashboards,
@@ -13,8 +18,11 @@ from shared.capabilities.vault_dashboard_scaffold import (
 
 
 def _profile(modules: list[str]) -> CapabilityProfile:
+    mods = {MODULE_FINANCE: False, MODULE_PLANNING: False, MODULE_KNOWLEDGE: False}
+    for m in modules:
+        mods[m] = True
     return CapabilityProfile(
-        modules={m: True for m in modules},
+        modules=mods,
         connectors={},
         sync_profile="full",
     )
@@ -50,6 +58,7 @@ def test_scaffold_main_dashboard_en_planning(tmp_path, monkeypatch):
             "dashboards": {"charts": "Charts", "data": "Data", "logs": "Logs"},
             "files": {
                 "main_dashboard_md": "Main_Dashboard.md",
+                "progress_year_dashboard_md": "Progress_{year}.md",
                 "kanban_board": "Task_Board.md",
                 "kanban_archive_board": "Closed_Tasks.md",
                 "goals_template": "{year}_Goals.md",
@@ -90,6 +99,63 @@ def test_scaffold_main_dashboard_en_planning(tmp_path, monkeypatch):
     assert "#goal/" in text or 'TAG_GOAL = "goal"' in text
     assert "Finance_Dashboard" not in text
     assert "Daily_activity" in text or "Charts" in text
+
+
+def test_scaffold_category_progress_includes_archive(tmp_path, monkeypatch):
+    vault = tmp_path / "vault"
+    (vault / "100_Tasks").mkdir(parents=True)
+    (vault / "300_Dashboards").mkdir(parents=True)
+    monkeypatch.setenv("VAULT_PATH", str(vault))
+    monkeypatch.setenv("AGENT_LOCALE", "en")
+    _patch_vault_paths(
+        monkeypatch,
+        {
+            "folders": {
+                "tasks": "100_Tasks",
+                "goals": "200_Goals",
+                "dashboards": "300_Dashboards",
+            },
+            "dashboards": {"charts": "Charts", "data": "Data", "logs": "Logs"},
+            "files": {
+                "main_dashboard_md": "Main_Dashboard.md",
+                "progress_year_dashboard_md": "Progress_{year}.md",
+                "kanban_board": "Task_Board.md",
+                "kanban_archive_board": "Closed_Tasks.md",
+                "goals_template": "{year}_Goals.md",
+                "goals_mapping_json": "goals_task_mapping.json",
+                "calendar_dashboard_md": "Meetings.md",
+                "calendar_json": "Calendar.json",
+                "chart_daily_activity_md": "a.md",
+                "chart_completions_by_category_md": "b.md",
+                "chart_open_pipeline_md": "c.md",
+                "chart_deadline_horizon_md": "d.md",
+                "chart_nutrition_md": "e.md",
+                "nutrition_dashboard_md": "n.md",
+                "health_dashboard_md": "h.md",
+            },
+            "finance": {"dashboard_md": "Finance.md"},
+        },
+    )
+    monkeypatch.setattr(
+        "shared.capabilities.vault_dashboard_scaffold._kanban_schema",
+        lambda: {
+            "tag_prefixes": {"goal": "goal", "priority": "priority", "focus": "focus", "deadline": "deadline"},
+            "categories": ["career"],
+            "category_order": {"career": 1},
+            "priorities": ["high"],
+            "priority_order": {"high": 1},
+            "priority_emojis": {"high": "🔥"},
+            "columns": ["Backlog", "Done"],
+        },
+    )
+    prof = _profile([MODULE_PLANNING])
+    written = scaffold_vault_dashboards(prof, vault, locale="en", force=True)
+    assert written
+    main = (vault / "300_Dashboards" / "Main_Dashboard.md").read_text(encoding="utf-8")
+    progress = (vault / "300_Dashboards" / "Progress_2026.md").read_text(encoding="utf-8")
+    assert "Closed_Tasks" in main
+    assert "Closed_Tasks" in progress
+    assert "kanbanPages" in progress
 
 
 def test_scaffold_includes_finance_block(tmp_path, monkeypatch):

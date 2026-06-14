@@ -1,0 +1,50 @@
+{{goals_priorities_heading}}
+
+```dataviewjs
+const TAG_PRIORITY = "{{tag_priority}}";
+const goalsFile = dv.page("{{goals_page}}")
+const priorities = {{priorities_json}};
+const priorityOrder = {{priority_order_json}};
+const priorityEmoji = {{priority_emojis_json}};
+const priAlt = priorities.join("|");
+const priRe = new RegExp(`#${TAG_PRIORITY}/(${priAlt})`);
+
+function priorityLabel(key) {
+  const em = priorityEmoji[key] || "";
+  const name = key.charAt(0).toUpperCase() + key.slice(1);
+  return em ? `${em} ${name}` : name;
+}
+
+if (!goalsFile) {
+  dv.paragraph("{{goals_not_found}}")
+} else {
+  const tasks = goalsFile.file.tasks || [];
+  const statsByKey = {};
+  priorities.forEach(p => { statsByKey[p] = { total: 0, completed: 0 }; });
+
+  tasks.forEach(task => {
+    const match = (task.text || "").match(priRe);
+    if (!match) return;
+    const key = match[1];
+    if (!statsByKey[key]) return;
+    statsByKey[key].total++;
+    if (task.completed) statsByKey[key].completed++;
+  });
+
+  const rows = priorities
+    .filter(p => statsByKey[p] && statsByKey[p].total > 0)
+    .sort((a, b) => (priorityOrder[a] || 99) - (priorityOrder[b] || 99))
+    .map(p => {
+      const stats = statsByKey[p];
+      const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0;
+      const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10));
+      return [priorityLabel(p), `${stats.completed}/${stats.total}`, `${bar} ${progress}%`];
+    });
+
+  if (rows.length > 0) {
+    dv.table(["{{table_priority}}", "{{table_goals}}", "{{table_progress}}"], rows);
+  } else {
+    dv.paragraph("{{no_goals_priorities}}");
+  }
+}
+```

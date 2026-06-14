@@ -12,8 +12,9 @@ def mermaid_pie(labels_values: list[tuple[str, float]], title: str) -> str:
     # Do not use showData: Obsidian/Mermaid adds raw values in [...],
     # we already print readable amounts/percentages in the label.
     lines = [f'pie\n    title {title}']
+    fallback = dmsg("charts", "other_slice", default=dmsg("charts", "no_data"))
     for label, val in labels_values:
-        safe_label = label.replace('"', "'")[:60]
+        safe_label = (str(label).strip() or fallback).replace('"', "'")[:60]
         lines.append(f'    "{safe_label}" : {max(0, round(val, 2))}')
     return "\n".join(lines)
 

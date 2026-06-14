@@ -35,6 +35,10 @@ strings:
   no_mapped_tasks: "📭 No tasks linked to goals."
   goals_mapping_heading: "### Goal progress (task mapping)"
   category_progress_heading: "### Progress by category"
+  category_progress_year_heading: "## 📈 Progress by category (year)"
+  goals_priorities_heading: "## 📊 Goals by priority"
+  no_goals_priorities: "No goals with priority tags"
+  progress_year_footer: "_Year overview. Details: [[{{main_dashboard}}|Main dashboard]]._"
   no_categorized_tasks: "No tasks with categories"
   label_no_category: "uncategorized"
   label_no_priority: "no priority"
@@ -44,6 +48,7 @@ strings:
   table_goal: "Goal"
   table_tasks: "Tasks"
   table_category: "Category"
+  table_priority: "Priority"
   quarter_names:
     Q1: "Q1 {year} (January - March)"
     Q2: "Q2 {year} (April - June)"
@@ -69,6 +74,14 @@ dashboards:
       - category_progress
       - finance_embed
       - footer
+
+  progress_year:
+    file_key: progress_year_dashboard_md
+    blocks:
+      - category_progress_year
+      - goals_quarter_progress
+      - goals_priorities
+      - progress_year_footer
 
 blocks:
   preamble:
@@ -127,6 +140,16 @@ blocks:
     modules: [planning]
   category_progress:
     template: category_progress.md.template
+    modules: [planning]
+  category_progress_year:
+    template: category_progress.md.template
+    modules: [planning]
+    category_heading_key: category_progress_year_heading
+  goals_priorities:
+    template: goals_priorities.md.template
+    modules: [planning]
+  progress_year_footer:
+    template: progress_year_footer.md.template
     modules: [planning]
   finance_embed:
     template: finance_embed.md.template

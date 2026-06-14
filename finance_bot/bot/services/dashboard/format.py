@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Optional
 
 from bot.dashboard_templates import dtpl
-from shared.domain_messages import dmsg
 
 
 def fmt_num(n: float, *, decimals: int = 0) -> str:
@@ -26,7 +25,11 @@ def pie_with_pct(values_by_label: dict, *, limit: int = 10) -> list[tuple[str, f
     """Return [(label_with_pct, value)] with percentage in label."""
     if not values_by_label:
         return []
-    items = [(str(k), float(v)) for k, v in values_by_label.items() if float(v) > 0]
+    items = [
+        (str(k).strip() or dtpl("misc", "other_category"), float(v))
+        for k, v in values_by_label.items()
+        if float(v) > 0
+    ]
     if not items:
         return []
     items.sort(key=lambda x: -x[1])
@@ -44,14 +47,10 @@ def pie_with_pct(values_by_label: dict, *, limit: int = 10) -> list[tuple[str, f
         other_val = sum(v for _, v in tail)
         other_pct = other_val / total * 100.0
         # Not the misc category name — rolled-up tail below top-N
+        other_label = dtpl("misc", "rest_category")
         out.append(
             (
-                dmsg(
-                    "finance",
-                    "pie_other_categories",
-                    amount=fmt_num(other_val, decimals=0),
-                    pct=other_pct,
-                ),
+                f"{other_label} — {fmt_num(other_val, decimals=0)} ({other_pct:.1f}%)",
                 other_val,
             )
         )
