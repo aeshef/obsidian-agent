@@ -152,7 +152,7 @@ def run_context_sync() -> bool:
         n_del = n_root + n_mac + n_old
         if n_del:
             print(
-                pdmsg("auto_8e44dcce79", n_del={n_del}, n_root={n_root}, n_mac={n_mac}, n_old={n_old}),
+                pdmsg("auto_8e44dcce79", n_del=n_del, n_root=n_root, n_mac=n_mac, n_old=n_old),
                 flush=True,
             )
 

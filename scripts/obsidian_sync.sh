@@ -588,7 +588,8 @@ if cap_module_enabled PLANNING && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] || [ ! -f "
     echo "$(sh_msg scripts.obsidian_sync.step_5b_1)" >&2
     export LOCAL_VAULT
     export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && python3 scripts/build_system_audit_report.py --vault "$LOCAL_VAULT" >> logs/system_audit.log 2>&1; then
+    _sys_audit_py="${CHART_PYTHON:-${PLAN_PYTHON:-python3}}"
+    if cd "$PLANNING_BOT" && common_run_python_script "$_sys_audit_py" scripts/build_system_audit_report.py --vault "$LOCAL_VAULT" >> logs/system_audit.log 2>&1; then
       echo "$TODAY" > "$SYS_AUDIT_MARKER"
     fi
   fi
@@ -626,14 +627,11 @@ if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}"
         # Иначе следующий шаг 1 (pull 700_) вернёт файлы, которые остались только на сервере (rsync без --delete).
         if [ "${SKIP_SERVER_DUPLICATE_APPLY:-0}" != "1" ]; then
           echo "$(sh_msgf scripts.obsidian_sync.step_5b_2b '{"server":"'$SERVER'","vault":"'$SERVER_VAULT'"}')" >&2
-          # shellcheck disable=SC2090
-          _5b_2b_no_kb="$(sh_msg scripts.obsidian_sync.step_5b_2b_no_knowledge)"
           ssh "${SSH_OPTS[@]}" "$SERVER" env \
             VAULT_PATH="$SERVER_VAULT" \
             SERVER_BOTS="$SERVER_BOTS" \
             REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" \
             PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" \
-            REMOTE_DUP_ERR_MSG="$_5b_2b_no_kb" \
             bash -s \
             >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || { echo "$(sh_msg scripts.obsidian_sync.step_5b_2b_fail)" >&2; SYNC_OK=0; }
 set -euo pipefail
@@ -642,7 +640,7 @@ export VAULT_PATH
 source "${SERVER_BOTS:?}/scripts/lib/remote_knowledge_env.sh"
 remote_load_agent_env
 KB="$(remote_resolve_knowledge_bot)" || {
-  echo "${REMOTE_DUP_ERR_MSG:-knowledge_bot not found}" >&2
+  echo "knowledge_bot tools missing (REMOTE_KNOWLEDGE_BOT or deploy)" >&2
   exit 1
 }
 cd "${KB}"
