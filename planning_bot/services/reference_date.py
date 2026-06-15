@@ -21,6 +21,21 @@ def reference_today_iso() -> str:
     return reference_today().isoformat()
 
 
+def format_reference_today_label() -> str:
+    """Locale weekday + ISO date for agent prompts (MSK/TIMEZONE anchor)."""
+    today = reference_today()
+    weekday = today.strftime("%A")
+    try:
+        from planning_bot.core.llm_context import lctx
+
+        names = [n.strip() for n in lctx("weekday_names").strip().split("|") if n.strip()]
+        if len(names) > today.weekday():
+            weekday = names[today.weekday()]
+    except Exception:
+        pass
+    return f"{today.isoformat()} ({weekday})"
+
+
 def resolve_calendar_day_from_text(text: str, *, today: date | None = None) -> date | None:
     'Operation implementation.'
     from shared.parsing.relative_calendar import resolve_calendar_day_from_text as _resolve

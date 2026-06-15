@@ -159,6 +159,14 @@ def format_snapshot_provenance(
         lines.append(pdmsg("auto_ae400127c8", _p1=health_day.isoformat()))
     if captured_at:
         lines.append(f"  captured_at: {captured_at.isoformat(timespec='minutes')}")
+    if health_day and health_day != as_of:
+        lines.append(
+            pdmsg(
+                "agent_mac_context_content_day_note",
+                content_day=health_day.isoformat(),
+                as_of=as_of.isoformat(),
+            )
+        )
     lines.append(f"  as_of_today: {as_of.isoformat()}")
     if note:
         lines.append(f"  note: {note}")

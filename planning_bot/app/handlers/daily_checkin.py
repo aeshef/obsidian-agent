@@ -210,7 +210,12 @@ async def handle_checkin_callback(callback: CallbackQuery, state: FSMContext) ->
     action = parts[1] if len(parts) > 1 else ""
 
     if action == "go":
-        await _begin_checkin(callback.message, state)
+        offer_day = parse_close_date(parts[2]) if len(parts) >= 3 else None
+        await _begin_checkin(
+            callback.message,
+            state,
+            close_date=offer_day if offer_day else None,
+        )
         return
 
     if action == "gd" and len(parts) >= 3:
@@ -227,7 +232,8 @@ async def handle_checkin_callback(callback: CallbackQuery, state: FSMContext) ->
         return
 
     if action == "skip":
-        mark_completed(ritual_day_date())
+        day = parse_close_date(parts[2]) if len(parts) >= 3 else ritual_day_date()
+        mark_completed(day)
         await state.clear()
         await callback.message.edit_text(pmsg("checkin_skipped_today"))
         await callback.answer()

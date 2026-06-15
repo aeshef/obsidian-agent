@@ -125,6 +125,7 @@ def offer_keyboard() -> InlineKeyboardMarkup:
     from planning_bot.services.ritual_day import calendar_day_date, ritual_day_active, ritual_day_date
 
     ritual = ritual_day_date()
+    ritual_cb = ritual
     rows: list[list[InlineKeyboardButton]] = []
     if ritual_day_active():
         cal = calendar_day_date()
@@ -132,7 +133,7 @@ def offer_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_start_date", date=ritual),
-                    callback_data="chk:go",
+                    callback_data=f"chk:go:{ritual_cb}",
                 ),
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_start_calendar", date=cal),
@@ -144,7 +145,7 @@ def offer_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_later"),
-                    callback_data="chk:snooze",
+                    callback_data=f"chk:snooze:{ritual_cb}",
                 ),
             ]
         )
@@ -153,11 +154,11 @@ def offer_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_start"),
-                    callback_data="chk:go",
+                    callback_data=f"chk:go:{ritual_cb}",
                 ),
                 InlineKeyboardButton(
                     text=pmsg("checkin_btn_later"),
-                    callback_data="chk:snooze",
+                    callback_data=f"chk:snooze:{ritual_cb}",
                 ),
             ]
         )
@@ -165,7 +166,7 @@ def offer_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(
                 text=pmsg("checkin_btn_skip_today"),
-                callback_data="chk:skip",
+                callback_data=f"chk:skip:{ritual_cb}",
             ),
         ]
     )

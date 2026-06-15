@@ -11,6 +11,7 @@ from planning_bot.services.context_parser import (
     is_valid_mac_snapshot,
     load_chat_snapshot_from_json,
     mac_snapshot_score,
+    snap_local_date,
 )
 from planning_bot.services.reference_date import reference_today
 from planning_bot.services.snapshot_query import (
@@ -170,17 +171,16 @@ def format_mac_snapshots(
 
 def format_mac_snapshot(day: str = "", *, as_of: Optional[date] = None) -> str:
     ref = as_of or reference_today()
-    target = parse_date_param(day, ref=ref)
+    target = parse_date_param(day, ref=ref) if (day or "").strip() else ref
 
     snap = None
-    health_day = target
+    health_day: Optional[date] = target
     mac_kw = dict(is_valid=is_valid_mac_snapshot, score_fn=mac_snapshot_score)
-    if target is None:
-        snap = load_chat_snapshot_from_json(CONTEXT_TODAY_JSON)
-        if not snap:
-            snaps = _load_mac_snaps(max_days=3)
-            snap, health_day = resolve_snapshot_for_day(snaps, None, **mac_kw)
-    else:
+    if target == ref:
+        snap = load_chat_snapshot_from_json(CONTEXT_TODAY_JSON, as_of=ref)
+        if snap:
+            health_day = snap_local_date(snap) or ref
+    if not snap:
         snaps = _load_mac_snaps(max_days=max(30, abs((ref - target).days) + 7))
         snap, health_day = resolve_snapshot_for_day(snaps, target, **mac_kw)
 

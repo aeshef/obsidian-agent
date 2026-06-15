@@ -79,3 +79,31 @@ def test_checkin_state_uses_ritual_day(monkeypatch, tmp_path):
     mark_completed("2026-06-13")
     assert completed_for_today()
     assert not should_send_scheduled_prompt()
+
+
+def test_checkin_state_early_close_still_gets_evening_prompt(monkeypatch, tmp_path):
+    """Manual close before 23:45 offer should not block scheduled evening prompt."""
+    monkeypatch.setenv("AGENT_LOCALE", "en")
+    monkeypatch.setenv("VAULT_PATH", str(tmp_path))
+    tz = ZoneInfo("Europe/Moscow")
+    fixed = datetime(2026, 6, 14, 23, 45, tzinfo=timezone.utc).astimezone(tz)
+
+    class _FixedDatetime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            if tz is not None:
+                return fixed.astimezone(tz)
+            return fixed
+
+    from planning_bot.services.daily_checkin_config import load_daily_checkin_config
+
+    load_daily_checkin_config.cache_clear()
+    monkeypatch.setattr("planning_bot.services.ritual_day.datetime", _FixedDatetime)
+    monkeypatch.setattr("planning_bot.services.ritual_day.get_tz", lambda: tz)
+    monkeypatch.setattr("planning_bot.services.checkin_state.datetime", _FixedDatetime)
+    monkeypatch.setattr("planning_bot.services.checkin_state.get_tz", lambda: tz)
+
+    from planning_bot.services.checkin_state import mark_completed, should_send_scheduled_prompt
+
+    mark_completed("2026-06-14")
+    assert should_send_scheduled_prompt()

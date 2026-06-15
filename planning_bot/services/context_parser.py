@@ -4,8 +4,10 @@ from planning_bot.core.pdmsg import pdmsg
 import re
 from datetime import date, datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
+
+from planning_bot.services.reference_date import reference_today
 
 # (comment)
 # (comment)
@@ -148,31 +150,58 @@ def get_snapshots(mac_dir: Path, days: int = 7, logging_window_only: bool = Fals
     return snaps
 
 
+def snap_local_date(snap: Dict) -> Optional[date]:
+    try:
+        return datetime.fromisoformat(str(snap.get("ts", ""))).date()
+    except (TypeError, ValueError, KeyError):
+        return None
+
+
 def get_today_snapshot(mac_dir: Path, logging_window_only: bool = True) -> Optional[Dict]:
     'Operation implementation.'
-    today = date.today().isoformat()
+    ref = reference_today()
+    allowed = {ref, ref - timedelta(days=1)}
     snaps = [
         s
-        for s in get_snapshots(mac_dir, days=1, logging_window_only=logging_window_only)
-        if s.get("ts", "").startswith(today)
+        for s in get_snapshots(mac_dir, days=2, logging_window_only=logging_window_only)
+        if (d := snap_local_date(s)) is not None and d in allowed
     ]
+    same_day = [s for s in snaps if snap_local_date(s) == ref]
+    if same_day:
+        return same_day[-1]
     return snaps[-1] if snaps else None
 
 
-def load_chat_snapshot_from_json(json_path: Path) -> Optional[Dict]:
-    'Operation implementation.'
+def load_chat_snapshot_from_json(
+    json_path: Path,
+    *,
+    as_of: date | None = None,
+    allow_yesterday: bool = True,
+) -> Optional[Dict]:
+    """Latest snapshot for as_of from JSON today block; never falls back to stale recent."""
     if not json_path.exists():
         return None
+    ref = as_of or reference_today()
+    allowed = {ref}
+    if allow_yesterday:
+        allowed.add(ref - timedelta(days=1))
     try:
         import json
 
         data = json.loads(json_path.read_text(encoding="utf-8"))
-        today = data.get("today") or []
-        recent = data.get("recent") or []
-        if today:
-            return today[-1]
-        if recent:
-            return recent[-1]
+        candidates: List[Tuple[date, Dict]] = []
+        for snap in data.get("today") or []:
+            day = snap_local_date(snap)
+            if day is not None and day in allowed:
+                candidates.append((day, snap))
+        if not candidates:
+            return None
+        same_day = [s for d, s in candidates if d == ref]
+        if same_day:
+            return same_day[-1]
+        yday = ref - timedelta(days=1)
+        yday_snaps = [s for d, s in candidates if d == yday]
+        return yday_snaps[-1] if yday_snaps else None
     except Exception:
         pass
     return None

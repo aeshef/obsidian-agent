@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import sys
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -19,8 +19,10 @@ from planning_bot.core.config import CONTEXT_MAC_DIR, CONTEXT_TODAY_JSON, CONTEX
 from planning_bot.services.context_parser import (
     filter_logging_window,
     get_snapshots,
+    snap_local_date,
     week_aggregates,
 )
+from planning_bot.services.reference_date import reference_now, reference_today
 
 from planning_bot.services.iphone_snapshot_names import (
     is_canonical_filename,
@@ -158,13 +160,21 @@ def run_context_sync() -> bool:
 
         snaps_week_raw = get_snapshots(CONTEXT_MAC_DIR, days=7, logging_window_only=False)
         snaps_week = filter_logging_window(snaps_week_raw)
-        today_str = date.today().isoformat()
-        snaps_today = [s for s in snaps_week if s.get("ts", "").startswith(today_str)]
+        ref = reference_today()
+        yday = ref - timedelta(days=1)
+        snaps_today = [
+            s
+            for s in snaps_week
+            if (sd := snap_local_date(s)) is not None and sd in (ref, yday)
+        ]
 
         CONTEXT_TODAY_JSON.parent.mkdir(parents=True, exist_ok=True)
         payload_today = {
             "meta": {
-                "updated_at": datetime.now().isoformat(timespec="seconds"),
+                "updated_at": reference_now().isoformat(timespec="seconds"),
+                "anchor_date": ref.isoformat(),
+                "local_dates_included": [ref.isoformat(), yday.isoformat()],
+                "note": pdmsg("auto_4d250494e9"),
                 "logging_window_hours": "10:00–02:00",
                 "snaps_today_in_window": len(snaps_today),
                 "snaps_week_in_window": len(snaps_week),
@@ -181,7 +191,7 @@ def run_context_sync() -> bool:
         agg = week_aggregates(snaps_week)
         payload_week = {
             "meta": {
-                "updated_at": datetime.now().isoformat(timespec="seconds"),
+                "updated_at": reference_now().isoformat(timespec="seconds"),
                 "logging_window_hours": "10:00–02:00",
                 "ttl_days": CONTEXT_TTL_DAYS,
                 **{k: v for k, v in agg.items() if k != "count"},

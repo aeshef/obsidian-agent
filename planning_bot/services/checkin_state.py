@@ -62,9 +62,12 @@ def mark_snooze(minutes: int) -> None:
 
 
 def should_send_scheduled_prompt() -> bool:
-    if completed_for_today():
-        return False
+    ritual = _active_ritual_day()
     data = _load()
+    if data.get("completed_date") == ritual:
+        # Evening offer not sent yet (early manual close / stale skip on wrong day).
+        if data.get("last_prompt_date") == ritual:
+            return False
     snooze = data.get("snooze_until")
     if not snooze:
         return True

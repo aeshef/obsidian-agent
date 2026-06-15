@@ -591,9 +591,12 @@ class PlanningAdapter(DomainAdapter):
             context_hint = load_prompt(
                 prompts_dir, "context_tools", subdir="prompts", required=False
             )
+        from planning_bot.services.reference_date import format_reference_today_label
+
         now = reference_now()
-        date_hint = (
-            pdmsg("agent_system_prompt_today", today=now.strftime("%Y-%m-%d (%A)"))
+        date_hint = pdmsg(
+            "agent_system_prompt_today",
+            today=format_reference_today_label(),
         )
         tools_hint = (
             pdmsg("agent_system_prompt_tools")
