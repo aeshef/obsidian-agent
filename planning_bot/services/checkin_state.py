@@ -61,13 +61,34 @@ def mark_snooze(minutes: int) -> None:
     _save(data)
 
 
+def _scheduled_prompt_due(ritual: str) -> bool:
+    from planning_bot.services.daily_checkin_config import checkin_schedule
+
+    try:
+        day = datetime.fromisoformat(ritual).date()
+    except ValueError:
+        return True
+    hour, minute = checkin_schedule()
+    tz = get_tz()
+    scheduled = datetime(
+        day.year,
+        day.month,
+        day.day,
+        max(0, min(23, int(hour))),
+        max(0, min(59, int(minute))),
+        tzinfo=tz,
+    )
+    now = datetime.now(timezone.utc).astimezone(tz)
+    return now >= scheduled
+
+
 def should_send_scheduled_prompt() -> bool:
     ritual = _active_ritual_day()
     data = _load()
     if data.get("completed_date") == ritual:
-        # Evening offer not sent yet (early manual close / stale skip on wrong day).
-        if data.get("last_prompt_date") == ritual:
-            return False
+        if data.get("last_prompt_date") != ritual and not _scheduled_prompt_due(ritual):
+            return True
+        return False
     snooze = data.get("snooze_until")
     if not snooze:
         return True

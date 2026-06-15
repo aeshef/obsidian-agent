@@ -86,7 +86,7 @@ def test_checkin_state_early_close_still_gets_evening_prompt(monkeypatch, tmp_pa
     monkeypatch.setenv("AGENT_LOCALE", "en")
     monkeypatch.setenv("VAULT_PATH", str(tmp_path))
     tz = ZoneInfo("Europe/Moscow")
-    fixed = datetime(2026, 6, 14, 23, 45, tzinfo=timezone.utc).astimezone(tz)
+    fixed = datetime(2026, 6, 14, 20, 30, tzinfo=timezone.utc).astimezone(tz)
 
     class _FixedDatetime(datetime):
         @classmethod
