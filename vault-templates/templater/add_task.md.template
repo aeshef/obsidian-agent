@@ -53,8 +53,8 @@ try {
   }
 
   const taskLine = `- [ ] ${title.trim()}`;
-  const taskMeta = `{{task_meta_js}}`.replace("{category}", category).replace("{priority}", priority) + deadlineTag;
-  const taskDate = `{{task_created_js}}`.replace("{created_date}", createdDate);
+  const taskMeta = {{task_meta_js}}.replace("{category}", category).replace("{priority}", priority) + deadlineTag;
+  const taskDate = {{task_created_js}}.replace("{created_date}", createdDate);
   const newTask = `${taskLine}\n${taskMeta}\n${taskDate}`;
 
   const kanbanPath = "{{kanban_page}}";

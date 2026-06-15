@@ -3,10 +3,20 @@
 ```dataviewjs
 const TAG_GOAL = "{{tag_goal}}";
 const mappingFilePath = "{{mapping_path}}"
-const kanbanFile = dv.page("{{kanban_page}}")
+const kanbanPages = ["{{kanban_page}}"]
+  .concat("{{kanban_archive_page}}" ? ["{{kanban_archive_page}}"] : [])
+  .filter(Boolean);
 const priorityEmoji = {{priority_emojis_json}};
 
-if (!kanbanFile) {
+const allTasks = [];
+for (const pagePath of kanbanPages) {
+  const page = dv.page(pagePath);
+  if (page && page.file.tasks) {
+    allTasks.push(...page.file.tasks);
+  }
+}
+
+if (kanbanPages.length === 0 || (allTasks.length === 0 && !dv.page(kanbanPages[0]))) {
   dv.paragraph("{{kanban_not_found}}")
 } else {
   try {
@@ -17,7 +27,6 @@ if (!kanbanFile) {
     }
     const mappingData = JSON.parse(mappingFileContent)
     const readableMapping = mappingData.readable_mapping || {}
-    const allTasks = kanbanFile.file.tasks || []
     const tasksById = {}
     const tasksByTitle = {}
 

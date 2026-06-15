@@ -72,3 +72,5 @@ def test_install_obsidian_assets_copies_clones_and_add_task(tmp_path, monkeypatc
     text = add_task.read_text(encoding="utf-8")
     assert "100_Tasks/Task_Board.md" in text
     assert "#goal/" in text or "goal" in text
+    assert "const taskMeta = `\"" not in text
+    assert 'const taskMeta = "' in text
