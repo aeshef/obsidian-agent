@@ -28,7 +28,11 @@ def normalize_export_ref(raw_ref: str) -> str:
     ref = (raw_ref or "").strip().replace("\\", "/").lstrip("/")
     if not ref:
         return ""
-    for prefix in ("700_База_Данных/Export/", "Export/"):
+    try:
+        db_export_prefix = f"{knowledge_subdir().strip('/')}/Export/"
+    except Exception:
+        db_export_prefix = ""
+    for prefix in (db_export_prefix, "Export/"):
         if ref.startswith(prefix):
             ref = ref[len(prefix) :]
     if "Export/" in ref:

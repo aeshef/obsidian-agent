@@ -11,8 +11,7 @@ import yaml
 
 _DELETED_NOTE_RE = re.compile(r"^DELETED_NOTE:\s*(\S+)\s+(.+)\s*$")
 _DELETED_ORIGINAL_RE = re.compile(r"^DELETED_ORIGINAL:\s*(.+)\s*$")
-_DELETED_LINE_RE = re.compile(r"^\s*удалён:\s*(.+?)(?:\s+#.*)?\s*$")
-_EXPORT_SECTION_RE = re.compile(r"^---\s*Сиротские Export")
+_EXPORT_SECTION_RE = re.compile(r"^---\s*.*Export")
 
 from knowledge_bot.core.config import load_config
 from knowledge_bot.services.reprocess_candidates import (
@@ -37,7 +36,7 @@ LEGACY_MAINTENANCE_CHART_NAME = "vault_maintenance_dynamics.png"
 
 
 def cleanup_legacy_maintenance_chart(vault: Path) -> bool:
-    """Remove flat charts-root PNG superseded by Хранилище/… path."""
+    """Remove flat charts-root PNG superseded by the localized maintenance chart path."""
     from shared.chart_paths import charts_root
 
     legacy = charts_root(vault) / LEGACY_MAINTENANCE_CHART_NAME
@@ -205,11 +204,18 @@ def _is_note_path(path: str) -> bool:
     return path.strip().lower().endswith(".md")
 
 
+def _deleted_line_re() -> re.Pattern[str]:
+    from knowledge_bot.i18n.domain_text import maintenance as mm
+
+    return re.compile(rf"{mm('regex_deleted_line')}\s*(.+?)(?:\s+#.*)?\s*$")
+
+
 def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[str, str]]:
     """Parse deleted vault-relative paths from maintenance step stdout."""
     if not stdout:
         return []
     out: list[dict[str, str]] = []
+    deleted_line_re = _deleted_line_re()
     if step_name == "reprocess_notes":
         for m in _DELETED_NOTE_RE.finditer(stdout, re.MULTILINE):
             out.append({"path": m.group(2).strip(), "reason": m.group(1).strip()})
@@ -218,7 +224,7 @@ def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[
         return out
     if step_name == "export_orphans":
         for line in stdout.splitlines():
-            m = _DELETED_LINE_RE.match(line)
+            m = deleted_line_re.match(line)
             if not m:
                 continue
             path = m.group(1).strip()
@@ -232,7 +238,7 @@ def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[
         if _EXPORT_SECTION_RE.match(line.strip()):
             in_export = True
             continue
-        m = _DELETED_LINE_RE.match(line)
+        m = deleted_line_re.match(line)
         if not m:
             continue
         path = m.group(1).strip()

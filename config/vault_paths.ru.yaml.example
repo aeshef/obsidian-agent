@@ -77,6 +77,7 @@ files:
   templater_add_task_md: "Добавить_Задачу.md"
   health_dashboard_md: "🏥 Здоровье.md"
   nutrition_dashboard_md: "🏥 Здоровье.md"
+  legacy_nutrition_dashboard_md: "🥗 Питание_КБЖУ.md"
   system_audit_report_md: "Аудит_системы_отчет.md"
   vault_audit_report_md: "Аудит_хранилища_отчет.md"
   reflection_weekly_file: "Рефлексия_{date}.md"

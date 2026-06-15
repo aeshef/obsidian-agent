@@ -77,6 +77,7 @@ files:
   templater_add_task_md: "Add_Task.md"
   health_dashboard_md: "🏥 Health.md"
   nutrition_dashboard_md: "🏥 Health.md"
+  legacy_nutrition_dashboard_md: "🥗 Nutrition_Macros.md"
   system_audit_report_md: "System_audit_report.md"
   vault_audit_report_md: "Vault_audit_report.md"
   reflection_weekly_file: "Reflection_{date}.md"
