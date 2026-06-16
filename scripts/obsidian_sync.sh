@@ -13,8 +13,14 @@ fi
 
 # Лог каждого запуска в /tmp (доступно и из launchd) — смотреть: tail -f /tmp/obsidian_sync_debug.log
 DEBUG_LOG="/tmp/obsidian_sync_debug.log"
-echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || true
 SYNC_OK=1
+SYNC_FAIL_STEP=""
+
+_sync_fail() {
+  SYNC_OK=0
+  SYNC_FAIL_STEP="${1:-unknown}"
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ FAIL step=${SYNC_FAIL_STEP}" >> "$DEBUG_LOG" 2>/dev/null || true
+}
 
 # Без set -e: ошибка одной папки не останавливает синк остальных
 # Путь к vault: из env или по расположению скрипта (чтобы LaunchAgent работал и для ~/Obsidian Vault после миграции без правки plist)
@@ -108,6 +114,14 @@ if ! ( echo 1 > "$SYNC_DIR/.write_test" 2>/dev/null ); then
   mkdir -p "$SYNC_DIR"
 fi
 rm -f "$SYNC_DIR/.write_test" 2>/dev/null
+# Один экземпляр sync за раз (два LaunchAgent/plist → гонка и ложные critical fail).
+SYNC_LOCK="$SYNC_DIR/obsidian_sync.lock"
+if ! mkdir "$SYNC_LOCK" 2>/dev/null; then
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP lock held ($SYNC_LOCK)" >> "$DEBUG_LOG" 2>/dev/null || true
+  exit 0
+fi
+trap 'rmdir "$SYNC_LOCK" 2>/dev/null || true' EXIT INT TERM
+echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || true
 # LaunchAgent без FDA не может писать в ~/Documents — не крутим rsync впустую
 if [[ "$SYNC_DIR" == "$HOME/.sync/obsidian"* ]] && [[ "$LOCAL_VAULT" == *"/Documents/"* ]]; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ $(sh_msg scripts.obsidian_sync.skip_no_documents)" >> "$DEBUG_LOG" 2>/dev/null || true
@@ -163,6 +177,18 @@ PY_CLEANUP_REMOTE
        fi
      done" >> "$maintenance_log" 2>&1 \
     || echo "$(sh_msg scripts.obsidian_sync.step_5b_2c_fail)" >&2
+}
+
+_kb_cleanup_legacy_charts() {
+  local tag="${1:-kb-chart-cleanup}"
+  if cap_module_enabled KNOWLEDGE && [ -d "${AGENT_ROOT}/knowledge_bot" ]; then
+    export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+    (cd "$AGENT_ROOT" && PYTHONUNBUFFERED=1 ./scripts/oa-python.sh -c "
+from knowledge_bot.services.chart_layout import cleanup_legacy_vault_charts
+for line in cleanup_legacy_vault_charts():
+    print('[${tag}]', line)
+" ) >> "${AGENT_ROOT}/knowledge_bot/logs/chart_layout.log" 2>&1 || true
+  fi
 }
 
 # Если прошлый maintenance удалил Export/дубли, повторяем удаление на VPS до первого pull:
@@ -302,8 +328,10 @@ if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PL
   touch "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT" SYNC_STATE_DIR="$SYNC_DIR"
   export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 python3 -u tools/rename_action_snapshots.py --target both --apply --vault "$LOCAL_VAULT" --sync-dir "$SYNC_DIR") \
+  _rename_py="${PLAN_PYTHON:-${CHART_PYTHON:-python3}}"
+  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 common_run_python_script "$_rename_py" "$_PLANNING_BOT/tools/rename_action_snapshots.py" --target both --apply --vault "$LOCAL_VAULT" --sync-dir "$SYNC_DIR") \
     >> "$_PLANNING_BOT/logs/action_snapshot_rename.log" 2>&1 || true
+  unset _rename_py
   _ACTION_RENAME_MANIFEST="$SYNC_DIR/action_snapshot_renames.json"
   if [ ! -f "$_ACTION_RENAME_MANIFEST" ]; then
     _ACTION_RENAME_MANIFEST="$SYNC_DIR/iphone_snapshot_renames.json"
@@ -364,6 +392,7 @@ PUSH_EXCLUDE_300=(
   --exclude='goals_task_mapping.json'
   --exclude="/${VAULT_FILE_ACTION_LOG_PREFIX}*.md"
   --exclude="${VAULT_DASH_CHARTS}/${VAULT_FIN_CHART_DAILY_CATEGORIES_PNG}"
+  --exclude="${VAULT_DASH_CHARTS}/${VAULT_LEGACY_MAINTENANCE_CHART_PNG}"
   --exclude="${VAULT_DASH_DATA}/finance.db"
   --exclude="${VAULT_DASH_DATA}/finance.db-*"
 )
@@ -432,7 +461,7 @@ fi
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
 if cap_module_enabled PLANNING; then
   echo "$(sh_msg scripts.obsidian_sync.step_3)" >&2
-  ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "$(sh_msgf scripts.obsidian_sync.step_3_fail '{"log_path":"'${SERVER_BOTS}/planning_bot/logs/maintenance.log'"}')" >&2; SYNC_OK=0; }
+  ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "$(sh_msgf scripts.obsidian_sync.step_3_fail '{"log_path":"'${SERVER_BOTS}/planning_bot/logs/maintenance.log'"}')" >&2; _sync_fail "3-server-maintenance"; }
 fi
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance.
@@ -545,7 +574,7 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
       echo "$TODAY" > "$MARKER"
     else
       echo "$(sh_msg scripts.obsidian_sync.step_5_charts_fail)" >&2
-      SYNC_OK=0
+      _sync_fail "5-planning-charts"
     fi
   fi
 fi
@@ -578,7 +607,7 @@ if [ "$_SHOULD_CAL" = "1" ]; then
       echo "$TODAY" > "$CAL_MARKER"
     else
       echo "$(sh_msg scripts.obsidian_sync.step_5c_fail)" >&2
-      SYNC_OK=0
+      _sync_fail "5c-calendar-charts"
     fi
   fi
 fi
@@ -692,15 +721,15 @@ if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}"
         # Иначе следующий шаг 1 (pull 700_) вернёт файлы, которые остались только на сервере (rsync без --delete).
         if [ "${SKIP_SERVER_DUPLICATE_APPLY:-0}" != "1" ]; then
           echo "$(sh_msgf scripts.obsidian_sync.step_5b_2b '{"server":"'$SERVER'","vault":"'$SERVER_VAULT'"}')" >&2
-          ssh "${SSH_OPTS[@]}" "$SERVER" env \
+          ssh "${SSH_OPTS[@]}" "$SERVER" \
             VAULT_PATH="$SERVER_VAULT" \
             SERVER_BOTS="$SERVER_BOTS" \
             REMOTE_KNOWLEDGE_BOT="${REMOTE_KNOWLEDGE_BOT:-}" \
             PLANNING_BOT_REMOTE_PYTHON="${PLANNING_BOT_REMOTE_PYTHON:-}" \
             bash -s \
-            >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || { echo "$(sh_msg scripts.obsidian_sync.step_5b_2b_fail)" >&2; SYNC_OK=0; }
+            >>"$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 <<'REMOTE_DUP' || { echo "$(sh_msg scripts.obsidian_sync.step_5b_2b_fail)" >&2; _sync_fail "5b.2b-remote-duplicates"; }
 set -euo pipefail
-export VAULT_PATH
+export VAULT_PATH SERVER_BOTS REMOTE_KNOWLEDGE_BOT PLANNING_BOT_REMOTE_PYTHON
 # shellcheck source=scripts/lib/remote_knowledge_env.sh
 source "${SERVER_BOTS:?}/scripts/lib/remote_knowledge_env.sh"
 remote_load_agent_env
@@ -803,6 +832,10 @@ if cap_step_enabled SYNC_VAULT_AUDIT_HEAVY && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ]
   fi
 fi
 unset _kn_skip_today
+
+# После maintenance/audit: render_maintenance_charts пишет в localized path и удаляет legacy,
+# но старый flat PNG мог остаться на диске или вернуться с VPS до push-exclude — финальная зачистка.
+_kb_cleanup_legacy_charts "5b-kb"
 
 # 5b.post Mac → VPS: аудит-отчёты (после 5b; шаг 2 был до генерации). Pull их не берём (EXCLUDE_300).
 _audit_sys="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_FILE_AUDIT_SYSTEM}"
@@ -1071,7 +1104,7 @@ else
   WROTE=0
   echo "$NOW_ISO critical steps failed (see $DEBUG_LOG)" > "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
   READ_BACK="$(head -1 "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null)"
-  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ WARN critical sync steps failed; last_sync_ok not updated (prev=$READ_BACK)" >> "$DEBUG_LOG" 2>/dev/null || true
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ WARN critical sync steps failed; step=${SYNC_FAIL_STEP:-unknown}; last_sync_ok not updated (prev=$READ_BACK)" >> "$DEBUG_LOG" 2>/dev/null || true
 fi
 HEALTH_SCRIPT="${AGENT_ROOT}/scripts/check_sync_health.sh"
 if [ -x "$HEALTH_SCRIPT" ]; then

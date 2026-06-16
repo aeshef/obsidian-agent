@@ -9,7 +9,7 @@ LABEL="${LAUNCHAGENT_LABEL:-com.example.obsidian-sync}"
 PLIST_DST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 SYNC_LINK="$HOME/bin/obsidian_sync.sh"
 LAUNCH_WRAPPER="$HOME/bin/obsidian_sync_launchagent.sh"
-LEGACY_LABELS=(com.example.obsidian-sync)
+LEGACY_LABELS=(com.example.obsidian-sync com.aeshef.obsidian-sync)
 RUNTIME_ROOT="$HOME/Library/Application Support/obsidian-agent/runtime"
 RUNTIME_AGENT="$RUNTIME_ROOT/agent"
 
