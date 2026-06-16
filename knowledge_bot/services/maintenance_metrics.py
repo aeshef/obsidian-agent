@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import date, datetime
 from pathlib import Path
@@ -32,14 +33,20 @@ def charts_dir(vault: Path) -> Path:
     return chart_path(vault, "chart_maintenance_dynamics_png").parent
 
 
-LEGACY_MAINTENANCE_CHART_NAME = "vault_maintenance_dynamics.png"
+def _legacy_maintenance_chart_name() -> str:
+    from shared.vault_paths_config import vault_file
+
+    try:
+        return vault_file("legacy_chart_maintenance_dynamics_png")
+    except KeyError:
+        return "vault_maintenance_dynamics.png"
 
 
 def cleanup_legacy_maintenance_chart(vault: Path) -> bool:
     """Remove flat charts-root PNG superseded by the localized maintenance chart path."""
     from shared.chart_paths import charts_root
 
-    legacy = charts_root(vault) / LEGACY_MAINTENANCE_CHART_NAME
+    legacy = charts_root(vault) / _legacy_maintenance_chart_name()
     if legacy.is_file():
         try:
             legacy.unlink()
@@ -298,6 +305,34 @@ def write_maintenance_run_sidecar(sync_dir: Path, out: dict[str, Any]) -> None:
         json.dumps(sidecar, ensure_ascii=False, default=str, indent=2),
         encoding="utf-8",
     )
+
+
+def refresh_sidecar_from_maintenance_log(vault: Path, sync_dir: Path) -> bool:
+    """Rebuild sidecar from the latest JSON block in vault_write_maintenance.log."""
+    from knowledge_bot.services.vault_audit.report import _parse_last_maintenance_run
+
+    agent_root = Path(__file__).resolve().parent.parent.parent
+    candidates = [
+        agent_root / "planning_bot" / "logs" / "vault_write_maintenance.log",
+    ]
+    runtime_root = os.environ.get("OBSIDIAN_AGENT_RUNTIME_ROOT", "").strip()
+    if runtime_root:
+        candidates.insert(
+            0,
+            Path(runtime_root) / "agent" / "planning_bot" / "logs" / "vault_write_maintenance.log",
+        )
+    obs_root = os.environ.get("OBSIDIAN_AGENT_ROOT", "").strip()
+    if obs_root:
+        candidates.insert(
+            0,
+            Path(obs_root).expanduser() / "planning_bot" / "logs" / "vault_write_maintenance.log",
+        )
+    for lp in candidates:
+        run = _parse_last_maintenance_run(lp)
+        if run and isinstance(run, dict) and run.get("steps"):
+            write_maintenance_run_sidecar(sync_dir, run)
+            return True
+    return False
 
 
 def _merge_deleted_entries(

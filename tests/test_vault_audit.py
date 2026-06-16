@@ -40,3 +40,12 @@ def test_build_vault_audit_report_sections(mini_vault: Path) -> None:
     assert "## 1." in report or "## 1. Теги" in report
     assert "Beta.md" in report
     assert "## 3." in report or "обслуживание" in report.lower() or "maintenance" in report.lower()
+
+
+def test_default_vault_audit_report_path_not_under_charts() -> None:
+    from knowledge_bot.services.vault_audit.report import _default_report_rel
+
+    rel = _default_report_rel()
+    parts = rel.split("/")
+    assert "Графики" not in parts and "Charts" not in parts
+    assert rel.endswith(".md")

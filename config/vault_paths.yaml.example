@@ -71,6 +71,7 @@ files:
   chart_cross_tasks_spending_png: "Cross/Tasks_and_spending.png"
   chart_cross_tasks_spending_md: "Cross/Tasks_and_spending.md"
   chart_maintenance_dynamics_png: "Vault/Maintenance_Dynamics.png"
+  legacy_chart_maintenance_dynamics_png: "vault_maintenance_dynamics.png"
   main_dashboard_md: "🎯 Main_Dashboard.md"
   progress_year_dashboard_md: "📊 Progress_{year}.md"
   templater_add_task_md: "Add_Task.md"

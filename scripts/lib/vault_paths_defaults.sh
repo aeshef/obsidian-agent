@@ -55,6 +55,7 @@ vault_paths_apply_defaults() {
   : "${VAULT_FILE_CHART_DAILY_ACTIVITY:=Daily_activity.png}"
   : "${VAULT_FILE_AUDIT_SYSTEM:=System_audit_report.md}"
   : "${VAULT_FILE_AUDIT_VAULT:=Vault_audit_report.md}"
+  : "${VAULT_LEGACY_MAINTENANCE_CHART_PNG:=vault_maintenance_dynamics.png}"
   if [[ "$locale" == ru* ]]; then
     : "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:=📊 Рутины_Статистика.md}"
     : "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:=📅 Сегодня.md}"
@@ -159,6 +160,7 @@ _vault_paths_yaml_shell_fallback() {
   v="$(_vault_yaml_field files chart_nutrition_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_CHART_NUTRITION_PNG="$v"
   v="$(_vault_yaml_field files system_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_SYSTEM="$v"
   v="$(_vault_yaml_field files vault_audit_report_md "$yaml")" && [[ -n "$v" ]] && export VAULT_FILE_AUDIT_VAULT="$v"
+  v="$(_vault_yaml_field files legacy_chart_maintenance_dynamics_png "$yaml")" && [[ -n "$v" ]] && export VAULT_LEGACY_MAINTENANCE_CHART_PNG="$v"
   v="$(_vault_yaml_field finance chart_daily_categories_png "$yaml")" && [[ -n "$v" ]] && export VAULT_FIN_CHART_DAILY_CATEGORIES_PNG="$v"
   [[ -n "${VAULT_FOLDER_TASKS:-}" ]]
 }

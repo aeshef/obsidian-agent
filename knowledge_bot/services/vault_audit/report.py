@@ -15,7 +15,7 @@ from knowledge_bot.services.maintenance_metrics import build_dynamics_markdown_s
 from knowledge_bot.services.reprocess_candidates import discover_candidate_paths, load_reprocess_yaml
 from knowledge_bot.services.vault_audit.tags import render_tags_report
 from shared.vault_layout import knowledge_subdir
-from shared.vault_paths_config import dashboards_sub, folder, vault_file, vault_rel_path
+from shared.vault_paths_config import folder, vault_file, vault_rel_path
 
 _KB_ROOT = Path(__file__).resolve().parent.parent.parent
 _TOOLS = _KB_ROOT / "tools"
@@ -23,9 +23,8 @@ _TOOLS = _KB_ROOT / "tools"
 
 def _default_report_rel() -> str:
     dash = folder("dashboards")
-    charts = dashboards_sub("charts")
     name = vault_file("vault_audit_report_md")
-    return f"{dash}/{charts}/{name}"
+    return f"{dash}/{name}"
 
 
 def _run_maintainer_script(name: str, vault: Path, *, timeout: int = 600) -> str:
@@ -106,6 +105,7 @@ def _format_maintenance_run(run: dict) -> list[str]:
         "refill_singleton_tags": "step_refill_singleton",
         "apply_duplicates_dryrun": "step_dup_dryrun",
         "apply_duplicates": "step_dup_apply",
+        "export_orphans": "step_export_orphans",
     }
     if not ok and any(s.get("name") == "llm_preflight" for s in steps):
         lines.append(va("maint_llm_dns_note"))

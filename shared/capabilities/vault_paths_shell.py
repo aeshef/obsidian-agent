@@ -44,6 +44,7 @@ def export_shell_env() -> str:
         f"export VAULT_FILE_ROUTINES_TODAY_LEGACY_MD={_sh_quote(vault_file('routines_today_legacy_md'))}",
         f"export VAULT_FILE_AUDIT_SYSTEM={_sh_quote(vault_file('system_audit_report_md'))}",
         f"export VAULT_FILE_AUDIT_VAULT={_sh_quote(vault_file('vault_audit_report_md'))}",
+        f"export VAULT_LEGACY_MAINTENANCE_CHART_PNG={_sh_quote(vault_file('legacy_chart_maintenance_dynamics_png'))}",
         f"export VAULT_FIN_CHART_DAILY_CATEGORIES_PNG={_sh_quote(finance_sub('chart_daily_categories_png'))}",
     ]
     try:
