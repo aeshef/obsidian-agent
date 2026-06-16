@@ -17,6 +17,7 @@ from knowledge_bot.services.maintenance_metrics import (
     collect_deletions_from_steps,
     collect_vault_snapshot,
     extract_step_metrics,
+    refresh_sidecar_from_maintenance_log,
     render_maintenance_charts,
     write_deletion_manifest,
     write_maintenance_run_sidecar,
@@ -118,6 +119,10 @@ def run_daily_maintenance(
         }
 
     if not _should_run_today(sdir, marker, bool(force), bool(env_force)):
+        try:
+            refresh_sidecar_from_maintenance_log(vault, sdir)
+        except OSError:
+            pass
         return {
             "skipped": True,
             "reason": "already_ran_today",
