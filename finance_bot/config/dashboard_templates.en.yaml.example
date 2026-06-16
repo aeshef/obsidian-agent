@@ -152,6 +152,15 @@ charts:
   broker_rub: "Broker (RUB)"
   total_rub: "Total (RUB)"
 
+# 0 = full history from first transaction; >0 = rolling window in days/weeks
+chart_windows:
+  daily_spending_days: 0
+  daily_oneoff_days: 0
+  daily_flow_days: 0
+  balance_days: 0
+  weekly_flow_weeks: 0
+  weekly_spending_weeks: 0
+
 category_order:
   - "Food/Groceries"
   - "Food/Eating out"

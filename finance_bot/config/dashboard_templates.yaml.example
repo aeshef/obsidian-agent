@@ -153,6 +153,15 @@ charts:
   broker_rub: "Брокер (RUB)"
   total_rub: "Всего (RUB)"
 
+# 0 = вся история с первой транзакции; >0 — скользящее окно в днях/неделях
+chart_windows:
+  daily_spending_days: 0
+  daily_oneoff_days: 0
+  daily_flow_days: 0
+  balance_days: 0
+  weekly_flow_weeks: 0
+  weekly_spending_weeks: 0
+
 category_order:
   - "Еда/Продукты"
   - "Еда/Вне дома"
