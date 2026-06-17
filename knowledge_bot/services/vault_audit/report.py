@@ -21,6 +21,15 @@ _KB_ROOT = Path(__file__).resolve().parent.parent.parent
 _TOOLS = _KB_ROOT / "tools"
 
 
+def _is_noisy_stderr_line(line: str) -> bool:
+    """Hide known macOS media-library warnings from human-facing audit reports."""
+    return (
+        line.startswith("objc[")
+        and "Class AVF" in line
+        and "is implemented in both" in line
+    )
+
+
 def _default_report_rel() -> str:
     dash = folder("dashboards")
     name = vault_file("vault_audit_report_md")
@@ -124,7 +133,13 @@ def _format_maintenance_run(run: dict) -> list[str]:
                 lines.append(va("maint_stdout_line", line=ln))
         stderr = (s.get("stderr_tail") or "").strip()
         if stderr:
-            err_lines = [ln for ln in stderr.splitlines() if ln.strip() and "NOT available" not in ln]
+            err_lines = [
+                ln
+                for ln in stderr.splitlines()
+                if ln.strip()
+                and "NOT available" not in ln
+                and not _is_noisy_stderr_line(ln.strip())
+            ]
             for ln in err_lines[-2:]:
                 lines.append(va("maint_stderr_line", line=ln))
     return lines

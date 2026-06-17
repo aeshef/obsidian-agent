@@ -5,7 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from knowledge_bot.services.vault_audit.report import build_vault_audit_report
+from knowledge_bot.services.vault_audit.report import (
+    _format_maintenance_run,
+    build_vault_audit_report,
+)
 from knowledge_bot.services.vault_audit.tags import render_tags_report
 
 
@@ -49,3 +52,27 @@ def test_default_vault_audit_report_path_not_under_charts() -> None:
     parts = rel.split("/")
     assert "Графики" not in parts and "Charts" not in parts
     assert rel.endswith(".md")
+
+
+def test_format_maintenance_run_filters_macos_objc_noise(monkeypatch) -> None:
+    monkeypatch.setenv("AGENT_LOCALE", "ru")
+    run = {
+        "ok": True,
+        "steps": [
+            {
+                "name": "reprocess_notes",
+                "returncode": 0,
+                "seconds": 1.2,
+                "stdout_tail": "ok\n",
+                "stderr_tail": (
+                    "objc[123]: Class AVFFrameReceiver is implemented in both "
+                    "/cv2/libavdevice.dylib and /av/libavdevice.dylib. "
+                    "This may cause spurious casting failures.\n"
+                ),
+            }
+        ],
+    }
+
+    text = "\n".join(_format_maintenance_run(run))
+    assert "objc[" not in text
+    assert "AVFFrameReceiver" not in text

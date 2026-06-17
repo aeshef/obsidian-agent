@@ -655,13 +655,15 @@ def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str
             f"{dup_notes} | {repr_empty} | {retag} | {repr_ok} | {dup_mb:.1f} | {ok} |"
         )
     lines.append("")
+    latest_history_date = str(rows[-1].get("date") or "").strip()
     manifest = vault / ".sync" / "last_maintenance_deleted_paths.json"
     if manifest.is_file():
         try:
             raw = json.loads(manifest.read_text(encoding="utf-8"))
             deleted = raw.get("deleted") if isinstance(raw, dict) else []
             ts = str(raw.get("ts") or "").strip()
-            if isinstance(deleted, list) and deleted:
+            manifest_date = ts[:10] if len(ts) >= 10 else ""
+            if isinstance(deleted, list) and deleted and manifest_date == latest_history_date:
                 lines.append(mm("report_last_deletions_header", ts=ts or "—"))
                 lines.append("")
                 for item in deleted[:15]:

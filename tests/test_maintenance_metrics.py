@@ -135,6 +135,37 @@ def test_write_deletion_manifest(tmp_path: Path):
     assert raw["summary"]["duplicate"] == 1
 
 
+def test_dynamics_section_omits_stale_deletion_manifest(tmp_path: Path, monkeypatch):
+    monkeypatch.setenv("AGENT_LOCALE", "ru")
+    from knowledge_bot.services import maintenance_metrics as mm
+    from knowledge_bot.services.maintenance_metrics import (
+        build_dynamics_markdown_section,
+        write_deletion_manifest,
+    )
+
+    vault = tmp_path / "vault"
+    data = vault / "300_Дашборды" / "Данные"
+    data.mkdir(parents=True)
+    (data / "vault_maintenance_history.yaml").write_text(
+        "- date: '2026-06-17'\n"
+        "  before: {notes_md_db700: 10, bytes_export: 0, reprocess_eligible: 0}\n"
+        "  after: {notes_md_db700: 10, bytes_export: 0, reprocess_eligible: 0}\n"
+        "  run: {}\n"
+        "  ok: true\n",
+        encoding="utf-8",
+    )
+    write_deletion_manifest(
+        vault / ".sync",
+        [{"path": "700_База_Данных/Export/old.jpg", "reason": "export_orphan"}],
+        "2026-06-15T02:50:31",
+    )
+    monkeypatch.setattr(mm, "render_maintenance_charts", lambda _vault: [])
+
+    section = build_dynamics_markdown_section(vault)
+    assert "old.jpg" not in section
+    assert "Удалённые пути" not in section
+
+
 def test_extract_export_orphans_metrics_and_deletions(monkeypatch):
     monkeypatch.setenv("AGENT_LOCALE", "ru")
     stdout = (
