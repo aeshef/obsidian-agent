@@ -152,7 +152,7 @@ charts:
   broker_rub: "Broker (RUB)"
   total_rub: "Total (RUB)"
 
-# 0 = full history from first transaction; >0 = rolling window in days/weeks
+# 0 = full history from first data point on each chart; >0 = rolling window in days/weeks
 chart_windows:
   daily_spending_days: 0
   daily_oneoff_days: 0

@@ -14,7 +14,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import List, Optional
+from typing import Iterable, List, Optional
 
 from shared.bootstrap import setup_bot
 
@@ -370,16 +370,9 @@ def main() -> None:
         else:
             day_exp_regular[occ.date()][cat] += amt
 
-    def _first_transaction_date() -> Optional[date]:
-        first: Optional[date] = None
-        for t in transactions:
-            occ = parse_datetime(t.get("occurred_at"))
-            if not occ:
-                continue
-            d = occ.date()
-            if first is None or d < first:
-                first = d
-        return first
+    def _series_floor(dates: Iterable[date], *, fallback: date) -> date:
+        dated = list(dates)
+        return min(dated) if dated else fallback
 
     def _chart_window_int(key: str, env_key: str, legacy: int) -> int:
         cw = dtpl_raw("chart_windows")
@@ -395,12 +388,6 @@ def main() -> None:
             except ValueError:
                 pass
         return legacy
-
-    def _chart_floor_date() -> date:
-        first = _first_transaction_date()
-        if first is not None:
-            return min(first, dashboard_start_date) if dashboard_start_date else first
-        return dashboard_start_date
 
     def _day_range(end: date, floor: date, window_days: int) -> list[date]:
         if window_days > 0:
@@ -439,7 +426,6 @@ def main() -> None:
             return now.date()
         return last
 
-    chart_floor = _chart_floor_date()
     spending_daily_window = _chart_window_int(
         "daily_spending_days", "FIN_SPENDING_DAILY_WINDOW_DAYS", 0
     )
@@ -450,12 +436,13 @@ def main() -> None:
     weekly_spending_weeks = _chart_window_int(
         "weekly_spending_weeks", "FIN_SPENDING_WEEKLY_WINDOW_WEEKS", 0
     )
-    all_dates = set(day_exp_regular.keys()) | set(day_exp_oneoff_total.keys())
-    chart_end_date = _spending_axis_end(all_dates)
     last_spend_date = max(day_exp_regular.keys()) if day_exp_regular else None
 
     if day_exp_regular:
-        days_sorted = _day_range(chart_end_date, chart_floor, spending_daily_window)
+        regular_dates = set(day_exp_regular.keys())
+        regular_end = _spending_axis_end(regular_dates)
+        regular_floor = _series_floor(regular_dates, fallback=dashboard_start_date)
+        days_sorted = _day_range(regular_end, regular_floor, spending_daily_window)
         all_cats = set()
         for d in day_exp_regular:
             all_cats.update(day_exp_regular[d].keys())
@@ -512,7 +499,10 @@ def main() -> None:
 
     # One-off large expenses by day
     if day_exp_oneoff_total:
-        days_sorted_oneoff = _day_range(chart_end_date, chart_floor, oneoff_daily_window)
+        oneoff_dates = set(day_exp_oneoff_total.keys())
+        oneoff_end = _spending_axis_end(oneoff_dates)
+        oneoff_floor = _series_floor(oneoff_dates, fallback=dashboard_start_date)
+        days_sorted_oneoff = _day_range(oneoff_end, oneoff_floor, oneoff_daily_window)
         x_labels = _format_day_labels(days_sorted_oneoff)
         vals = [float(day_exp_oneoff_total.get(d, 0)) for d in days_sorted_oneoff]
         part_day_oneoff.extend([
@@ -555,9 +545,10 @@ def main() -> None:
             day_flow[dday]["expense"] += amt
 
     if day_flow:
-        flow_end = max(day_flow.keys())
-        flow_end_date = _spending_axis_end(set(day_flow.keys()))
-        days_sorted_flow = _day_range(flow_end_date, chart_floor, flow_daily_window)
+        flow_dates = set(day_flow.keys())
+        flow_end_date = _spending_axis_end(flow_dates)
+        flow_floor = _series_floor(flow_dates, fallback=dashboard_start_date)
+        days_sorted_flow = _day_range(flow_end_date, flow_floor, flow_daily_window)
         inc_vals = [float(day_flow.get(d, {}).get("income", 0)) for d in days_sorted_flow]
         exp_vals = [float(day_flow.get(d, {}).get("expense", 0)) for d in days_sorted_flow]
         x_labels = _format_day_labels(days_sorted_flow)
@@ -602,7 +593,7 @@ def main() -> None:
 
         if week_flow:
             week_end = max(week_flow.keys())
-            week_floor = chart_floor - timedelta(days=chart_floor.weekday())
+            week_floor = min(week_flow.keys())
             weeks_sorted = _week_range(week_end, week_floor, weekly_flow_weeks)
             xw = [w.strftime("%d.%m") for w in weeks_sorted]
             inc_w = [float(week_flow.get(w, {}).get("income", 0)) for w in weeks_sorted]
@@ -647,7 +638,7 @@ def main() -> None:
 
         if week_exp_regular:
             week_end = max(week_exp_regular.keys())
-            week_floor = chart_floor - timedelta(days=chart_floor.weekday())
+            week_floor = min(week_exp_regular.keys())
             weeks_sorted = _week_range(week_end, week_floor, weekly_spending_weeks)
 
             # top categories by spend
@@ -693,8 +684,22 @@ def main() -> None:
         ])
 
     # Total balance over time
-    balance_chart_end = max(chart_end_date, now.date())
-    days_total = _day_range(balance_chart_end, chart_floor, balance_daily_window)
+    balance_data_dates: set[date] = set()
+    for t in transactions:
+        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+            continue
+        occ = parse_datetime(t.get("occurred_at"))
+        if occ:
+            balance_data_dates.add(occ.date())
+    for snapshots in broker_snapshots.values():
+        for snap_date, _ in snapshots:
+            balance_data_dates.add(snap_date)
+    balance_floor = _series_floor(balance_data_dates, fallback=dashboard_start_date)
+    balance_chart_end = max(
+        _spending_axis_end(balance_data_dates) if balance_data_dates else now.date(),
+        now.date(),
+    )
+    days_total = _day_range(balance_chart_end, balance_floor, balance_daily_window)
     broker_rub_account_ids = [
         aid
         for aid, a in acc_by_id.items()
