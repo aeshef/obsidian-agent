@@ -857,7 +857,6 @@ PY_CLEANUP
       fi
     fi
     rmdir "$VM_LOCK" 2>/dev/null || true
-    trap - EXIT INT TERM
   else
     echo "$(sh_msgf scripts.obsidian_sync.step_5b_2_lock '{"lock":"'$VM_LOCK'"}')" >&2
   fi
