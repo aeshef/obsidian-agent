@@ -121,11 +121,33 @@ fi
 rm -f "$SYNC_DIR/.write_test" 2>/dev/null
 # Один экземпляр sync за раз (два LaunchAgent/plist → гонка и ложные critical fail).
 SYNC_LOCK="$SYNC_DIR/obsidian_sync.lock"
+if [ -d "$SYNC_LOCK" ]; then
+  _sync_lock_age="$(
+    python3 - "$SYNC_LOCK" 2>/dev/null <<'PY_SYNC_LOCK_AGE' || echo 0
+import sys, time
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    print(int(time.time() - p.stat().st_mtime))
+except OSError:
+    print(0)
+PY_SYNC_LOCK_AGE
+  )"
+  if [ "${_sync_lock_age:-0}" -gt "${OBSIDIAN_SYNC_LOCK_STALE_SEC:-7200}" ]; then
+    rmdir "$SYNC_LOCK" 2>/dev/null || true
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ removed stale sync lock age=${_sync_lock_age}s" >> "$DEBUG_LOG" 2>/dev/null || true
+  fi
+  unset _sync_lock_age
+fi
 if ! mkdir "$SYNC_LOCK" 2>/dev/null; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ SKIP lock held ($SYNC_LOCK)" >> "$DEBUG_LOG" 2>/dev/null || true
   exit 0
 fi
-trap 'rmdir "$SYNC_LOCK" 2>/dev/null || true' EXIT INT TERM
+_obsidian_sync_cleanup() {
+  [ -n "${VM_LOCK:-}" ] && rmdir "$VM_LOCK" 2>/dev/null || true
+  rmdir "$SYNC_LOCK" 2>/dev/null || true
+}
+trap '_obsidian_sync_cleanup' EXIT INT TERM
 echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || true
 # LaunchAgent без FDA не может писать в ~/Documents — не крутим rsync впустую
 if [[ "$SYNC_DIR" == "$HOME/.sync/obsidian"* ]] && [[ "$LOCAL_VAULT" == *"/Documents/"* ]]; then
@@ -142,6 +164,9 @@ if [ -z "$SERVER" ]; then
   echo "$(sh_msg scripts.obsidian_sync.server_missing)" >&2
   exit 1
 fi
+# LaunchAgent не видит SSH-агент; ключ из Keychain нужен явно. Иначе rsync/ssh падают с Permission denied.
+export RSYNC_RSH="${RSYNC_RSH:-ssh -o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3}"
+SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 # shellcheck source=scripts/lib/vault_knowledge_dir.sh
 source "${AGENT_ROOT}/scripts/lib/vault_knowledge_dir.sh"
 KNOWLEDGE_SUBDIR="$(vault_knowledge_subdir)"
@@ -184,13 +209,14 @@ PY_CLEANUP_REMOTE
   done
   echo "$(sh_msgf scripts.obsidian_sync.step_5b_2c '{"count":"'$(echo "$deleted_lines" | wc -l | tr -d ' ')'","server":"'$SERVER'"}')" >&2
   printf '%s\n' "$deleted_lines" | ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "SVAULT='$SERVER_VAULT' LABEL='$label'
+    "SVAULT='$SERVER_VAULT'; LABEL='$label'
      while IFS= read -r rel; do
        target=\"\$SVAULT/\$rel\"
        if [ -f \"\$target\" ]; then
          rm -f \"\$target\" && echo \"[\$LABEL] remote deleted: \$rel\" || true
        fi
-     done" >> "$maintenance_log" 2>&1 \
+     done
+     exit 0" >> "$maintenance_log" 2>&1 \
     || echo "$(sh_msg scripts.obsidian_sync.step_5b_2c_fail)" >&2
 }
 
@@ -254,10 +280,6 @@ PUSH_DELETE_FLAGS=()
 if [ "$RSYNC_PUSH_DELETE" = "1" ]; then
   PUSH_DELETE_FLAGS=(--delete)
 fi
-
-# LaunchAgent не видит SSH-агент; ключ из Keychain нужен явно. Иначе rsync/ssh падают с Permission denied, маркер last_sync_ok всё равно пишется.
-export RSYNC_RSH="${RSYNC_RSH:-ssh -o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3}"
-SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 
 # Исключения при подтягивании 300_Дашборды. Логи только в Логи/; корневой 📊 Логи_Действий_*.md не тянуть и не пушить (устаревшая структура).
 # Аудит_*.md — только Mac (obsidian_sync 5b.1/5b.3); на VPS не генерируются, pull затирал свежий локальный отчёт.
@@ -741,7 +763,7 @@ if cap_step_enabled SYNC_KB_MAINTENANCE && { [ -n "${FORCE_VAULT_MAINTENANCE:-}"
         && [ "$_vm_skip_today" = "0" ]; }; }; then
   if mkdir "$VM_LOCK" 2>/dev/null; then
     # Чистим lock при выходе (в т.ч. при Ctrl-C), чтобы следующий день не застрял
-    trap 'rmdir "$VM_LOCK" 2>/dev/null || true' EXIT INT TERM
+    trap '_obsidian_sync_cleanup' EXIT INT TERM
     if [ -d "$KNOWLEDGE_BOT" ] && [ -f "$KNOWLEDGE_BOT/tools/vault_daily_maintenance.py" ]; then
       echo "$(sh_msg scripts.obsidian_sync.step_5b_2)" >&2
       echo "$(sh_msgf scripts.obsidian_sync.step_5b_2_log '{"log":"'$PLANNING_BOT/logs/vault_write_maintenance.log'"}')" >&2
@@ -805,13 +827,14 @@ PY_CLEANUP
             if [ -n "$_deleted_lines" ]; then
               echo "$(sh_msgf scripts.obsidian_sync.step_5b_2c '{"count":"'$(echo "$_deleted_lines" | wc -l | tr -d ' ')'","server":"'$SERVER'"}')" >&2
               printf '%s\n' "$_deleted_lines" | ssh "${SSH_OPTS[@]}" "$SERVER" \
-                "SVAULT='$SERVER_VAULT'
+                "SVAULT='$SERVER_VAULT';
                  while IFS= read -r rel; do
                    target=\"\$SVAULT/\$rel\"
                    if [ -f \"\$target\" ]; then
                      rm -f \"\$target\" && echo \"[5b.2c] remote deleted: \$rel\" || true
                    fi
-                 done" >> "$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 \
+                 done
+                 exit 0" >> "$PLANNING_BOT/logs/vault_write_maintenance.log" 2>&1 \
                 || echo "$(sh_msg scripts.obsidian_sync.step_5b_2c_fail)" >&2
             else
               echo "$(sh_msg scripts.obsidian_sync.step_5b_2c_empty)" >&2
