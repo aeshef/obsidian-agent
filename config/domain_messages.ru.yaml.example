@@ -181,6 +181,7 @@ knowledge_vault_audit:
   step_retag: Ретег (retag_notes)
   step_retag_untagged: Ретег без тегов (retag_untagged)
   step_reprocess: Reprocess стемов (reprocess_notes)
+  step_sanitize_tags: Очистка malformed-тегов
   step_llm_preflight: Сеть / LLM preflight
   step_refill_singleton: Refill singleton-тегов
   step_dup_dryrun: Дубликаты dry-run

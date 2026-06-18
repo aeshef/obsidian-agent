@@ -22,6 +22,7 @@ from knowledge_bot.services.maintenance_metrics import (
     write_deletion_manifest,
     write_maintenance_run_sidecar,
 )
+from knowledge_bot.services.tag_cleanup import sanitize_malformed_tags
 
 # retag/refill/reprocess exit 3 when DeepSeek DNS is down (--apply skipped, not a hard failure)
 _LLM_NETWORK_SKIP_EXIT = 3
@@ -260,6 +261,27 @@ def run_daily_maintenance(
             rargs.append("--apply")
         if _step_failed(_run("reprocess_notes", rargs)):
             out["ok"] = False
+
+    t0 = time.monotonic()
+    tag_cleanup_rows = sanitize_malformed_tags(vault, cfg.agent_config_path, apply=True)
+    tag_cleanup_stdout = "\n".join(
+        f"{rel}: removed={removed} tags={tags}"
+        for rel, removed, tags in tag_cleanup_rows[:30]
+    )
+    if len(tag_cleanup_rows) > 30:
+        tag_cleanup_stdout += f"\n... {len(tag_cleanup_rows) - 30} more"
+    if not tag_cleanup_stdout:
+        tag_cleanup_stdout = "Malformed tags: 0"
+    out["steps"].append(
+        {
+            "name": "sanitize_malformed_tags",
+            "returncode": 0,
+            "seconds": round(time.monotonic() - t0, 1),
+            "stdout_tail": tag_cleanup_stdout[-4000:],
+            "stderr_tail": "",
+            "metrics": {"malformed_tags_cleaned_notes": len(tag_cleanup_rows)},
+        }
+    )
 
     ecfg = mcfg.get("export_orphans") or {}
     if ecfg.get("enabled", True):

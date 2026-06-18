@@ -377,6 +377,7 @@ knowledge_vault_audit:
   step_retag: Retag (retag_notes)
   step_retag_untagged: Untagged retag (retag_untagged)
   step_reprocess: Reprocess stems (reprocess_notes)
+  step_sanitize_tags: Malformed tag cleanup
   step_llm_preflight: Network / LLM preflight
   step_refill_singleton: Refill singleton tags
   step_dup_dryrun: Duplicates dry-run

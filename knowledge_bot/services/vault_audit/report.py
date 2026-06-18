@@ -110,6 +110,7 @@ def _format_maintenance_run(run: dict) -> list[str]:
         "retag_notes": "step_retag",
         "retag_untagged": "step_retag_untagged",
         "reprocess_notes": "step_reprocess",
+        "sanitize_malformed_tags": "step_sanitize_tags",
         "llm_preflight": "step_llm_preflight",
         "refill_singleton_tags": "step_refill_singleton",
         "apply_duplicates_dryrun": "step_dup_dryrun",

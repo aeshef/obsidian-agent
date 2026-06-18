@@ -89,6 +89,36 @@ def slug_ascii(s: str) -> str:
     return re.sub(r"-+", "-", s).strip("-")
 
 
+def is_malformed_tag(tag: Any) -> bool:
+    """Tags are taxonomy slugs, not Obsidian links or arbitrary paths."""
+    if not isinstance(tag, str):
+        return True
+    s = tag.strip()
+    parts = s.split("/")
+    return (
+        not s
+        or "[[" in s
+        or "]]" in s
+        or "|" in s
+        or "/" not in s
+        or s.startswith("/")
+        or s.endswith("/")
+        or any(not part.strip() for part in parts)
+    )
+
+
+def clean_existing_tags(tags: Sequence[Any]) -> list[str]:
+    """Keep only structurally valid frontmatter tags, preserving order."""
+    out: list[str] = []
+    for tag in tags:
+        if is_malformed_tag(tag):
+            continue
+        s = str(tag).strip()
+        if s not in out:
+            out.append(s)
+    return out
+
+
 def normalize_tags(
     tag_candidates: Sequence[Any],
     enums_cfg,
@@ -99,7 +129,7 @@ def normalize_tags(
     """Normalize tags to ASCII slugs; apply enums and synonyms."""
     tag_values: list[str] = []
     for tag in tag_candidates:
-        if not isinstance(tag, str) or "/" not in tag:
+        if is_malformed_tag(tag) or "/" not in str(tag):
             continue
         ns, _, val = tag.strip().partition("/")
         ns = (ns or "").strip().lower()

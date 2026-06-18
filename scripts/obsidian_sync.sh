@@ -167,6 +167,16 @@ PY_CLEANUP_REMOTE
   [ -n "$deleted_lines" ] || return 0
   local maintenance_log="${AGENT_ROOT}/planning_bot/logs/vault_write_maintenance.log"
   mkdir -p "$(dirname "$maintenance_log")" 2>/dev/null || true
+  # If a previous failed/old sync already pulled deleted paths back from VPS,
+  # remove them locally before the next pull so rsync --update cannot preserve
+  # resurrected Export/duplicate files forever.
+  printf '%s\n' "$deleted_lines" | while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    local_target="$LOCAL_VAULT/$rel"
+    if [ -f "$local_target" ]; then
+      rm -f "$local_target" && echo "[$label] local deleted: $rel" >> "$maintenance_log" 2>&1 || true
+    fi
+  done
   echo "$(sh_msgf scripts.obsidian_sync.step_5b_2c '{"count":"'$(echo "$deleted_lines" | wc -l | tr -d ' ')'","server":"'$SERVER'"}')" >&2
   printf '%s\n' "$deleted_lines" | ssh "${SSH_OPTS[@]}" "$SERVER" \
     "SVAULT='$SERVER_VAULT' LABEL='$label'
