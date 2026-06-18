@@ -60,6 +60,11 @@ export AGENT_ROOT LOCAL_VAULT
 source "$AGENT_ROOT/scripts/lib/sh_msg.sh"
 # shellcheck source=scripts/lib/common.sh
 source "$AGENT_ROOT/scripts/lib/common.sh"
+mkdir -p \
+  "$AGENT_ROOT/planning_bot/logs" \
+  "$AGENT_ROOT/knowledge_bot/logs" \
+  "$AGENT_ROOT/finance_bot/logs" \
+  2>/dev/null || true
 
 # До cap_load: LaunchAgent PATH без pyenv — иначе planning .venv → pyenv shim падает на export_vault_paths.
 unset PYENV_VERSION PYENV_VIRTUAL_ENV PYENV_SHELL
@@ -706,6 +711,24 @@ fi
 VM_MARKER="$SYNC_DIR/daily_vault_write_maintenance_date.txt"
 VM_SKIP_MARKER="$SYNC_DIR/daily_vault_write_maintenance_skip_date.txt"
 VM_LOCK="$SYNC_DIR/vault_maintenance.lock"
+if [ -d "$VM_LOCK" ]; then
+  _vm_lock_age="$(
+    python3 - "$VM_LOCK" 2>/dev/null <<'PY_LOCK_AGE' || echo 0
+import sys, time
+from pathlib import Path
+p = Path(sys.argv[1])
+try:
+    print(int(time.time() - p.stat().st_mtime))
+except OSError:
+    print(0)
+PY_LOCK_AGE
+  )"
+  if [ "${_vm_lock_age:-0}" -gt "${VAULT_MAINTENANCE_LOCK_STALE_SEC:-21600}" ]; then
+    rmdir "$VM_LOCK" 2>/dev/null || true
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ removed stale maintenance lock age=${_vm_lock_age}s" >> "$DEBUG_LOG" 2>/dev/null || true
+  fi
+  unset _vm_lock_age
+fi
 # Проверяем нужно ли запускать:
 #  — уже выполнено сегодня (VM_MARKER=today) → пропуск
 #  — уже помечено как «Python недоступен» (VM_SKIP_MARKER=today) И запуск НЕ интерактивный (LaunchAgent) → пропуск
