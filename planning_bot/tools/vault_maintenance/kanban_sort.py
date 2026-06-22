@@ -250,10 +250,11 @@ def sort_kanban_tasks(target_path: Optional[Path] = None) -> bool:
         'Operation implementation.'
         unique_tasks = []
         seen = set()
-        for task in tasks:
-            first_line = task.split('\n')[0].strip()
-            if first_line not in seen:
-                seen.add(first_line)
+        for idx, task in enumerate(tasks):
+            task_id_match = re.search(r'🆔 ID:\s*([A-Za-z0-9-]+)', task)
+            dedupe_key = ("id", task_id_match.group(1)) if task_id_match else ("position", idx)
+            if dedupe_key not in seen:
+                seen.add(dedupe_key)
                 unique_tasks.append(task)
         
         return sorted(unique_tasks, key=lambda t: sort_key(t))

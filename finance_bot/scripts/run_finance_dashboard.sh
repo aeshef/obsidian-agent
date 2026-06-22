@@ -48,3 +48,8 @@ common_run_python_script "$PY" "$ROOT/scripts/build_finance_dashboard.py" \
   --db "$DB_PATH" \
   --user-id "$USER_ID" \
   "$@"
+
+SYNC_DIR="$VAULT_PATH/.sync"
+mkdir -p "$SYNC_DIR"
+date +%Y-%m-%d > "$SYNC_DIR/finance_dashboard_date.txt"
+date +%Y-%m-%dT%H:%M:%S > "$SYNC_DIR/finance_dashboard_last_ok.txt"

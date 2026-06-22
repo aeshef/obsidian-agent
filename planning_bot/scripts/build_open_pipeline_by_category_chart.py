@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from collections import Counter
 from datetime import date, datetime
 from pathlib import Path
@@ -61,6 +62,25 @@ def _save_history(path: Path, snapshots: list[dict[str, Any]]) -> None:
     )
 
 
+def _wait_for_stable_file(path: Path, stable_seconds: float = 3.0, timeout_seconds: float = 20.0) -> bool:
+    """Avoid taking a chart snapshot while Obsidian or the ID watcher is rewriting the board."""
+    if not path.exists():
+        return False
+    started = time.time()
+    last_mtime = path.stat().st_mtime
+    stable_since = time.time()
+    while time.time() - started < timeout_seconds:
+        time.sleep(0.5)
+        current_mtime = path.stat().st_mtime
+        if current_mtime != last_mtime:
+            last_mtime = current_mtime
+            stable_since = time.time()
+            continue
+        if time.time() - stable_since >= stable_seconds:
+            return True
+    return False
+
+
 def main() -> None:
     p = argparse.ArgumentParser(
         description=pdmsg("auto_c55ab2c2b1"),
@@ -76,7 +96,7 @@ def main() -> None:
     if str(agent_root) not in sys.path:
         sys.path.insert(0, str(agent_root))
 
-    from planning_bot.core.config import DONE_COLUMN, KANBAN_COLUMNS
+    from planning_bot.core.config import DONE_COLUMN, KANBAN_COLUMNS, KANBAN_FILE
     from planning_bot.services.kanban import KanbanBoard
 
     out_dir = Path(args.out_dir).resolve() if args.out_dir else GRAPHICS_DIR
@@ -88,6 +108,7 @@ def main() -> None:
 
     open_columns = frozenset(KANBAN_COLUMNS[:-1])
 
+    _wait_for_stable_file(KANBAN_FILE)
     board = KanbanBoard()
     tasks = board.get_tasks(exclude_today=False, exclude_blocked=False)
 

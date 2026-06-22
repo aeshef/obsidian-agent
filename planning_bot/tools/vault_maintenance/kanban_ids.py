@@ -28,6 +28,7 @@ def add_ids_to_tasks() -> bool:
         print(pdmsg("auto_11757cfc8b", KANBAN_FILE={KANBAN_FILE}), flush=True)
         return False
     
+    initial_mtime = KANBAN_FILE.stat().st_mtime
     with open(KANBAN_FILE, 'r', encoding='utf-8') as f:
         content = f.read()
     
@@ -104,6 +105,10 @@ def add_ids_to_tasks() -> bool:
         content = content[:start] + new_task_text + content[end:]
     
     # (comment)
+    if KANBAN_FILE.stat().st_mtime != initial_mtime:
+        print("⚠️ Kanban changed while adding IDs; skipping stale write", flush=True)
+        return False
+
     with open(KANBAN_FILE, 'w', encoding='utf-8') as f:
         f.write(content)
     

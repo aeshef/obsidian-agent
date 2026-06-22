@@ -79,3 +79,49 @@ def test_sort_kanban_on_fixture_copy(tmp_path: Path):
     for name, tasks in _parse_tasks_by_section(new_content).items():
         if len(tasks) > 1:
             assert _is_sorted(tasks), f"section {name!r} not sorted: {tasks}"
+
+
+def test_sort_preserves_same_title_tasks_with_different_ids(tmp_path: Path):
+    from planning_bot.core.config import KANBAN_COLUMNS
+    from planning_bot.tools.vault_maintenance import sort_kanban_tasks
+
+    backlog = KANBAN_COLUMNS[0]
+    done = KANBAN_COLUMNS[-1]
+    path = tmp_path / "kanban.md"
+    path.write_text(
+        "\n".join(
+            [
+                "---",
+                "",
+                "kanban-plugin: board",
+                "",
+                "---",
+                "",
+                f"## {backlog}",
+                "",
+                "- [ ] Duplicate title",
+                "\t#priority/low",
+                "\t🆔 ID: aaa11111",
+                "",
+                "- [ ] Duplicate title",
+                "\t#priority/low",
+                "\t🆔 ID: bbb22222",
+                "",
+                f"## {done}",
+                "",
+                "%% kanban:settings",
+                "```",
+                '{"kanban-plugin":"board"}',
+                "```",
+                "%%",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    assert sort_kanban_tasks(target_path=path) is True
+    new_content = path.read_text(encoding="utf-8")
+    assert _count_tasks(new_content) == 2
+    assert "🆔 ID: aaa11111" in new_content
+    assert "🆔 ID: bbb22222" in new_content

@@ -161,6 +161,16 @@ common_export_bot_pythonpath() {
     local bot_root="$1"
     local monorepo="${2:-$(dirname "$bot_root")}"
     local sp extra=""
+    local runtime_root="${OBSIDIAN_AGENT_RUNTIME_ROOT:-$HOME/Library/Application Support/obsidian-agent/runtime}"
+    if [ -z "${OBSIDIAN_AGENT_PYDEPS_FINANCE:-}" ] && [ -d "$runtime_root/pydeps/finance" ]; then
+        export OBSIDIAN_AGENT_PYDEPS_FINANCE="$runtime_root/pydeps/finance"
+    fi
+    if [ -z "${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}" ] && [ -d "$runtime_root/pydeps/planning" ]; then
+        export OBSIDIAN_AGENT_PYDEPS_PLANNING="$runtime_root/pydeps/planning"
+    fi
+    if [ -z "${OBSIDIAN_AGENT_PYDEPS_KNOWLEDGE:-}" ] && [ -d "$runtime_root/pydeps/knowledge" ]; then
+        export OBSIDIAN_AGENT_PYDEPS_KNOWLEDGE="$runtime_root/pydeps/knowledge"
+    fi
     if [ -n "${OBSIDIAN_AGENT_PYDEPS_FINANCE:-}" ] && [[ "$bot_root" == *finance_bot* ]]; then
         sp="${OBSIDIAN_AGENT_PYDEPS_FINANCE}"
     elif [ -n "${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}" ] && [[ "$bot_root" == *planning_bot* ]]; then
