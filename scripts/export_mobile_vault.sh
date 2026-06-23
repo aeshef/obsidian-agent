@@ -2,11 +2,10 @@
 # Одностороннее зеркало vault для Obsidian на iPhone (read-mostly).
 # Папки — из config/vault_paths.yaml (как obsidian_sync.sh).
 #
-# По умолчанию — iCloud Obsidian (только телефон; Mac только пишет файлы через rsync):
-#   ~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault — Mobile
+# Default mobile mirror path is configured via MOBILE_VAULT or config/agent/platform.yaml.
 #
-# Локальный тест без iCloud:
-#   MOBILE_VAULT="$HOME/Documents/Obsidian Vault — Mobile" ./export_mobile_vault.sh
+# Local test:
+#   MOBILE_VAULT="/path/to/mobile-vault" ./export_mobile_vault.sh
 #
 # Автозапуск: obsidian_sync.sh шаг 5e (каждый цикл LaunchAgent, ~5 мин).
 # Отключить: SKIP_MOBILE_VAULT=1 ~/bin/obsidian_sync.sh
@@ -25,8 +24,18 @@ if [[ -f "${AGENT_ROOT}/.env" ]]; then
   source "${AGENT_ROOT}/.env"
   set +a
 fi
-SRC="${SRC:-${VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
-MOBILE="${MOBILE_VAULT:-$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents/Obsidian Vault — Mobile}"
+# shellcheck source=scripts/lib/common.sh
+source "${AGENT_ROOT}/scripts/lib/common.sh"
+SRC="${SRC:-${VAULT_PATH:-${LOCAL_VAULT:-$(common_resolve_vault "$AGENT_ROOT" 2>/dev/null || true)}}}"
+if [[ -z "$SRC" ]]; then
+  echo "export_mobile_vault: VAULT_PATH is not configured" >&2
+  exit 1
+fi
+MOBILE="${MOBILE_VAULT:-$(common_platform_value "$AGENT_ROOT" vault mobile_path "")}"
+if [[ -z "$MOBILE" ]]; then
+  echo "export_mobile_vault: MOBILE_VAULT is not configured" >&2
+  exit 1
+fi
 
 # shellcheck source=scripts/lib/vault_paths_defaults.sh
 source "${AGENT_ROOT}/scripts/lib/vault_paths_defaults.sh"

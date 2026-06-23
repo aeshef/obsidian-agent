@@ -10,32 +10,39 @@
 
 set -u
 
-if [[ -z "${VAULT_PATH:-}" ]]; then
-  if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
-    VAULT_PATH="$HOME/Documents/Obsidian Vault"
-  else
-    VAULT_PATH="$HOME/Obsidian Vault"
-  fi
-fi
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 [[ -f "$ROOT/.env" ]] && set -a && source "$ROOT/.env" && set +a
+# shellcheck source=scripts/lib/common.sh
+source "$ROOT/scripts/lib/common.sh"
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  VAULT_PATH="$(common_resolve_vault "$ROOT" 2>/dev/null || true)"
+fi
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  echo "sync_finance_db: VAULT_PATH is not configured" >&2
+  exit 1
+fi
 # shellcheck source=scripts/lib/vault_paths_defaults.sh
 source "$ROOT/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "$ROOT" || true
 DATA_DIR="$VAULT_PATH/${VAULT_FOLDER_DASHBOARDS:-300_Dashboards}/${VAULT_DASH_DATA:-Data}"
 SERVER="${SERVER:?Set SERVER in .env}"
-REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS:-/root/bots}/finance_bot}"
+SERVER_BOTS="${SERVER_BOTS:-$(common_server_bots "$ROOT")}"
+SERVER_VAULT="${SERVER_VAULT:-${SYNC_SERVER_VAULT_PATH:-$(common_server_vault "$ROOT")}}"
+if [[ -z "${SERVER_BOTS:-}" || -z "${SERVER_VAULT:-}" ]]; then
+  echo "sync_finance_db: server paths are not configured" >&2
+  exit 1
+fi
+REMOTE_BOT_DIR="${REMOTE_BOT_DIR:-${SERVER_BOTS}/finance_bot}"
 REMOTE_DB="${REMOTE_DB:-}"
-SERVER_VAULT="${SERVER_VAULT:-${SYNC_SERVER_VAULT_PATH:-/root/obsidian-vault}}"
 
 mkdir -p "$DATA_DIR"
 SSH_OPTS=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
 
 _refresh_broker_on_server() {
   [[ "${FINANCE_REFRESH_BROKER_BEFORE_PULL:-1}" == "0" ]] && return 0
-  echo "ℹ️ Брокер на сервере: синх перед скачиванием БД…" >&2
+  echo "Broker sync on server before downloading finance.db..." >&2
   if ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" bash -s <<'REMOTE'
+    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS}'" bash -s <<'REMOTE'
 set -euo pipefail
 cd "${REMOTE_BOT_DIR:?}"
 export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
@@ -53,16 +60,16 @@ fi
 exec "$PY" scripts/run_broker_sync_once.py
 REMOTE
   then
-    echo "✅ Брокер на сервере обновлён" >&2
+    echo "Server broker data updated." >&2
   else
-    echo "⚠️ Не удалось обновить брокер по SSH — качаю finance.db как есть." >&2
+    echo "WARN: broker sync over SSH failed; downloading current finance.db." >&2
   fi
 }
 
 _mirror_on_server() {
   [[ "${FINANCE_MIRROR_VAULT_ON_SERVER:-1}" == "0" ]] && return 0
   ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_VAULT='${SERVER_VAULT}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" bash -s <<'REMOTE'
+    "REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_VAULT='${SERVER_VAULT}' SERVER_BOTS='${SERVER_BOTS}'" bash -s <<'REMOTE'
 set -euo pipefail
 cd "${REMOTE_BOT_DIR:?}"
 export PYTHONPATH="${REMOTE_BOT_DIR:?}${PYTHONPATH:+:$PYTHONPATH}"
@@ -84,12 +91,12 @@ REMOTE
 
 resolve_remote_db() {
   ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "REMOTE_DB='${REMOTE_DB}' REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS:-/root/bots}'" python3 <<'PY'
+    "REMOTE_DB='${REMOTE_DB}' REMOTE_BOT_DIR='${REMOTE_BOT_DIR}' SERVER_BOTS='${SERVER_BOTS}'" python3 <<'PY'
 import os
 from pathlib import Path
 
 remote_db = os.environ.get("REMOTE_DB", "").strip()
-bot_dir = Path(os.environ.get("REMOTE_BOT_DIR", os.environ.get("SERVER_BOTS", "/root/bots") + "/finance_bot")).expanduser()
+bot_dir = Path(os.environ.get("REMOTE_BOT_DIR") or (os.environ["SERVER_BOTS"] + "/finance_bot")).expanduser()
 
 def read_env(path: Path) -> dict:
     out = {}
@@ -143,37 +150,37 @@ fi
 
 if [ -z "$REMOTE_DB_RESOLVED" ]; then
   if [ -f "$DATA_DIR/finance.db" ]; then
-    echo "⚠️ Не удалось определить каноническую БД на сервере. Локальная реплика: $DATA_DIR/finance.db" >&2
+    echo "WARN: canonical server DB was not resolved. Keeping local replica: $DATA_DIR/finance.db" >&2
     exit 0
   fi
-  echo "❌ Каноническая БД на сервере не найдена и локальной реплики нет." >&2
+  echo "ERROR: canonical server DB was not found and no local replica exists." >&2
   exit 1
 fi
 
 _refresh_broker_on_server
-_mirror_on_server || echo "⚠️ mirror canonical→vault на сервере не удался (продолжаю scp)" >&2
+_mirror_on_server || echo "WARN: server canonical-to-vault mirror failed; continuing with scp." >&2
 
-echo "ℹ️ Серверная каноническая БД: $REMOTE_DB_RESOLVED"
+echo "Server canonical DB: $REMOTE_DB_RESOLVED"
 if scp "${SSH_OPTS[@]}" "$SERVER:$REMOTE_DB_RESOLVED" "$DATA_DIR/finance.db"; then
-  echo "✅ Реплика обновлена: $DATA_DIR/finance.db"
+  echo "Replica updated: $DATA_DIR/finance.db"
 else
   if [ -f "$DATA_DIR/finance.db" ]; then
-    echo "⚠️ scp не удался ($REMOTE_DB_RESOLVED). Локальная реплика без изменений." >&2
+    echo "WARN: scp failed ($REMOTE_DB_RESOLVED). Local replica left unchanged." >&2
     exit 0
   fi
-  echo "❌ scp не удался и локальной реплики нет." >&2
+  echo "ERROR: scp failed and no local replica exists." >&2
   exit 1
 fi
 
 if [[ "${FINANCE_BUILD_DASHBOARD_AFTER_PULL:-1}" != "0" ]]; then
-  echo "ℹ️ Пересборка дашборда (PNG + 📊 Финансы_Дашборд.md)…" >&2
+  echo "Rebuilding finance dashboard..." >&2
   export VAULT_PATH
   export FINANCE_DB_PATH="$DATA_DIR/finance.db"
   BOT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
   if ( cd "$BOT_ROOT" && chmod +x scripts/run_finance_dashboard.sh 2>/dev/null; true ) && \
      ( cd "$BOT_ROOT" && ./scripts/run_finance_dashboard.sh ); then
-    echo "✅ Дашборд обновлён" >&2
+    echo "Dashboard updated." >&2
   else
-    echo "⚠️ Дашборд не собран. Запусти: cd \"$BOT_ROOT\" && ./scripts/run_finance_dashboard.sh" >&2
+    echo "WARN: dashboard was not built. Run: cd \"$BOT_ROOT\" && ./scripts/run_finance_dashboard.sh" >&2
   fi
 fi

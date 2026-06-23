@@ -6,11 +6,17 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 AGENT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=scripts/lib/common.sh
+source "$AGENT_ROOT/scripts/lib/common.sh"
 # shellcheck source=scripts/lib/vault_paths_defaults.sh
 source "$AGENT_ROOT/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "$AGENT_ROOT"
 
-VAULT="${1:-${VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
+VAULT="${1:-${VAULT_PATH:-${LOCAL_VAULT:-$(common_resolve_vault "$AGENT_ROOT" 2>/dev/null || true)}}}"
+if [ -z "$VAULT" ]; then
+  echo "check_sync_health: VAULT_PATH is not configured" >&2
+  exit 1
+fi
 SYNC_DIR="${2:-${SYNC_STATE_DIR:-$VAULT/.sync}}"
 REPORT="$SYNC_DIR/health_report.md"
 NOW="$(date '+%Y-%m-%d %H:%M:%S')"
@@ -52,8 +58,4 @@ maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
 line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile maint=$maint"
 echo "$line" >>"$SYNC_DIR/health.log" 2>/dev/null || true
 
-# trim health.log (keep last ~300 lines)
-if [ -f "$SYNC_DIR/health.log" ]; then
-  tail -n 300 "$SYNC_DIR/health.log" >"$SYNC_DIR/health.log.tmp" 2>/dev/null \
-    && mv "$SYNC_DIR/health.log.tmp" "$SYNC_DIR/health.log" 2>/dev/null || true
-fi
+common_rotate_log "$SYNC_DIR/health.log" 3000 1200

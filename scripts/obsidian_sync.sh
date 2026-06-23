@@ -48,11 +48,6 @@ unset _LAUNCH_AGENT_ROOT
 if [[ -n "${OBSIDIAN_AGENT_RUNTIME_ROOT:-}" && -f "${OBSIDIAN_AGENT_RUNTIME_ROOT}/agent/config/vault_paths.yaml" ]]; then
   AGENT_ROOT="${OBSIDIAN_AGENT_RUNTIME_ROOT}/agent"
 fi
-LOCAL_VAULT="${LOCAL_VAULT:-${HOME}/Documents/Obsidian Vault}"
-# Fallback если Documents/Obsidian Vault не существует
-if [[ ! -d "$LOCAL_VAULT" && -d "${HOME}/Obsidian Vault" ]]; then
-  LOCAL_VAULT="${HOME}/Obsidian Vault"
-fi
 AGENT_ROOT="${AGENT_ROOT:-${AGENT_ROOT}}"
 export AGENT_ROOT LOCAL_VAULT
 
@@ -60,6 +55,14 @@ export AGENT_ROOT LOCAL_VAULT
 source "$AGENT_ROOT/scripts/lib/sh_msg.sh"
 # shellcheck source=scripts/lib/common.sh
 source "$AGENT_ROOT/scripts/lib/common.sh"
+if [[ -z "${LOCAL_VAULT:-}" ]]; then
+  LOCAL_VAULT="$(common_resolve_vault "$AGENT_ROOT" 2>/dev/null || true)"
+fi
+if [[ -z "${LOCAL_VAULT:-}" ]]; then
+  echo "$(sh_msg scripts.obsidian_sync.local_vault_missing)" >&2
+  exit 1
+fi
+export LOCAL_VAULT
 mkdir -p \
   "$AGENT_ROOT/planning_bot/logs" \
   "$AGENT_ROOT/knowledge_bot/logs" \
@@ -74,11 +77,11 @@ if [[ ":$PATH:" == *":${HOME}/.pyenv/"* ]]; then
 fi
 
 # shellcheck source=scripts/lib/capabilities.sh
-# Product manifest: optional sync steps (default = all on if exporter missing)
+# Product manifest: optional sync steps. Export failures are fail-closed.
 if [[ -f "$AGENT_ROOT/scripts/lib/capabilities.sh" ]]; then
   # shellcheck disable=SC1091
   source "$AGENT_ROOT/scripts/lib/capabilities.sh"
-  cap_load_env
+  cap_load_env || echo "$(sh_msg scripts.obsidian_sync.capabilities_fail_closed)" >&2
   cap_load_vault_paths 2>/dev/null || true
 fi
 # shellcheck source=scripts/lib/vault_paths_defaults.sh
@@ -97,9 +100,11 @@ for line in cleanup_ghost_locale_folders('${LOCAL_VAULT}'):
     print('[ghost]', line)
 " ) 2>/dev/null || true
 fi
-# Fallback: no manifest exporter → run full sync (backward compatible)
+# Fallback: no manifest exporter → disable optional steps.
 if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
-  cap_step_enabled() { return 0; }
+  cap_step_enabled() { return 1; }
+  cap_module_enabled() { return 1; }
+  echo "$(sh_msg scripts.obsidian_sync.capabilities_fail_closed)" >&2
 fi
 
 VAULT_TEST="${AGENT_ROOT}/scripts/obsidian_sync.sh"
@@ -158,10 +163,14 @@ fi
 echo "$(date '+%Y-%m-%dT%H:%M:%S')" >> "$SYNC_DIR/cron_runs.log" 2>/dev/null || true
 
 SERVER="${SERVER:-}"
-SERVER_VAULT="${SERVER_VAULT:-/root/obsidian-vault}"
-SERVER_BOTS="${SERVER_BOTS:-/root/bots}"
+SERVER_VAULT="${SERVER_VAULT:-$(common_server_vault "$AGENT_ROOT")}"
+SERVER_BOTS="${SERVER_BOTS:-$(common_server_bots "$AGENT_ROOT")}"
 if [ -z "$SERVER" ]; then
   echo "$(sh_msg scripts.obsidian_sync.server_missing)" >&2
+  exit 1
+fi
+if [ -z "$SERVER_VAULT" ] || [ -z "$SERVER_BOTS" ]; then
+  echo "$(sh_msg scripts.obsidian_sync.server_paths_missing)" >&2
   exit 1
 fi
 # LaunchAgent не видит SSH-агент; ключ из Keychain нужен явно. Иначе rsync/ssh падают с Permission denied.
@@ -675,9 +684,7 @@ elif [ -n "${OBSIDIAN_AGENT_PYDEPS_KNOWLEDGE:-}" ]; then
 else
   export PYTHONPATH="${KNOWLEDGE_BOT}:${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 fi
-if [ -x "/opt/homebrew/bin/python3.12" ]; then
-  KN_PYTHON="/opt/homebrew/bin/python3.12"
-elif [ -n "$(common_launchagent_python "$AGENT_ROOT/finance_bot" 2>/dev/null)" ]; then
+if [ -n "$(common_launchagent_python "$AGENT_ROOT/finance_bot" 2>/dev/null)" ]; then
   KN_PYTHON="$(common_launchagent_python "$AGENT_ROOT/finance_bot")"
 elif command -v python3 >/dev/null 2>&1; then
   KN_PYTHON=python3
@@ -695,23 +702,37 @@ touch \
   "$PLANNING_BOT/logs/iphone_context_sync.log" \
   "$PLANNING_BOT/logs/context_sync.log" \
   2>/dev/null || true
-# Ротация логов: обрезаем если выросли слишком большими (бывает при циклических сбоях).
-_trim_log() {
-  local f="$1" max="${2:-1500}" keep="${3:-800}"
-  [ -f "$f" ] || return 0
-  local n; n=$(wc -l < "$f" 2>/dev/null || echo 0)
-  if [ "$n" -gt "$max" ]; then
-    local tmp; tmp=$(mktemp)
-    tail -n "$keep" "$f" > "$tmp" && mv "$tmp" "$f" || rm -f "$tmp"
-  fi
-}
-# maintenance JSON в логе может быть длинным (stdout_tail шагов) — запас по строкам больше, чем у прочих логов
-_trim_log "$PLANNING_BOT/logs/vault_write_maintenance.log" 5000 3500
-_trim_log "$PLANNING_BOT/logs/system_audit.log"
-_trim_log "$PLANNING_BOT/logs/charts.log" 500 300
-# iphone-логи многословные (JSON писем + ASR/Vision), но скачут — отдельные пороги
-_trim_log "$PLANNING_BOT/logs/iphone_mail_sync.log" 5000 3000
-_trim_log "$PLANNING_BOT/logs/iphone_context_sync.log" 5000 3000
+# Log rotation policy: keep recurring LaunchAgent/cron logs bounded without a separate daemon.
+common_rotate_log "$DEBUG_LOG" 2000 1000
+common_rotate_log "/tmp/obsidian-sync.out" 8000 3000
+common_rotate_log "/tmp/obsidian-sync.err" 8000 3000
+common_rotate_log "/tmp/finance-dashboard-sync.log" 3000 1200
+common_rotate_log "/tmp/calendar-obsidian.out" 12000 3000
+common_rotate_log "/tmp/calendar-obsidian.err" 2000 800
+common_rotate_log "/tmp/context-obsidian.out" 5000 1500
+common_rotate_log "/tmp/context-obsidian.err" 2000 800
+common_rotate_log "$SYNC_DIR/cron_runs.log" 3000 1200
+common_rotate_log "$SYNC_DIR/health.log" 3000 1200
+common_rotate_log "$SYNC_DIR/finance_dashboard_daily.log" 12000 5000
+common_rotate_log "$SYNC_DIR/mobile_vault_export.log" 3000 1000
+common_rotate_log "$PLANNING_BOT/logs/vault_write_maintenance.log" 8000 4000
+common_rotate_log "$PLANNING_BOT/logs/system_audit.log" 3000 1200
+common_rotate_log "$PLANNING_BOT/logs/charts.log" 1000 500
+common_rotate_log "$PLANNING_BOT/logs/add_ids_watcher.log" 12000 3000
+common_rotate_log "$PLANNING_BOT/logs/iphone_mail_sync.log" 8000 4000
+common_rotate_log "$PLANNING_BOT/logs/iphone_context_sync.log" 8000 3000
+common_rotate_log "$AGENT_ROOT/finance_bot/logs/finance_dashboard_daily.log" 12000 5000
+common_rotate_log "$AGENT_ROOT/finance_bot/logs/bot.log" 12000 4000
+common_rotate_log "$AGENT_ROOT/knowledge_bot/logs/bot.log" 12000 4000
+_VAULT_AGENT_ROOT="$LOCAL_VAULT/${VAULT_FOLDER_AUTOMATION}/${VAULT_PATH_AGENT_SUBDIR}"
+common_rotate_log "$_VAULT_AGENT_ROOT/planning_bot/logs/add_ids_watcher.log" 12000 3000
+common_rotate_log "$_VAULT_AGENT_ROOT/planning_bot/logs/vault_write_maintenance.log" 8000 4000
+common_rotate_log "$_VAULT_AGENT_ROOT/planning_bot/logs/charts.log" 1000 500
+common_rotate_log "$_VAULT_AGENT_ROOT/finance_bot/logs/finance_dashboard_daily.log" 12000 5000
+unset _VAULT_AGENT_ROOT
+_SYNCTHING_LOG="${SYNCTHING_LOG:-$(common_platform_value "$AGENT_ROOT" log_rotation syncthing_log "")}"
+common_rotate_log "$_SYNCTHING_LOG" 12000 3000
+unset _SYNCTHING_LOG
 
 # 5b.1 Аудит planning/sync (лёгкий, секунды)
 if cap_module_enabled PLANNING && { [ -n "${FORCE_SYSTEM_AUDIT:-}" ] || [ ! -f "$SYS_AUDIT_MARKER" ] || [ "$(cat "$SYS_AUDIT_MARKER" 2>/dev/null)" != "$TODAY" ]; }; then
@@ -1015,7 +1036,7 @@ unset _SHOULD_NUTR _NUTR_PNG _latest_iph _png_m
 
 # 5d-b. Health analytics (trends, correlations)
 _HEALTH_MARKER="$SYNC_DIR/daily_health_analytics_date.txt"
-_HEALTH_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_HEALTH_TRENDS_PNG:-Здоровье/Тренды_метрик.png}"
+_HEALTH_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_HEALTH_TRENDS_PNG:-Health/Health_metrics_trends.png}"
 _SHOULD_HEALTH=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_HEALTH=1

@@ -4,7 +4,7 @@
 # Локально (через SSH):
 #   ./scripts/install_server_reboot_crontab.sh
 # На сервере:
-#   SERVER_BOTS=/root/bots bash /root/bots/scripts/install_server_reboot_crontab.sh
+#   SERVER_BOTS=/path/to/bots bash /path/to/bots/scripts/install_server_reboot_crontab.sh
 set -euo pipefail
 
 if [ -n "${SERVER_BOTS:-}" ] && [ -f "${SERVER_BOTS}/scripts/lib/common.sh" ]; then

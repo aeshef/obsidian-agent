@@ -52,6 +52,7 @@ vault_paths_apply_defaults() {
   : "${VAULT_PATH_CONTEXT_WEEK:=Actions/context_week.json}"
   : "${VAULT_PATH_IPHONE_TODAY:=Actions/iphone_today.json}"
   : "${VAULT_PATH_IPHONE_WEEK:=Actions/iphone_week.json}"
+  : "${VAULT_PATH_AGENT_SUBDIR:=Agent}"
   : "${VAULT_FILE_CHART_DAILY_ACTIVITY:=Daily_activity.png}"
   : "${VAULT_FILE_AUDIT_SYSTEM:=System_audit_report.md}"
   : "${VAULT_FILE_AUDIT_VAULT:=Vault_audit_report.md}"
@@ -111,9 +112,7 @@ _vault_paths_try_python_export() {
   local root="$1" py exporter="$root/scripts/export_vault_paths_env.py"
   [[ -f "$exporter" ]] || return 1
   for py in \
-    /opt/homebrew/bin/python3.12 \
     python3.12 \
-    /opt/homebrew/bin/python3 \
     python3; do
     [[ -x "$py" ]] || command -v "$py" >/dev/null 2>&1 || continue
     if [[ ! -t 0 ]]; then

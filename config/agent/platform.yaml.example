@@ -2,8 +2,16 @@
 # Переопределение: env (см. docs/ENV_REFERENCE.md) имеет приоритет над YAML.
 
 vault:
+  # Local Obsidian vault root. Keep production value in config/agent/platform.yaml or env.
+  local_path: "/ABSOLUTE/PATH/TO/Obsidian Vault"
+  mobile_path: "/ABSOLUTE/PATH/TO/Mobile Obsidian Vault"
   # Подкаталог базы знаний внутри VAULT_PATH (rel_path в индексе).
   knowledge_subdir: Knowledge
+
+server:
+  # Remote runtime paths used by sync/deploy scripts. Override in platform.yaml or env.
+  bots_root: "/ABSOLUTE/REMOTE/PATH/TO/bots"
+  vault_path: "/ABSOLUTE/REMOTE/PATH/TO/obsidian-vault"
 
 agent:
   max_iters: 6
@@ -70,6 +78,10 @@ planning_calendar:
 
 obsidian_sync:
   launchagent_interval_sec: 300
+
+log_rotation:
+  # Optional external logs not owned by the repo/runtime.
+  syncthing_log: ""
 
 planning_alerts:
   stuck_task_days: 14

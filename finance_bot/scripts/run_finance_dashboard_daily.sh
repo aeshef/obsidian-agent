@@ -10,8 +10,11 @@ cd "$BOT_ROOT"
 # shellcheck source=../../scripts/lib/common.sh
 source "$MONOREPO/scripts/lib/common.sh"
 
-# VAULT_PATH: из env или на 3 уровня вверх от finance_bot (finance_bot -> Agent -> 800_Автоматизация -> Vault)
-VAULT_PATH="${VAULT_PATH:-$(cd "$BOT_ROOT/../../.." && pwd)}"
+VAULT_PATH="${VAULT_PATH:-$(common_resolve_vault "$MONOREPO" 2>/dev/null || true)}"
+if [ -z "$VAULT_PATH" ]; then
+  echo "run_finance_dashboard_daily: VAULT_PATH is not configured" >&2
+  exit 1
+fi
 export VAULT_PATH
 
 # obsidian_sync (шаг 6) сбрасывает PYTHONPATH — выставляем заново (shared + site-packages venv).
@@ -24,6 +27,8 @@ mkdir -p "$MPLCONFIGDIR"
 LOG_DIR="$BOT_ROOT/logs"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/finance_dashboard_daily.log"
+common_rotate_log "$LOG_FILE" 12000 5000
+common_rotate_log "/tmp/finance-dashboard-sync.log" 3000 1200
 exec 1> >(tee -a "$LOG_FILE") 2>&1
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] VAULT_PATH=$VAULT_PATH MPLCONFIGDIR=$MPLCONFIGDIR"
 

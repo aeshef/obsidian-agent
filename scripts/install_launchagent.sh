@@ -3,7 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AGENT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-VAULT_PATH="${VAULT_PATH:-${LOCAL_VAULT:-$(cd "$AGENT_DIR/../.." 2>/dev/null && pwd || echo "$HOME/Documents/Obsidian Vault")}}"
+# shellcheck source=scripts/lib/common.sh
+source "$AGENT_DIR/scripts/lib/common.sh"
+VAULT_PATH="${VAULT_PATH:-${LOCAL_VAULT:-$(common_resolve_vault "$AGENT_DIR" 2>/dev/null || true)}}"
+if [[ -z "$VAULT_PATH" ]]; then
+  echo "install_launchagent: VAULT_PATH is not configured" >&2
+  exit 1
+fi
 PLIST_EXAMPLE="$AGENT_DIR/launchd/com.example.obsidian-sync.plist.example"
 LABEL="${LAUNCHAGENT_LABEL:-com.example.obsidian-sync}"
 PLIST_DST="$HOME/Library/LaunchAgents/${LABEL}.plist"
@@ -15,10 +21,7 @@ RUNTIME_AGENT="$RUNTIME_ROOT/agent"
 
 SYNC_INTERVAL="${OBSIDIAN_SYNC_INTERVAL_SEC:-}"
 if [[ -z "$SYNC_INTERVAL" ]]; then
-  _CAP_PY=""
-  for _c in /opt/homebrew/bin/python3.12 python3.12 python3; do
-    command -v "$_c" >/dev/null 2>&1 && _CAP_PY="$_c" && break
-  done
+  _CAP_PY="$(common_launchagent_python "$AGENT_DIR/finance_bot" 2>/dev/null || true)"
   if [[ -n "$_CAP_PY" ]]; then
     SYNC_INTERVAL="$("$_CAP_PY" -c "
 import sys
@@ -72,10 +75,7 @@ if [[ ! -f "$RUNTIME_AGENT/config/vault_paths.yaml" && -f "$AGENT_DIR/.env" ]]; 
   # shellcheck disable=SC1091
   source "$AGENT_DIR/.env"
   set +a
-  _mat_py=""
-  for _c in /opt/homebrew/bin/python3.12 python3.12 python3; do
-    command -v "$_c" >/dev/null 2>&1 && _mat_py="$_c" && break
-  done
+  _mat_py="$(common_launchagent_python "$AGENT_DIR/finance_bot" 2>/dev/null || true)"
   if [[ -n "$_mat_py" && -f "$AGENT_DIR/scripts/setup/materialize_locale.py" ]]; then
   AGENT_LOCALE="${AGENT_LOCALE:-ru}" "$_mat_py" "$AGENT_DIR/scripts/setup/materialize_locale.py" \
     "${AGENT_LOCALE:-ru}" --refresh-vault-paths 2>/dev/null || true
@@ -111,9 +111,13 @@ fi
 DEBUG_LOG="/tmp/obsidian_sync_launchagent_wrapper.log"
 echo "\$(date '+%Y-%m-%dT%H:%M:%S') pid=\$\$ wrapper START runtime=$RUNTIME_AGENT" >> "\$DEBUG_LOG" 2>/dev/null || true
 _CAP_PY=""
-for _c in "/opt/homebrew/bin/python3.12" python3.12 python3; do
-  if command -v "\$_c" >/dev/null 2>&1 && "\$_c" -c "import site" 2>/dev/null; then _CAP_PY="\$_c"; break; fi
-done
+if [[ -f "$RUNTIME_AGENT/scripts/lib/common.sh" ]]; then
+  source "$RUNTIME_AGENT/scripts/lib/common.sh"
+  _CAP_PY="\$(common_launchagent_python "$RUNTIME_AGENT/finance_bot" 2>/dev/null || true)"
+fi
+if [[ -z "\$_CAP_PY" ]] && command -v python3 >/dev/null 2>&1; then
+  _CAP_PY="python3"
+fi
 _export_py() {
   local script="\$1"
   [[ -n "\$_CAP_PY" && -f "\$script" ]] || return 0

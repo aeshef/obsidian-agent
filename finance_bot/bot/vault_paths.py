@@ -22,7 +22,7 @@ def _seg(env_key: str, default: str) -> str:
 
 
 def vault_root_optional() -> Optional[Path]:
-    """Vault root via shared.paths (VAULT_PATH / ~/Documents/Obsidian Vault)."""
+    """Vault root via shared.paths (VAULT_PATH / configured local vault)."""
     return _shared_vault_root_optional()
 
 

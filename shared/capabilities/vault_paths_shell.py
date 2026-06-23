@@ -27,6 +27,7 @@ def export_shell_env() -> str:
         f"export VAULT_PATH_CONTEXT_WEEK={_sh_quote(vault_rel_path('context_week_json'))}",
         f"export VAULT_PATH_IPHONE_TODAY={_sh_quote(vault_rel_path('iphone_today_json'))}",
         f"export VAULT_PATH_IPHONE_WEEK={_sh_quote(vault_rel_path('iphone_week_json'))}",
+        f"export VAULT_PATH_AGENT_SUBDIR={_sh_quote(vault_rel_path('agent_subdir'))}",
         f"export VAULT_FILE_CALENDAR_JSON={_sh_quote(vault_file('calendar_json'))}",
         f"export VAULT_FILE_ACTION_LOG_PREFIX={_sh_quote(vault_file('action_log_prefix'))}",
         f"export VAULT_FILE_CHART_DAILY_ACTIVITY={_sh_quote(vault_file('chart_daily_activity_png'))}",

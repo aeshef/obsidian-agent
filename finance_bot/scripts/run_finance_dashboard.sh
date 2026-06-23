@@ -3,7 +3,7 @@
 # Запуск из каталога finance_bot:
 #   ./scripts/run_finance_dashboard.sh
 # Переменные:
-#   VAULT_PATH — корень Obsidian (иначе ~/Documents/Obsidian Vault или ~/Obsidian Vault)
+#   VAULT_PATH — Obsidian vault root; env/platform config is required.
 #   FINANCE_DB_PATH — явный путь к finance.db (по умолчанию $VAULT_PATH/300_Дашборды/Данные/finance.db)
 #   FINANCE_DASHBOARD_USER_ID — user_id в БД (по умолчанию 1)
 # Доп. аргументы передаются в build_finance_dashboard.py, например: --out /tmp/x.md
@@ -21,11 +21,11 @@ source "$MONOREPO/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "$MONOREPO" || true
 
 if [[ -z "${VAULT_PATH:-}" ]]; then
-  if [[ -d "$HOME/Documents/Obsidian Vault" ]]; then
-    VAULT_PATH="$HOME/Documents/Obsidian Vault"
-  else
-    VAULT_PATH="$HOME/Obsidian Vault"
-  fi
+  VAULT_PATH="$(common_resolve_vault "$MONOREPO" 2>/dev/null || true)"
+fi
+if [[ -z "${VAULT_PATH:-}" ]]; then
+  echo "run_finance_dashboard: VAULT_PATH is not configured" >&2
+  exit 1
 fi
 
 DB_PATH="${FINANCE_DB_PATH:-$VAULT_PATH/${VAULT_FOLDER_DASHBOARDS:-300_Dashboards}/${VAULT_DASH_DATA:-Data}/finance.db}"
@@ -38,8 +38,8 @@ common_export_bot_pythonpath "$ROOT" "$MONOREPO"
 PY="$(common_resolve_python_usable "$ROOT")"
 
 if ! "$PY" -c "import matplotlib" 2>/dev/null; then
-  echo "ERROR: matplotlib недоступен для $PY (LaunchAgent: нужен Homebrew python той же версии, что venv)." >&2
-  echo "Проверь: \"$PY\" -c 'import matplotlib' и site-packages в PYTHONPATH." >&2
+  echo "ERROR: matplotlib is unavailable for $PY (LaunchAgent needs a compatible runtime Python)." >&2
+  echo "Check: \"$PY\" -c 'import matplotlib' and site-packages in PYTHONPATH." >&2
   exit 1
 fi
 

@@ -27,7 +27,7 @@ _sh_msg_python() {
     echo "$root/planning_bot/venv/bin/python"
     return 0
   fi
-  for candidate in /opt/homebrew/bin/python3.12 python3.12; do
+  for candidate in python3.12 python3; do
     if command -v "$candidate" >/dev/null 2>&1; then
       echo "$candidate"
       return 0

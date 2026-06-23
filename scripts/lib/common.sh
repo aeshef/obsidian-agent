@@ -2,13 +2,16 @@
 # Общие функции для скриптов монорепо (source из bot scripts или scripts/*).
 
 if [ -z "${_COMMON_SH_LOADED:-}" ]; then
-  readonly COMMON_SERVER_BOTS_DEFAULT="/root/bots"
-  readonly COMMON_SERVER_VAULT_DEFAULT="/root/obsidian-vault"
   _COMMON_SH_LOADED=1
 fi
 
 common_monorepo_root() {
-    local here="${BASH_SOURCE[1]:-${BASH_SOURCE[0]}}"
+    local here
+    if [ -n "${BASH_SOURCE:-}" ]; then
+        here="${BASH_SOURCE[1]:-${BASH_SOURCE[0]}}"
+    else
+        here="$0"
+    fi
     here="$(cd "$(dirname "$here")" && pwd)"
     if [ -f "$here/../../.env.example" ] || [ -d "$here/../../shared" ]; then
         cd "$here/../.." && pwd
@@ -21,14 +24,6 @@ common_monorepo_root() {
     echo "$here"
 }
 
-common_server_bots() {
-    echo "${SERVER_BOTS:-$COMMON_SERVER_BOTS_DEFAULT}"
-}
-
-common_server_vault() {
-    echo "${SERVER_VAULT:-$COMMON_SERVER_VAULT_DEFAULT}"
-}
-
 common_load_env() {
     local root="${1:-$(common_monorepo_root)}"
     if [ -f "$root/.env" ]; then
@@ -37,6 +32,44 @@ common_load_env() {
         source "$root/.env"
         set +a
     fi
+}
+
+common_platform_value() {
+    local root="${1:-$(common_monorepo_root)}" section="${2:?section required}" key="${3:?key required}" default="${4:-}"
+    local cfg val
+    for cfg in "$root/config/agent/platform.yaml" "$root/config/agent/platform.yaml.example"; do
+        [ -f "$cfg" ] || continue
+        val="$(
+            awk -v sec="$section" -v k="$key" '
+                BEGIN { in_sec=0 }
+                $0 ~ "^" sec ":" { in_sec=1; next }
+                in_sec && /^[^ #\t]/ && $0 !~ /^  / { in_sec=0 }
+                in_sec && $0 ~ "^  " k ":" {
+                    sub(/^[^:]+:[ \t]*/, "", $0)
+                    gsub(/^["'\''"]|["'\''"]$/, "", $0)
+                    print $0
+                    exit
+                }
+            ' "$cfg"
+        )"
+        if [ -n "$val" ] && [[ "$val" != /ABSOLUTE/* ]]; then
+            printf '%s\n' "$val"
+            return 0
+        fi
+    done
+    [ -n "$default" ] && printf '%s\n' "$default"
+}
+
+common_server_bots() {
+    local root="${1:-$(common_monorepo_root)}"
+    common_load_env "$root"
+    echo "${SERVER_BOTS:-$(common_platform_value "$root" server bots_root "")}"
+}
+
+common_server_vault() {
+    local root="${1:-$(common_monorepo_root)}"
+    common_load_env "$root"
+    echo "${SERVER_VAULT:-$(common_platform_value "$root" server vault_path "")}"
 }
 
 common_require_server() {
@@ -50,8 +83,20 @@ common_require_server() {
 
 common_resolve_vault() {
     local root="${1:-$(common_monorepo_root)}"
+    local configured=""
     common_load_env "$root"
-    echo "${VAULT_PATH:-${OBSIDIAN_VAULT_PATH:-${LOCAL_VAULT:-$HOME/Documents/Obsidian Vault}}}"
+    configured="$(common_platform_value "$root" vault local_path "")"
+    if [ -n "${VAULT_PATH:-}" ]; then
+        echo "$VAULT_PATH"
+    elif [ -n "${OBSIDIAN_VAULT_PATH:-}" ]; then
+        echo "$OBSIDIAN_VAULT_PATH"
+    elif [ -n "${LOCAL_VAULT:-}" ]; then
+        echo "$LOCAL_VAULT"
+    elif [ -n "$configured" ]; then
+        echo "$configured"
+    else
+        return 1
+    fi
 }
 
 common_resolve_python() {
@@ -155,6 +200,22 @@ common_run_python_script() {
         return 1
     fi
     cat "$script" | "$py" -u - "$@"
+}
+
+common_rotate_log() {
+    local file="$1" max_lines="${2:-5000}" keep_lines="${3:-2000}"
+    [ -n "$file" ] && [ -f "$file" ] || return 0
+    local line_count tmp
+    line_count="$(wc -l < "$file" 2>/dev/null || echo 0)"
+    if [ "${line_count:-0}" -le "$max_lines" ]; then
+        return 0
+    fi
+    tmp="$(mktemp "${TMPDIR:-/tmp}/obsidian-agent-log.XXXXXX")" || return 0
+    {
+        printf '[log-rotation] kept last %s of %s lines at %s\n' \
+            "$keep_lines" "$line_count" "$(date '+%Y-%m-%dT%H:%M:%S')"
+        tail -n "$keep_lines" "$file"
+    } > "$tmp" && mv "$tmp" "$file" || rm -f "$tmp"
 }
 
 common_export_bot_pythonpath() {

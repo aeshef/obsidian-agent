@@ -50,8 +50,8 @@ _check_mac_sync() {
 _check_deploy() {
   echo "=== deploy ==="
   _require SERVER "scripts/deploy.sh"
-  _warn_if_empty SERVER_BOTS "дефолт /root/bots"
-  _warn_if_empty SERVER_VAULT "дефолт /root/obsidian-vault"
+  _warn_if_empty SERVER_BOTS "or config/agent/platform.yaml server.bots_root"
+  _warn_if_empty SERVER_VAULT "or config/agent/platform.yaml server.vault_path"
 }
 
 _check_server() {

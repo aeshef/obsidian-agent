@@ -8,7 +8,7 @@
     <array>
         <string>/bin/zsh</string>
         <string>-c</string>
-        <string>cd /ABSOLUTE/PATH/TO/finance_bot &amp;&amp; export VAULT_PATH="/ABSOLUTE/PATH/TO/Obsidian Vault" &amp;&amp; ./scripts/run_finance_dashboard_daily.sh</string>
+        <string>VAULT_PATH="/ABSOLUTE/PATH/TO/Obsidian Vault" "/ABSOLUTE/PATH/TO/runtime/agent/finance_bot/scripts/run_finance_dashboard_daily.sh"</string>
     </array>
     <key>StartCalendarInterval</key>
     <dict>
@@ -18,8 +18,8 @@
         <integer>0</integer>
     </dict>
     <key>StandardOutPath</key>
-    <string>/ABSOLUTE/PATH/TO/finance_bot/logs/finance_dashboard_daily.log</string>
+    <string>/ABSOLUTE/PATH/TO/runtime/agent/finance_bot/logs/finance_dashboard_daily.log</string>
     <key>StandardErrorPath</key>
-    <string>/ABSOLUTE/PATH/TO/finance_bot/logs/finance_dashboard_daily.log</string>
+    <string>/ABSOLUTE/PATH/TO/runtime/agent/finance_bot/logs/finance_dashboard_daily.log</string>
 </dict>
 </plist>
