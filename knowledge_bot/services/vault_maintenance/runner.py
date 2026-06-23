@@ -1,4 +1,4 @@
-"""Daily vault maintenance orchestration (config/vault_maintenance.yaml)."""
+"""Daily vault maintenance orchestration (local config/vault_maintenance.yaml)."""
 from __future__ import annotations
 
 import os
@@ -50,12 +50,17 @@ def _load_dotenv() -> None:
 
 
 def load_maintenance_config(agent_config_path: Path) -> dict[str, Any]:
-    p = agent_config_path / "vault_maintenance.yaml"
-    if not p.exists():
-        p = _kb_root() / "config" / "vault_maintenance.yaml"
-    if not p.exists():
-        return {}
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+    """Load local maintenance config; fallback example is intentionally safe/dry-run."""
+    candidates = [
+        agent_config_path / "vault_maintenance.yaml",
+        _kb_root() / "config" / "vault_maintenance.yaml",
+        _kb_root() / "config" / "vault_maintenance.yaml.example",
+    ]
+    for p in candidates:
+        if p.exists():
+            data = yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+            return data if isinstance(data, dict) else {}
+    return {"daily": {"enabled": False}}
 
 
 def _resolve_sync_dir(vault: Path, sync_dir: Path | None) -> Path:
@@ -180,7 +185,7 @@ def run_daily_maintenance(
     hcfg = mcfg.get("sync_hubs") or {}
     if hcfg.get("enabled", True):
         args = ["tools/sync_hubs.py", "--vault", str(vault)]
-        if hcfg.get("write", True):
+        if hcfg.get("write", False):
             args.append("--apply")
         if _step_failed(_run("sync_hubs", args)):
             out["ok"] = False
@@ -194,7 +199,7 @@ def run_daily_maintenance(
             "--limit",
             str(int(wcfg.get("limit", 30))),
         ]
-        if wcfg.get("apply", True):
+        if wcfg.get("apply", False):
             wargs.append("--apply")
         if _step_failed(_run("apply_wikilinks_batch", wargs)):
             out["ok"] = False
@@ -210,7 +215,7 @@ def run_daily_maintenance(
             "--topic-max-count",
             str(int(fcfg.get("topic_max_count", 2))),
         ]
-        if fcfg.get("apply", True):
+        if fcfg.get("apply", False):
             fargs.append("--apply")
         if _step_failed(_run("refill_singleton_tags", fargs)):
             out["ok"] = False
@@ -225,7 +230,7 @@ def run_daily_maintenance(
             "--limit",
             str(int(utcfg.get("limit", 40))),
         ]
-        if utcfg.get("apply", True):
+        if utcfg.get("apply", False):
             utargs.append("--apply")
         if _step_failed(_run("retag_untagged", utargs)):
             out["ok"] = False
@@ -241,7 +246,7 @@ def run_daily_maintenance(
             "--threshold",
             str(int(rtcfg.get("threshold", 1))),
         ]
-        if rtcfg.get("apply", True):
+        if rtcfg.get("apply", False):
             rtargs.append("--apply")
         if rtcfg.get("strip_obsolete_singleton_topics", True):
             rtargs.append("--strip-singleton-topics")
@@ -257,31 +262,35 @@ def run_daily_maintenance(
             "--limit",
             str(int(rcfg.get("limit", 8))),
         ]
-        if rcfg.get("apply", True):
+        if rcfg.get("apply", False):
             rargs.append("--apply")
         if _step_failed(_run("reprocess_notes", rargs)):
             out["ok"] = False
 
-    t0 = time.monotonic()
-    tag_cleanup_rows = sanitize_malformed_tags(vault, cfg.agent_config_path, apply=True)
-    tag_cleanup_stdout = "\n".join(
-        f"{rel}: removed={removed} tags={tags}"
-        for rel, removed, tags in tag_cleanup_rows[:30]
-    )
-    if len(tag_cleanup_rows) > 30:
-        tag_cleanup_stdout += f"\n... {len(tag_cleanup_rows) - 30} more"
-    if not tag_cleanup_stdout:
-        tag_cleanup_stdout = "Malformed tags: 0"
-    out["steps"].append(
-        {
-            "name": "sanitize_malformed_tags",
-            "returncode": 0,
-            "seconds": round(time.monotonic() - t0, 1),
-            "stdout_tail": tag_cleanup_stdout[-4000:],
-            "stderr_tail": "",
-            "metrics": {"malformed_tags_cleaned_notes": len(tag_cleanup_rows)},
-        }
-    )
+    tcfg = mcfg.get("sanitize_malformed_tags") or {}
+    if tcfg.get("enabled", True):
+        t0 = time.monotonic()
+        tag_cleanup_rows = sanitize_malformed_tags(
+            vault, cfg.agent_config_path, apply=bool(tcfg.get("apply", False))
+        )
+        tag_cleanup_stdout = "\n".join(
+            f"{rel}: removed={removed} tags={tags}"
+            for rel, removed, tags in tag_cleanup_rows[:30]
+        )
+        if len(tag_cleanup_rows) > 30:
+            tag_cleanup_stdout += f"\n... {len(tag_cleanup_rows) - 30} more"
+        if not tag_cleanup_stdout:
+            tag_cleanup_stdout = "Malformed tags: 0"
+        out["steps"].append(
+            {
+                "name": "sanitize_malformed_tags",
+                "returncode": 0,
+                "seconds": round(time.monotonic() - t0, 1),
+                "stdout_tail": tag_cleanup_stdout[-4000:],
+                "stderr_tail": "",
+                "metrics": {"malformed_tags_cleaned_notes": len(tag_cleanup_rows)},
+            }
+        )
 
     ecfg = mcfg.get("export_orphans") or {}
     if ecfg.get("enabled", True):
@@ -292,7 +301,7 @@ def run_daily_maintenance(
             "--print-limit",
             str(int(ecfg.get("print_limit", 100))),
         ]
-        if ecfg.get("apply", True):
+        if ecfg.get("apply", False):
             eargs.append("--apply")
         rehydrate_limit = int(ecfg.get("rehydrate_limit", 0) or 0)
         if rehydrate_limit > 0:
@@ -304,15 +313,15 @@ def run_daily_maintenance(
                     str(int(ecfg.get("rehydrate_max_mb", 25))),
                 ]
             )
-        if (ecfg.get("cleanup") or {}).get("enabled", True):
+        if (ecfg.get("cleanup") or {}).get("enabled", False):
             eargs.append("--allow-delete")
             eargs.extend(
                 [
                     "--delete-cap",
-                    str(int((ecfg.get("cleanup") or {}).get("delete_cap", 300))),
+                    str(int((ecfg.get("cleanup") or {}).get("delete_cap", 0))),
                 ]
             )
-        if bool((ecfg.get("cleanup") or {}).get("fix_broken_refs", True)):
+        if bool((ecfg.get("cleanup") or {}).get("fix_broken_refs", False)):
             eargs.append("--cleanup-broken-refs")
         if bool((ecfg.get("cleanup") or {}).get("fix_broken_body_refs", False)):
             eargs.append("--cleanup-broken-body-refs")
@@ -341,9 +350,10 @@ def run_daily_maintenance(
                     )
                     out["ok"] = False
                 else:
-                    apply_args = ["tools/apply_duplicates_resolution.py", "--apply"]
-                    if _step_failed(_run("apply_duplicates", apply_args)):
-                        out["ok"] = False
+                    if dcfg.get("apply", False):
+                        apply_args = ["tools/apply_duplicates_resolution.py", "--apply"]
+                        if _step_failed(_run("apply_duplicates", apply_args)):
+                            out["ok"] = False
             else:
                 print(
                     "[vault_daily_maintenance] apply_duplicates: nothing to delete",
@@ -353,7 +363,7 @@ def run_daily_maintenance(
     scfg = mcfg.get("singleton_tags_report") or {}
     if scfg.get("enabled", False):
         sargs = ["tools/strip_singleton_tags.py", "--vault", str(vault)]
-        if scfg.get("apply", True):
+        if scfg.get("apply", False):
             sargs.append("--apply")
         if _step_failed(_run("singleton_tags_report", sargs)):
             out["ok"] = False

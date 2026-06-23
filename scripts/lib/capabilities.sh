@@ -4,7 +4,7 @@ _cap_python() {
   local root="${AGENT_ROOT:-}" py="${CAPABILITIES_PYTHON:-python3}" candidate
   [[ -z "$root" ]] && return 1
   if [[ ! -t 0 ]]; then
-    for candidate in /opt/homebrew/bin/python3.12 python3.12; do
+    for candidate in python3.12 python3; do
       if command -v "$candidate" >/dev/null 2>&1; then
         CAPABILITIES_PYTHON="$(command -v "$candidate")"
         return 0
@@ -33,31 +33,42 @@ _cap_run_py() {
   fi
 }
 
+cap_disable_all() {
+  export CAPABILITIES_SYNC_PROFILE="${CAPABILITIES_SYNC_PROFILE:-disabled}"
+  export CAP_MODULE_FINANCE=0
+  export CAP_MODULE_PLANNING=0
+  export CAP_MODULE_KNOWLEDGE=0
+  export CAP_SYNC_MAC_IPHONE=0
+  export CAP_SYNC_GMAIL_HEALTH=0
+  export CAP_SYNC_PLANNING_CHARTS=0
+  export CAP_SYNC_CALENDAR=0
+  export CAP_SYNC_NUTRITION=0
+  export CAP_SYNC_HEALTH_ANALYTICS=0
+  export CAP_SYNC_CROSS_ANALYTICS=0
+  export CAP_SYNC_KB_MAINTENANCE=0
+  export CAP_SYNC_FINANCE_DASHBOARD=0
+  export CAP_SYNC_VAULT_AUDIT_HEAVY=0
+  export CAP_FEATURE_HEALTH_BODY_METRICS=0
+  export CAP_FEATURE_HEALTH_NUTRITION_CHART=0
+}
+
 cap_load_env() {
   local root="${AGENT_ROOT:-}"
   if [[ -z "$root" ]] || ! _cap_python; then
-    return 0
+    cap_disable_all
+    return 1
   fi
   local py="${CAPABILITIES_PYTHON}"
   local cap_exporter="$root/scripts/export_capabilities_env.py"
   local vault_exporter="$root/scripts/export_vault_paths_env.py"
   if [[ -f "$cap_exporter" ]]; then
     if ! eval "$(_cap_run_py "$py" "$cap_exporter")"; then
-      export CAPABILITIES_SYNC_PROFILE="${CAPABILITIES_SYNC_PROFILE:-full}"
-      export CAP_MODULE_FINANCE="${CAP_MODULE_FINANCE:-1}"
-      export CAP_MODULE_PLANNING="${CAP_MODULE_PLANNING:-1}"
-      export CAP_MODULE_KNOWLEDGE="${CAP_MODULE_KNOWLEDGE:-1}"
-      export CAP_SYNC_MAC_IPHONE="${CAP_SYNC_MAC_IPHONE:-1}"
-      export CAP_SYNC_GMAIL_HEALTH="${CAP_SYNC_GMAIL_HEALTH:-1}"
-      export CAP_SYNC_PLANNING_CHARTS="${CAP_SYNC_PLANNING_CHARTS:-1}"
-      export CAP_SYNC_CALENDAR="${CAP_SYNC_CALENDAR:-1}"
-      export CAP_SYNC_NUTRITION="${CAP_SYNC_NUTRITION:-1}"
-      export CAP_SYNC_HEALTH_ANALYTICS="${CAP_SYNC_HEALTH_ANALYTICS:-1}"
-      export CAP_SYNC_CROSS_ANALYTICS="${CAP_SYNC_CROSS_ANALYTICS:-1}"
-      export CAP_SYNC_KB_MAINTENANCE="${CAP_SYNC_KB_MAINTENANCE:-1}"
-      export CAP_SYNC_FINANCE_DASHBOARD="${CAP_SYNC_FINANCE_DASHBOARD:-1}"
-      export CAP_SYNC_VAULT_AUDIT_HEAVY="${CAP_SYNC_VAULT_AUDIT_HEAVY:-1}"
+      cap_disable_all
+      return 1
     fi
+  else
+    cap_disable_all
+    return 1
   fi
   if [[ -f "$vault_exporter" ]]; then
     eval "$(_cap_run_py "$py" "$vault_exporter")" || true
@@ -71,7 +82,7 @@ cap_load_vault_paths() {
 _cap_var_is_one() {
   # Bash ${!name} breaks under zsh (obsidian_sync.sh); eval works in both.
   local val
-  eval "val=\${${1}:-1}"
+  eval "val=\${${1}:-0}"
   [[ "$val" == "1" ]]
 }
 

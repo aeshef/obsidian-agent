@@ -220,3 +220,5 @@ planning_bot/config/asr_config.yaml
 !planning_bot/config/asr_config.yaml.example
 knowledge_bot/config/duplicate_cleanup.yaml
 !knowledge_bot/config/duplicate_cleanup.yaml.example
+knowledge_bot/config/vault_maintenance.yaml
+!knowledge_bot/config/vault_maintenance.yaml.example

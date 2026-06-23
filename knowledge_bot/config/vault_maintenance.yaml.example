@@ -1,0 +1,63 @@
+# Copy to knowledge_bot/config/vault_maintenance.yaml for production.
+# This example is intentionally safe: write/delete actions are dry-run or disabled.
+
+daily:
+  enabled: false
+  marker_basename: daily_vault_write_maintenance_date.txt
+
+sync_hubs:
+  enabled: true
+  write: false
+
+apply_wikilinks:
+  enabled: true
+  apply: false
+  limit: 30
+
+refill_singleton_tags:
+  enabled: true
+  apply: false
+  limit: 30
+  topic_max_count: 2
+
+retag_notes:
+  enabled: true
+  apply: false
+  limit: 35
+  threshold: 1
+  strip_obsolete_singleton_topics: true
+
+retag_untagged:
+  enabled: true
+  apply: false
+  limit: 40
+
+reprocess_notes:
+  enabled: true
+  apply: false
+  limit: 8
+
+sanitize_malformed_tags:
+  enabled: true
+  apply: false
+
+export_orphans:
+  enabled: true
+  apply: false
+  print_limit: 120
+  rehydrate_limit: 0
+  rehydrate_max_mb: 25
+  cleanup:
+    enabled: false
+    delete_cap: 0
+    fix_broken_refs: false
+    fix_broken_body_refs: false
+
+apply_duplicates:
+  enabled: true
+  apply: false
+  max_delete_per_run: 0
+
+singleton_tags_report:
+  enabled: false
+  apply: false
