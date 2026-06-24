@@ -373,6 +373,7 @@ finance:
   wizard_select_account: 'Select account:'
 host:
   agent_error: '❌ Agent error: {error}'
+  telegram_flood: '⏳ Telegram rate limit. Wait ~{seconds}s and try again.'
   back_home: 🏠 Main
   domain_current: 'Mode: {mode}. Or use buttons: {finance} / {planning}'
   domain_invalid: 'Allowed: finance, planning, knowledge, auto'

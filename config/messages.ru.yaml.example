@@ -35,6 +35,7 @@ host:
   planning_callback_unavailable: "Планирование недоступно"
   llm_routing_failed: "❌ LLM недоступен или вернул невалидный ответ: {error}"
   agent_error: "❌ Ошибка агента: {error}"
+  telegram_flood: "⏳ Telegram временно ограничил отправку. Подожди ~{seconds} сек и попробуй снова."
   switch_finance: "💰 Режим финансов. Кнопки — как в finance-боте; свободный текст — расход/доход или вопрос."
   switch_planning: "📋 Режим планирования. Кнопки — как в planning-боте; текст — задача или вопрос."
   switch_knowledge: |

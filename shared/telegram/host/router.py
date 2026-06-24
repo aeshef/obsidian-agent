@@ -8,6 +8,7 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import default_state
 from aiogram.types import Message
+from aiogram.exceptions import TelegramRetryAfter
 
 from shared.memory import clear_all_history, clear_history
 from shared.agent.llm_classify import LLMClassificationError
@@ -211,6 +212,14 @@ async def handle_text(
             msgf("host", "llm_routing_failed", error=e),
             reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
         )
+    except TelegramRetryAfter as e:
+        delay = int(e.retry_after or 30)
+        log.warning("host telegram flood chat=%s retry_after=%s", uid, delay)
+        if delay <= 20:
+            await message.answer(
+                msgf("host", "telegram_flood", seconds=delay),
+                reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
+            )
     except Exception as e:
         log.error("host auto dispatch failed: %s", e, exc_info=True)
         await message.answer(

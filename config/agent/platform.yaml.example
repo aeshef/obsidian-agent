@@ -30,7 +30,7 @@ agent_progress:
   # 1 = sendMessageDraft + финальный sendMessage; 0 = send_message + edit_message
   answer_draft: 1
   answer_stream_min_chars: 40
-  answer_draft_interval_ms: 80
+  answer_draft_interval_ms: 1000
   answer_stream_edit_ms: 900
 
 llm_classify:
@@ -89,6 +89,8 @@ planning_alerts:
 telegram:
   max_message_chars: 4090
   voice_preview_chars: 400
+  min_send_interval_ms: 900
+  flood_retry_max: 5
 
 knowledge_ingest:
   pending_limit: 100

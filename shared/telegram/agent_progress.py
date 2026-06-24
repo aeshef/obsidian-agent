@@ -9,6 +9,11 @@ from typing import TYPE_CHECKING, Any, Literal
 from shared.agent.platform_config import platform_int
 from shared.agent.progress import answer_draft_enabled, answer_stream_enabled
 from shared.telegram.limits import max_message_chars
+from shared.telegram.flood_guard import (
+    edit_message_text_guarded,
+    guarded_telegram,
+    send_message_guarded,
+)
 from shared.telegram.message_draft import new_draft_id, send_message_draft
 from shared.telegram_utils import strip_telegram_markdown
 
@@ -118,8 +123,8 @@ class TelegramAgentProgress:
                 await self._finalize_draft_answer(safe, reply_markup=reply_markup)
                 return
             if self._answer_message_id is None:
-                msg = await self._bot.send_message(
-                    self._chat_id, safe, reply_markup=reply_markup
+                msg = await send_message_guarded(
+                    self._bot, self._chat_id, safe, reply_markup=reply_markup
                 )
                 self._answer_message_id = msg.message_id
                 self._answer_delivered = True
@@ -129,10 +134,11 @@ class TelegramAgentProgress:
             if safe == self._last_pushed_answer_text:
                 return
             try:
-                await self._bot.edit_message_text(
+                await edit_message_text_guarded(
+                    self._bot,
+                    self._chat_id,
+                    self._answer_message_id,
                     safe,
-                    chat_id=self._chat_id,
-                    message_id=self._answer_message_id,
                 )
                 self._last_pushed_answer_text = safe
                 self._pending_answer_text = safe
@@ -158,10 +164,11 @@ class TelegramAgentProgress:
         ):
             async with self._answer_lock:
                 try:
-                    await self._bot.edit_message_text(
+                    await edit_message_text_guarded(
+                        self._bot,
+                        self._chat_id,
+                        self._answer_message_id,
                         self._pending_answer_text,
-                        chat_id=self._chat_id,
-                        message_id=self._answer_message_id,
                     )
                 except Exception:
                     pass
@@ -190,14 +197,15 @@ class TelegramAgentProgress:
         self._answer_stream_mode = "edit"
         try:
             if self._answer_message_id is None:
-                msg = await self._bot.send_message(self._chat_id, safe)
+                msg = await send_message_guarded(self._bot, self._chat_id, safe)
                 self._answer_message_id = msg.message_id
                 self._answer_delivered = True
             else:
-                await self._bot.edit_message_text(
+                await edit_message_text_guarded(
+                    self._bot,
+                    self._chat_id,
+                    self._answer_message_id,
                     safe,
-                    chat_id=self._chat_id,
-                    message_id=self._answer_message_id,
                 )
             self._last_pushed_answer_text = safe
         except Exception as e:
@@ -209,14 +217,9 @@ class TelegramAgentProgress:
 
     async def _finalize_draft_answer(self, safe: str, *, reply_markup: Any = None) -> None:
         """Final sendMessage — draft is not in history without this step."""
-        if self._last_pushed_answer_text:
-            await send_message_draft(
-                self._bot,
-                chat_id=self._chat_id,
-                draft_id=self._answer_draft_id or new_draft_id(self._chat_id),
-                text=safe,
-            )
-        msg = await self._bot.send_message(self._chat_id, safe, reply_markup=reply_markup)
+        msg = await send_message_guarded(
+            self._bot, self._chat_id, safe, reply_markup=reply_markup
+        )
         self._answer_message_id = msg.message_id
         self._answer_delivered = True
         self._last_pushed_answer_text = safe
@@ -227,11 +230,14 @@ class TelegramAgentProgress:
         safe = (text or "")[: max(cap, 1)]
         try:
             if self._status_message_id is None:
-                msg = await self._bot.send_message(self._chat_id, safe)
+                msg = await send_message_guarded(self._bot, self._chat_id, safe)
                 self._status_message_id = msg.message_id
             else:
-                await self._bot.edit_message_text(
-                    safe, chat_id=self._chat_id, message_id=self._status_message_id
+                await edit_message_text_guarded(
+                    self._bot,
+                    self._chat_id,
+                    self._status_message_id,
+                    safe,
                 )
         except Exception as e:
             log.debug("status message update failed: %s", e)

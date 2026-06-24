@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, Optional
 
 from aiogram.methods.base import TelegramMethod
 
+from shared.telegram.flood_guard import guarded_telegram
+
 if TYPE_CHECKING:
     from aiogram import Bot
 
@@ -42,8 +44,11 @@ async def send_message_draft(
         return False
     payload = text[:4096]
     try:
-        result = await bot(
-            SendMessageDraft(chat_id=chat_id, draft_id=draft_id, text=payload)
+        result = await guarded_telegram(
+            chat_id,
+            lambda: bot(
+                SendMessageDraft(chat_id=chat_id, draft_id=draft_id, text=payload)
+            ),
         )
         return bool(result)
     except Exception as e:
