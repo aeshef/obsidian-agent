@@ -340,8 +340,8 @@ memory_layers:
   unknown_scope: "Неизвестный scope/domain: {scope}. Допустимо: current, global, all, finance, planning, knowledge."
   observations: "Наблюдения [{dom}]:"
   no_domain_confirmed: "(подтверждённых наблюдений для {dom} нет)"
-  pending_line: "  • [{domain}, {date}, {kind}] {text} (кандидат, ×{count}; /memory)"
-  pending_header: "Кандидаты (ещё не в промпте, подтверди в /memory):"
+  pending_line: "  • [{domain}, {date}, {kind}] {text} (кандидат, ×{count})"
+  pending_header: "Кандидаты (ещё не в промпте; подтверди в меню «Память»):"
   durable_header: "Устойчивые наблюдения:"
   periodic_header: "Периодические наблюдения (с TTL):"
 

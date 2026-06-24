@@ -607,8 +607,8 @@ memory_layers:
   no_domain_confirmed: (no confirmed observations for {dom})
   no_global: (no global observations)
   observations: 'Observations [{dom}]:'
-  pending_header: 'Candidates (not yet in prompt, confirm in /memory):'
-  pending_line: '  • [{domain}, {date}, {kind}] {text} (candidate, ×{count}; /memory)'
+  pending_header: 'Candidates (not yet in prompt; confirm via Memory menu):'
+  pending_line: '  • [{domain}, {date}, {kind}] {text} (candidate, ×{count})'
   durable_header: 'Durable observations:'
   periodic_header: 'Periodic observations (TTL):'
   profile_unset: (profile not set)

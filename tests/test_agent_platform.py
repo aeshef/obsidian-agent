@@ -389,7 +389,7 @@ def test_format_insights_lists_pending(tmp_path, monkeypatch):
     store.record_candidates(3, "finance", ["кандидат тест"])
     out = format_insights_text(3, scope="current", current_domain="finance")
     assert "кандидат" in out
-    assert "/memory" in out
+    assert "Память" in out or "Memory" in out
 
 
 def test_attach_memory_tools_on_finance_registry():

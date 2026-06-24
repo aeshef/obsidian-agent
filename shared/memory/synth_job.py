@@ -13,6 +13,7 @@ from shared.llm import LLMClient
 from shared.memory.context_collectors import COLLECTORS
 from shared.memory.insights import get_store
 from shared.memory.synth import synthesize, synth_enabled
+from shared.telegram.memory_ui import memory_open_callback
 from shared.telegram_utils import split_message
 
 log = logging.getLogger("shared.memory.synth_job")
@@ -36,7 +37,12 @@ def _notify_keyboard(pending_id: int) -> InlineKeyboardMarkup:
                     callback_data=f"mem:no:{pending_id}",
                 ),
             ],
-            [InlineKeyboardButton(text="📋 /memory", callback_data="mem:noop")],
+            [
+                InlineKeyboardButton(
+                    text=msg("synth", "open_memory_btn"),
+                    callback_data=memory_open_callback(),
+                ),
+            ],
         ]
     )
 

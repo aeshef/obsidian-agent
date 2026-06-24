@@ -1,7 +1,7 @@
 """Layer 5: confirmed insights + candidate accumulation (SQLite, stdlib).
 
 Works on Python 3.9 without external infra. Synth engine (synth.py) writes candidates;
-user confirms via /memory; confirmed ones read into system prompt.
+user confirms via Memory menu; confirmed ones read into system prompt.
 """
 from __future__ import annotations
 

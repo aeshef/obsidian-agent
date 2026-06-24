@@ -175,6 +175,12 @@ async def handle_text(
         await message.answer(msg("host", "main_menu"), reply_markup=root_keyboard())
         return
 
+    if text == L.memory_menu():
+        from shared.telegram.memory_handlers import send_memory_panel
+
+        await send_memory_panel(message)
+        return
+
     new_mode = mode_from_button(text)
     if new_mode:
         await switch_mode(message, state, new_mode)

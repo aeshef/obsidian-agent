@@ -383,6 +383,7 @@ host:
   mode_finance: 💰 Finance
   mode_knowledge: 📚 Knowledge base
   mode_planning: 📋 Planning
+  memory_menu: 🧠 Memory
   placeholder_auto: Question — domain will be selected automatically
   placeholder_knowledge: Media loading or question about notes
   placeholder_root: Choose mode or ask a question
@@ -393,16 +394,11 @@ host:
 
     '
   planning_unavailable_short: ⚠️ Planning module unavailable.
-  start_welcome: '👋 Assistant — one bot for everything.
+  start_welcome: |
+    👋 Assistant
 
-
-    • Choose mode by button (finance / plan / knowledge) — familiar menu will appear
-
-    • Or "💬 Chat (auto)" — chat only, auto domain
-
-    • /memory — memory · /reset — reset dialog
-
-    '
+    Bottom row — modes: finance, planning, knowledge, or auto chat.
+    «🧠 Memory» — observations, confirm and reset.
   switch_auto: '💬 Auto: domain by message context. Domain buttons via 🏠 Main.'
   switch_finance: 💰 Finance mode. Buttons — like in finance-bot; free text — income/expense
     or question.
@@ -541,7 +537,6 @@ memory:
   no_confirmed: No confirmed observations yet.
   no_pending: No candidates for confirmation.
   not_found: Not found
-  open_memory: Open /memory in chat
   pending_header: 'Pending confirmation:'
   pending_line: '• [{domain}] #{id}: {text} (×{count})'
   reject_btn: '❌ #{id}'
@@ -549,17 +544,22 @@ memory:
   reset_confirmed_done: 'Deleted confirmed observations: {count}.'
   reset_pending_done: 'Rejected pending candidates: {count}.'
   reset_session_done: Short dialogue history cleared.
-  reset_usage: 'Usage: /reset_memory [session|pending|confirmed|all] [global|finance|planning|knowledge]'
-  profile_header: 'Profile (manual markdown, not insights):'
+  reset_session_btn: 🧹 Dialogue
+  reset_pending_btn: 🗑 Candidates
+  reset_confirmed_btn: 🗑 Observations
+  reset_all_btn: ♻️ All
+  reset_unknown_mode: Unknown reset action.
+  reset_unknown_domain: Unknown domain for reset.
+  profile_header: 'Profile (manual, not insights):'
   profile_unset: (profile not set)
   durable_header: 'Durable observations:'
   periodic_header: 'Periodic observations (TTL):'
   layers_hint: |
     Memory layers:
-    • dialogue → /reset_memory session
-    • candidates → buttons or /reset_memory pending
-    • confirmed → /reset_memory confirmed
-    • profile → user_profile.md
+    • dialogue — {reset_session}
+    • candidates — buttons below or {reset_pending}
+    • confirmed — {reset_confirmed}
+    • profile — user_profile.md
   saved: Saved to memory
   title: 🧠 Agent memory
 memory_context:
@@ -953,6 +953,7 @@ synth:
     '
   reject_btn: ❌ No
   remember_btn: ✅ Remember
+  open_memory_btn: 📋 Memory
 wire:
   voice_error: '❌ Voice processing error:
 

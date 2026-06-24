@@ -18,12 +18,12 @@ host:
   mode_finance: "💰 Финансы"
   mode_planning: "📋 Планирование"
   mode_knowledge: "📚 База знаний"
+  memory_menu: "🧠 Память"
   start_welcome: |
-    👋 Assistant — один бот на всё.
+    👋 Assistant
 
-    • Выбери режим кнопкой (финансы / план / знания) — появится привычное меню
-    • Или «💬 Чат (авто)» — только переписка, домен сам
-    • /memory — память · /reset — сброс диалога
+    Внизу — режимы: финансы, план, знания, авто-чат.
+    «🧠 Память» — наблюдения, подтверждение и сброс.
   domain_current: "Режим: {mode}. Или кнопками: {finance} / {planning}"
   domain_invalid: "Допустимо: finance, planning, knowledge, auto"
   main_menu: "🏠 Главное меню"
@@ -79,26 +79,31 @@ memory:
   invalid_id: "Некорректный id"
   saved: "Сохранено в память"
   not_found: "Не найдено"
-  open_memory: "Открой /memory в чате"
   rejected: "Отклонено"
-  reset_usage: "Использование: /reset_memory [session|pending|confirmed|all] [global|finance|planning|knowledge]"
   reset_session_done: "Краткая история диалога очищена."
   reset_pending_done: "Отклонено pending-кандидатов: {count}."
   reset_confirmed_done: "Удалено подтверждённых наблюдений: {count}."
-  profile_header: "Профиль (редактируется вручную, не insights):"
+  reset_session_btn: "🧹 Диалог"
+  reset_pending_btn: "🗑 Кандидаты"
+  reset_confirmed_btn: "🗑 Наблюдения"
+  reset_all_btn: "♻️ Всё"
+  reset_unknown_mode: "Неизвестное действие сброса."
+  reset_unknown_domain: "Неизвестный домен для сброса."
+  profile_header: "Профиль (вручную, не insights):"
   profile_unset: "(профиль не задан)"
   durable_header: "Устойчивые наблюдения:"
   periodic_header: "Периодические наблюдения (с TTL):"
   layers_hint: |
     Слои памяти:
-    • диалог → /reset_memory session
-    • кандидаты → кнопки или /reset_memory pending
-    • подтверждённые → /reset_memory confirmed
-    • профиль → user_profile.md
+    • диалог — {reset_session}
+    • кандидаты — кнопки ниже или {reset_pending}
+    • подтверждённые — {reset_confirmed}
+    • профиль — user_profile.md
 
 synth:
   remember_btn: "✅ Запомнить"
   reject_btn: "❌ Нет"
+  open_memory_btn: "📋 Память"
   pattern_ready: |
     🧠 [{domain}] Паттерн готов к сохранению:
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -123,3 +124,16 @@ def read_global_profile_excerpt() -> str:
     if len(text) <= limit:
         return text
     return text[: limit - 1].rstrip() + "…"
+
+
+def read_global_profile_excerpt_plain() -> str:
+    """Profile excerpt without markdown noise (Telegram plain text)."""
+    raw = read_global_profile_excerpt()
+    if not raw:
+        return ""
+    from shared.telegram_utils import strip_telegram_markdown
+
+    out = strip_telegram_markdown(raw)
+    out = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", out)
+    out = re.sub(r"\n{3,}", "\n\n", out)
+    return out.strip()

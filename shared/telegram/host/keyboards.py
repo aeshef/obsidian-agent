@@ -37,6 +37,7 @@ def root_keyboard() -> ReplyKeyboardMarkup:
         bottom.append(KeyboardButton(text=L.mode_knowledge()))
     bottom.append(KeyboardButton(text=L.mode_auto()))
     rows.append(bottom)
+    rows.append([KeyboardButton(text=L.memory_menu())])
     return ReplyKeyboardMarkup(
         keyboard=rows,
         resize_keyboard=True,

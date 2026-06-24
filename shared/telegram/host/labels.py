@@ -26,6 +26,10 @@ def mode_knowledge() -> str:
     return msg("host", "mode_knowledge")
 
 
+def memory_menu() -> str:
+    return msg("host", "memory_menu")
+
+
 @lru_cache(maxsize=1)
 def mode_button_labels() -> frozenset[str]:
     return frozenset(
@@ -35,6 +39,7 @@ def mode_button_labels() -> frozenset[str]:
             mode_finance(),
             mode_planning(),
             mode_knowledge(),
+            memory_menu(),
         }
     )
 
