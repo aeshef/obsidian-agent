@@ -19,6 +19,10 @@ def _ocr_easyocr_enabled() -> bool:
     return os.environ.get("OCR_EASYOCR", "1").strip().lower() not in ("0", "false", "no", "off")
 
 
+def _ocr_easyocr_video_frames_enabled() -> bool:
+    return os.environ.get("OCR_EASYOCR_VIDEO_FRAMES", "0").strip().lower() in ("1", "true", "yes", "on")
+
+
 def _tesseract_sufficient_chars() -> int:
     try:
         return max(1, int(os.environ.get("OCR_TESSERACT_SUFFICIENT_CHARS", "40")))
@@ -387,7 +391,9 @@ def extract_from_image(
             tesseract_text = _ocr_tesseract(img, profile=profile)
             log.info("Tesseract OCR: %d chars in %.1fs", len(tesseract_text), time.monotonic() - t0)
 
-        if profile != "thumbnail" and _should_run_easyocr(path, tesseract_text):
+        if profile == "video_frame" and not _ocr_easyocr_video_frames_enabled():
+            log.info("Video frame profile: EasyOCR skipped by default")
+        elif profile != "thumbnail" and _should_run_easyocr(path, tesseract_text):
             log.info("Starting EasyOCR for image...")
             t0 = time.monotonic()
             easyocr_text = _ocr_easyocr(str(path))

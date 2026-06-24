@@ -27,3 +27,21 @@ def test_extract_from_image_thumbnail_skips_easyocr(tmp_path: Path):
                     assert out == "hello"
                     tess.assert_called_once()
                     easy.assert_not_called()
+
+
+def test_extract_from_video_frame_skips_easyocr_by_default(tmp_path: Path, monkeypatch):
+    monkeypatch.delenv("OCR_EASYOCR_VIDEO_FRAMES", raising=False)
+    img = tmp_path / "frame.jpg"
+    with patch("knowledge_bot.services.extract.ocr.PIL") as pil:
+        mock_img = MagicMock()
+        mock_img.size = (672, 848)
+        mock_img.mode = "RGB"
+        pil.Image.open.return_value = mock_img
+        pil.Image.LANCZOS = 1
+        with patch("knowledge_bot.services.extract.ocr.pytesseract", object()):
+            with patch("knowledge_bot.services.extract.ocr._ocr_tesseract", return_value="short") as tess:
+                with patch("knowledge_bot.services.extract.ocr._ocr_easyocr") as easy:
+                    out = extract_from_image(img, profile="video_frame")
+                    assert out == "short"
+                    tess.assert_called_once()
+                    easy.assert_not_called()
