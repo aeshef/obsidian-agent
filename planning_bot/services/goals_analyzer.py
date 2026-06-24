@@ -34,9 +34,16 @@ class GoalsAnalyzer:
         # (comment)
         total_tasks = len(related_tasks)
         # (comment)
-        completed = len([t for t in related_tasks if t.get("is_completed") or t.get("column") == DONE_COLUMN])
+        completed = len([
+            t for t in related_tasks
+            if t.get("completed") or t.get("is_completed") or t.get("column") == DONE_COLUMN
+        ])
         in_progress = len([t for t in related_tasks if t.get("column") == IN_WORK_COLUMN])
-        backlog = len([t for t in related_tasks if (t.get("column") == BACKLOG_COLUMN or not t.get("column")) and not t.get("is_completed")])
+        backlog = len([
+            t for t in related_tasks
+            if (t.get("column") == BACKLOG_COLUMN or not t.get("column"))
+            and not (t.get("completed") or t.get("is_completed"))
+        ])
         
         return {
             "goal": goal,
@@ -91,7 +98,7 @@ class GoalsAnalyzer:
             # (comment)
             recent_completed = [
                 t for t in progress.get("tasks", [])
-                if (t.get("column") == DONE_COLUMN or t.get("is_completed"))
+                if (t.get("column") == DONE_COLUMN or t.get("completed") or t.get("is_completed"))
                 and t.get("created_date")
             ]
             if progress["total_tasks"] > 0 and len(recent_completed) == 0:

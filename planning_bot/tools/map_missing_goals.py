@@ -19,6 +19,28 @@ logger = logging.getLogger(__name__)
 REMAP_ALL = '--remap-all' in sys.argv
 
 
+def _mapping_limit(default: int) -> int:
+    raw = os.environ.get("GOALS_MAPPING_LIMIT", "").strip()
+    if not raw:
+        return default
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return default
+
+
+def select_missing_tasks(all_tasks, existing_mapping, *, remap_all: bool = False):
+    tasks_with_id = [t for t in all_tasks if t.get("task_id")]
+    if remap_all:
+        return tasks_with_id
+    return [t for t in tasks_with_id if t["task_id"] not in existing_mapping]
+
+
+def record_no_goal_mapping(goals_mapper, task_id: str, title: str) -> None:
+    goals_mapper.mapping[task_id] = []
+    goals_mapper.save_mapping(task_info={task_id: title})
+
+
 def main():
     # (comment)
     from planning_bot.services.kanban import KanbanBoard
@@ -32,7 +54,7 @@ def main():
     if REMAP_ALL:
         logger.info(pdmsg("auto_6ef8e6f330"))
         all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-        tasks_with_id = [t for t in all_tasks if t.get('task_id')]
+        tasks_with_id = select_missing_tasks(all_tasks, goals_mapper.mapping, remap_all=True)
         # (comment)
         for t in tasks_with_id:
             tid = t['task_id']
@@ -41,15 +63,15 @@ def main():
         if tasks_with_id:
             goals_mapper.save_mapping()
         missing = tasks_with_id
-        limit = 500
+        limit = _mapping_limit(500)
         logger.info(pdmsg("auto_78daa6c5ee", _p1=len(missing)))
     else:
         logger.info(pdmsg("auto_b01c8bed70"))
         all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=True)
-        active_tasks = [t for t in all_tasks if not t.get('completed') and t.get('task_id')]
-        missing = [t for t in active_tasks if t['task_id'] not in goals_mapper.mapping]
-        limit = 20
-        logger.info(pdmsg("auto_ffbd805644", _p1=len(active_tasks), _p3=len(missing)))
+        tasks_with_id = [t for t in all_tasks if t.get('task_id')]
+        missing = select_missing_tasks(all_tasks, goals_mapper.mapping, remap_all=False)
+        limit = _mapping_limit(20)
+        logger.info(pdmsg("auto_ffbd805644", _p1=len(tasks_with_id), _p3=len(missing)))
 
     if not missing:
         logger.info(pdmsg("auto_0848da3bdb"))
@@ -82,6 +104,7 @@ def main():
                 goal_names = [goals_by_id.get(gid, f"??{gid}") for gid in goal_ids]
                 print(f"✅ → {', '.join(goal_names)}")
             else:
+                record_no_goal_mapping(goals_mapper, task_id, title)
                 print(pdmsg("auto_4e30ce6f86"))
 
         except Exception as e:
