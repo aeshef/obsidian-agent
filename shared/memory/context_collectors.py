@@ -20,7 +20,7 @@ def _dialogue_excerpt(user_id: int, domain: str) -> str:
     excerpt_chars = platform_int("memory_synth", "dialogue_excerpt_chars", default=200)
     history_turns = platform_int("memory_synth", "dialogue_history_turns", default=6)
     lines = [
-        f"{m.role}: {(m.content or '')[:excerpt_chars]}"
+        f"{m.role} [{m.ts or 'time_unknown'}]: {(m.content or '')[:excerpt_chars]}"
         for m in hist[-history_turns:]
     ]
     return msgf("memory_context", "recent_dialogue", lines="\n".join(lines))

@@ -31,11 +31,14 @@ def _max_iters() -> int:
 def agent_messages_to_api(messages: list[AgentMessage]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for m in messages:
+        content = m.content or ""
+        if m.ts and m.role in ("user", "assistant"):
+            content = f"[at {m.ts}] {content}"
         if m.role == "assistant" and m.tool_calls:
             out.append(
                 {
                     "role": "assistant",
-                    "content": m.content,
+                    "content": content,
                     "tool_calls": [
                         {
                             "id": tc.id,
@@ -52,7 +55,7 @@ def agent_messages_to_api(messages: list[AgentMessage]) -> list[dict[str, Any]]:
         elif m.role == "tool":
             out.append({"role": "tool", "tool_call_id": m.tool_call_id, "content": m.content or ""})
         else:
-            out.append({"role": m.role, "content": m.content or ""})
+            out.append({"role": m.role, "content": content})
     return out
 
 

@@ -116,12 +116,12 @@ def _load_sqlite(user_id: int, domain: str) -> list[AgentMessage]:
     try:
         with sqlite3.connect(str(_db_path())) as conn:
             rows = conn.execute(
-                "SELECT role, content FROM session_messages WHERE user_id=? AND domain=? "
+                "SELECT role, content, ts FROM session_messages WHERE user_id=? AND domain=? "
                 "ORDER BY id DESC LIMIT ?",
                 (user_id, domain, _max_messages()),
             ).fetchall()
         rows.reverse()
-        return [AgentMessage(role=r[0], content=r[1]) for r in rows]
+        return [AgentMessage(role=r[0], content=r[1], ts=r[2]) for r in rows]
     except sqlite3.Error as e:
         log.warning("session sqlite read failed: %s", e)
         return []
@@ -180,12 +180,13 @@ def get_history(user_id: int, domain: str) -> list[AgentMessage]:
 
 def append_turn(user_id: int, domain: str, role: str, content: str) -> None:
     key = (user_id, domain)
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if key not in _store:
         if _persist_enabled():
             _store[key] = deque(_load_sqlite(user_id, domain), maxlen=_max_messages())
         else:
             _store[key] = deque(maxlen=_max_messages())
-    _store[key].append(AgentMessage(role=role, content=content))
+    _store[key].append(AgentMessage(role=role, content=content, ts=now))
     if _persist_enabled():
         _append_sqlite(user_id, domain, role, content)
 
@@ -197,9 +198,9 @@ def clear_history(user_id: int, domain: str) -> None:
 
 def clear_all_history(user_id: int, domains: list[str] | None = None) -> None:
     """Reset session layer for all (or specified) domains."""
-    from shared.memory.constants import AGENT_DOMAINS
+    from shared.memory.constants import SESSION_DOMAINS
 
-    for dom in domains or list(AGENT_DOMAINS):
+    for dom in domains or list(SESSION_DOMAINS):
         clear_history(user_id, dom)
 
 

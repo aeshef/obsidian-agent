@@ -39,7 +39,7 @@ async def get_kanban(ctx: AgentContext, column: Optional[str] = None) -> str:
     tasks = bot.kanban.get_tasks(
         exclude_today=False,
         exclude_blocked=False,
-        include_archive=False,
+        include_archive=True,
     )
     done_preview = max(1, platform_int("planning", "kanban_done_preview_max", default=1000))
 

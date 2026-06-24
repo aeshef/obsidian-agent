@@ -45,7 +45,10 @@ async def get_dialogue_history(
     hist = get_history(ctx.user_id, dom)[-lim:]
     if not hist:
         return dmsg("memory_tools", "empty_history", dom=dom)
-    lines = [f"{m.role}: {(m.content or '')[:400]}" for m in hist]
+    lines = [
+        f"{m.role} [{m.ts or 'time_unknown'}]: {(m.content or '')[:400]}"
+        for m in hist
+    ]
     header = dmsg("memory_tools", "history_header", dom=dom, count=len(lines))
     if dom != ctx.domain:
         header += dmsg("memory_tools", "history_from_domain", domain=ctx.domain)

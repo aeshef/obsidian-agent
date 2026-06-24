@@ -96,7 +96,8 @@ def dialogue_hint(
     lines: list[str] = []
     for dom in domains:
         for m in get_history(chat_id, dom)[-per_domain:]:
-            lines.append(f"[{dom}] {m.role}: {(m.content or '')[:160]}")
+            ts = m.ts or "time_unknown"
+            lines.append(f"[{dom}][{ts}] {m.role}: {(m.content or '')[:160]}")
     return "\n".join(lines[-12:])
 
 

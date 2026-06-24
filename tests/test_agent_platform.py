@@ -113,6 +113,21 @@ def test_insights_reject(tmp_path):
     assert store.list_pending(2, "planning") == []
 
 
+def test_insights_clear_pending_and_confirmed(tmp_path):
+    from shared.memory.insights import InsightsStore
+
+    store = InsightsStore(tmp_path / "memory.db")
+    store.record_candidates(2, "planning", ["паттерн X"])
+    store.record_candidates(2, "finance", ["паттерн Y"])
+    pending = store.list_pending(2, "planning")
+    assert store.confirm(pending[0]["id"]) is True
+
+    assert store.clear_pending(2, "finance") == 1
+    assert store.list_pending(2, "finance") == []
+    assert store.clear_confirmed(2, "planning") == 1
+    assert store.read_confirmed(2, "planning") == []
+
+
 def test_resolve_domain_multi_fixed(monkeypatch):
     from shared.agent.routing import resolve_domain
     from shared.agent.types import Domain
@@ -148,6 +163,68 @@ def test_session_sqlite_persist(tmp_path, monkeypatch):
     hist = sess.get_history(42, "finance")
     assert len(hist) == 2
     assert hist[0].content == "привет"
+    assert hist[0].ts
+
+
+def test_clear_all_history_includes_unified(tmp_path, monkeypatch):
+    from shared.memory import session as sess
+
+    db = tmp_path / "mem.db"
+    monkeypatch.setenv("AGENT_MEMORY_DB", str(db))
+    monkeypatch.setenv("MEMORY_SESSION_PERSIST", "1")
+    monkeypatch.setenv("MEMORY_SESSION_MIGRATE_PLANNING", "0")
+    sess._store.clear()
+    sess._sqlite_ready = False
+
+    sess.append_turn(42, "unified", "user", "старый общий разговор")
+    sess.append_turn(42, "planning", "user", "старая задача")
+    sess.clear_all_history(42)
+
+    assert sess.get_history(42, "unified") == []
+    assert sess.get_history(42, "planning") == []
+
+
+def test_agent_history_api_includes_timestamp():
+    from shared.agent.core import agent_messages_to_api
+    from shared.agent.types import AgentMessage
+
+    out = agent_messages_to_api([
+        AgentMessage(role="user", content="старый вопрос", ts="2026-06-01T10:00:00+00:00")
+    ])
+
+    assert out == [{"role": "user", "content": "[at 2026-06-01T10:00:00+00:00] старый вопрос"}]
+
+
+def test_get_kanban_reads_archive():
+    from planning_bot.app.agent_tools import get_kanban
+    from planning_bot.core.config import KANBAN_COLUMNS
+    from shared.agent.types import AgentContext
+
+    calls = []
+
+    class _Kanban:
+        def load(self):
+            pass
+
+        def get_tasks(self, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    class _Bot:
+        kanban = _Kanban()
+
+    ctx = AgentContext(
+        user_id=1,
+        domain="planning",
+        question="tasks?",
+        system_prompt="",
+        extras={"bot": _Bot()},
+    )
+
+    out = asyncio.run(get_kanban(ctx=ctx))
+
+    assert calls and calls[0]["include_archive"] is True
+    assert KANBAN_COLUMNS[0] in out
 
 
 def test_build_system_prompt_layers():
