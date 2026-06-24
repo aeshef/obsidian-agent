@@ -26,7 +26,12 @@ def load_memory_config() -> dict:
                     "planning": "## Goals context",
                 },
             },
-            "insights": {"global_limit": 8, "domain_limit": 10},
+            "insights": {
+                "global_limit": 8,
+                "domain_limit": 10,
+                "periodic_ttl_days": 45,
+                "profile_excerpt_max": 400,
+            },
         },
     )
 
@@ -78,3 +83,43 @@ def insight_limits() -> tuple[int, int]:
     except (TypeError, ValueError):
         d = 10
     return g, d
+
+
+def periodic_ttl_days() -> int:
+    raw = os.environ.get("INSIGHTS_PERIODIC_TTL_DAYS", "").strip()
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            pass
+    cfg = load_memory_config()
+    ins = cfg.get("insights") or {}
+    try:
+        return max(1, int(ins.get("periodic_ttl_days", 45)))
+    except (TypeError, ValueError):
+        return 45
+
+
+def profile_excerpt_max() -> int:
+    cfg = load_memory_config()
+    ins = cfg.get("insights") or {}
+    try:
+        return max(80, int(ins.get("profile_excerpt_max", 400)))
+    except (TypeError, ValueError):
+        return 400
+
+
+def read_global_profile_excerpt() -> str:
+    path = global_profile_path()
+    if not path.is_file():
+        return ""
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return ""
+    if not text:
+        return ""
+    limit = profile_excerpt_max()
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"

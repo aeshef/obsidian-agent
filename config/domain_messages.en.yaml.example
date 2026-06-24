@@ -597,6 +597,9 @@ knowledge_vision:
 memory_insights:
   domain_header: '## Observations ({domain})'
   global_header: '## General user observations'
+  prompt_line: '- [{date}] {text}'
+  confirmed_ui_line: '• [{domain}, {date}, {kind}] {text}'
+  pending_ui_line: '• [{domain}, {date}, {kind}] #{id}: {text} (×{count})'
 memory_layers:
   global_observations: 'Global observations:'
   global_prefix: 'Global:'
@@ -605,7 +608,9 @@ memory_layers:
   no_global: (no global observations)
   observations: 'Observations [{dom}]:'
   pending_header: 'Candidates (not yet in prompt, confirm in /memory):'
-  pending_line: '  • [{domain}] {text} (candidate, confirmations {count}; /memory)'
+  pending_line: '  • [{domain}, {date}, {kind}] {text} (candidate, ×{count}; /memory)'
+  durable_header: 'Durable observations:'
+  periodic_header: 'Periodic observations (TTL):'
   profile_unset: (profile not set)
   unknown_scope: 'Unknown scope/domain: {scope}. Allowed: current, global, all, finance,
     planning, knowledge.'

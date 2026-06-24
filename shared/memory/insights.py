@@ -11,10 +11,17 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from pathlib import Path
+from typing import Iterable
 
 from shared.agent.types import AgentContext, AgentMessage
 from shared.domain_messages import dmsg
 from shared.memory.constants import GLOBAL_DOMAIN
+from shared.memory.insight_format import (
+    KIND_DURABLE,
+    format_confirmed_prompt_line,
+    format_date_short,
+    normalize_kind,
+)
 
 log = logging.getLogger("shared.memory.insights")
 
@@ -66,6 +73,25 @@ CREATE INDEX IF NOT EXISTS idx_pending_user_domain ON pending_insights(user_id, 
 """
 
 
+def _normalize_candidate_items(
+    patterns: Iterable[str | tuple[str, str] | dict[str, str]],
+) -> list[tuple[str, str]]:
+    out: list[tuple[str, str]] = []
+    for item in patterns:
+        if isinstance(item, dict):
+            text = str(item.get("text") or item.get("pattern") or "").strip()
+            kind = normalize_kind(item.get("kind"))
+        elif isinstance(item, tuple):
+            text = str(item[0] or "").strip()
+            kind = normalize_kind(item[1] if len(item) > 1 else KIND_DURABLE)
+        else:
+            text = str(item or "").strip()
+            kind = KIND_DURABLE
+        if text:
+            out.append((text, kind))
+    return out
+
+
 class InsightsStore:
     def __init__(self, path: Path | None = None) -> None:
         self._path = path or memory_db_path()
@@ -77,35 +103,79 @@ class InsightsStore:
         if not self._ensured:
             conn.executescript(_SCHEMA)
             conn.commit()
+            self._migrate_schema(conn)
             self._ensured = True
         return conn
 
-    def read_confirmed(self, user_id: int, domain: str, *, limit: int = 12) -> list[str]:
+    def _migrate_schema(self, conn: sqlite3.Connection) -> None:
+        for table in ("pending_insights", "insights"):
+            cols = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
+            if "kind" not in cols:
+                conn.execute(
+                    f"ALTER TABLE {table} ADD COLUMN kind TEXT NOT NULL DEFAULT '{KIND_DURABLE}'"
+                )
+        conn.commit()
+
+    def _periodic_cutoff(self) -> str:
+        from shared.memory.config import periodic_ttl_days
+
+        return (
+            datetime.now(timezone.utc) - timedelta(days=periodic_ttl_days())
+        ).isoformat(timespec="seconds")
+
+    def read_confirmed_records(
+        self, user_id: int, domain: str, *, limit: int = 12
+    ) -> list[dict]:
+        cutoff = self._periodic_cutoff()
         try:
             with self._conn() as conn:
                 rows = conn.execute(
-                    "SELECT pattern_text FROM insights WHERE user_id=? AND domain=? "
+                    "SELECT pattern_text, confirmed_at, kind FROM insights "
+                    "WHERE user_id=? AND domain=? "
+                    "AND (kind != 'periodic' OR confirmed_at >= ?) "
                     "ORDER BY confirmed_at DESC LIMIT ?",
-                    (user_id, domain, limit),
+                    (user_id, domain, cutoff, limit),
                 ).fetchall()
-            return [r["pattern_text"] for r in rows]
+            return [dict(r) for r in rows]
         except sqlite3.Error as e:
-            log.warning("read_confirmed failed: %s", e)
+            log.warning("read_confirmed_records failed: %s", e)
             return []
 
+    def read_confirmed(self, user_id: int, domain: str, *, limit: int = 12) -> list[str]:
+        return [r["pattern_text"] for r in self.read_confirmed_records(user_id, domain, limit=limit)]
+
+    def format_confirmed_for_prompt(
+        self, user_id: int, domain: str, *, limit: int = 12
+    ) -> list[str]:
+        lines: list[str] = []
+        for row in self.read_confirmed_records(user_id, domain, limit=limit):
+            lines.append(
+                format_confirmed_prompt_line(
+                    date=format_date_short(row.get("confirmed_at")),
+                    text=row.get("pattern_text") or "",
+                )
+            )
+        return lines
+
     def record_candidates(
-        self, user_id: int, domain: str, patterns: list[str], *, evidence: str = ""
+        self,
+        user_id: int,
+        domain: str,
+        patterns: Iterable[str | tuple[str, str] | dict[str, str]],
+        *,
+        evidence: str = "",
     ) -> list[tuple[int, str]]:
         """Upsert candidates with confirmation accumulation. Returns those reaching threshold."""
+        items = _normalize_candidate_items(patterns)
+        if not items:
+            return []
+
         now = _now_iso()
         threshold = confirmations_threshold()
         pushable: list[tuple[int, str]] = []
         try:
             with self._conn() as conn:
-                for raw in patterns:
-                    text = (raw or "").strip()
-                    if not text:
-                        continue
+                for text, kind in items:
                     existing = conn.execute(
                         "SELECT id, confirmations FROM pending_insights "
                         "WHERE user_id=? AND domain=? AND pattern_text=? AND status='pending'",
@@ -114,17 +184,17 @@ class InsightsStore:
                     if existing:
                         new_count = existing["confirmations"] + 1
                         conn.execute(
-                            "UPDATE pending_insights SET confirmations=?, last_seen=? WHERE id=?",
-                            (new_count, now, existing["id"]),
+                            "UPDATE pending_insights SET confirmations=?, last_seen=?, kind=? WHERE id=?",
+                            (new_count, now, kind, existing["id"]),
                         )
                         if new_count >= threshold:
                             pushable.append((existing["id"], text))
                     else:
                         conn.execute(
                             "INSERT INTO pending_insights (user_id, domain, pattern_text, evidence, "
-                            "confirmations, status, created_at, last_seen) "
-                            "VALUES (?, ?, ?, ?, 1, 'pending', ?, ?)",
-                            (user_id, domain, text, evidence, now, now),
+                            "confirmations, status, created_at, last_seen, kind) "
+                            "VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)",
+                            (user_id, domain, text, evidence, now, now, kind),
                         )
                         if threshold <= 1:
                             row = conn.execute(
@@ -164,14 +234,16 @@ class InsightsStore:
         try:
             with self._conn() as conn:
                 row = conn.execute(
-                    "SELECT user_id, domain, pattern_text FROM pending_insights WHERE id=?",
+                    "SELECT user_id, domain, pattern_text, kind FROM pending_insights WHERE id=?",
                     (pending_id,),
                 ).fetchone()
                 if not row:
                     return False
+                kind = normalize_kind(row["kind"] if "kind" in row.keys() else KIND_DURABLE)
                 conn.execute(
-                    "INSERT INTO insights (user_id, domain, pattern_text, confirmed_at) VALUES (?, ?, ?, ?)",
-                    (row["user_id"], row["domain"], row["pattern_text"], now),
+                    "INSERT INTO insights (user_id, domain, pattern_text, confirmed_at, kind) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (row["user_id"], row["domain"], row["pattern_text"], now, kind),
                 )
                 conn.execute(
                     "UPDATE pending_insights SET status='confirmed' WHERE id=?", (pending_id,)
@@ -194,19 +266,65 @@ class InsightsStore:
             log.warning("reject failed: %s", e)
             return False
 
+    def clear_pending(self, user_id: int, domain: str | None = None) -> int:
+        try:
+            with self._conn() as conn:
+                if domain:
+                    cur = conn.execute(
+                        "UPDATE pending_insights SET status='rejected' "
+                        "WHERE user_id=? AND domain=? AND status='pending'",
+                        (user_id, domain),
+                    )
+                else:
+                    cur = conn.execute(
+                        "UPDATE pending_insights SET status='rejected' "
+                        "WHERE user_id=? AND status='pending'",
+                        (user_id,),
+                    )
+                conn.commit()
+                return cur.rowcount
+        except sqlite3.Error as e:
+            log.warning("clear_pending failed: %s", e)
+            return 0
+
+    def clear_confirmed(self, user_id: int, domain: str | None = None) -> int:
+        try:
+            with self._conn() as conn:
+                if domain:
+                    cur = conn.execute(
+                        "DELETE FROM insights WHERE user_id=? AND domain=?",
+                        (user_id, domain),
+                    )
+                else:
+                    cur = conn.execute("DELETE FROM insights WHERE user_id=?", (user_id,))
+                conn.commit()
+                return cur.rowcount
+        except sqlite3.Error as e:
+            log.warning("clear_confirmed failed: %s", e)
+            return 0
+
     def prune_expired(self) -> int:
-        cutoff = (datetime.now(timezone.utc) - timedelta(days=pending_ttl_days())).isoformat(timespec="seconds")
+        pending_cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=pending_ttl_days())
+        ).isoformat(timespec="seconds")
+        periodic_cutoff = self._periodic_cutoff()
+        removed = 0
         try:
             with self._conn() as conn:
                 cur = conn.execute(
                     "DELETE FROM pending_insights WHERE status='pending' AND last_seen < ?",
-                    (cutoff,),
+                    (pending_cutoff,),
                 )
+                removed += cur.rowcount
+                cur = conn.execute(
+                    "DELETE FROM insights WHERE kind='periodic' AND confirmed_at < ?",
+                    (periodic_cutoff,),
+                )
+                removed += cur.rowcount
                 conn.commit()
-                return cur.rowcount
         except sqlite3.Error as e:
             log.warning("prune_expired failed: %s", e)
-            return 0
+        return removed
 
 
 @lru_cache(maxsize=1)
@@ -232,10 +350,10 @@ class GlobalInsightsMemory:
         lim = self._limit if self._limit is not None else insight_limits()[0]
         if lim <= 0:
             return ""
-        patterns = get_store().read_confirmed(ctx.user_id, GLOBAL_DOMAIN, limit=lim)
-        if not patterns:
+        lines = get_store().format_confirmed_for_prompt(ctx.user_id, GLOBAL_DOMAIN, limit=lim)
+        if not lines:
             return ""
-        body = "\n".join(f"- {p}" for p in patterns)
+        body = "\n".join(lines)
         return f"{self._header}\n{body}"
 
     async def write(self, ctx: AgentContext, turn: AgentMessage) -> None:
@@ -262,10 +380,10 @@ class InsightsMemory:
         lim = self._limit if self._limit is not None else insight_limits()[1]
         if lim <= 0:
             return ""
-        patterns = get_store().read_confirmed(ctx.user_id, self._domain, limit=lim)
-        if not patterns:
+        lines = get_store().format_confirmed_for_prompt(ctx.user_id, self._domain, limit=lim)
+        if not lines:
             return ""
-        body = "\n".join(f"- {p}" for p in patterns)
+        body = "\n".join(lines)
         return f"{self._header}\n{body}"
 
     async def write(self, ctx: AgentContext, turn: AgentMessage) -> None:

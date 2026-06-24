@@ -4,6 +4,7 @@ from __future__ import annotations
 from shared.domain_messages import dmsg
 from shared.memory.config import domain_profile_path, global_profile_path, profile_header
 from shared.memory.constants import GLOBAL_DOMAIN
+from shared.memory.insight_format import normalize_kind
 from shared.memory.insights import GlobalInsightsMemory, InsightsMemory
 from shared.memory.profile import ProfileMemory
 
@@ -67,7 +68,12 @@ def format_insights_text(
     def _block(title: str, items: list[str]) -> str:
         if not items:
             return ""
-        return f"{title}\n" + "\n".join(f"- {p}" for p in items)
+        return f"{title}\n" + "\n".join(items)
+
+    def _formatted(domain: str, limit: int) -> list[str]:
+        if limit <= 0:
+            return []
+        return store.format_confirmed_for_prompt(user_id, domain, limit=limit)
 
     if scope == "all":
         chunks: list[str] = []
@@ -75,17 +81,17 @@ def format_insights_text(
             chunks.append(
                 _block(
                     dmsg("memory_layers", "global_prefix"),
-                    store.read_confirmed(user_id, GLOBAL_DOMAIN, limit=g_lim),
+                    _formatted(GLOBAL_DOMAIN, g_lim),
                 )
             )
         for dom in AGENT_DOMAINS:
             if d_lim:
-                chunks.append(_block(f"[{dom}]:", store.read_confirmed(user_id, dom, limit=d_lim)))
+                chunks.append(_block(f"[{dom}]:", _formatted(dom, d_lim)))
         body = "\n\n".join(c for c in chunks if c)
         return body or dmsg("memory_layers", "no_confirmed")
 
     if scope == "global":
-        items = store.read_confirmed(user_id, GLOBAL_DOMAIN, limit=g_lim) if g_lim else []
+        items = _formatted(GLOBAL_DOMAIN, g_lim) if g_lim else []
         return _block(dmsg("memory_layers", "global_observations"), items) or dmsg(
             "memory_layers", "no_global"
         )
@@ -93,7 +99,7 @@ def format_insights_text(
     dom = current_domain if scope in ("current", "domain", "") else scope
     if dom not in AGENT_DOMAINS and dom != GLOBAL_DOMAIN:
         return dmsg("memory_layers", "unknown_scope", scope=scope)
-    items = store.read_confirmed(user_id, dom, limit=d_lim) if d_lim else []
+    items = _formatted(dom, d_lim) if d_lim else []
     confirmed = _block(dmsg("memory_layers", "observations", dom=dom), items) or dmsg(
         "memory_layers", "no_domain_confirmed", dom=dom
     )
@@ -108,6 +114,8 @@ def format_insights_text(
                 domain=p.get("domain", "?"),
                 text=p.get("pattern_text", ""),
                 count=p.get("confirmations", 1),
+                date=(p.get("created_at") or "")[:10] or "?",
+                kind=normalize_kind(p.get("kind")),
             )
             for p in pending[:8]
         ]

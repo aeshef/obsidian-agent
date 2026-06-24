@@ -10,3 +10,5 @@ headers:
 insights:
   global_limit: 8
   domain_limit: 10
+  periodic_ttl_days: 45
+  profile_excerpt_max: 400

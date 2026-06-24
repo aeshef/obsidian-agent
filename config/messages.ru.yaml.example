@@ -81,6 +81,20 @@ memory:
   not_found: "Не найдено"
   open_memory: "Открой /memory в чате"
   rejected: "Отклонено"
+  reset_usage: "Использование: /reset_memory [session|pending|confirmed|all] [global|finance|planning|knowledge]"
+  reset_session_done: "Краткая история диалога очищена."
+  reset_pending_done: "Отклонено pending-кандидатов: {count}."
+  reset_confirmed_done: "Удалено подтверждённых наблюдений: {count}."
+  profile_header: "Профиль (редактируется вручную, не insights):"
+  profile_unset: "(профиль не задан)"
+  durable_header: "Устойчивые наблюдения:"
+  periodic_header: "Периодические наблюдения (с TTL):"
+  layers_hint: |
+    Слои памяти:
+    • диалог → /reset_memory session
+    • кандидаты → кнопки или /reset_memory pending
+    • подтверждённые → /reset_memory confirmed
+    • профиль → user_profile.md
 
 synth:
   remember_btn: "✅ Запомнить"

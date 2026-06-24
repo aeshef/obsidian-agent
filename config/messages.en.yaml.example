@@ -546,6 +546,20 @@ memory:
   pending_line: '• [{domain}] #{id}: {text} (×{count})'
   reject_btn: '❌ #{id}'
   rejected: Rejected
+  reset_confirmed_done: 'Deleted confirmed observations: {count}.'
+  reset_pending_done: 'Rejected pending candidates: {count}.'
+  reset_session_done: Short dialogue history cleared.
+  reset_usage: 'Usage: /reset_memory [session|pending|confirmed|all] [global|finance|planning|knowledge]'
+  profile_header: 'Profile (manual markdown, not insights):'
+  profile_unset: (profile not set)
+  durable_header: 'Durable observations:'
+  periodic_header: 'Periodic observations (TTL):'
+  layers_hint: |
+    Memory layers:
+    • dialogue → /reset_memory session
+    • candidates → buttons or /reset_memory pending
+    • confirmed → /reset_memory confirmed
+    • profile → user_profile.md
   saved: Saved to memory
   title: 🧠 Agent memory
 memory_context:

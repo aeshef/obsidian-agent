@@ -6,12 +6,12 @@ confirmation threshold. Those reaching threshold are returned for user verificat
 """
 from __future__ import annotations
 
-import json
 import logging
 import os
 
 from shared.agent.config import agent_config_dir
 from shared.llm import LLMClient
+from shared.memory.insight_format import parse_synth_patterns
 from shared.memory.insights import InsightsStore, get_store
 from shared.prompts import load_prompt
 
@@ -63,17 +63,19 @@ async def synthesize(
         log.warning("synthesize LLM call failed: %s", e)
         return []
 
-    patterns = result.get("patterns") if isinstance(result, dict) else None
-    if not isinstance(patterns, list):
-        return []
-    clean = [str(p).strip() for p in patterns if str(p).strip()]
-    if not clean:
+    patterns = parse_synth_patterns(result if isinstance(result, dict) else None)
+    if not patterns:
         return []
 
     st = store or get_store()
     st.prune_expired()
-    pushable = st.record_candidates(user_id, domain, clean)
+    evidence = context_text.strip()[:1200]
+    pushable = st.record_candidates(user_id, domain, patterns, evidence=evidence)
     log.info(
-        "synth domain=%s user=%s candidates=%d pushable=%d", domain, user_id, len(clean), len(pushable)
+        "synth domain=%s user=%s candidates=%d pushable=%d",
+        domain,
+        user_id,
+        len(patterns),
+        len(pushable),
     )
     return pushable
