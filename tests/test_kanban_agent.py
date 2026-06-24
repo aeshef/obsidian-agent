@@ -97,6 +97,7 @@ def test_apply_move_finds_task_with_tab_metadata(tmp_path, monkeypatch):
     board_file = tmp_path / "board.md"
     board_file.write_text(kanban_fixture("board_move_deadbeef.md"), encoding="utf-8")
     board = KanbanBoard(board_file)
+    board.load()
     found = _find_task_block(_parse_sections(board.content), "deadbeef")
     assert found is not None
     blocked_key = BLOCKED_COLUMN.split()[-1]
