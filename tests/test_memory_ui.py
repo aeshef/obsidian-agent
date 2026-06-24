@@ -28,7 +28,7 @@ def test_profile_excerpt_plain_strips_markdown(tmp_path, monkeypatch):
     assert "https://" not in plain
 
 
-def test_build_memory_panel_has_reset_buttons_no_slash(tmp_path, monkeypatch):
+def test_main_panel_is_read_first_with_clear_submenu(tmp_path, monkeypatch):
     from shared.memory.insights import InsightsStore, get_store
     from shared.telegram.memory_ui import build_memory_panel
 
@@ -39,17 +39,47 @@ def test_build_memory_panel_has_reset_buttons_no_slash(tmp_path, monkeypatch):
     store.record_candidates(1, "planning", ["тест кандидат"])
 
     text, markup = build_memory_panel(1)
+    assert "Сводка" in text or "Summary" in text
     assert "/memory" not in text
-    assert "/reset_memory" not in text
-    assert markup.inline_keyboard
     callbacks = [
         btn.callback_data
         for row in markup.inline_keyboard
         for btn in row
         if btn.callback_data
     ]
-    assert "mem:reset:session" in callbacks
-    assert "mem:reset:all" in callbacks
+    assert "mem:view:clear" in callbacks
+    assert "mem:reset:yes:session" not in callbacks
+    assert all(not cb.startswith("mem:reset:yes:") for cb in callbacks)
+
+
+def test_clear_menu_requires_confirm_step(tmp_path, monkeypatch):
+    from shared.memory.insights import InsightsStore, get_store
+    from shared.telegram.memory_ui import build_clear_menu_panel, build_reset_confirm_panel
+
+    db = tmp_path / "memory.db"
+    monkeypatch.setenv("AGENT_MEMORY_DB", str(db))
+    get_store.cache_clear()
+    InsightsStore(db)
+
+    _, clear_kb = build_clear_menu_panel(2)
+    clear_cbs = [
+        btn.callback_data
+        for row in clear_kb.inline_keyboard
+        for btn in row
+        if btn.callback_data
+    ]
+    assert "mem:reset:ask:session" in clear_cbs
+    assert "mem:view:main" in clear_cbs
+
+    _, confirm_kb = build_reset_confirm_panel(2, "session")
+    confirm_cbs = [
+        btn.callback_data
+        for row in confirm_kb.inline_keyboard
+        for btn in row
+        if btn.callback_data
+    ]
+    assert "mem:reset:yes:session" in confirm_cbs
+    assert "mem:view:main" in confirm_cbs
 
 
 def test_apply_memory_reset_session(tmp_path, monkeypatch):

@@ -204,6 +204,13 @@ def clear_all_history(user_id: int, domains: list[str] | None = None) -> None:
         clear_history(user_id, dom)
 
 
+def count_session_messages(user_id: int) -> int:
+    """Total short-history messages across session domains."""
+    from shared.memory.constants import SESSION_DOMAINS
+
+    return sum(len(get_history(user_id, dom)) for dom in SESSION_DOMAINS)
+
+
 def history_as_api(user_id: int, domain: str) -> list[AgentMessage]:
     return get_history(user_id, domain)
 

@@ -83,22 +83,38 @@ memory:
   reset_session_done: "Краткая история диалога очищена."
   reset_pending_done: "Отклонено pending-кандидатов: {count}."
   reset_confirmed_done: "Удалено подтверждённых наблюдений: {count}."
-  reset_session_btn: "🧹 Диалог"
-  reset_pending_btn: "🗑 Кандидаты"
-  reset_confirmed_btn: "🗑 Наблюдения"
-  reset_all_btn: "♻️ Всё"
   reset_unknown_mode: "Неизвестное действие сброса."
   reset_unknown_domain: "Неизвестный домен для сброса."
+  reset_yes_btn: "✅ Да, очистить"
+  reset_cancel_btn: "← Отмена"
+  clear_menu_btn: "🧹 Очистить…"
+  back_to_memory_btn: "← К памяти"
+  clear_menu_title: "Очистка памяти"
+  clear_menu_hint: "Выбери слой. На следующем шаге — подтверждение."
+  clear_dialogue_btn: "Диалог ({count} реплик)"
+  clear_pending_btn: "Кандидаты ({count})"
+  clear_confirmed_btn: "Наблюдения ({count})"
+  clear_all_btn: "♻️ Всё сразу"
+  reset_confirm_session: "Очистить краткую историю диалога ({count} реплик)?"
+  reset_confirm_pending: "Отклонить всех кандидатов ({count})?"
+  reset_confirm_confirmed: "Удалить все подтверждённые наблюдения ({count})?"
+  reset_confirm_all: "Очистить всё: диалог, кандидаты и наблюдения?"
+  summary_header: "Сводка:"
+  summary_dialogue: "• Диалог: {count} реплик в краткой истории"
+  summary_pending: "• Кандидаты: {count} — ждут ✅, ещё не в промпте"
+  summary_pending_none: "• Кандидаты: нет"
+  summary_saved: "• В промпте агента: {durable} устойчивых, {periodic} периодических"
+  summary_saved_none: "• В промпте агента: пока ничего подтверждённого"
   profile_header: "Профиль (вручную, не insights):"
   profile_unset: "(профиль не задан)"
-  durable_header: "Устойчивые наблюдения:"
-  periodic_header: "Периодические наблюдения (с TTL):"
+  durable_header: "Устойчивые наблюдения (в промпте):"
+  periodic_header: "Периодические наблюдения (в промпте, с TTL):"
   layers_hint: |
-    Слои памяти:
-    • диалог — {reset_session}
-    • кандидаты — кнопки ниже или {reset_pending}
-    • подтверждённые — {reset_confirmed}
-    • профиль — user_profile.md
+    Как устроено:
+    • Диалог — последние реплики чата
+    • Кандидаты — предложения синтезатора; ✅ сохраняет в промпт
+    • Наблюдения — то, что ты уже подтвердил
+    • Профиль — user_profile.md, правишь вручную
 
 synth:
   remember_btn: "✅ Запомнить"

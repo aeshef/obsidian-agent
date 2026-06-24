@@ -544,22 +544,38 @@ memory:
   reset_confirmed_done: 'Deleted confirmed observations: {count}.'
   reset_pending_done: 'Rejected pending candidates: {count}.'
   reset_session_done: Short dialogue history cleared.
-  reset_session_btn: 🧹 Dialogue
-  reset_pending_btn: 🗑 Candidates
-  reset_confirmed_btn: 🗑 Observations
-  reset_all_btn: ♻️ All
   reset_unknown_mode: Unknown reset action.
   reset_unknown_domain: Unknown domain for reset.
+  reset_yes_btn: ✅ Yes, clear
+  reset_cancel_btn: ← Cancel
+  clear_menu_btn: 🧹 Clear…
+  back_to_memory_btn: ← Back to memory
+  clear_menu_title: Clear memory
+  clear_menu_hint: Choose a layer. Confirmation on the next step.
+  clear_dialogue_btn: Dialogue ({count} messages)
+  clear_pending_btn: Candidates ({count})
+  clear_confirmed_btn: Observations ({count})
+  clear_all_btn: ♻️ Clear all
+  reset_confirm_session: Clear short dialogue history ({count} messages)?
+  reset_confirm_pending: Reject all candidates ({count})?
+  reset_confirm_confirmed: Delete all confirmed observations ({count})?
+  reset_confirm_all: Clear everything — dialogue, candidates, and observations?
+  summary_header: 'Summary:'
+  summary_dialogue: '• Dialogue: {count} messages in short history'
+  summary_pending: '• Candidates: {count} — awaiting ✅, not in prompt yet'
+  summary_pending_none: '• Candidates: none'
+  summary_saved: '• In agent prompt: {durable} durable, {periodic} periodic'
+  summary_saved_none: '• In agent prompt: nothing confirmed yet'
   profile_header: 'Profile (manual, not insights):'
   profile_unset: (profile not set)
-  durable_header: 'Durable observations:'
-  periodic_header: 'Periodic observations (TTL):'
+  durable_header: 'Durable observations (in prompt):'
+  periodic_header: 'Periodic observations (in prompt, TTL):'
   layers_hint: |
-    Memory layers:
-    • dialogue — {reset_session}
-    • candidates — buttons below or {reset_pending}
-    • confirmed — {reset_confirmed}
-    • profile — user_profile.md
+    How it works:
+    • Dialogue — recent chat turns
+    • Candidates — synth suggestions; ✅ saves to prompt
+    • Observations — what you already confirmed
+    • Profile — user_profile.md, edited manually
   saved: Saved to memory
   title: 🧠 Agent memory
 memory_context:
