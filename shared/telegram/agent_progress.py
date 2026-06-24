@@ -11,11 +11,10 @@ from shared.agent.progress import answer_draft_enabled, answer_stream_enabled
 from shared.telegram.limits import max_message_chars
 from shared.telegram.flood_guard import (
     edit_message_text_guarded,
-    guarded_telegram,
     send_message_guarded,
 )
 from shared.telegram.message_draft import new_draft_id, send_message_draft
-from shared.telegram_utils import strip_telegram_markdown
+from shared.telegram_utils import split_message, strip_telegram_markdown
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -114,41 +113,58 @@ class TelegramAgentProgress:
         return self._answer_delivered and self._answer_message_id is not None
 
     async def finalize_answer(self, text: str, *, reply_markup: Any = None) -> None:
-        cap = max_message_chars()
-        safe = strip_telegram_markdown(text or "")[:cap]
-        if not safe:
+        full = strip_telegram_markdown(text or "")
+        if not full:
             return
+        chunks = split_message(full, max_len=max_message_chars())
         async with self._answer_lock:
-            if self._answer_stream_mode == "draft":
-                await self._finalize_draft_answer(safe, reply_markup=reply_markup)
-                return
-            if self._answer_message_id is None:
-                msg = await send_message_guarded(
-                    self._bot, self._chat_id, safe, reply_markup=reply_markup
-                )
-                self._answer_message_id = msg.message_id
+            if self._answer_stream_mode == "draft" or self._answer_message_id is None:
+                await self._send_answer_chunks(chunks, reply_markup=reply_markup)
                 self._answer_delivered = True
-                self._pending_answer_text = safe
-                self._last_pushed_answer_text = safe
+                self._last_pushed_answer_text = full
+                self._pending_answer_text = full
                 return
-            if safe == self._last_pushed_answer_text:
+            if full == self._last_pushed_answer_text and len(chunks) <= 1:
                 return
             try:
                 await edit_message_text_guarded(
                     self._bot,
                     self._chat_id,
                     self._answer_message_id,
-                    safe,
+                    chunks[0],
                 )
-                self._last_pushed_answer_text = safe
-                self._pending_answer_text = safe
+                if len(chunks) > 1:
+                    await self._send_answer_chunks(
+                        chunks[1:],
+                        reply_markup=reply_markup,
+                    )
+                self._last_pushed_answer_text = full
+                self._pending_answer_text = full
             except Exception as e:
                 err = str(e).lower()
-                if "message is not modified" in err:
-                    self._last_pushed_answer_text = safe
-                    self._pending_answer_text = safe
+                if "message is not modified" in err and len(chunks) <= 1:
+                    self._last_pushed_answer_text = full
+                    self._pending_answer_text = full
                     return
-                log.warning("finalize answer edit failed: %s", e)
+                log.warning("finalize answer edit failed, sending chunks: %s", e)
+                await self._send_answer_chunks(chunks, reply_markup=reply_markup)
+                self._answer_delivered = True
+                self._last_pushed_answer_text = full
+                self._pending_answer_text = full
+
+    async def _send_answer_chunks(
+        self,
+        chunks: list[str],
+        *,
+        reply_markup: Any = None,
+    ) -> None:
+        for i, chunk in enumerate(chunks):
+            await send_message_guarded(
+                self._bot,
+                self._chat_id,
+                chunk,
+                reply_markup=reply_markup if i == len(chunks) - 1 else None,
+            )
 
     async def on_complete(self) -> None:
         if self._status_message_id is not None:
@@ -214,16 +230,6 @@ class TelegramAgentProgress:
                 self._last_pushed_answer_text = safe
                 return
             log.debug("answer stream edit failed: %s", e)
-
-    async def _finalize_draft_answer(self, safe: str, *, reply_markup: Any = None) -> None:
-        """Final sendMessage — draft is not in history without this step."""
-        msg = await send_message_guarded(
-            self._bot, self._chat_id, safe, reply_markup=reply_markup
-        )
-        self._answer_message_id = msg.message_id
-        self._answer_delivered = True
-        self._last_pushed_answer_text = safe
-        self._pending_answer_text = safe
 
     async def _update_status(self, text: str) -> None:
         cap = platform_int("agent_progress", "status_max_chars", default=380)
