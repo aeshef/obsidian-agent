@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from shared.agent.platform_config import platform_int
 from shared.agent.progress import answer_draft_enabled, answer_stream_enabled
-from shared.telegram.limits import max_message_chars
+from shared.telegram.limits import max_message_chars, draft_max_chars
 from shared.telegram.flood_guard import (
     edit_message_text_guarded,
     send_message_guarded,
@@ -75,7 +75,7 @@ class TelegramAgentProgress:
                     self._bot,
                     chat_id=self._chat_id,
                     draft_id=self._tool_draft_id,
-                    text=line[:4096],
+                    text=line[: draft_max_chars()],
                 )
                 return
             except Exception as e:

@@ -9,6 +9,8 @@ from typing import Awaitable, Callable, TypeVar
 
 from aiogram.exceptions import TelegramRetryAfter
 
+from shared.telegram.limits import flood_retry_after_padding_sec
+
 log = logging.getLogger("shared.telegram.flood_guard")
 
 _chat_locks: dict[int, asyncio.Lock] = defaultdict(asyncio.Lock)
@@ -47,7 +49,7 @@ async def guarded_telegram(chat_id: int, call: Callable[[], Awaitable[T]]) -> T:
                 _last_call_mono[chat_id] = time.monotonic()
                 return result
             except TelegramRetryAfter as e:
-                delay = float(getattr(e, "retry_after", 1) or 1) + 0.25
+                delay = float(getattr(e, "retry_after", 1) or 1) + flood_retry_after_padding_sec()
                 log.warning(
                     "telegram flood chat=%s attempt=%d retry_after=%.1fs",
                     chat_id,

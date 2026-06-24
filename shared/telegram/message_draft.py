@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Optional
 from aiogram.methods.base import TelegramMethod
 
 from shared.telegram.flood_guard import guarded_telegram
+from shared.telegram.limits import draft_max_chars
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -42,7 +43,7 @@ async def send_message_draft(
 ) -> bool:
     if not text or not draft_id:
         return False
-    payload = text[:4096]
+    payload = text[: draft_max_chars()]
     try:
         result = await guarded_telegram(
             chat_id,

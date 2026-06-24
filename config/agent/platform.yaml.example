@@ -88,9 +88,12 @@ planning_alerts:
 
 telegram:
   max_message_chars: 4090
+  draft_max_chars: 4096
   voice_preview_chars: 400
   min_send_interval_ms: 900
   flood_retry_max: 5
+  flood_retry_after_padding_ms: 250
+  flood_notify_seconds_default: 30
 
 knowledge_ingest:
   pending_limit: 100

@@ -23,6 +23,7 @@ from shared.telegram.host.dispatch import switch_mode
 from shared.i18n import msg, msgf
 from shared.telegram.host import labels as L
 from shared.telegram.host.keyboards import keyboard_for_mode, root_keyboard
+from shared.telegram.limits import flood_notify_seconds_default
 from shared.telegram.host.domain_dispatch import try_dispatch_domain_text
 from shared.telegram.host.menus import mode_from_button
 from shared.telegram.messaging import send_long_message
@@ -213,13 +214,12 @@ async def handle_text(
             reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
         )
     except TelegramRetryAfter as e:
-        delay = int(e.retry_after or 30)
+        delay = int(getattr(e, "retry_after", None) or flood_notify_seconds_default())
         log.warning("host telegram flood chat=%s retry_after=%s", uid, delay)
-        if delay <= 20:
-            await message.answer(
-                msgf("host", "telegram_flood", seconds=delay),
-                reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
-            )
+        await message.answer(
+            msgf("host", "telegram_flood", seconds=delay),
+            reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
+        )
     except Exception as e:
         log.error("host auto dispatch failed: %s", e, exc_info=True)
         await message.answer(
