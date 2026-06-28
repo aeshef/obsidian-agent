@@ -24,6 +24,9 @@ health:
 cross:
   graphs_cross: "Кросс"
 
+analytics:
+  graphs_analytics: "Аналитика"
+
 knowledge:
   graphs_knowledge: "Хранилище"
 
@@ -71,6 +74,22 @@ files:
   chart_cross_tasks_steps_md: "Кросс/Задачи_и_шаги.md"
   chart_cross_tasks_spending_png: "Кросс/Задачи_и_траты.png"
   chart_cross_tasks_spending_md: "Кросс/Задачи_и_траты.md"
+  analytics_dashboard_md: "🔬 Аналитика.md"
+  chart_analytics_sleep_heatmap_png: "Аналитика/Гипотезы_сон_heatmap.png"
+  chart_analytics_sleep_heatmap_md: "Аналитика/Гипотезы_сон_heatmap.md"
+  chart_analytics_insights_md: "Аналитика/Инсайты_сводка.md"
+  chart_analytics_weight_trend_png: "Аналитика/Вес_динамика.png"
+  chart_analytics_weight_trend_md: "Аналитика/Вес_динамика.md"
+  chart_analytics_sleep_trend_png: "Аналитика/Сон_часы.png"
+  chart_analytics_sleep_trend_md: "Аналитика/Сон_часы.md"
+  chart_analytics_sleep_stages_png: "Аналитика/Сон_стадии.png"
+  chart_analytics_sleep_stages_md: "Аналитика/Сон_стадии.md"
+  chart_analytics_sleep_weight_png: "Аналитика/Сон_и_вес_завтра.png"
+  chart_analytics_sleep_weight_md: "Аналитика/Сон_и_вес_завтра.md"
+  chart_analytics_panel_corr_png: "Аналитика/Корреляции_панели.png"
+  chart_analytics_panel_corr_md: "Аналитика/Корреляции_панели.md"
+  chart_analytics_tasks_sleep_png: "Аналитика/Задачи_и_сон_lag1.png"
+  chart_analytics_tasks_sleep_md: "Аналитика/Задачи_и_сон_lag1.md"
   chart_maintenance_dynamics_png: "Хранилище/Динамика_обслуживания.png"
   legacy_chart_maintenance_dynamics_png: "vault_maintenance_dynamics.png"
   main_dashboard_md: "🎯 Главный_Дашборд.md"
@@ -114,6 +133,8 @@ paths:
   iphone_today_json: "Действия/iphone_today.json"
   iphone_week_json: "Действия/iphone_week.json"
   cross_daily_features_json: "cross_daily_features.json"
+  analytics_insights_json: "analytics_insights.json"
+  master_daily_panel_csv: "master_daily_panel.csv"
   agent_subdir: "Agent"
   templates_root: "Templates"
   templates_v2: "Templates/v2"

@@ -5015,6 +5015,64 @@ planning:
   routines_uncompleted_morning: '🌅 Morning (not done): {tasks}'
   routines_legacy_today_date_regex: '\*\*Date:\*\*\s*(\d{4}-\d{2}-\d{2})'
   routines_legacy_today_date_regex_alt: ''
+
+  analytics_hub_title: "🔬 Analytics"
+  analytics_hub_tip: |
+    > [!tip] D−1→D lags, sleep hypothesis engine, FDR. Updated: {updated}
+  analytics_section_overview: "📊 Overview"
+  analytics_section_body: "🏋️ Body"
+  analytics_section_sleep: "😴 Sleep"
+  analytics_section_correlations: "🔗 Correlations"
+  analytics_section_cross: "🌐 Cross-domain"
+  analytics_section_data: "📁 Data"
+  analytics_sub_weight: "Weight"
+  analytics_sub_sleep_hours: "Sleep hours"
+  analytics_sub_sleep_stages: "Stages (Deep / REM / Core / Awake)"
+  analytics_sub_sleep_weight: "D−1 → Δ weight tomorrow"
+  analytics_sub_sleep_heatmap: "Hypothesis heatmap"
+  analytics_sub_panel_corr: "Panel (Spearman)"
+  analytics_sub_tasks_sleep: "Tasks × sleep (lag1)"
+  analytics_cross_health_link: |
+    > [!info] Tasks × spending × steps × kcal — on [[{health_dashboard}|🏥 Health]] (not duplicated here).
+  analytics_data_files: |
+    - `Data/analytics_insights.json`
+    - `Data/master_daily_panel.csv`
+    - `Data/cross_daily_features.json`
+    - Sandbox: `personal_eda_modeling.ipynb` (local)
+  analytics_summary_charts_hint: "Charts are on this page below, by section."
+  analytics_title_sleep_heatmap: "Sleep (lag1) → outcomes: Spearman ρ"
+  analytics_title_insights_summary: "Insights: sleep hypotheses"
+  analytics_title_weight_trend: "Weight: daily values & 7d MA"
+  analytics_title_sleep_trend: "Sleep: hours per day"
+  analytics_title_sleep_stages: "Sleep stages (Deep / REM / Core / Awake)"
+  analytics_title_sleep_weight: "Sleep D−1 vs Δ weight tomorrow"
+  analytics_title_panel_corr: "Master panel correlations (Spearman)"
+  analytics_title_tasks_sleep: "Tasks & sleep (lag1), z-score 7d MA"
+  analytics_heading_coverage: "Data coverage"
+  analytics_heading_hypothesis_table: "Hypothesis table (top |ρ|)"
+  analytics_heading_top_hypotheses: "Top hypotheses (FDR)"
+  analytics_heading_partial_weight: "Partial: sleep → Δweight tomorrow | weight lag1"
+  analytics_no_hypotheses: "Not enough sleep data for hypotheses yet (need ≥8 days with sleep)."
+  analytics_no_fdr_significant: "No FDR<0.05 yet — top-|ρ| without correction:"
+  analytics_label_sleep_hours: "sleep, h"
+  analytics_label_sleep_hours_lag1: "sleep D−1, h"
+  analytics_label_hrv: "HRV"
+  analytics_label_resting_hr: "resting HR"
+  analytics_cov_tasks: "Tasks closed"
+  analytics_cov_expense: "Spending"
+  analytics_cov_sleep: "Sleep"
+  analytics_cov_weight: "Weight"
+  analytics_cov_steps: "Steps"
+  analytics_cov_kcal: "Kcal"
+  analytics_outcome_tasks: tasks closed
+  analytics_outcome_steps: steps
+  analytics_outcome_kcal: kcal intake
+  analytics_outcome_expense: spending
+  analytics_outcome_weight: weight (day D)
+  analytics_outcome_weight_delta: Δ weight (day D)
+  analytics_outcome_weight_next: weight tomorrow
+  analytics_outcome_weight_delta_next: Δ weight tomorrow
+
 planning_forecast:
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'

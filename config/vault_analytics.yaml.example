@@ -1,0 +1,82 @@
+# Personal analytics pipeline — feature registry, outcomes, chart limits.
+# cp config/vault_analytics.yaml.example → config/vault_analytics.yaml to override.
+
+panel:
+  window_days: 120
+  min_pairs: 8
+
+hypothesis:
+  fdr_alpha: 0.05
+  top_significant: 10
+  heatmap_sleep_top: 8
+  heatmap_outcome_top: 10
+  partial_weight_outcome: iphone_weight_delta_next
+  partial_weight_control: iphone_weight_kg_lag1
+
+# Extra lag-1 predictors (besides sleep_* columns) for hypothesis engine.
+sleep:
+  extra_predictors:
+    - iphone_hrv_ms_lag1
+    - iphone_resting_hr_bpm_lag1
+
+# Outcome column → pdmsg label key (planning.*).
+outcomes:
+  tasks_completed:
+    label_key: analytics_outcome_tasks
+  steps:
+    label_key: analytics_outcome_steps
+  kcal:
+    label_key: analytics_outcome_kcal
+  expense_rub:
+    label_key: analytics_outcome_expense
+  iphone_weight_kg:
+    label_key: analytics_outcome_weight
+  iphone_weight_delta:
+    label_key: analytics_outcome_weight_delta
+  iphone_weight_kg_next:
+    label_key: analytics_outcome_weight_next
+  iphone_weight_delta_next:
+    label_key: analytics_outcome_weight_delta_next
+
+# iPhone numeric fields merged into daily panel (prefix iphone_ added automatically).
+iphone_metrics:
+  - steps
+  - weight_kg
+  - resting_hr_bpm
+  - hrv_ms
+  - calories_kcal
+  - active_calories_kcal
+  - exercise_min
+
+# Panel Spearman heatmap columns (key → pdmsg label key).
+panel_correlation_keys:
+  - key: tasks_completed
+    label_key: analytics_outcome_tasks
+  - key: expense_rub
+    label_key: analytics_outcome_expense
+  - key: steps
+    label_key: analytics_outcome_steps
+  - key: kcal
+    label_key: analytics_outcome_kcal
+  - key: iphone_sleep_hours
+    label_key: analytics_label_sleep_hours
+  - key: iphone_weight_kg
+    label_key: analytics_outcome_weight
+  - key: iphone_hrv_ms
+    label_key: analytics_label_hrv
+  - key: iphone_resting_hr_bpm
+    label_key: analytics_label_resting_hr
+
+coverage_metrics:
+  - key: tasks_completed
+    label_key: analytics_cov_tasks
+  - key: expense_rub
+    label_key: analytics_cov_expense
+  - key: iphone_sleep_hours
+    label_key: analytics_cov_sleep
+  - key: iphone_weight_kg
+    label_key: analytics_cov_weight
+  - key: steps
+    label_key: analytics_cov_steps
+  - key: kcal
+    label_key: analytics_cov_kcal

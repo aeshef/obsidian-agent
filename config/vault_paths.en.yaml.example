@@ -24,6 +24,9 @@ health:
 cross:
   graphs_cross: "Cross"
 
+analytics:
+  graphs_analytics: "Analytics"
+
 knowledge:
   graphs_knowledge: "Vault"
 
@@ -71,6 +74,22 @@ files:
   chart_cross_tasks_steps_md: "Cross/Tasks_and_steps.md"
   chart_cross_tasks_spending_png: "Cross/Tasks_and_spending.png"
   chart_cross_tasks_spending_md: "Cross/Tasks_and_spending.md"
+  analytics_dashboard_md: "🔬 Analytics.md"
+  chart_analytics_sleep_heatmap_png: "Analytics/Sleep_hypotheses_heatmap.png"
+  chart_analytics_sleep_heatmap_md: "Analytics/Sleep_hypotheses_heatmap.md"
+  chart_analytics_insights_md: "Analytics/Insights_summary.md"
+  chart_analytics_weight_trend_png: "Analytics/Weight_trend.png"
+  chart_analytics_weight_trend_md: "Analytics/Weight_trend.md"
+  chart_analytics_sleep_trend_png: "Analytics/Sleep_hours.png"
+  chart_analytics_sleep_trend_md: "Analytics/Sleep_hours.md"
+  chart_analytics_sleep_stages_png: "Analytics/Sleep_stages.png"
+  chart_analytics_sleep_stages_md: "Analytics/Sleep_stages.md"
+  chart_analytics_sleep_weight_png: "Analytics/Sleep_and_weight_next_day.png"
+  chart_analytics_sleep_weight_md: "Analytics/Sleep_and_weight_next_day.md"
+  chart_analytics_panel_corr_png: "Analytics/Panel_correlations.png"
+  chart_analytics_panel_corr_md: "Analytics/Panel_correlations.md"
+  chart_analytics_tasks_sleep_png: "Analytics/Tasks_and_sleep_lag1.png"
+  chart_analytics_tasks_sleep_md: "Analytics/Tasks_and_sleep_lag1.md"
   chart_maintenance_dynamics_png: "Vault/Maintenance_Dynamics.png"
   legacy_chart_maintenance_dynamics_png: "vault_maintenance_dynamics.png"
   main_dashboard_md: "🎯 Main_Dashboard.md"
@@ -114,6 +133,8 @@ paths:
   iphone_today_json: "Actions/iphone_today.json"
   iphone_week_json: "Actions/iphone_week.json"
   cross_daily_features_json: "cross_daily_features.json"
+  analytics_insights_json: "analytics_insights.json"
+  master_daily_panel_csv: "master_daily_panel.csv"
   agent_subdir: "Agent"
   templates_root: "Templates"
   templates_v2: "Templates/v2"

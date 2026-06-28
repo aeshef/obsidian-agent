@@ -222,3 +222,11 @@ knowledge_bot/config/duplicate_cleanup.yaml
 !knowledge_bot/config/duplicate_cleanup.yaml.example
 knowledge_bot/config/vault_maintenance.yaml
 !knowledge_bot/config/vault_maintenance.yaml.example
+
+# ── Personal EDA lab (300_Дашборды) — local Mac analytics ──────────────────
+# Jupyter notebook, генератор, venv и артефакты прогона; не для публичного репо.
+**/personal_eda_modeling*.ipynb
+**/_build_personal_eda_notebook.py
+**/requirements_eda.txt
+**/master_daily_panel.csv
+**/.ipynb_checkpoints/

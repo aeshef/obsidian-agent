@@ -1087,6 +1087,18 @@ if [ "$_SHOULD_CROSS" = "1" ]; then
       echo "$TODAY" > "$_CROSS_MARKER"
     fi
   fi
+  if [ -f "$PLANNING_BOT/scripts/build_analytics_insights.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _nutr_py="${CHART_PYTHON:-python3}"
+    cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_analytics_insights.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
+  fi
+  if [ -f "$PLANNING_BOT/scripts/build_analytics_dashboard_hub.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _nutr_py="${CHART_PYTHON:-python3}"
+    cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_analytics_dashboard_hub.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
+  fi
 fi
 unset _SHOULD_CROSS _CROSS_MARKER
 

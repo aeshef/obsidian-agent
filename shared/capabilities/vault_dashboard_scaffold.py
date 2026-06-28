@@ -130,6 +130,7 @@ def build_scaffold_context(
     calendar_dash = vault_file("calendar_dashboard_md")
     calendar_json = vault_file("calendar_json")
     nutrition_dash = f"{dash_folder}/{vault_file('health_dashboard_md')}"
+    analytics_dash = f"{dash_folder}/{vault_file('analytics_dashboard_md')}"
     finance_dash = f"{dash_folder}/{finance_sub('dashboard_md')}"
 
     quarter_names = strings.get("quarter_names") if isinstance(strings.get("quarter_names"), dict) else {}
@@ -149,6 +150,7 @@ def build_scaffold_context(
         "calendar_json": calendar_json,
         "nutrition_dashboard": nutrition_dash,
         "health_dashboard": nutrition_dash,
+        "analytics_dashboard": analytics_dash,
         "finance_dashboard": finance_dash,
         "main_dashboard": f"{dash_folder}/{vault_file('main_dashboard_md')}",
         "done_column": done_column,
@@ -196,6 +198,7 @@ def build_scaffold_context(
         "footer": str(strings.get("footer") or ""),
         "preamble_tip": str(strings.get("preamble_tip") or ""),
         "chart_deadline_md": vault_file("chart_deadline_horizon_md"),
+        "chart_analytics_insights_md": vault_file("chart_analytics_insights_md").removesuffix(".md"),
     }
 
     for key, val in strings.items():

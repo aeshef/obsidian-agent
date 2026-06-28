@@ -4819,6 +4819,63 @@ planning:
   auto_f6622f8d0d: "Добавлен контекст календаря в рекомендации"
   auto_f6d046868d: "Контекст Mac в ревью: %d снапшотов"
 
+  analytics_hub_title: "🔬 Аналитика"
+  analytics_hub_tip: |
+    > [!tip] Лаги D−1→D, sleep hypothesis engine, FDR. Обновлено: {updated}
+  analytics_section_overview: "📊 Обзор"
+  analytics_section_body: "🏋️ Тело"
+  analytics_section_sleep: "😴 Сон"
+  analytics_section_correlations: "🔗 Связи"
+  analytics_section_cross: "🌐 Кросс-домен"
+  analytics_section_data: "📁 Данные"
+  analytics_sub_weight: "Вес"
+  analytics_sub_sleep_hours: "Часы сна"
+  analytics_sub_sleep_stages: "Стадии (Deep / REM / Core / Awake)"
+  analytics_sub_sleep_weight: "D−1 → Δ вес завтра"
+  analytics_sub_sleep_heatmap: "Heatmap гипотез"
+  analytics_sub_panel_corr: "Панель (Spearman)"
+  analytics_sub_tasks_sleep: "Задачи × сон (lag1)"
+  analytics_cross_health_link: |
+    > [!info] Задачи × траты × шаги × ккал — на [[{health_dashboard}|🏥 Здоровье]] (без дублирования здесь).
+  analytics_data_files: |
+    - `Данные/analytics_insights.json`
+    - `Данные/master_daily_panel.csv`
+    - `Данные/cross_daily_features.json`
+    - Песочница: `personal_eda_modeling.ipynb` (локально)
+  analytics_summary_charts_hint: "Графики — на этой странице ниже, по секциям."
+  analytics_title_sleep_heatmap: "Сон (lag1) → outcomes: Spearman ρ"
+  analytics_title_insights_summary: "Инсайты: sleep hypotheses"
+  analytics_title_weight_trend: "Вес: дневные значения и 7d MA"
+  analytics_title_sleep_trend: "Сон: часы сна по дням"
+  analytics_title_sleep_stages: "Сон: стадии (Deep / REM / Core / Awake)"
+  analytics_title_sleep_weight: "Сон D−1 vs Δ вес завтра"
+  analytics_title_panel_corr: "Корреляции master panel (Spearman)"
+  analytics_title_tasks_sleep: "Задачи и сон (lag1), z-score 7d MA"
+  analytics_heading_coverage: "Покрытие данных"
+  analytics_heading_hypothesis_table: "Таблица гипотез (top |ρ|)"
+  analytics_heading_top_hypotheses: "Топ гипотез (FDR)"
+  analytics_heading_partial_weight: "Partial: сон → Δвес завтра | вес lag1"
+  analytics_no_hypotheses: "Пока недостаточно данных для sleep-гипотез (нужно ≥8 дней с сном)."
+  analytics_no_fdr_significant: "Пока нет FDR<0.05 — ниже top-|ρ| без коррекции:"
+  analytics_label_sleep_hours: "сон, ч"
+  analytics_label_sleep_hours_lag1: "сон D−1, ч"
+  analytics_label_hrv: "HRV"
+  analytics_label_resting_hr: "пульс покоя"
+  analytics_cov_tasks: "Задачи закрыты"
+  analytics_cov_expense: "Траты"
+  analytics_cov_sleep: "Сон"
+  analytics_cov_weight: "Вес"
+  analytics_cov_steps: "Шаги"
+  analytics_cov_kcal: "Ккал"
+  analytics_outcome_tasks: "закрытые задачи"
+  analytics_outcome_steps: "шаги"
+  analytics_outcome_kcal: "ккал"
+  analytics_outcome_expense: "траты"
+  analytics_outcome_weight: "вес (день D)"
+  analytics_outcome_weight_delta: "Δ вес (день D)"
+  analytics_outcome_weight_next: "вес завтра"
+  analytics_outcome_weight_delta_next: "Δ вес завтра"
+
 finance_analyst:
   insight_allowed_categories: |
     Допустимые названия категорий расходов (в инсайте — только дословно из списка):

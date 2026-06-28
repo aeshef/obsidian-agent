@@ -22,6 +22,9 @@ strings:
   chart_nutrition_body: "Данные — снимок из iPhone-контекста. Подробно: [[{{nutrition_dashboard}}]]."
   finance_embed_title: "## 💰 Финансы"
   finance_embed_body: "Автообновление: [[{{finance_dashboard}}|Финансы]]. Сборка: `finance_bot/scripts/run_finance_dashboard.sh`."
+  section_analytics: "## 🔬 Аналитика"
+  analytics_embed_title: "### Аналитика"
+  analytics_embed_body: "Таблицы гипотез и покрытие данных. Графики — на [[{{analytics_dashboard}}|странице аналитики]]."
   footer: "_Обновляй раз в неделю, чтобы видеть общую картину._"
   goals_not_found: "⚠️ Файл целей не найден"
   no_focus_tasks: "📭 Нет активных целей с тегом"
@@ -71,6 +74,7 @@ dashboards:
       - chart_open_pipeline
       - chart_deadlines
       - chart_nutrition
+      - analytics_embed
       - goals_mapping
       - category_progress
       - finance_embed
@@ -155,6 +159,10 @@ blocks:
   finance_embed:
     template: finance_embed.md.template
     modules: [finance]
+  analytics_embed:
+    template: analytics_embed.md.template
+    modules: [planning]
+    feature: health_body_metrics
   footer:
     template: footer.md.template
     modules: []
