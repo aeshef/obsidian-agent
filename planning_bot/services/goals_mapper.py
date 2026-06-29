@@ -234,6 +234,39 @@ class GoalsMapper:
         if task_id in self.mapping:
             del self.mapping[task_id]
             self.save_mapping()
+
+    def reconcile_mapping(
+        self,
+        *,
+        known_task_ids: Optional[set] = None,
+        persist: bool = True,
+        remove_ghost_tasks: bool = False,
+    ) -> Dict[str, int]:
+        """Drop stale goal IDs (and optionally ghost tasks); persist if changed."""
+        stats = {
+            "orphan_goal_refs": 0,
+            "ghost_tasks": 0,
+            "empty_mappings_removed": 0,
+        }
+        valid_goal_ids = set(self.goals.keys())
+        before = json.dumps(self.mapping, sort_keys=True)
+
+        cleaned: Dict[str, List[str]] = {}
+        for task_id, goal_ids in self.mapping.items():
+            if remove_ghost_tasks and known_task_ids is not None and task_id not in known_task_ids:
+                stats["ghost_tasks"] += 1
+                continue
+            filtered = [gid for gid in goal_ids if gid in valid_goal_ids]
+            stats["orphan_goal_refs"] += len(goal_ids) - len(filtered)
+            if filtered:
+                cleaned[task_id] = filtered
+            elif goal_ids:
+                stats["empty_mappings_removed"] += 1
+        self.mapping = cleaned
+
+        if persist and json.dumps(self.mapping, sort_keys=True) != before:
+            self.save_mapping()
+        return stats
     
     def get_current_quarter(self) -> str:
         'Operation implementation.'

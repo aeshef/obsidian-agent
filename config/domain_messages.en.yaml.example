@@ -5073,6 +5073,43 @@ planning:
   analytics_outcome_weight_next: weight tomorrow
   analytics_outcome_weight_delta_next: Δ weight tomorrow
 
+  goals_mapping_review_title: "🔗 Goals ↔ tasks mapping"
+  goals_mapping_review_intro: |
+    > [!tip] Review doc for tuning `goals_mapping` prompt and half-year goal revision. Updated: {updated}
+  goals_mapping_review_summary_heading: "Summary"
+  goals_mapping_review_col_metric: "Metric"
+  goals_mapping_review_col_value: "Value"
+  goals_mapping_review_stat_active_goals: "Active goals (− [ ])"
+  goals_mapping_review_stat_goals_with_tasks: "Goals with at least one task"
+  goals_mapping_review_stat_goals_without_tasks: "Goals with no tasks"
+  goals_mapping_review_stat_mapped_tasks: "Tasks in mapping"
+  goals_mapping_review_stat_unmapped_tasks: "Board tasks without mapping"
+  goals_mapping_review_stat_open_suffix: "open"
+  goals_mapping_review_progress_warning: "Dashboard progress = share of completed among mapped tasks, not goal completion. See lists below."
+  goals_mapping_review_orphans_heading: "Stale goal_id (goal removed or rephrased)"
+  goals_mapping_review_unmapped_goals_heading: "Goals without tasks"
+  goals_mapping_review_per_goal_heading: "By goal"
+  goals_mapping_review_suspicious_heading: "Suspicious mappings"
+  goals_mapping_review_suspicious_hint: "Task linked to 3+ goals — common false positive when tuning the prompt."
+  goals_mapping_review_suspicious_goals_suffix: "goals"
+  goals_mapping_review_section_open: "Open"
+  goals_mapping_review_section_done: "Done ({count})"
+  goals_mapping_review_no_open_tasks: "No open mapped tasks"
+  goals_mapping_review_unmapped_tasks_heading: "Tasks without a goal"
+  goals_mapping_review_unmapped_open_summary: "Open without mapping ({count})"
+  goals_mapping_review_unmapped_done_heading: "Done without mapping ({count})"
+  goals_mapping_review_unmapped_done_summary: "Done ({count})"
+  goals_mapping_review_goal_summary: "{open} open · {done} done · {total} total"
+  goals_mapping_review_no_tasks: "_No mapped tasks_"
+  goals_mapping_review_col_status: "Status"
+  goals_mapping_review_col_task: "Task"
+  goals_mapping_review_col_id: "ID"
+  goals_mapping_review_col_column: "Column"
+  goals_mapping_review_status_open: "○"
+  goals_mapping_review_status_done: "✓"
+  goals_mapping_review_source_archive: "archive"
+  goals_mapping_review_reconcile_done: "reconcile: orphan_goal_refs={orphan_goal_refs} ghost_tasks={ghost_tasks} empty_removed={empty_mappings_removed}"
+
 planning_forecast:
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'

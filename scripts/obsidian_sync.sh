@@ -626,6 +626,18 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
 fi
 unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max
 
+# 5b-pre. Goals mapping review (collapsible audit for prompt tuning)
+if cap_module_enabled PLANNING; then
+  PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
+  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_goals_mapping_review.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _gmr_py="${CHART_PYTHON:-python3}"
+    cd "$PLANNING_BOT" && common_run_python_script "$_gmr_py" "$PLANNING_BOT/scripts/build_goals_mapping_review.py" --vault "$LOCAL_VAULT" --reconcile --json >> logs/charts.log 2>&1 || true
+  fi
+fi
+unset _gmr_py
+
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
 _CAL_JSON="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/${VAULT_FILE_CALENDAR_JSON}"

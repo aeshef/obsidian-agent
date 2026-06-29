@@ -4876,6 +4876,43 @@ planning:
   analytics_outcome_weight_next: "вес завтра"
   analytics_outcome_weight_delta_next: "Δ вес завтра"
 
+  goals_mapping_review_title: "🔗 Маппинг задач к целям"
+  goals_mapping_review_intro: |
+    > [!tip] Обзор для настройки промпта `goals_mapping` и пересмотра целей. Обновлено: {updated}
+  goals_mapping_review_summary_heading: "Сводка"
+  goals_mapping_review_col_metric: "Метрика"
+  goals_mapping_review_col_value: "Значение"
+  goals_mapping_review_stat_active_goals: "Активных целей (− [ ])"
+  goals_mapping_review_stat_goals_with_tasks: "Целей с хотя бы одной задачей"
+  goals_mapping_review_stat_goals_without_tasks: "Целей без задач"
+  goals_mapping_review_stat_mapped_tasks: "Задач в маппинге"
+  goals_mapping_review_stat_unmapped_tasks: "Задач на доске без маппинга"
+  goals_mapping_review_stat_open_suffix: "открытых"
+  goals_mapping_review_progress_warning: "Прогресс на дашборде = доля закрытых среди смапленных задач, не выполнение цели. Смотри списки ниже."
+  goals_mapping_review_orphans_heading: "Устаревшие goal_id (цель удалена или переформулирована)"
+  goals_mapping_review_unmapped_goals_heading: "Цели без задач"
+  goals_mapping_review_per_goal_heading: "По целям"
+  goals_mapping_review_suspicious_heading: "Подозрительные маппинги"
+  goals_mapping_review_suspicious_hint: "Задача привязана к 3+ целям — частый false positive при тюнинге промпта."
+  goals_mapping_review_suspicious_goals_suffix: "целей"
+  goals_mapping_review_section_open: "Открытые"
+  goals_mapping_review_section_done: "Закрытые ({count})"
+  goals_mapping_review_no_open_tasks: "Нет открытых смапленных задач"
+  goals_mapping_review_unmapped_tasks_heading: "Задачи без цели"
+  goals_mapping_review_unmapped_open_summary: "Открытые без маппинга ({count})"
+  goals_mapping_review_unmapped_done_heading: "Закрытые без маппинга ({count})"
+  goals_mapping_review_unmapped_done_summary: "Закрытые ({count})"
+  goals_mapping_review_goal_summary: "{open} откр. · {done} закр. · {total} всего"
+  goals_mapping_review_no_tasks: "_Нет смапленных задач_"
+  goals_mapping_review_col_status: "Статус"
+  goals_mapping_review_col_task: "Задача"
+  goals_mapping_review_col_id: "ID"
+  goals_mapping_review_col_column: "Колонка"
+  goals_mapping_review_status_open: "○"
+  goals_mapping_review_status_done: "✓"
+  goals_mapping_review_source_archive: "архив"
+  goals_mapping_review_reconcile_done: "reconcile: orphan_goal_refs={orphan_goal_refs} ghost_tasks={ghost_tasks} empty_removed={empty_mappings_removed}"
+
 finance_analyst:
   insight_allowed_categories: |
     Допустимые названия категорий расходов (в инсайте — только дословно из списка):
