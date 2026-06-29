@@ -6,23 +6,43 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 from planning_bot.core.config import VAULT_PATH, GOALS_FILE, MAPPING_FILE, GOALS_YEAR
+from shared.goals.mapping_files import resolve_mapping_file, write_json_atomic
+
+GOAL_CONTEXT_KEYS = {
+    "context": "context",
+    "контекст": "context",
+    "meaning": "context",
+    "смысл": "context",
+    "include": "include",
+    "includes": "include",
+    "включать": "include",
+    "считать": "include",
+    "exclude": "exclude",
+    "excludes": "exclude",
+    "исключать": "exclude",
+    "не считать": "exclude",
+    "success": "success",
+    "success criteria": "success",
+    "критерий": "success",
+    "успех": "success",
+}
 
 # (comment)
 def get_goals_file():
     return GOALS_FILE
 
 def get_mapping_file():
-    return MAPPING_FILE
+    return resolve_mapping_file(MAPPING_FILE)
 
 
 class GoalsMapper:
-    def __init__(self):
+    def __init__(self, mapping_file: Optional[Path] = None):
         self.goals: Dict[str, Dict] = {}  # goal_id -> goal_info
         self.mapping: Dict[str, List[str]] = {}  # task_id -> [goal_ids]
         self.task_titles: Dict[str, str] = {}  # task_id -> task_title
         self.vault_path = VAULT_PATH
         self.goals_file = GOALS_FILE
-        self.mapping_file = MAPPING_FILE
+        self.mapping_file = mapping_file or get_mapping_file()
         self.load_goals()
         self.load_mapping()
     
@@ -38,8 +58,15 @@ class GoalsMapper:
         'Operation implementation.'
         lines = content.split('\n')
         current_quarter = None
+        in_fenced_code = False
         
         for i, line in enumerate(lines):
+            if line.strip().startswith("```"):
+                in_fenced_code = not in_fenced_code
+                continue
+            if in_fenced_code:
+                continue
+
             # (comment)
             quarter_match = re.search(r'Q([1-4])\s+' + str(GOALS_YEAR), line)
             if quarter_match:
@@ -76,13 +103,77 @@ class GoalsMapper:
                 goal_id = self._generate_goal_id(goal_text_clean)
                 
                 if goal_id and goal_text_clean:
+                    context_fields = self._parse_goal_context_fields(lines, i + 1)
                     self.goals[goal_id] = {
                         "text": goal_text_clean,
                         "category": category,
                         "priority": priority,
                         "quarter": quarter,
-                        "source": source_file.name
+                        "source": source_file.name,
+                        **context_fields,
                     }
+
+    @staticmethod
+    def _parse_goal_context_line(line: str) -> Optional[Tuple[str, str]]:
+        s = line.strip()
+        while s.startswith(">"):
+            s = s[1:].strip()
+        if s.startswith(("- ", "* ", "+ ")):
+            s = s[2:].strip()
+        while s.startswith(">"):
+            s = s[1:].strip()
+        match = re.match(r"([^:]+)::\s*(.*)$", s)
+        if not match:
+            return None
+        raw_key = re.sub(r"\s+", " ", match.group(1).strip().lower())
+        key = GOAL_CONTEXT_KEYS.get(raw_key)
+        if not key:
+            return None
+        return key, match.group(2).strip()
+
+    @classmethod
+    def _parse_goal_context_fields(cls, lines: List[str], start_idx: int) -> Dict[str, str]:
+        """Read Obsidian inline fields indented under a goal checkbox.
+
+        Supported fields:
+          context:: what the goal means
+          include:: what should count as a direct step
+          exclude:: what is adjacent but out of scope
+          success:: what completion means
+        """
+        fields: Dict[str, str] = {}
+        last_key: Optional[str] = None
+
+        for line in lines[start_idx:]:
+            if not line.strip():
+                last_key = None
+                continue
+            if line == line.lstrip():
+                break
+
+            stripped = line.strip()
+            if stripped.startswith("- ["):
+                last_key = None
+                continue
+
+            parsed = cls._parse_goal_context_line(line)
+            if parsed:
+                key, value = parsed
+                if value:
+                    fields[key] = f"{fields[key]}; {value}" if fields.get(key) else value
+                    last_key = key
+                else:
+                    last_key = key
+                continue
+
+            if last_key:
+                continuation = stripped
+                if continuation.startswith(("- ", "* ", "+ ")):
+                    continuation = continuation[2:].strip()
+                if continuation:
+                    fields[last_key] = f"{fields[last_key]} {continuation}".strip()
+
+        return fields
     
     def _generate_goal_id(self, text: str) -> str:
         'Operation implementation.'
@@ -174,7 +265,11 @@ class GoalsMapper:
                         "text": self.goals.get(goal_id, {}).get("text", "Unknown"),
                         "quarter": self.goals.get(goal_id, {}).get("quarter", ""),
                         "priority": self.goals.get(goal_id, {}).get("priority", ""),
-                        "category": self.goals.get(goal_id, {}).get("category", "")
+                        "category": self.goals.get(goal_id, {}).get("category", ""),
+                        "context": self.goals.get(goal_id, {}).get("context", ""),
+                        "include": self.goals.get(goal_id, {}).get("include", ""),
+                        "exclude": self.goals.get(goal_id, {}).get("exclude", ""),
+                        "success": self.goals.get(goal_id, {}).get("success", ""),
                     }
                     for goal_id in goal_ids
                 ]
@@ -186,8 +281,7 @@ class GoalsMapper:
             "readable_mapping": readable_mapping,  # (comment)
             "last_updated": datetime.now().isoformat()
         }
-        with open(self.mapping_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        write_json_atomic(self.mapping_file, data)
     
     def get_goals_for_quarter(self, quarter: str) -> List[Dict]:
         'Operation implementation.'

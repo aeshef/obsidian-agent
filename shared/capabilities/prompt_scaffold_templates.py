@@ -63,8 +63,10 @@ Parse a task line into: title, category, priority, optional deadline.
 Return JSON fields matching kanban schema. Examples: {{USER_TASK_EXAMPLES}}.
 """,
     "planning_bot/config/prompts/goals_mapping.example.txt": """\
-Map tasks to quarterly goals when goal id or title is mentioned.
-Goals list: {{USER_GOALS}}.
+Map task to at most one goal when it is a direct step toward that goal's stated outcome.
+Prefer empty goal_ids for meta/planning work, baseline chores, and weak topical overlap.
+Use optional goal context/include/exclude/success fields as authoritative scope boundaries.
+Kanban category is weaker than goal text. JSON: {"goal_ids": [], "reasoning": "..."}.
 """,
     "planning_bot/config/prompts/iphone_health_insights.example.txt": """\
 Interpret Apple Health / snapshot metrics for planning questions. Use health tools with day=YYYY-MM-DD.

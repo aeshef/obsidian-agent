@@ -436,6 +436,7 @@ PUSH_EXCLUDE_300=(
   --exclude='.kanban_monitor_state.json'
   --exclude="${VAULT_DASH_LOGS}/"
   --exclude='goals_task_mapping.json'
+  --exclude='goals_task_mapping.staging.json'
   --exclude="/${VAULT_FILE_ACTION_LOG_PREFIX}*.md"
   --exclude="${VAULT_DASH_CHARTS}/${VAULT_FIN_CHART_DAILY_CATEGORIES_PNG}"
   --exclude="${VAULT_DASH_CHARTS}/${VAULT_LEGACY_MAINTENANCE_CHART_PNG}"

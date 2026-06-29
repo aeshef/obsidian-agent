@@ -42,7 +42,16 @@ def test_collect_multi_goal_tasks():
 
 def test_build_review_data_groups_tasks_by_goal():
     goals = {
-        "g1": {"text": "Goal one", "quarter": "Q2", "priority": "high", "category": "work"},
+        "g1": {
+            "text": "Goal one",
+            "quarter": "Q2",
+            "priority": "high",
+            "category": "work",
+            "context": "Meaning",
+            "include": "Direct steps",
+            "exclude": "Adjacent work",
+            "success": "Done",
+        },
         "g2": {"text": "Goal two", "quarter": "Q2", "priority": "", "category": ""},
     }
     mapping = {"t1": ["g1"], "t2": ["g1", "g2"], "t3": []}
@@ -58,7 +67,86 @@ def test_build_review_data_groups_tasks_by_goal():
     g1 = next(g for g in data["goals"] if g["id"] == "g1")
     assert len(g1["tasks"]) == 2
     assert g1["done_count"] == 1
+    assert g1["context"] == "Meaning"
+    assert g1["include"] == "Direct steps"
+    assert g1["exclude"] == "Adjacent work"
+    assert g1["success"] == "Done"
     assert data["unmapped_open"][0]["task_id"] == "t4"
+
+
+def test_goals_mapper_parses_indented_goal_context_fields():
+    from planning_bot.services.goals_mapper import GoalsMapper
+
+    mapper = object.__new__(GoalsMapper)
+    mapper.goals = {}
+    content = """
+## Q3 2026
+- [ ] Build outcome #цель/развитие #приоритет/высокий #фокус/Q3
+  context:: what this goal means
+  include:: direct steps
+  exclude:: adjacent but wrong
+  success:: visible completion
+- [ ] Other outcome #цель/дом
+"""
+    mapper._parse_goals_from_content(content, type("P", (), {"name": "goals.md"})())
+    goal = next(g for g in mapper.goals.values() if g["text"] == "Build outcome")
+    assert goal["context"] == "what this goal means"
+    assert goal["include"] == "direct steps"
+    assert goal["exclude"] == "adjacent but wrong"
+    assert goal["success"] == "visible completion"
+
+
+def test_goals_mapper_ignores_goal_examples_inside_code_fences():
+    from planning_bot.services.goals_mapper import GoalsMapper
+
+    mapper = object.__new__(GoalsMapper)
+    mapper.goals = {}
+    content = """
+- [ ] Real goal #цель/развитие
+```markdown
+- [ ] Example goal #цель/дом
+```
+"""
+    mapper._parse_goals_from_content(content, type("P", (), {"name": "goals.md"})())
+    assert [g["text"] for g in mapper.goals.values()] == ["Real goal"]
+
+
+def test_goals_mapper_parses_context_fields_from_obsidian_callout():
+    from planning_bot.services.goals_mapper import GoalsMapper
+
+    mapper = object.__new__(GoalsMapper)
+    mapper.goals = {}
+    content = """
+- [ ] Callout goal #цель/развитие
+  > [!info]- Контекст маппинга
+  > context:: meaning
+  > include:: direct steps
+  > exclude:: adjacent
+  > success:: done
+"""
+    mapper._parse_goals_from_content(content, type("P", (), {"name": "goals.md"})())
+    goal = next(iter(mapper.goals.values()))
+    assert goal["context"] == "meaning"
+    assert goal["include"] == "direct steps"
+    assert goal["exclude"] == "adjacent"
+    assert goal["success"] == "done"
+
+
+def test_scaffold_goal_contexts_adds_callouts_idempotently():
+    from planning_bot.scripts.scaffold_goal_contexts import scaffold_goal_contexts
+
+    text = """- [ ] Real goal #цель/развитие
+```markdown
+- [ ] Example goal #цель/дом
+```
+"""
+    updated, inserted = scaffold_goal_contexts(text)
+    assert inserted == 1
+    assert "> [!info]- Контекст маппинга" in updated
+
+    updated_again, inserted_again = scaffold_goal_contexts(updated)
+    assert inserted_again == 0
+    assert updated_again == updated
 
 
 def test_render_uses_obsidian_callouts():

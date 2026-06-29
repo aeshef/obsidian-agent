@@ -542,12 +542,20 @@ class PlanningLLMDomainMixin:
                 goal_quarter = goal.get("quarter", "")
                 goal_category = goal.get("category", "")
                 goal_priority = goal.get("priority", "")
+                goal_context = goal.get("context", "")
+                goal_include = goal.get("include", "")
+                goal_exclude = goal.get("exclude", "")
+                goal_success = goal.get("success", "")
                 goals_text += lctx("goals_list_line").format(
                     goal_id=goal_id,
                     goal_text=goal_text,
                     goal_category=goal_category,
                     goal_quarter=goal_quarter,
                     goal_priority=goal_priority,
+                    goal_context=goal_context,
+                    goal_include=goal_include,
+                    goal_exclude=goal_exclude,
+                    goal_success=goal_success,
                 )
 
             messages = [
@@ -567,8 +575,13 @@ class PlanningLLMDomainMixin:
                     response = response.split("```")[1].split("```")[0].strip()
 
                 result = json.loads(response)
+                raw_ids = result.get("goal_ids", [])
+                if not isinstance(raw_ids, list):
+                    raw_ids = []
+                valid_ids = {g.get("id") for g in goals_list if g.get("id")}
+                goal_ids = [gid for gid in raw_ids if isinstance(gid, str) and gid in valid_ids][:1]
                 return {
-                    "goal_ids": result.get("goal_ids", []),
+                    "goal_ids": goal_ids,
                     "reasoning": result.get("reasoning", ""),
                 }
             except json.JSONDecodeError as e:

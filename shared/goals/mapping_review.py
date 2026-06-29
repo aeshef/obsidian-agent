@@ -127,6 +127,10 @@ def build_review_data(
                 "category": meta.get("category") or "",
                 "priority": meta.get("priority") or "",
                 "quarter": meta.get("quarter") or "",
+                "context": sanitize_inline(meta.get("context") or "", max_len=260),
+                "include": sanitize_inline(meta.get("include") or "", max_len=260),
+                "exclude": sanitize_inline(meta.get("exclude") or "", max_len=260),
+                "success": sanitize_inline(meta.get("success") or "", max_len=260),
                 "tasks": tasks,
                 "open_count": len(tasks) - done,
                 "done_count": done,
@@ -187,6 +191,17 @@ def _task_bullet(task: Dict[str, Any], msg: Callable[[str], str]) -> str:
     mark = msg("goals_mapping_review_status_done" if task["completed"] else "goals_mapping_review_status_open")
     col = _format_column(task, msg)
     return f"- {mark} {task['title']} · `{task['task_id']}` · {col}"
+
+
+def _goal_context_lines(goal: Dict[str, Any]) -> List[str]:
+    lines: List[str] = []
+    for key in ("context", "include", "exclude", "success"):
+        value = goal.get(key)
+        if value:
+            lines.append(f"`{key}::` {value}")
+    if lines:
+        lines.append("")
+    return lines
 
 
 def _callout_lines(title: str, body_lines: List[str], *, collapsed: bool = True, kind: str = "abstract") -> List[str]:
@@ -293,7 +308,7 @@ def render_goals_mapping_review(
         )
         open_tasks = [t for t in g["tasks"] if not t["completed"]]
         done_tasks = [t for t in g["tasks"] if t["completed"]]
-        body: List[str] = []
+        body: List[str] = _goal_context_lines(g)
         if open_tasks:
             body.append(f"**{msg('goals_mapping_review_section_open')} ({len(open_tasks)})**")
             body.extend(_task_bullet(t, msg) for t in open_tasks)

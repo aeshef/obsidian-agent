@@ -128,6 +128,10 @@ async def classify_host_domain_llm(
         },
         label="host_domain",
     )
+    if raw.get("_salvaged") and "domain" not in raw:
+        log.warning("host_domain: salvaged non-router JSON %r → general", raw)
+        return "general"
+
     dom_raw = str(raw.get("domain", "")).strip().lower()
     if not dom_raw:
         dom = _require_json_field(raw, "domain", allowed, label="host_domain")

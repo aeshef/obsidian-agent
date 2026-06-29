@@ -17,6 +17,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 REMAP_ALL = '--remap-all' in sys.argv
+NO_PROMOTE = '--no-promote' in sys.argv
 
 
 def _mapping_limit(default: int) -> int:
@@ -41,47 +42,7 @@ def record_no_goal_mapping(goals_mapper, task_id: str, title: str) -> None:
     goals_mapper.save_mapping(task_info={task_id: title})
 
 
-def main():
-    # (comment)
-    from planning_bot.services.kanban import KanbanBoard
-    from planning_bot.services.goals_mapper import GoalsMapper
-    from planning_bot.core.llm import DeepSeekClient
-
-    kanban = KanbanBoard()
-    goals_mapper = GoalsMapper()
-    llm = DeepSeekClient()
-
-    if REMAP_ALL:
-        logger.info(pdmsg("auto_6ef8e6f330"))
-        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=False)
-        tasks_with_id = select_missing_tasks(all_tasks, goals_mapper.mapping, remap_all=True)
-        # (comment)
-        for t in tasks_with_id:
-            tid = t['task_id']
-            if tid in goals_mapper.mapping:
-                del goals_mapper.mapping[tid]
-        if tasks_with_id:
-            goals_mapper.save_mapping()
-        missing = tasks_with_id
-        limit = _mapping_limit(500)
-        logger.info(pdmsg("auto_78daa6c5ee", _p1=len(missing)))
-    else:
-        logger.info(pdmsg("auto_b01c8bed70"))
-        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=True)
-        tasks_with_id = [t for t in all_tasks if t.get('task_id')]
-        missing = select_missing_tasks(all_tasks, goals_mapper.mapping, remap_all=False)
-        limit = _mapping_limit(20)
-        logger.info(pdmsg("auto_ffbd805644", _p1=len(tasks_with_id), _p3=len(missing)))
-
-    if not missing:
-        logger.info(pdmsg("auto_0848da3bdb"))
-        return 0
-
-    all_goals = goals_mapper.get_all_goals()
-    if not all_goals:
-        logger.warning(pdmsg("auto_ad2a96d8e8"))
-        return 1
-
+def _process_tasks(goals_mapper, llm, missing, all_goals, limit: int) -> int:
     goals_by_id = {g["id"]: g.get("text", "?") for g in all_goals}
     logging.getLogger("llm").setLevel(logging.WARNING)  # (comment)
     to_process = missing[:limit]
@@ -112,6 +73,86 @@ def main():
             continue
 
     print(pdmsg("auto_1a09008344", _p1=mapped, _p3=len(missing)))
+    return mapped
+
+
+def main():
+    from planning_bot.core.config import MAPPING_FILE
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.goals_mapper import GoalsMapper
+    from planning_bot.core.llm import DeepSeekClient
+    from shared.goals.mapping_files import (
+        clear_remap_in_progress,
+        load_mapping_titles,
+        promote_mapping_file,
+        staging_mapping_file,
+        touch_remap_in_progress,
+    )
+
+    kanban = KanbanBoard()
+    prod_mapper = GoalsMapper()
+    llm = DeepSeekClient()
+
+    if REMAP_ALL:
+        staging_path = staging_mapping_file(prod_mapper.vault_path)
+        production_path = prod_mapper.mapping_file
+        goals_mapper = GoalsMapper(mapping_file=staging_path)
+        goals_mapper.mapping = {}
+        goals_mapper.task_titles = load_mapping_titles(production_path)
+
+        logger.info(
+            "Staging remap: production=%s staging=%s (production untouched until promote)",
+            production_path,
+            staging_path,
+        )
+        touch_remap_in_progress(
+            prod_mapper.vault_path,
+            staging=staging_path,
+            production=production_path,
+        )
+        goals_mapper.save_mapping()
+
+        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=False)
+        missing = select_missing_tasks(all_tasks, {}, remap_all=True)
+        limit = _mapping_limit(500)
+        logger.info(pdmsg("auto_78daa6c5ee", _p1=len(missing)))
+    else:
+        goals_mapper = prod_mapper
+        logger.info(pdmsg("auto_b01c8bed70"))
+        all_tasks = kanban.get_tasks(exclude_today=False, exclude_blocked=True)
+        tasks_with_id = [t for t in all_tasks if t.get('task_id')]
+        missing = select_missing_tasks(all_tasks, goals_mapper.mapping, remap_all=False)
+        limit = _mapping_limit(20)
+        logger.info(pdmsg("auto_ffbd805644", _p1=len(tasks_with_id), _p3=len(missing)))
+
+    if not missing:
+        logger.info(pdmsg("auto_0848da3bdb"))
+        if REMAP_ALL:
+            clear_remap_in_progress(prod_mapper.vault_path)
+        return 0
+
+    all_goals = goals_mapper.get_all_goals()
+    if not all_goals:
+        logger.warning(pdmsg("auto_ad2a96d8e8"))
+        if REMAP_ALL:
+            clear_remap_in_progress(prod_mapper.vault_path)
+        return 1
+
+    try:
+        _process_tasks(goals_mapper, llm, missing, all_goals, limit)
+    except Exception:
+        if REMAP_ALL:
+            logger.error("Remap failed; staging kept at %s", goals_mapper.mapping_file)
+        raise
+    finally:
+        if REMAP_ALL and NO_PROMOTE:
+            logger.info("Skipping promote (--no-promote); staging at %s", goals_mapper.mapping_file)
+
+    if REMAP_ALL and not NO_PROMOTE:
+        promote_mapping_file(goals_mapper.mapping_file, production_path)
+        clear_remap_in_progress(prod_mapper.vault_path)
+        logger.info("Promoted staging mapping → %s", production_path)
+
     return 0
 
 
