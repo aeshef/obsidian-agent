@@ -78,6 +78,36 @@ def test_normalize_extended_health_email():
     assert "Total Time Asleep" in snap["sleep_detail"]
 
 
+SLEEP_DETAIL_MULTILINE_BODY = """---
+ts: 02.06.2026, 23:43
+source: iphone
+sleep_interval: 2 июня 2026 г., 04:28-2 июня 2026 г., 10:23
+sleep_detail: Total Time Asleep:5 hours 52 minutes
+Asleep for 0 minutes
+Awake for 0 hours and 2 minutes
+Core for 3 hours and 9 minutes
+Deep for 1 hours and 10 minutes
+In Bed for 0 minutes
+REM for 1 hours and 33 minutes
+weight_kg: 89.1
+steps: 10340
+---
+"""
+
+
+def test_sleep_detail_multiline_stages():
+    snap = normalize_raw_fields(extract_raw_fields(SLEEP_DETAIL_MULTILINE_BODY))
+    assert snap is not None
+    detail = snap["sleep_detail"]
+    assert "Deep for 1 hours and 10 minutes" in detail
+    assert "REM for 1 hours and 33 minutes" in detail
+    from shared.analytics.sleep_parse import parse_sleep_detail
+
+    parsed = parse_sleep_detail(detail)
+    assert parsed["iphone_sleep_deep_min"] == 70
+    assert parsed["iphone_sleep_rem_min"] == 93
+
+
 def test_snapshot_query_per_day():
     snaps = [
         {"ts": "2026-05-27T10:00", "steps": 100},

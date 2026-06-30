@@ -74,7 +74,8 @@ def parse_ts(s: str, *, formats: tuple[str, ...] | None = None) -> Optional[date
 
 
 def extract_raw_fields(text: str) -> Dict[str, str]:
-    return extract_kv_fields(text, multiline_keys=frozenset({"sleep"}))
+    # sleep_detail may span multiple lines (stage breakdown after Total Time Asleep).
+    return extract_kv_fields(text, multiline_keys=frozenset({"sleep", "sleep_detail"}))
 
 
 def is_numeric_snapshot_value(value: Any) -> bool:

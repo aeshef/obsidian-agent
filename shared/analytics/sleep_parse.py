@@ -16,7 +16,7 @@ def parse_sleep_detail(sleep_detail: str | None) -> dict[str, float]:
     out: dict[str, float] = {}
     if not sleep_detail:
         return out
-    m = re.search(r"Total Time Asleep:\s*(\d+)\s*hours?\s*(\d+)?", sleep_detail)
+    m = re.search(r"Total Time Asleep:\s*(\d+)\s*hours?\s*(?:(\d+)\s*minutes?)?", sleep_detail)
     if m:
         out["iphone_sleep_hours"] = int(m.group(1)) + int(m.group(2) or 0) / 60.0
     for stage, key in _STAGE_KEYS:
