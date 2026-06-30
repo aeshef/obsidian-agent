@@ -70,6 +70,11 @@ for _cfg in vault_paths.yaml messages.ru.yaml domain_messages.ru.yaml domain_mes
     cp -f "$AGENT_DIR/config/$_cfg" "$RUNTIME_AGENT/config/$_cfg"
   fi
 done
+for _cfg in platform.yaml capabilities.yaml; do
+  if [[ -f "$AGENT_DIR/config/agent/$_cfg" ]]; then
+    cp -f "$AGENT_DIR/config/agent/$_cfg" "$RUNTIME_AGENT/config/agent/$_cfg"
+  fi
+done
 if [[ ! -f "$RUNTIME_AGENT/config/vault_paths.yaml" && -f "$AGENT_DIR/.env" ]]; then
   set -a
   # shellcheck disable=SC1091

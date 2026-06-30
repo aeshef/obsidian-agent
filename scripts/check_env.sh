@@ -45,6 +45,14 @@ _check_mac_sync() {
   _warn_if_empty GMAIL_IMAP_USER "шаг 5b.4 iPhone mail IMAP"
   _warn_if_empty GMAIL_IMAP_APP_PASSWORD "шаг 5b.4 iPhone mail IMAP"
   _warn_if_empty OPENROUTER_API_KEY "knowledge vision (опционально)"
+  if _has MOBILE_VAULT; then
+    echo "  ok  MOBILE_VAULT"
+  elif mobile_path="$(common_platform_value "$ROOT" vault mobile_path "" 2>/dev/null || true)" && [ -n "$mobile_path" ]; then
+    echo "  ok  vault.mobile_path (platform.yaml)"
+  else
+    echo "  warn  MOBILE_VAULT / vault.mobile_path не задан (шаг 5e mobile export)" >&2
+    WARN=$((WARN + 1))
+  fi
 }
 
 _check_deploy() {

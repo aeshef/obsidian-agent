@@ -1179,10 +1179,17 @@ MOBILE_EXPORT_SCRIPT="$AGENT_ROOT/scripts/export_mobile_vault.sh"
 MOBILE_EXPORT_LOG="$SYNC_DIR/mobile_vault_export.log"
 if cap_module_enabled PLANNING && [ -z "${SKIP_MOBILE_VAULT:-}" ] && [ -x "$MOBILE_EXPORT_SCRIPT" ]; then
   touch "$MOBILE_EXPORT_LOG" 2>/dev/null || true
-  _trim_log "$MOBILE_EXPORT_LOG" 200 120
   echo "$(sh_msgf scripts.obsidian_sync.step_5e '{"log":"'$MOBILE_EXPORT_LOG'"}')" >&2
   _mobile_rc=0
-  SRC="$LOCAL_VAULT" zsh "$MOBILE_EXPORT_SCRIPT" >> "$MOBILE_EXPORT_LOG" 2>&1 || _mobile_rc=$?
+  _mobile_tmp="$(mktemp "${TMPDIR:-/tmp}/mobile_export.XXXXXX")"
+  SRC="$LOCAL_VAULT" zsh "$MOBILE_EXPORT_SCRIPT" > "$_mobile_tmp" 2>&1 || _mobile_rc=$?
+  cat "$_mobile_tmp" >> "$MOBILE_EXPORT_LOG" 2>/dev/null || true
+  if [ "$_mobile_rc" -ne 0 ]; then
+    _mobile_err="$(grep -E 'export_mobile_vault:|error|Error|not configured' "$_mobile_tmp" 2>/dev/null | tail -1 || true)"
+    [ -n "$_mobile_err" ] && echo "  reason: $_mobile_err" >> "$MOBILE_EXPORT_LOG" 2>/dev/null || true
+  fi
+  common_rotate_log "$MOBILE_EXPORT_LOG" 200 120
+  rm -f "$_mobile_tmp"
   if [ "$_mobile_rc" -eq 0 ]; then
     echo "$NOW_ISO" > "$SYNC_DIR/mobile_vault_last_ok.txt" 2>/dev/null || true
   else

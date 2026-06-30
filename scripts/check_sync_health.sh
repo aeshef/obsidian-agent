@@ -42,6 +42,18 @@ finance="$(_read "$SYNC_DIR/finance_dashboard_last_ok.txt")"
 mobile="$(_read "$SYNC_DIR/mobile_vault_last_ok.txt")"
 maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
 
+mobile_stale=""
+if [ "$mobile" != "—" ] && [ -n "$mobile" ]; then
+  _mobile_epoch="$(date -j -f '%Y-%m-%dT%H:%M:%S' "${mobile%%.*}" '+%s' 2>/dev/null || echo 0)"
+  _now_epoch="$(date '+%s')"
+  if [ "$_mobile_epoch" -gt 0 ] && [ $((_now_epoch - _mobile_epoch)) -gt 43200 ]; then
+    mobile_stale=" STALE"
+  fi
+elif [ -f "$AGENT_ROOT/config/agent/platform.yaml" ] || [ -n "${MOBILE_VAULT:-}" ]; then
+  mobile_stale=" MISSING"
+fi
+unset _mobile_epoch _now_epoch
+
 {
   echo "# Sync health — $NOW"
   echo ""
@@ -51,11 +63,11 @@ maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
   echo "| last_sync_failed | $last_fail |"
   echo "| daily_charts | $charts$_charts_stale |"
   echo "| finance_dashboard | $finance |"
-  echo "| mobile_vault | $mobile |"
+  echo "| mobile_vault | $mobile$mobile_stale |"
   echo "| vault_maintenance | $maint |"
 } >"$REPORT" 2>/dev/null || true
 
-line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile maint=$maint"
+line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile$mobile_stale maint=$maint"
 echo "$line" >>"$SYNC_DIR/health.log" 2>/dev/null || true
 
 common_rotate_log "$SYNC_DIR/health.log" 3000 1200

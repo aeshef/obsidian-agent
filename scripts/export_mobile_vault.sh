@@ -31,9 +31,9 @@ if [[ -z "$SRC" ]]; then
   echo "export_mobile_vault: VAULT_PATH is not configured" >&2
   exit 1
 fi
-MOBILE="${MOBILE_VAULT:-$(common_platform_value "$AGENT_ROOT" vault mobile_path "")}"
+MOBILE="${MOBILE_VAULT:-$(common_platform_value "$AGENT_ROOT" vault mobile_path "" || true)}"
 if [[ -z "$MOBILE" ]]; then
-  echo "export_mobile_vault: MOBILE_VAULT is not configured" >&2
+  echo "export_mobile_vault: mobile path not configured (set MOBILE_VAULT env or vault.mobile_path in config/agent/platform.yaml)" >&2
   exit 1
 fi
 
@@ -41,7 +41,11 @@ fi
 source "${AGENT_ROOT}/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "${AGENT_ROOT}"
 
-_actions_parent="${VAULT_PATH_ACTIONS_MAC:h}"
+if [[ -n "${VAULT_PATH_ACTIONS_MAC:-}" ]]; then
+  _actions_parent="${VAULT_PATH_ACTIONS_MAC:h}"
+else
+  _actions_parent=""
+fi
 
 RSYNC=(rsync -a --delete --exclude='.DS_Store')
 
