@@ -6,26 +6,8 @@ from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 from planning_bot.core.config import VAULT_PATH, GOALS_FILE, MAPPING_FILE, GOALS_YEAR
+from shared.agent.config import goal_context_key_aliases
 from shared.goals.mapping_files import resolve_mapping_file, write_json_atomic
-
-GOAL_CONTEXT_KEYS = {
-    "context": "context",
-    "контекст": "context",
-    "meaning": "context",
-    "смысл": "context",
-    "include": "include",
-    "includes": "include",
-    "включать": "include",
-    "считать": "include",
-    "exclude": "exclude",
-    "excludes": "exclude",
-    "исключать": "exclude",
-    "не считать": "exclude",
-    "success": "success",
-    "success criteria": "success",
-    "критерий": "success",
-    "успех": "success",
-}
 
 # (comment)
 def get_goals_file():
@@ -126,7 +108,7 @@ class GoalsMapper:
         if not match:
             return None
         raw_key = re.sub(r"\s+", " ", match.group(1).strip().lower())
-        key = GOAL_CONTEXT_KEYS.get(raw_key)
+        key = goal_context_key_aliases().get(raw_key)
         if not key:
             return None
         return key, match.group(2).strip()

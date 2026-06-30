@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import re
 from functools import lru_cache
 from pathlib import Path
 
@@ -48,6 +49,37 @@ def load_health_parse_config() -> dict:
     if not path.is_file():
         path = cfg_dir / "health_parse.yaml.example"
     return load_yaml(path, default={})
+
+
+@lru_cache(maxsize=1)
+def load_goals_parse_config() -> dict:
+    cfg_dir = agent_config_dir()
+    path = cfg_dir / "goals_parse.yaml"
+    if not path.is_file():
+        path = cfg_dir / "goals_parse.yaml.example"
+    return load_yaml(path, default={})
+
+
+@lru_cache(maxsize=1)
+def goal_context_key_aliases() -> dict[str, str]:
+    """Map Obsidian inline-field labels → context|include|exclude|success."""
+    defaults: dict[str, str] = {
+        "context": "context",
+        "meaning": "context",
+        "include": "include",
+        "includes": "include",
+        "exclude": "exclude",
+        "excludes": "exclude",
+        "success": "success",
+        "success criteria": "success",
+    }
+    raw = load_goals_parse_config().get("context_key_aliases") or {}
+    merged = dict(defaults)
+    for key, val in raw.items():
+        norm = re.sub(r"\s+", " ", str(key).strip().lower())
+        if norm and val:
+            merged[norm] = str(val)
+    return merged
 
 
 @lru_cache(maxsize=1)

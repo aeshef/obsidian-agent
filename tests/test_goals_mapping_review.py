@@ -132,6 +132,26 @@ def test_goals_mapper_parses_context_fields_from_obsidian_callout():
     assert goal["success"] == "done"
 
 
+def test_goals_mapper_parses_russian_context_aliases():
+    from planning_bot.services.goals_mapper import GoalsMapper
+
+    mapper = object.__new__(GoalsMapper)
+    mapper.goals = {}
+    content = """
+- [ ] RU goal #цель/развитие
+  контекст:: смысл цели
+  включать:: прямые шаги
+  исключать:: соседнее
+  успех:: готово
+"""
+    mapper._parse_goals_from_content(content, type("P", (), {"name": "goals.md"})())
+    goal = next(iter(mapper.goals.values()))
+    assert goal["context"] == "смысл цели"
+    assert goal["include"] == "прямые шаги"
+    assert goal["exclude"] == "соседнее"
+    assert goal["success"] == "готово"
+
+
 def test_scaffold_goal_contexts_adds_callouts_idempotently():
     from planning_bot.scripts.scaffold_goal_contexts import scaffold_goal_contexts
 

@@ -1,0 +1,20 @@
+# Goal context field aliases for Obsidian callouts (context:: / include:: / …).
+# Copy to goals_parse.yaml to customize. Cyrillic aliases stay in YAML, not Python.
+
+context_key_aliases:
+  context: context
+  контекст: context
+  meaning: context
+  смысл: context
+  include: include
+  includes: include
+  включать: include
+  считать: include
+  exclude: exclude
+  excludes: exclude
+  исключать: exclude
+  не считать: exclude
+  success: success
+  success criteria: success
+  критерий: success
+  успех: success

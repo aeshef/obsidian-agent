@@ -1,10 +1,1 @@
-Map a kanban task to at most one quarterly goal from the system list.
-Output JSON only: {"goal_ids": ["..."], "reasoning": "brief"}
-Use only goal ids from the list. Prefer empty goal_ids over weak matches.
-
-Principles (no keyword lists — infer from goal text, optional goal context fields, and task title):
-- Direct step toward the goal's stated outcome, not topical overlap.
-- Empty for: planning-stack meta work, baseline chores/errands, wrong life domain.
-- Kanban category tag is weaker than goal formulation.
-- If Context / Include / Exclude / Success are present for a goal, treat them as authoritative scope boundaries.
-- If a goal names a specific result shape, do not expand it to the whole surrounding topic.
+# Prompt removed from public history.
