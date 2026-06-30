@@ -27,6 +27,8 @@ if [[ ! -x "$FIN_PY" ]]; then
 fi
 
 "$FIN_PY" -m pip install -q pytest pytest-asyncio
+# shared/analytics (Spearman, FDR) — scipy is in planning_bot/requirements, not finance_bot
+"$FIN_PY" -m pip install -q "scipy>=1.11.0"
 
 ARGS=("$@")
 if [[ ${#ARGS[@]} -eq 0 ]]; then
