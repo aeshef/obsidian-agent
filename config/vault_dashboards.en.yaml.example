@@ -1,6 +1,9 @@
 # Vault Obsidian dashboards — block catalog (locale + module aware).
 
 strings:
+  nav_callout: |
+    > [!abstract] Dashboards
+    > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress & flow]] · [[🏥 Здоровье|🏥 Health]] · [[🔬 Аналитика|🔬 Analytics]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]] · [[📊 Финансы_Дашборд|💰 Finance]]
   preamble_tip: |
     > [!tip] Week in meetings
     > Auto-updated: [[{{calendar_dashboard}}|Meetings and week focus]] · data [[{{data_subdir}}/{{calendar_json}}|{{calendar_json}}]].
@@ -14,6 +17,23 @@ strings:
   chart_pipeline_title: "### Load: open pipeline by category"
   chart_pipeline_body: |
     Bar chart: open tasks outside «{{done_column}}», one snapshot per day.
+  chart_kanban_flow_title: "### Kanban flow (metrics + goals mapping)"
+  chart_kanban_flow_body: |
+    CFD, lead/cycle time, aging WIP, completions by segment (goal-linked / daily / unmapped). Hub: [[{{charts_subdir}}/{{chart_kanban_flow_hub_md}}|flow metrics]].
+  chart_kanban_flow_arrivals_title: "### Flow: arrivals / departures"
+  chart_kanban_flow_arrivals_body: "Daily arrivals, departures, and flow debt."
+  chart_kanban_flow_cfd_title: "### Flow: CFD by columns"
+  chart_kanban_flow_cfd_body: "Cumulative flow by kanban column."
+  chart_kanban_flow_lead_cycle_title: "### Flow: lead/cycle time"
+  chart_kanban_flow_lead_cycle_body: "Weekly p50 lead/cycle (partial current week excluded)."
+  chart_kanban_flow_aging_title: "### Flow: aging WIP"
+  chart_kanban_flow_aging_body: "Age distribution of open tasks."
+  chart_kanban_flow_transitions_title: "### Flow: column transitions"
+  chart_kanban_flow_transitions_body: "Heatmap of `from → to` transitions."
+  chart_kanban_flow_goal_mapping_title: "### Flow: completions by goal segment"
+  chart_kanban_flow_goal_mapping_body: "Segments: goal-linked / daily / unmapped."
+  chart_kanban_flow_wip_segments_title: "### Flow: WIP by goal segment"
+  chart_kanban_flow_wip_segments_body: "Open WIP split by goal segments."
   chart_deadlines_title: "### Deadlines horizon"
   chart_deadlines_body: |
     Stacked bar by due date (`#{{tag_deadline}}/YYYY-MM-DD`). Details: [[{{charts_subdir}}/{{chart_deadline_md}}|chart note]].
@@ -62,6 +82,7 @@ dashboards:
   main:
     file_key: main_dashboard_md
     blocks:
+      - nav_callout
       - preamble
       - calendar_tip
       - section_goals
@@ -82,12 +103,23 @@ dashboards:
   progress_year:
     file_key: progress_year_dashboard_md
     blocks:
+      - nav_callout
       - category_progress_year
+      - chart_kanban_flow_arrivals
+      - chart_kanban_flow_cfd
+      - chart_kanban_flow_lead_cycle
+      - chart_kanban_flow_aging
+      - chart_kanban_flow_transitions
+      - chart_kanban_flow_goal_mapping
+      - chart_kanban_flow_wip_segments
       - goals_quarter_progress
       - goals_priorities
       - progress_year_footer
 
 blocks:
+  nav_callout:
+    template: nav_callout.md.template
+    modules: []
   preamble:
     template: preamble.md.template
     modules: []
@@ -126,6 +158,54 @@ blocks:
     title_key: chart_pipeline_title
     body_key: chart_pipeline_body
     chart_md_key: chart_open_pipeline_md
+  chart_kanban_flow:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_title
+    body_key: chart_kanban_flow_body
+    chart_md_key: chart_kanban_flow_hub_md
+  chart_kanban_flow_arrivals:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_arrivals_title
+    body_key: chart_kanban_flow_arrivals_body
+    chart_md_key: chart_kanban_flow_arrivals_md
+  chart_kanban_flow_cfd:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_cfd_title
+    body_key: chart_kanban_flow_cfd_body
+    chart_md_key: chart_kanban_flow_cfd_md
+  chart_kanban_flow_lead_cycle:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_lead_cycle_title
+    body_key: chart_kanban_flow_lead_cycle_body
+    chart_md_key: chart_kanban_flow_lead_cycle_md
+  chart_kanban_flow_aging:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_aging_title
+    body_key: chart_kanban_flow_aging_body
+    chart_md_key: chart_kanban_flow_aging_md
+  chart_kanban_flow_transitions:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_transitions_title
+    body_key: chart_kanban_flow_transitions_body
+    chart_md_key: chart_kanban_flow_transitions_md
+  chart_kanban_flow_goal_mapping:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_goal_mapping_title
+    body_key: chart_kanban_flow_goal_mapping_body
+    chart_md_key: chart_kanban_flow_goal_mapping_md
+  chart_kanban_flow_wip_segments:
+    template: chart_embed.md.template
+    modules: [planning]
+    title_key: chart_kanban_flow_wip_segments_title
+    body_key: chart_kanban_flow_wip_segments_body
+    chart_md_key: chart_kanban_flow_wip_segments_md
   chart_deadlines:
     template: chart_embed.md.template
     modules: [planning]

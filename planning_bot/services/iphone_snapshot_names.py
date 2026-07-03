@@ -14,6 +14,10 @@ LEGACY_FILENAME_RE = re.compile(
 CANONICAL_FILENAME_RE = re.compile(
     r"^(\d{4})-(\d{2})-(\d{2}), (\d{2})-(\d{2})(?:_\d+)?\.txt$",
 )
+# Mac Shortcut sometimes emits YYYY-MM-DD, HH:MM.txt (colon) — rename to HH-MM.
+COLON_CANONICAL_FILENAME_RE = re.compile(
+    r"^(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2})(?:_\d+)?\.txt$",
+)
 KONTEXT_PREFIX_RE = re.compile(pdmsg("auto_86a3ff42a2"), re.IGNORECASE)
 
 
@@ -44,6 +48,13 @@ def parse_filename_ts(filename: str) -> Optional[datetime]:
             return datetime(int(y), int(mo), int(d), int(h), int(mi))
         except ValueError:
             return None
+    m = COLON_CANONICAL_FILENAME_RE.match(base)
+    if m:
+        y, mo, d, h, mi = m.groups()
+        try:
+            return datetime(int(y), int(mo), int(d), int(h), int(mi))
+        except ValueError:
+            return None
     return None
 
 
@@ -63,6 +74,8 @@ def needs_rename_filename(filename: str) -> bool:
     if is_canonical_filename(base):
         return False
     if is_legacy_filename(base):
+        return True
+    if COLON_CANONICAL_FILENAME_RE.match(base):
         return True
     if KONTEXT_PREFIX_RE.match(base):
         return True

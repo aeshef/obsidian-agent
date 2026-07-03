@@ -61,14 +61,18 @@ def render_meeting_focus_dashboard(
     hrs = [float(d.get("meeting_hours_rounded", 0)) for d in days_data]
     spark = _sparkline(hrs)
 
+    nav = pdmsg("calendar_nav_callout")
     lines: List[str] = [
         pdmsg("auto_c3a0060b1b", _p1=today.strftime('%d.%m.%Y')),
         "",
+        *(([nav, ""] if nav.strip() else [])),
         pdmsg("auto_401a7ed2d6", _p1=generated_at, _p3=len(days_data), _p5=tot.get('window_meeting_hours', 0), _p7=tot.get('heavy_days_ge_5h', 0), _p9=spark),
         "",
     ]
 
     lines += [
+        "---",
+        "",
         pdmsg("auto_9b872e78bd"),
         "",
     ]
@@ -79,7 +83,7 @@ def render_meeting_focus_dashboard(
 
     ins = _clip_insights(insights_md)
     if ins:
-        lines += [pdmsg("auto_b517d84574"), "", ins, ""]
+        lines += ["---", "", pdmsg("auto_b517d84574"), "", ins, ""]
 
     # (comment)
     detail_body: List[str] = [

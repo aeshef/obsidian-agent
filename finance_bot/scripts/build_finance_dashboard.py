@@ -167,7 +167,7 @@ def main() -> None:
     ])
     if total_usd != 0:
         part_summary.append(dtpl("sections", "summary", "total_usd", amount=fmt_num(total_usd, decimals=2)))
-    part_summary.extend(["", ""])
+    part_summary.append("")
 
     # Planned expenses
     if planned:
@@ -192,15 +192,13 @@ def main() -> None:
     ]
     rub_accounts.sort(key=lambda x: -x[1])
     if rub_accounts:
-        pie_data = [(f"{n} — {fmt_num(v, decimals=0)}", v) for n, v in rub_accounts[:10]]
-        part_structure.extend([
-            dtpl("sections", "structure", "heading"),
-            "",
-            "```mermaid",
-            mermaid_pie(pie_data, dtpl("sections", "structure", "pie_title")),
-            "```",
-            "",
-        ])
+        _lbl_fmt = dtpl("sections", "structure", "pie_label")
+        pie_data = [(_lbl_fmt.format(name=n, amount=fmt_num(v, decimals=0)), v) for n, v in rub_accounts[:10]]
+        heading = dtpl("sections", "structure", "heading")
+        structure_lines = [heading, ""] if heading.strip() else [""]
+        part_structure.extend(
+            structure_lines + ["```mermaid", mermaid_pie(pie_data, dtpl("sections", "structure", "pie_title")), "```", ""]
+        )
 
     # Spending by category
     now = datetime.now()
@@ -775,8 +773,6 @@ def main() -> None:
     part_total_balance.extend([
         dtpl("sections", "balance", "heading"),
         "",
-        dtpl("sections", "balance", "description"),
-        "",
     ])
     out_png = charts_dir / dtpl("charts", "balance_daily_file")
     balance_series = {dtpl("charts", "total_rub"): total_by_day}
@@ -890,6 +886,18 @@ def main() -> None:
         amt = Decimal(str(t["amount"]))
         monthly[key][t["type"]] += amt
 
+    # Finance runway: avg regular monthly spend over last 3 full months vs. total RUB balance
+    _now_key = datetime.now().strftime("%Y-%m")
+    _past_months = sorted(k for k in monthly if k < _now_key)[-3:]
+    if len(_past_months) >= 2 and total_rub > 0:
+        _avg_spend = float(sum(monthly[m]["expense"] for m in _past_months)) / len(_past_months)
+        if _avg_spend > 0:
+            _runway = total_rub / _avg_spend
+            _runway_tpl = dtpl("sections", "summary", "runway_months")
+            if _runway_tpl:
+                part_summary.append(dtpl("sections", "summary", "runway_months", months=f"{_runway:.1f}"))
+                part_summary.append("")
+
     # Quarterly dynamics
     quarterly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
     for t in transactions:
@@ -975,38 +983,61 @@ def main() -> None:
             "",
         ])
 
-    part_badge.extend(build_badge_section(conn, args.user_id, charts_dir, now, chart_wikilink=wikilink_png))
+    _badge_raw = build_badge_section(conn, args.user_id, charts_dir, now, chart_wikilink=wikilink_png)
+    # Strip the first heading line (### Бейдж…) — it's redundant when shown inside a titled callout
+    if _badge_raw and _badge_raw[0].startswith("###"):
+        _badge_raw = _badge_raw[2:] if len(_badge_raw) > 2 and _badge_raw[1] == "" else _badge_raw[1:]
+    part_badge.extend(_badge_raw)
 
     conn.close()
 
+    def _sep() -> list:
+        return ["---", ""]
+
+    def _wrap_callout(title: str, *content_parts: list) -> list:
+        """Wrap content parts in a collapsed [!note]- callout.
+        Handles multi-line strings (e.g. mermaid blocks) by splitting on newlines."""
+        inner: list[str] = []
+        for part in content_parts:
+            for item in part:
+                for line in str(item).splitlines():
+                    stripped = line.rstrip()
+                    inner.append(f"> {stripped}" if stripped else ">")
+        # strip trailing empty callout lines
+        while inner and inner[-1] == ">":
+            inner.pop()
+        return [f"> [!note]- {title}", ">"] + inner + ["", ""]
+
     # Assemble dashboard sections
     footer = [
-        "---",
-        "",
         dtpl("footer", "refresh").strip(),
         "",
     ]
     sections = (
         part_summary
-        + part_planned
         + part_structure
+        + part_planned
+        + _sep()
         + part_exp_pies
-        + part_badge
-        + part_moves
+        + _sep()
         + part_day_flow
+        + _sep()
         + part_total_balance
-        + part_day_regular
-        + part_day_oneoff
-        + part_oneoff_list
         + part_monthly
         + part_quarterly
-        + part_exp_by_account
-        + part_balances
-        + part_top_exp
+        + _sep()
+        + part_day_regular
+        + _sep()
+        + _wrap_callout("🍽 Бейдж питания", part_badge)
+        + _wrap_callout("🏔 Крупные разовые траты", part_day_oneoff, part_oneoff_list)
+        + _wrap_callout("💳 Детали по счетам", part_moves, part_exp_by_account, part_balances)
+        + _wrap_callout("🏷️ Топ трат за 30 дней", part_top_exp)
         + footer
     )
 
-    body = dtpl("title") + "\n\n" + "\n".join(sections)
+    nav = dtpl("nav_callout")
+    nav_block = f"\n\n{nav}\n\n---" if nav.strip() else ""
+    body = dtpl("title") + nav_block + "\n\n" + "\n".join(sections)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(body, encoding="utf-8")
     print(dtpl("logs", "written", out_path=out_path))

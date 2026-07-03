@@ -464,6 +464,25 @@ async def get_activity_events(
     )
 
 
+@tool(category="tasks", always=True)
+async def get_kanban_flow(ctx: AgentContext) -> str:
+    """Kanban flow metrics: throughput, lead/cycle time, WIP segments vs goals mapping (from cached JSON)."""
+    import json
+
+    from planning_bot.core.config import VAULT_PATH
+    from planning_bot.services.kanban_flow_metrics import format_kanban_flow_for_agent
+    from shared.chart_paths import chart_path
+
+    path = chart_path(VAULT_PATH, "kanban_flow_metrics_json")
+    if not path.is_file():
+        return pdmsg("kanban_flow_agent_no_data")
+    try:
+        metrics = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return pdmsg("kanban_flow_agent_no_data")
+    return format_kanban_flow_for_agent(metrics, pdmsg)
+
+
 @tool(category="log", always=True)
 async def get_action_log(
     ctx: AgentContext,
@@ -544,6 +563,7 @@ def build_planning_registry() -> ToolRegistry:
                 get_mac_snapshots,
                 get_routines_status,
                 get_activity_events,
+                get_kanban_flow,
                 get_action_log,
             ]
         ),

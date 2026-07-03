@@ -31,6 +31,7 @@
 | `check_sync_health.sh` | маркеры здоровья sync |
 | `export_mobile_vault.sh` | iCloud → vault (опционально, `SKIP_MOBILE_VAULT=1`) |
 | `install_launchagent.sh` | LaunchAgent для `obsidian_sync` |
+| `install_mac_context_launchagent.sh` | LaunchAgent для `Контекст Mac (Obsidian)` каждые 5 мин |
 
 Карта шагов sync: [docs/SETUP.md](../docs/SETUP.md) (§ Mac sync), [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md). Корневой `obsidian_sync.sh` — только wrapper для symlink в `~/bin`.
 

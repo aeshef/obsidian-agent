@@ -160,6 +160,16 @@ fi
 _refresh_broker_on_server
 _mirror_on_server || echo "WARN: server canonical-to-vault mirror failed; continuing with scp." >&2
 
+if [ -f "$DATA_DIR/finance.db" ]; then
+  _bak="$DATA_DIR/finance.db.bak.$(date +%Y%m%d_%H%M%S)"
+  cp -f "$DATA_DIR/finance.db" "$_bak"
+  echo "Backup: $_bak" >&2
+  ls -1t "$DATA_DIR"/finance.db.bak.* 2>/dev/null | tail -n +6 | while IFS= read -r _old; do
+    [ -n "$_old" ] && rm -f "$_old"
+  done
+  unset _bak _old
+fi
+
 echo "Server canonical DB: $REMOTE_DB_RESOLVED"
 if scp "${SSH_OPTS[@]}" "$SERVER:$REMOTE_DB_RESOLVED" "$DATA_DIR/finance.db"; then
   echo "Replica updated: $DATA_DIR/finance.db"

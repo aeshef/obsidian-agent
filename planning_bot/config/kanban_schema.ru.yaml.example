@@ -74,5 +74,9 @@ goal_strip_deadline_regex: '#(?:дедлайн|deadline)/[^\s#]+'
 goal_focus_quarter_regex_template: '#(?:фокус|focus)/{quarter}\\b'
 tag_created_regex: '📅 Создано:\s*(\d{4}-\d{2}-\d{2})'
 
+flow_metrics:
+  daily_routine_categories:
+    - дом
+
 archive:
   section_title_template: "{done_column} · {year}-{month:02d}"

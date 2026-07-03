@@ -121,6 +121,18 @@ planning_action_log:
 planning_kanban_search:
   limit_max: 100
 
+planning_kanban_flow:
+  rolling_window_days: 7
+  history_max_days: 365
+  aging_stale_days: 14
+  lead_time_max_days: 180
+  auto_backfill_min_history_days: 7
+  replay_min_task_id_coverage_pct: 95
+  replay_min_events_per_month: 200
+  trusted_interpolate_max_gap_days: 2
+  drop_partial_week_in_lead_cycle_chart: 1
+  drop_today_in_column_charts: 1
+
 planning_reflection:
   review_days: 7
   review_excerpt_chars: 1500

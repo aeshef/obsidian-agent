@@ -2,6 +2,10 @@
 
 title: "# 📊 Finance"
 
+nav_callout: |
+  > [!abstract] Dashboards
+  > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[🔬 Аналитика|🔬 Analytics]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]]
+
 errors:
   db_not_found: |
     # 📊 Finance
@@ -34,6 +38,7 @@ sections:
       - ⚠️ **Stale data** (DB from {mtime}). Run `./scripts/sync_finance_db.sh` then rebuild the dashboard.
     total_rub: "- **Total balance (RUB):** {amount}"
     total_usd: "- **Total balance (USD):** {amount}"
+    runway_months: "- **Financial runway:** {months} months (avg spend over last 3 months)"
 
   planned:
     heading: "### 📋 Planned expenses"

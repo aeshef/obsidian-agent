@@ -91,6 +91,9 @@ vault_paths_load_from_agent "$AGENT_ROOT" || {
   echo "obsidian_sync: vault_paths export failed — sync aborted" >&2
   exit 1
 }
+# shellcheck source=scripts/lib/sync_runtime_from_vault.sh
+source "$AGENT_ROOT/scripts/lib/sync_runtime_from_vault.sh"
+sync_runtime_from_vault
 # 0g. Drop empty wrong-locale top folders (300_Dashboards when locale=ru, etc.)
 if [[ -d "$AGENT_ROOT/shared" ]]; then
   export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
@@ -305,6 +308,12 @@ EXCLUDE_300=(
   --exclude="${VAULT_FILE_AUDIT_VAULT}"
   --exclude="${VAULT_DASH_DATA}/finance.db"
   --exclude="${VAULT_DASH_DATA}/finance.db-*"
+  # Mac-authoritative: auto-generated dashboards (local rebuild at end of sync; server maintenance uses stale code)
+  --exclude="/${VAULT_FILE_FINANCE_DASHBOARD:-📊 Финансы_Дашборд.md}"
+  --exclude="/${VAULT_FILE_HEALTH_DASHBOARD:-🏥 Здоровье.md}"
+  --exclude="/${VAULT_FILE_CALENDAR_DASHBOARD:-📅 Встречи_и_фокус_недели.md}"
+  --exclude="/${VAULT_FILE_ANALYTICS_DASHBOARD:-🔬 Аналитика.md}"
+  --exclude="/📊 Прогресс_*.md"
   # Mac-authoritative: IMAP/Shortcuts пишут здесь; pull с VPS возвращал мусор после локального cleanup
   --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}/"
   --exclude="${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_MAC}/"
@@ -617,6 +626,7 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
     if cd "$PLANNING_BOT" && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
        && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_completions_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
        && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_open_pipeline_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_kanban_flow_dashboard.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
        && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_deadline_horizon_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$MARKER"
     else
@@ -724,6 +734,8 @@ common_rotate_log "/tmp/calendar-obsidian.out" 12000 3000
 common_rotate_log "/tmp/calendar-obsidian.err" 2000 800
 common_rotate_log "/tmp/context-obsidian.out" 5000 1500
 common_rotate_log "/tmp/context-obsidian.err" 2000 800
+common_rotate_log "/tmp/mac-context-obsidian.out" 8000 2000
+common_rotate_log "/tmp/mac-context-obsidian.err" 2000 800
 common_rotate_log "$SYNC_DIR/cron_runs.log" 3000 1200
 common_rotate_log "$SYNC_DIR/health.log" 3000 1200
 common_rotate_log "$SYNC_DIR/finance_dashboard_daily.log" 12000 5000

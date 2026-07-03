@@ -66,6 +66,14 @@ def _fields_to_snap(fields: Dict[str, str], fallback_ts: Optional[datetime] = No
         battery = int(fields["battery_pct"])
     except (KeyError, ValueError, TypeError):
         pass
+    idle_sec: Optional[int] = None
+    try:
+        idle_sec = int(str(fields.get("idle_sec", "")).strip())
+    except (ValueError, TypeError):
+        pass
+    window_title = (
+        (fields.get("window_title") or fields.get("focus_window") or "").strip() or None
+    )
     safari = (fields.get("safari_title") or "").strip()
     if safari.startswith("http"):
         try:
@@ -81,6 +89,9 @@ def _fields_to_snap(fields: Dict[str, str], fallback_ts: Optional[datetime] = No
         "battery_pct": battery,
         "focus": fields.get("focus") or None,
         "weather": (fields.get("weather") or "").strip() or None,
+        "window_title": window_title,
+        "idle_sec": idle_sec,
+        "active": idle_sec is not None and idle_sec < 120,
     }
 
 
@@ -266,6 +277,9 @@ def format_for_llm(snap: Optional[Dict]) -> str:
     _add = lambda k, label: lines.append(f"  {label}: {snap[k]}") if snap.get(k) else None
     _add("focus", pdmsg("auto_f1d3acb4fc"))
     _add("app", pdmsg("auto_90d840cbf5"))
+    _add("window_title", "window")
+    if snap.get("idle_sec") is not None:
+        lines.append(f"  idle: {snap['idle_sec']}s")
     if snap.get("battery_pct") is not None:
         lines.append(pdmsg("auto_e352150d1f", _p1=snap['battery_pct']))
     _add("wifi", "wi-fi")

@@ -54,6 +54,55 @@ elif [ -f "$AGENT_ROOT/config/agent/platform.yaml" ] || [ -n "${MOBILE_VAULT:-}"
 fi
 unset _mobile_epoch _now_epoch
 
+mac_ctx=""
+_mac_dir=""
+_mac_py=""
+for _candidate in \
+  "$AGENT_ROOT/planning_bot/.venv/bin/python" \
+  "$(common_launchagent_python "$AGENT_ROOT/planning_bot" 2>/dev/null || true)"; do
+  [ -n "$_candidate" ] && [ -x "$_candidate" ] && _mac_py="$_candidate" && break
+done
+if [ -n "$_mac_py" ]; then
+  _mac_dir="$(
+    VAULT_PATH="$VAULT" PYTHONPATH="$AGENT_ROOT" "$_mac_py" -c \
+      "from planning_bot.core.config import CONTEXT_MAC_DIR; print(CONTEXT_MAC_DIR)" 2>/dev/null || true
+  )"
+fi
+if [ -z "$_mac_dir" ] && [ -f "$AGENT_ROOT/config/vault_paths.yaml" ]; then
+  _vd="$(_vault_yaml_field folders dashboards "$AGENT_ROOT/config/vault_paths.yaml")"
+  _dd="$(_vault_yaml_field dashboards data "$AGENT_ROOT/config/vault_paths.yaml")"
+  _am="$(_vault_yaml_field paths actions_mac "$AGENT_ROOT/config/vault_paths.yaml")"
+  if [ -n "$_vd" ] && [ -n "$_dd" ] && [ -n "$_am" ]; then
+    _mac_dir="$VAULT/$_vd/$_dd/$_am"
+  fi
+fi
+if [ -z "$_mac_dir" ]; then
+  _mac_dir="$VAULT/${VAULT_FOLDER_DASHBOARDS:?}/${VAULT_DASH_DATA:?}/${VAULT_PATH_ACTIONS_MAC:-Действия/Mac}"
+fi
+unset _mac_py _candidate _vd _dd _am
+if [ -d "$_mac_dir" ]; then
+  _mac_newest="$(
+    find "$_mac_dir" -maxdepth 1 -name '*.txt' -type f -print0 2>/dev/null \
+      | xargs -0 stat -f '%m' 2>/dev/null \
+      | sort -rn \
+      | head -1 \
+      || true
+  )"
+  if [ -n "${_mac_newest:-}" ] && [ "$_mac_newest" -gt 0 ]; then
+    _now_epoch="$(date '+%s')"
+    _age=$((_now_epoch - _mac_newest))
+    mac_ctx="$(date -r "$_mac_newest" '+%Y-%m-%d %H:%M')"
+    if [ "$_age" -gt 7200 ]; then
+      mac_ctx="$mac_ctx STALE"
+    fi
+  else
+    mac_ctx="MISSING"
+  fi
+else
+  mac_ctx="MISSING"
+fi
+unset _mac_dir _mac_newest _now_epoch _age
+
 {
   echo "# Sync health — $NOW"
   echo ""
@@ -64,10 +113,11 @@ unset _mobile_epoch _now_epoch
   echo "| daily_charts | $charts$_charts_stale |"
   echo "| finance_dashboard | $finance |"
   echo "| mobile_vault | $mobile$mobile_stale |"
+  echo "| mac_context | $mac_ctx |"
   echo "| vault_maintenance | $maint |"
 } >"$REPORT" 2>/dev/null || true
 
-line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile$mobile_stale maint=$maint"
+line="[$NOW] sync=$last_sync fail=$last_fail charts=$charts finance=$finance mobile=$mobile$mobile_stale mac=$mac_ctx maint=$maint"
 echo "$line" >>"$SYNC_DIR/health.log" 2>/dev/null || true
 
 common_rotate_log "$SYNC_DIR/health.log" 3000 1200

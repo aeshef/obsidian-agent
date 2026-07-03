@@ -62,6 +62,8 @@ def _cleanup_data_dir_root(data_dir: Path) -> int:
 
 def _cleanup_mac_misfires(mac_dir: Path) -> int:
     'Operation implementation.'
+    from planning_bot.services.context_parser import is_valid_mac_snapshot, parse_context_file
+
     if not mac_dir.exists():
         return 0
     deleted = 0
@@ -69,6 +71,9 @@ def _cleanup_mac_misfires(mac_dir: Path) -> int:
         nm = path.name
         ok = is_canonical_filename(nm) or needs_rename_filename(nm)
         if ok:
+            continue
+        snaps = parse_context_file(path)
+        if snaps and is_valid_mac_snapshot(snaps[0]):
             continue
         try:
             path.unlink()
