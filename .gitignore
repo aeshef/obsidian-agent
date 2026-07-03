@@ -185,6 +185,9 @@ config/domain_messages.en.yaml
 config/domain_messages.ru.yaml
 !config/domain_messages.en.yaml.example
 !config/domain_messages.ru.yaml.example
+config/obsidian_setup.yaml
+!config/obsidian_setup.en.yaml.example
+!config/obsidian_setup.ru.yaml.example
 scripts/setup/translate_domain_messages.py
 scripts/public_release_filter_pass2.txt
 scripts/public_release_filter_replacements.txt
