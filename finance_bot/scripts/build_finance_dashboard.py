@@ -984,7 +984,7 @@ def main() -> None:
         ])
 
     _badge_raw = build_badge_section(conn, args.user_id, charts_dir, now, chart_wikilink=wikilink_png)
-    # Strip the first heading line (### Бейдж…) — it's redundant when shown inside a titled callout
+    # Drop redundant ### heading when badge body sits inside a titled callout
     if _badge_raw and _badge_raw[0].startswith("###"):
         _badge_raw = _badge_raw[2:] if len(_badge_raw) > 2 and _badge_raw[1] == "" else _badge_raw[1:]
     part_badge.extend(_badge_raw)
@@ -1028,10 +1028,10 @@ def main() -> None:
         + _sep()
         + part_day_regular
         + _sep()
-        + _wrap_callout("🍽 Бейдж питания", part_badge)
-        + _wrap_callout("🏔 Крупные разовые траты", part_day_oneoff, part_oneoff_list)
-        + _wrap_callout("💳 Детали по счетам", part_moves, part_exp_by_account, part_balances)
-        + _wrap_callout("🏷️ Топ трат за 30 дней", part_top_exp)
+        + _wrap_callout(dtpl("callouts", "badge"), part_badge)
+        + _wrap_callout(dtpl("callouts", "day_oneoff"), part_day_oneoff, part_oneoff_list)
+        + _wrap_callout(dtpl("callouts", "account_details"), part_moves, part_exp_by_account, part_balances)
+        + _wrap_callout(dtpl("callouts", "top_expenses"), part_top_exp)
         + footer
     )
 

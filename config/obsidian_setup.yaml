@@ -1,0 +1,25 @@
+plugins:
+  required:
+  - dataview
+  - templater-obsidian
+  - obsidian-kanban
+  optional:
+  - obsidian-tasks-plugin
+  - 3d-graph
+  - 3d-graph-new
+strings:
+  add_task_kanban_hint: 'Если открыта доска задач (канбан), закрой её перед запуском
+    шаблона или вызывай Templater из палитры команд.
+
+    '
+  add_task_prompt_title: Название задачи
+  add_task_prompt_deadline: 'Дедлайн (YYYY-MM-DD):'
+  add_task_suggester_deadline: Есть дедлайн?
+  add_task_suggester_deadline_no: Нет
+  add_task_suggester_deadline_yes: Да
+  add_task_notice_bad_date: Неверный формат даты. Используй YYYY-MM-DD. Дедлайн не
+    добавлен.
+  add_task_notice_kanban_missing: Файл канбан-доски не найден
+  add_task_notice_backlog_missing: Колонка бэклога не найдена
+  add_task_notice_ok: Задача добавлена в бэклог
+  add_task_notice_error: Ошибка

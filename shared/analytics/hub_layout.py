@@ -27,12 +27,7 @@ def render_analytics_hub(
     """Build hub markdown: one chart per subsection, text-only overview embed."""
     dash = folder("dashboards")
     health = vault_file("health_dashboard_md")
-    nav = (
-        "> [!abstract] Дашборды\n"
-        "> [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · "
-        "[[🏥 Здоровье|🏥 Здоровье]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · "
-        "[[📊 Финансы_Дашборд|💰 Финансы]]"
-    )
+    nav = msg("analytics_nav_callout").strip()
     lines: list[str] = [
         f"# {msg('analytics_hub_title')}",
         "",

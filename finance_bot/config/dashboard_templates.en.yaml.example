@@ -6,6 +6,12 @@ nav_callout: |
   > [!abstract] Dashboards
   > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[🔬 Аналитика|🔬 Analytics]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]]
 
+callouts:
+  badge: "🍽 Food badge"
+  day_oneoff: "🏔 Large one-off spends"
+  account_details: "💳 Account details"
+  top_expenses: "🏷️ Top spends (30 days)"
+
 errors:
   db_not_found: |
     # 📊 Finance

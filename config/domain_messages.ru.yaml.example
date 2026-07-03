@@ -4820,6 +4820,9 @@ planning:
   auto_f6d046868d: "Контекст Mac в ревью: %d снапшотов"
 
   analytics_hub_title: "🔬 Аналитика"
+  analytics_nav_callout: |
+    > [!abstract] Дашборды
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]]
   analytics_hub_tip: |
     > [!tip] Лаги D−1→D, sleep hypothesis engine, FDR. Обновлено: {updated}
   analytics_section_overview: "📊 Обзор"

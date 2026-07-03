@@ -5017,6 +5017,9 @@ planning:
   routines_legacy_today_date_regex_alt: ''
 
   analytics_hub_title: "🔬 Analytics"
+  analytics_nav_callout: |
+    > [!abstract] Dashboards
+    > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]] · [[📊 Финансы_Дашборд|💰 Finance]]
   analytics_hub_tip: |
     > [!tip] D−1→D lags, sleep hypothesis engine, FDR. Updated: {updated}
   analytics_section_overview: "📊 Overview"

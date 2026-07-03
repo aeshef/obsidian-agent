@@ -13,8 +13,8 @@ from shared.goals.task_segment import ALL_SEGMENTS
 
 _EMOJI_RE = re.compile(
     "["
-    "\U0001F300-\U0001FAFF"
-    "\u2600-\u27BF"
+    f"{chr(0x1F300)}-{chr(0x1FAFF)}"
+    f"{chr(0x2600)}-{chr(0x27BF)}"
     "]+",
     flags=re.UNICODE,
 )
