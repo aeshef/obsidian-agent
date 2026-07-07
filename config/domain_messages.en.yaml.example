@@ -5019,7 +5019,7 @@ planning:
   analytics_hub_title: "🔬 Analytics"
   analytics_nav_callout: |
     > [!abstract] Dashboards
-    > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]] · [[📊 Финансы_Дашборд|💰 Finance]]
+    > [[🎯 Main_Dashboard|🎯 Main]] · [[📊 Progress_2026|📊 Progress]] · [[🏥 Health|🏥 Health]] · [[📅 Meetings_and_week_focus|📅 Meetings]] · [[📊 Finance_Dashboard|💰 Finance]]
   analytics_hub_tip: |
     > [!tip] D−1→D lags, sleep hypothesis engine, FDR. Updated: {updated}
   analytics_section_overview: "📊 Overview"
