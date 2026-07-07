@@ -42,6 +42,19 @@ def _patch_vault_paths(monkeypatch, doc: dict) -> None:
     monkeypatch.setattr(vpc, "vault_paths_config", _cfg)
 
 
+def _kanban_flow_chart_files() -> dict[str, str]:
+    return {
+        "chart_kanban_flow_hub_md": "Planning/Kanban_flow.md",
+        "chart_kanban_flow_arrivals_md": "Planning/Kanban_flow_arrivals.md",
+        "chart_kanban_flow_cfd_md": "Planning/Kanban_flow_cfd.md",
+        "chart_kanban_flow_lead_cycle_md": "Planning/Kanban_flow_lead_cycle.md",
+        "chart_kanban_flow_aging_md": "Planning/Kanban_flow_aging.md",
+        "chart_kanban_flow_transitions_md": "Planning/Kanban_flow_transitions.md",
+        "chart_kanban_flow_goal_mapping_md": "Planning/Kanban_flow_goal_mapping.md",
+        "chart_kanban_flow_wip_segments_md": "Planning/Kanban_flow_wip_segments.md",
+    }
+
+
 def test_scaffold_main_dashboard_en_planning(tmp_path, monkeypatch):
     vault = tmp_path / "vault"
     vault.mkdir()
@@ -74,6 +87,7 @@ def test_scaffold_main_dashboard_en_planning(tmp_path, monkeypatch):
                 "health_dashboard_md": "Health.md",
                 "analytics_dashboard_md": "Analytics.md",
                 "chart_analytics_insights_md": "Analytics/Insights.md",
+                **_kanban_flow_chart_files(),
             },
             "finance": {"dashboard_md": "Finance_Dashboard.md"},
         },
@@ -136,6 +150,7 @@ def test_scaffold_category_progress_includes_archive(tmp_path, monkeypatch):
                 "health_dashboard_md": "h.md",
                 "analytics_dashboard_md": "Analytics.md",
                 "chart_analytics_insights_md": "Analytics/Insights.md",
+                **_kanban_flow_chart_files(),
             },
             "finance": {"dashboard_md": "Finance.md"},
         },

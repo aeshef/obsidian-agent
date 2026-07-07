@@ -11,6 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
+from planning_bot.core.pdmsg import pdmsg
 from shared.analytics.series import ols_trend_masked, rolling_mean, sanitize_metric
 
 from shared.chart_paths import chart_path, chart_wikilink_png, charts_root, ensure_parent
@@ -90,7 +91,10 @@ def _build_frame(snaps: list[dict]) -> tuple[list[str], dict[str, list[float]]]:
 
 def _write_md(path: Path, title: str, body: str, ts: str) -> None:
     ensure_parent(path)
-    path.write_text(f"# {title}\n\n_Обновлено: {ts}_\n\n{body}\n", encoding="utf-8")
+    path.write_text(
+        f"# {title}\n\n{pdmsg('chart_updated_at', ts=ts)}\n\n{body}\n",
+        encoding="utf-8",
+    )
 
 
 def main() -> int:
@@ -114,8 +118,18 @@ def main() -> int:
     corr_md = chart_path(vault, "chart_health_correlations_md")
 
     if len(days) < 3:
-        _write_md(trends_md, "Тренды метрик", "Недостаточно данных (нужно ≥3 дней с iPhone).", ts)
-        _write_md(corr_md, "Корреляции метрик", "Недостаточно данных.", ts)
+        _write_md(
+            trends_md,
+            pdmsg("health_trends_title"),
+            pdmsg("health_insufficient_days"),
+            ts,
+        )
+        _write_md(
+            corr_md,
+            pdmsg("health_corr_title"),
+            pdmsg("health_insufficient_corr"),
+            ts,
+        )
         print("SKIP: not enough health days")
         return 0
 
@@ -134,10 +148,10 @@ def main() -> int:
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 8), sharex=True)
     panels = [
-        ("steps", "Шаги", axes[0, 0]),
-        ("kcal_macros", "Ккал (КБЖУ)", axes[0, 1]),
-        ("weight_kg", "Вес, кг", axes[1, 0]),
-        ("resting_hr_bpm", "Пульс покоя", axes[1, 1]),
+        ("steps", pdmsg("health_panel_steps"), axes[0, 0]),
+        ("kcal_macros", pdmsg("health_panel_kcal"), axes[0, 1]),
+        ("weight_kg", pdmsg("health_panel_weight"), axes[1, 0]),
+        ("resting_hr_bpm", pdmsg("health_panel_hr"), axes[1, 1]),
     ]
     trend_lines: list[str] = []
     for key, label, ax in panels:
@@ -154,10 +168,24 @@ def main() -> int:
             trend = ols_trend_masked(x, y)
             trend_mask = np.isfinite(trend)
             if trend_mask.any():
-                ax.plot(x[trend_mask], trend[trend_mask], color="crimson", linewidth=1.0, alpha=0.7, label="тренд")
+                ax.plot(
+                    x[trend_mask],
+                    trend[trend_mask],
+                    color="crimson",
+                    linewidth=1.0,
+                    alpha=0.7,
+                    label=pdmsg("health_chart_trend_label"),
+                )
                 idx = np.where(mask)[0]
                 coef = np.polyfit(idx.astype(float), y[mask], 1)
-                trend_lines.append(f"- **{label}**: {coef[0]:+.3f}/день (OLS, {int(mask.sum())} дн.)")
+                trend_lines.append(
+                    pdmsg(
+                        "health_trend_coef_fmt",
+                        label=label,
+                        coef=coef[0],
+                        days=int(mask.sum()),
+                    )
+                )
         ax.set_title(label, fontsize=10)
         if mask.any():
             pad = (y[mask].max() - y[mask].min()) * 0.08 or 1.0
@@ -168,7 +196,7 @@ def main() -> int:
     for ax in axes.flat:
         ax.set_xticks(x[::tick_step])
         ax.set_xticklabels([days[i][5:] for i in range(0, len(days), tick_step)], rotation=45, ha="right", fontsize=7)
-    fig.suptitle("Здоровье: тренды и скользящие средние", fontsize=12)
+    fig.suptitle(pdmsg("health_suptitle_trends"), fontsize=12)
     fig.tight_layout()
     ensure_parent(trends_png)
     fig.savefig(trends_png, dpi=144, bbox_inches="tight", facecolor="white")
@@ -200,7 +228,7 @@ def main() -> int:
                 if np.isfinite(v):
                     ax2.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=7)
         fig2.colorbar(im, ax=ax2, fraction=0.046)
-        ax2.set_title("Корреляции метрик здоровья (Pearson)")
+        ax2.set_title(pdmsg("health_corr_chart_title"))
         fig2.tight_layout()
         ensure_parent(corr_png)
         fig2.savefig(corr_png, dpi=144, bbox_inches="tight", facecolor="white")
@@ -213,20 +241,25 @@ def main() -> int:
         )
         _write_md(
             corr_md,
-            "Корреляции метрик",
+            pdmsg("health_corr_title"),
             chart_wikilink_png("chart_health_correlations_png")
             + "\n\n| A | B | r |\n|---|---|---:|\n"
             + corr_body,
             ts,
         )
     else:
-        _write_md(corr_md, "Корреляции метрик", "Недостаточно пересекающихся рядов.", ts)
+        _write_md(
+            corr_md,
+            pdmsg("health_corr_title"),
+            pdmsg("health_insufficient_overlap"),
+            ts,
+        )
 
     _write_md(
         trends_md,
-        "Тренды метрик",
+        pdmsg("health_trends_title"),
         chart_wikilink_png("chart_health_trends_png")
-        + "\n\n## Линейный тренд\n"
+        + f"\n\n{pdmsg('health_trend_section')}\n"
         + "\n".join(trend_lines),
         ts,
     )

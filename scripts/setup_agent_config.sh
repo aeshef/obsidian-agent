@@ -20,12 +20,22 @@ copy_if_missing() {
 
 for ex in "$CFG"/*.example.yaml "$CFG"/*.example.yml; do
   [[ -f "$ex" ]] || continue
-  # capabilities.yaml is optional — absent file means full product (see docs/CAPABILITIES.md)
-  [[ "$(basename "$ex")" == "capabilities.yaml.example" ]] && continue
+  # capabilities.yaml: OSS starter on first setup; absent + OBSIDIAN_AGENT_FULL_INSTALL=1 = full product
+  if [[ "$(basename "$ex")" == "capabilities.yaml.example" ]]; then
+    continue
+  fi
+  if [[ "$(basename "$ex")" == "capabilities.starter.yaml.example" ]]; then
+    continue
+  fi
   base="${ex%.example.yaml}"
   base="${base%.example.yml}"
   copy_if_missing "$ex" "${base}.yaml"
 done
+
+if [[ ! -f "$CFG/capabilities.yaml" && -f "$CFG/capabilities.starter.yaml.example" ]]; then
+  cp "$CFG/capabilities.starter.yaml.example" "$CFG/capabilities.yaml"
+  echo "created: $CFG/capabilities.yaml (OSS starter profile)"
+fi
 
 bash "$(dirname "$0")/ensure_bot_prompts.sh"
 

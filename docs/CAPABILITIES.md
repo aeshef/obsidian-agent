@@ -1,13 +1,21 @@
 # Capabilities manifest
 
-Declarative product profile: which Telegram domains, data connectors, and Mac sync steps are active. **No `capabilities.yaml`** (only in-memory defaults) or all flags `true` = full install (same behavior as before modularization). The `.example` file is not read at runtime — copy it via `setup_agent_config.sh` when you want a starting point.
+Declarative product profile: which Telegram domains, data connectors, and Mac sync steps are active.
+
+| Situation | Runtime profile |
+|-----------|-----------------|
+| No `capabilities.yaml`, `OBSIDIAN_AGENT_FULL_INSTALL=1` in `.env` | Full install (all modules/connectors, `sync.profile: full`) — author default |
+| No `capabilities.yaml`, no full-install flag | OSS **starter** from `capabilities.starter.yaml.example` (finance+planning, knowledge off, `planning_light`) |
+| `capabilities.yaml` present | Merged with in-memory defaults; env `CAP_MODULE_*` / `CAP_CONNECTOR_*` override |
+
+`capabilities.yaml.example` and `capabilities.starter.yaml.example` are **not** read at runtime — only copied by setup scripts.
 
 ## Setup
 
 **Guided:** [ONBOARDING.md](ONBOARDING.md) or Cursor skill `.cursor/skills/obsidian-agent-onboarding`.
 
 ```bash
-./scripts/setup_agent_config.sh   # copies other *.example.yaml; does **not** create capabilities.yaml
+./scripts/setup_agent_config.sh   # copies *.example.yaml; creates capabilities.yaml from starter when missing
 python3 scripts/apply_capabilities_profile.py --only-modules planning --write --patch-env  # any mix
 python3 scripts/init_vault_layout.py
 ./scripts/install_mac_sync.sh     # LaunchAgent loads CAP_SYNC_* from capabilities

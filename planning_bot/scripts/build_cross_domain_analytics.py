@@ -267,7 +267,7 @@ def main() -> int:
         fig2.savefig(p, dpi=144, bbox_inches="tight", facecolor="white")
         plt.close(fig2)
         chart_path(vault, md_key).write_text(
-            f"# {pdmsg(title_key)}\n\n_Обновлено: {ts}_"
+            f"# {pdmsg(title_key)}\n\n{pdmsg('chart_updated_at', ts=ts)}"
             + (f" · Spearman ρ={rho:.2f}" if np.isfinite(rho) else "")
             + f"\n\n{chart_wikilink_png(png_key)}\n",
             encoding="utf-8",
@@ -289,9 +289,9 @@ def main() -> int:
     )
 
     corr_md.write_text(
-        f"# {pdmsg('cross_title_correlations')}\n\n_Обновлено: {ts}_\n\n"
+        f"# {pdmsg('cross_title_correlations')}\n\n{pdmsg('chart_updated_at', ts=ts)}\n\n"
         f"{chart_wikilink_png('chart_cross_correlations_png')}\n\n"
-        f"Данные: `{vault_rel_path('cross_daily_features_json')}` · окно 120 дн.\n",
+        f"{pdmsg('cross_corr_data_line', path=vault_rel_path('cross_daily_features_json'))}\n",
         encoding="utf-8",
     )
     print(f"OK: {features_path}, {corr_png}")

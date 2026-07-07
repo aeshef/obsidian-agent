@@ -1,4 +1,4 @@
-"""Load config/agent/capabilities.yaml — missing file means full product (backward compatible)."""
+"""Load config/agent/capabilities.yaml — missing file uses OSS starter unless OBSIDIAN_AGENT_FULL_INSTALL=1."""
 from __future__ import annotations
 
 import os
@@ -117,6 +117,20 @@ class CapabilityProfile:
         return feature_enabled(name, self)
 
 
+def _full_install_default() -> bool:
+    v = (os.environ.get("OBSIDIAN_AGENT_FULL_INSTALL") or "").strip().lower()
+    return v in ("1", "true", "yes", "on")
+
+
+def _starter_document() -> dict:
+    base = agent_config_dir()
+    starter = base / "capabilities.starter.yaml.example"
+    if not starter.is_file():
+        return {}
+    data = load_yaml(starter, default={}) or {}
+    return data if isinstance(data, dict) else {}
+
+
 def _default_document() -> dict:
     return {
         "modules": {m: True for m in _ALL_MODULES},
@@ -131,7 +145,7 @@ def _capabilities_paths() -> tuple[Any, ...]:
     if env_path:
         paths.append(env_path)
     base = agent_config_dir()
-    paths.extend([base / "capabilities.yaml", base / "capabilities.yaml.example"])
+    paths.extend([base / "capabilities.yaml"])
     return tuple(paths)
 
 
@@ -189,7 +203,13 @@ def profile_from_document(doc: dict[str, Any]) -> CapabilityProfile:
 def load_capabilities() -> CapabilityProfile:
     defaults = _default_document()
     raw = _load_yaml_document()
-    doc = deep_merge(defaults, raw) if raw else defaults
+    if raw:
+        doc = deep_merge(defaults, raw)
+    elif _full_install_default():
+        doc = defaults
+    else:
+        starter = _starter_document()
+        doc = deep_merge(defaults, starter) if starter else defaults
     base = profile_from_document(doc)
     modules = dict(base.modules)
     connectors = dict(base.connectors)

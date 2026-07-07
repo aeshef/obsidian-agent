@@ -50,7 +50,7 @@ def _format_insight_line(row: dict) -> str:
 
 
 def _write_chart_note(vault: Path, md_key: str, png_key: str, title: str, ts: str, *, extra: str = "") -> None:
-    body = f"# {title}\n\n_Обновлено: {ts}_"
+    body = f"# {title}\n\n{pdmsg('chart_updated_at', ts=ts)}"
     if extra:
         body += f"\n\n{extra}"
     body += f"\n\n{chart_wikilink_png(png_key)}\n"
@@ -245,13 +245,13 @@ def main() -> int:
     top_table = hypotheses[: min(20, len(hypotheses))]
 
     lines = [
-        f"_Обновлено: {ts}_ · окно **{window_days}** дн. · панель **{len(rows)}** дней",
+        pdmsg("chart_updated_window_panel", ts=ts, window_days=window_days, days=len(rows)),
         "",
     ]
 
     if coverage:
         lines.append(f"## {pdmsg('analytics_heading_coverage')}")
-        lines.append("| Метрика | Дней с данными |")
+        lines.append(pdmsg("analytics_table_coverage_header"))
         lines.append("| --- | --- |")
         for label, cnt, total in coverage:
             lines.append(f"| {label} | {cnt} / {total} |")
@@ -259,7 +259,7 @@ def main() -> int:
 
     if top_table:
         lines.append(f"## {pdmsg('analytics_heading_hypothesis_table')}")
-        lines.append("| Сон (D−1) | Outcome | | ρ | p | n |")
+        lines.append(pdmsg("analytics_table_sleep_header"))
         lines.append("| --- | --- | --- | --- | --- | --- |")
         lines.extend(_format_insight_line(h) for h in top_table)
         lines.append("")

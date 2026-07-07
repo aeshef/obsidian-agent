@@ -41,7 +41,7 @@ def _clear_cap_cache(monkeypatch):
 
 
 def test_missing_manifest_defaults_full_product(monkeypatch, tmp_path: Path):
-    # Example template must not act as live config when capabilities.yaml is absent.
+    monkeypatch.setenv("OBSIDIAN_AGENT_FULL_INSTALL", "1")
     monkeypatch.setenv("CAPABILITIES_PATH", str(tmp_path / "nonexistent.yaml"))
     clear_capabilities_cache()
     prof = load_capabilities()
@@ -54,6 +54,18 @@ def test_missing_manifest_defaults_full_product(monkeypatch, tmp_path: Path):
     assert sync_step_enabled(STEP_GMAIL_HEALTH, prof)
     assert sync_step_enabled(STEP_KB_MAINTENANCE, prof)
     assert sync_step_enabled(STEP_FINANCE_DASHBOARD, prof)
+
+
+def test_missing_manifest_uses_oss_starter(monkeypatch, tmp_path: Path):
+    monkeypatch.delenv("OBSIDIAN_AGENT_FULL_INSTALL", raising=False)
+    monkeypatch.setenv("CAPABILITIES_PATH", str(tmp_path / "nonexistent.yaml"))
+    clear_capabilities_cache()
+    prof = load_capabilities()
+    assert prof.module(MODULE_FINANCE)
+    assert prof.module(MODULE_PLANNING)
+    assert not prof.module(MODULE_KNOWLEDGE)
+    assert not prof.connector(CONNECTOR_BROKER_SYNC)
+    assert prof.sync_profile == "planning_light"
 
 
 def test_finance_only_profile_disables_planning_sync(monkeypatch, tmp_path: Path):

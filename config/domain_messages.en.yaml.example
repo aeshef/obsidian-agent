@@ -5067,6 +5067,31 @@ planning:
   analytics_cov_weight: "Weight"
   analytics_cov_steps: "Steps"
   analytics_cov_kcal: "Kcal"
+  chart_updated_at: "_Updated: {ts}_"
+  chart_updated_window_panel: "_Updated: {ts}_ · window **{window_days}** d · panel **{days}** days"
+  health_trends_title: "Metric trends"
+  health_corr_title: "Metric correlations"
+  health_insufficient_days: "Not enough data (need ≥3 days with iPhone)."
+  health_insufficient_corr: "Not enough data."
+  health_insufficient_overlap: "Not enough overlapping series."
+  health_panel_steps: "Steps"
+  health_panel_kcal: "Kcal (macros)"
+  health_panel_weight: "Weight, kg"
+  health_panel_hr: "Resting HR"
+  health_chart_trend_label: "trend"
+  health_suptitle_trends: "Health: trends and moving averages"
+  health_corr_chart_title: "Health metric correlations (Pearson)"
+  health_trend_section: "## Linear trend"
+  health_trend_coef_fmt: "- **{label}**: {coef:+.3f}/day (OLS, {days} d.)"
+  analytics_table_coverage_header: "| Metric | Days with data |"
+  analytics_table_sleep_header: "| Sleep (D−1) | Outcome | | ρ | p | n |"
+  cross_corr_data_line: "Data: `{path}` · window 120 d."
+  goal_context_callout_lines: |
+      > [!info]- Mapping context
+      > context::
+      > include::
+      > exclude::
+      > success::
   analytics_outcome_tasks: tasks closed
   analytics_outcome_steps: steps
   analytics_outcome_kcal: kcal intake

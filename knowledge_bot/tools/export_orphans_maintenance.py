@@ -324,7 +324,7 @@ def main() -> None:
 
     if not (args.apply and args.allow_delete):
         for rel in orphans[: max(0, args.print_limit)]:
-            print(f"  удалить: {knowledge_subdir()}/Export/{rel}")
+            print(f"  delete: {knowledge_subdir()}/Export/{rel}")
         print("EXPORT_ORPHANS_DELETED_TOTAL: count=0 bytes=0")
         return
 
@@ -350,7 +350,7 @@ def main() -> None:
         try:
             full.unlink()
             deleted += 1
-            print(f"  удалён: {knowledge_subdir()}/Export/{rel}")
+            print(f"  deleted: {knowledge_subdir()}/Export/{rel}")
         except OSError:
             continue
     print(f"EXPORT_ORPHANS_DELETED_TOTAL: count={deleted} bytes={deleted_bytes}")

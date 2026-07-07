@@ -4870,6 +4870,31 @@ planning:
   analytics_cov_weight: "Вес"
   analytics_cov_steps: "Шаги"
   analytics_cov_kcal: "Ккал"
+  chart_updated_at: "_Обновлено: {ts}_"
+  chart_updated_window_panel: "_Обновлено: {ts}_ · окно **{window_days}** дн. · панель **{days}** дней"
+  health_trends_title: "Тренды метрик"
+  health_corr_title: "Корреляции метрик"
+  health_insufficient_days: "Недостаточно данных (нужно ≥3 дней с iPhone)."
+  health_insufficient_corr: "Недостаточно данных."
+  health_insufficient_overlap: "Недостаточно пересекающихся рядов."
+  health_panel_steps: "Шаги"
+  health_panel_kcal: "Ккал (КБЖУ)"
+  health_panel_weight: "Вес, кг"
+  health_panel_hr: "Пульс покоя"
+  health_chart_trend_label: "тренд"
+  health_suptitle_trends: "Здоровье: тренды и скользящие средние"
+  health_corr_chart_title: "Корреляции метрик здоровья (Pearson)"
+  health_trend_section: "## Линейный тренд"
+  health_trend_coef_fmt: "- **{label}**: {coef:+.3f}/день (OLS, {days} дн.)"
+  analytics_table_coverage_header: "| Метрика | Дней с данными |"
+  analytics_table_sleep_header: "| Сон (D−1) | Outcome | | ρ | p | n |"
+  cross_corr_data_line: "Данные: `{path}` · окно 120 дн."
+  goal_context_callout_lines: |
+      > [!info]- Контекст маппинга
+      > context::
+      > include::
+      > exclude::
+      > success::
   analytics_outcome_tasks: "закрытые задачи"
   analytics_outcome_steps: "шаги"
   analytics_outcome_kcal: "ккал"

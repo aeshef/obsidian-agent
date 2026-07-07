@@ -20,8 +20,6 @@ SKIP_DIR_NAMES = {
 }
 SKIP_PATH_PARTS = (
     "knowledge_bot/tools",
-    "planning_bot/tools",
-    "planning_bot/scripts",
 )
 SKIP_FILE_PREFIXES = (".scrub_",)
 

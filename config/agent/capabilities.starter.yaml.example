@@ -1,0 +1,21 @@
+# OSS starter profile — copied to capabilities.yaml by setup_agent_config.sh when missing.
+# Author full install: set OBSIDIAN_AGENT_FULL_INSTALL=1 in .env and omit capabilities.yaml.
+
+modules:
+  finance: true
+  planning: true
+  knowledge: false
+
+connectors:
+  corporate_badge: false
+  broker_sync: false
+  manual_broker_accounts: false
+  domestic_bank_cards: true
+  apple_health: true
+  gmail_health_pipeline: false
+  apple_calendar: true
+  mac_context: true
+  knowledge_serendipity: false
+
+sync:
+  profile: planning_light

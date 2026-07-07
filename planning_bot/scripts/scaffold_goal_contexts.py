@@ -13,16 +13,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from planning_bot.core.config import GOALS_FILE
+from planning_bot.core.pdmsg import pdmsg
 from planning_bot.services.goals_mapper import GoalsMapper
 
 
-CALLOUT = [
-    "  > [!info]- Контекст маппинга",
-    "  > context:: ",
-    "  > include:: ",
-    "  > exclude:: ",
-    "  > success:: ",
-]
+def _callout_lines() -> list[str]:
+    return [line.rstrip() for line in pdmsg("goal_context_callout_lines").splitlines()]
 
 
 def _is_goal_line(line: str) -> bool:
@@ -69,7 +65,7 @@ def scaffold_goal_contexts(text: str) -> tuple[str, int]:
             end = _goal_block_end(lines, idx)
             block = lines[idx + 1 : end]
             if not _has_context_fields(block):
-                out.extend(CALLOUT)
+                out.extend(_callout_lines())
                 inserted += 1
 
         idx += 1

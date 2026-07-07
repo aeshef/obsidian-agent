@@ -13,7 +13,7 @@ _ROOT = Path(__file__).resolve().parents[2]
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from planning_bot.core.config import ACTION_LOGS_DIR, KANBAN_FILE
+from planning_bot.core.config import ACTION_LOGS_DIR, ACTION_LOG_PREFIX, CATEGORIES, KANBAN_FILE, PRIORITIES
 from planning_bot.services.kanban import KanbanBoard
 from shared.setup.load_env import load_repo_env
 
@@ -67,7 +67,7 @@ def main() -> int:
     until_dt = _parse_when(args.until) if args.until else None
 
     missing: list[tuple[str, str, str, str]] = []
-    for log_file in sorted(ACTION_LOGS_DIR.glob("📊 Логи_Действий_*.md")):
+    for log_file in sorted(ACTION_LOGS_DIR.glob(f"{ACTION_LOG_PREFIX}*.md")):
         for ev in _parse_log(log_file):
             logged = ev.get("_logged_at", "")
             if logged:
@@ -80,8 +80,8 @@ def main() -> int:
             if tid in on_board:
                 continue
             title = ev["title"]
-            cat = ev.get("category") or "развитие"
-            pri = ev.get("priority") or "средний"
+            cat = ev.get("category") or (CATEGORIES[0] if CATEGORIES else "development")
+            pri = ev.get("priority") or (PRIORITIES[0] if PRIORITIES else "medium")
             missing.append((title, cat, pri, tid))
 
     if not missing:
