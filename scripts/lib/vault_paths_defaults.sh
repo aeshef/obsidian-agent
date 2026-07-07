@@ -3,6 +3,18 @@
 vault_paths_apply_defaults() {
   local locale="${AGENT_LOCALE:-en}"
   if [[ -z "${VAULT_FOLDER_TASKS:-}" ]]; then
+    local _locale_yaml=""
+    if [[ "$locale" == ru* ]]; then
+      _locale_yaml="${AGENT_ROOT:-}/config/vault_paths.ru.yaml.example"
+    else
+      _locale_yaml="${AGENT_ROOT:-}/config/vault_paths.en.yaml.example"
+    fi
+    if [[ -n "${AGENT_ROOT:-}" && -f "$_locale_yaml" ]]; then
+      _vault_paths_yaml_shell_fallback "$AGENT_ROOT" "$_locale_yaml" 2>/dev/null || true
+    fi
+    unset _locale_yaml
+  fi
+  if [[ -z "${VAULT_FOLDER_TASKS:-}" ]]; then
     if [[ "$locale" == ru* ]]; then
       : "${VAULT_FOLDER_TASKS:=100_Задачи}"
       : "${VAULT_FOLDER_GOALS:=200_Цели}"
@@ -127,7 +139,7 @@ _vault_paths_try_python_export() {
 }
 
 _vault_paths_yaml_shell_fallback() {
-  local root="$1" yaml="$root/config/vault_paths.yaml"
+  local root="$1" yaml="${2:-$root/config/vault_paths.yaml}"
   [[ -f "$yaml" ]] || return 1
   local v
   v="$(_vault_yaml_field folders tasks "$yaml")" && [[ -n "$v" ]] && export VAULT_FOLDER_TASKS="$v"

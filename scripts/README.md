@@ -29,9 +29,10 @@
 |--------|------------|
 | `obsidian_sync.sh` | pull/push vault, дашборды, maintenance |
 | `check_sync_health.sh` | маркеры здоровья sync |
-| `export_mobile_vault.sh` | iCloud → vault (опционально, `SKIP_MOBILE_VAULT=1`) |
+| `export_mobile_vault.sh` | vault → iCloud (опционально, `SKIP_MOBILE_VAULT=1`) |
+| `import_mobile_vault.sh` | iCloud → vault (tasks/goals/routines; manual, not in cron) |
 | `install_launchagent.sh` | LaunchAgent для `obsidian_sync` |
-| `install_mac_context_launchagent.sh` | LaunchAgent для `Контекст Mac (Obsidian)` каждые 5 мин |
+| `install_mac_context_launchagent.sh` | LaunchAgent for Mac context Shortcut (`MAC_CONTEXT_SHORTCUT_NAME`, every 5 min) |
 
 Карта шагов sync: [docs/SETUP.md](../docs/SETUP.md) (§ Mac sync), [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md). Корневой `obsidian_sync.sh` — только wrapper для symlink в `~/bin`.
 
@@ -51,6 +52,8 @@
 ## Библиотеки
 
 `lib/common.sh`, `lib/deploy_agent.sh`, `lib/bootstrap_python.sh` — подключаются из других скриптов, не вызывайте напрямую без нужды.
+
+`lib/sync_recent_paths.sh`, `lib/sync_server_authority.sh` — mtime helpers and dashboard JSON race guards for `obsidian_sync.sh`.
 
 One-off / audit scripts: not in git (see root `.gitignore`: `audit_*.py`, `fix_*.py`, …).
 

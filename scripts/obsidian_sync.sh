@@ -93,6 +93,10 @@ vault_paths_load_from_agent "$AGENT_ROOT" || {
 }
 # shellcheck source=scripts/lib/sync_runtime_from_vault.sh
 source "$AGENT_ROOT/scripts/lib/sync_runtime_from_vault.sh"
+# shellcheck source=scripts/lib/sync_recent_paths.sh
+source "$AGENT_ROOT/scripts/lib/sync_recent_paths.sh"
+# shellcheck source=scripts/lib/sync_server_authority.sh
+source "$AGENT_ROOT/scripts/lib/sync_server_authority.sh"
 sync_runtime_from_vault
 # 0g. Drop empty wrong-locale top folders (300_Dashboards when locale=ru, etc.)
 if [[ -d "$AGENT_ROOT/shared" ]]; then
@@ -245,36 +249,6 @@ for line in cleanup_legacy_vault_charts():
   fi
 }
 
-_write_recent_local_task_paths() {
-  local root="${1:-}" since_epoch="${2:-0}" out_file="${3:-}"
-  [ -n "$root" ] && [ -d "$root" ] && [ -n "$out_file" ] || return 1
-  python3 - "$root" "$since_epoch" "$out_file" <<'PY_RECENT_TASKS'
-import os
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1]).resolve()
-since_epoch = float(sys.argv[2] or "0")
-out_file = Path(sys.argv[3])
-count = 0
-lines: list[str] = []
-
-for dirpath, dirnames, filenames in os.walk(root):
-    dirnames[:] = [d for d in dirnames if d != ".rsync-backup"]
-    for name in filenames:
-        p = Path(dirpath) / name
-        try:
-            if p.stat().st_mtime > since_epoch:
-                lines.append(p.relative_to(root).as_posix())
-                count += 1
-        except OSError:
-            pass
-
-out_file.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
-print(count)
-PY_RECENT_TASKS
-}
-
 # Если прошлый maintenance удалил Export/дубли, повторяем удаление на VPS до первого pull:
 # иначе rsync --update снова вернёт серверные копии в локальный vault.
 _cleanup_remote_deleted_from_manifest "prepull-manifest"
@@ -383,7 +357,12 @@ if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" "$LOCAL_VAULT/${VAULT_FOLDER_HANDWRITTEN}/" || SYNC_OK=0
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
+  _authority_pull_exclude_1=()
+  while IFS= read -r _ex; do
+    [ -n "$_ex" ] && _authority_pull_exclude_1+=("$_ex")
+  done < <(_sync_authority_pull_excludes "$_recent_epoch_30m" 2>/dev/null || true)
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" "${_authority_pull_exclude_1[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
+  unset _authority_pull_exclude_1 _ex
 fi
 if cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${KNOWLEDGE_SUBDIR}/" "$LOCAL_VAULT/${KNOWLEDGE_SUBDIR}/" || SYNC_OK=0
@@ -504,6 +483,7 @@ if cap_module_enabled PLANNING; then
     "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --ignore-times --files-from="$_LOCAL_TASKS_RECENT" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   fi
   rm -f "$_LOCAL_TASKS_RECENT" 2>/dev/null || true
+  _sync_force_push_recent_authority_json "$_recent_epoch_30m" 2>/dev/null || true
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_ROUTINES[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
@@ -582,9 +562,13 @@ if cap_module_enabled PLANNING; then
   rm -f "$_recent_tasks_exclude" 2>/dev/null || true
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
+  _authority_pull_exclude_4=()
+  while IFS= read -r _ex; do
+    [ -n "$_ex" ] && _authority_pull_exclude_4+=("$_ex")
+  done < <(_sync_authority_pull_excludes "$SYNC_START_EPOCH" 2>/dev/null || true)
+  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" "${_authority_pull_exclude_4[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
+  unset _authority_pull_exclude_4 _ex
 fi
-# 700 уже подтянут в шаге 1; при необходимости можно добавить сюда с --ignore-times
 
 TODAY=$(date +%Y-%m-%d)
 NOW_ISO=$(date +%Y-%m-%dT%H:%M:%S)

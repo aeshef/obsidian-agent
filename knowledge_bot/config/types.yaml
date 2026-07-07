@@ -1,6 +1,6 @@
 # Mapping of domain types to target directories and Jinja2 templates
-# Directories are relative to 700_База_Данных inside VAULT_PATH
-# Templates are filenames inside 800_Автоматизация/Templates/Clones
+# Directories are relative to the knowledge base folder (vault_paths.yaml → folders.knowledge).
+# Templates are filenames inside {automation_folder}/Templates/Clones (see vault_paths.yaml).
 
 default_template: "Знание.j2.md"
 default_type: "знание"

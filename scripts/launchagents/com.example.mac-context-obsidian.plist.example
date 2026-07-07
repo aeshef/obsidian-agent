@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>com.aeshef.mac-context-obsidian</string>
+	<string>com.example.mac-context-obsidian</string>
 
 	<key>ProgramArguments</key>
 	<array>
 		<string>/usr/bin/shortcuts</string>
 		<string>run</string>
-		<string>Контекст Mac (Obsidian)</string>
+		<string>Mac Context (Obsidian)</string>
 	</array>
 
 	<key>StartInterval</key>

@@ -9,7 +9,7 @@ from pathlib import Path
 from shared.capabilities.profile import get_capabilities
 from shared.capabilities.prompt_dirs import prompt_path_enabled
 from shared.capabilities.prompt_manifest import personalized_prompts
-from shared.capabilities.prompt_scaffold_templates import DEFAULT_SLOTS, SCAFFOLDS
+from shared.capabilities.prompt_scaffold_templates import DEFAULT_SLOTS, SCAFFOLDS, load_scaffold_body
 from shared.prompts import _is_comment_stub
 from shared.yaml_config import load_yaml
 
@@ -37,7 +37,7 @@ def _apply_slots(text: str, slots: dict[str, str]) -> str:
 
 
 def scaffold_one(rel_example: str, slots: dict[str, str], dry_run: bool) -> str | None:
-    body = SCAFFOLDS.get(rel_example)
+    body = load_scaffold_body(ROOT, rel_example)
     if not body:
         return f"no scaffold for {rel_example}"
     prod = ROOT / rel_example.replace(".example.txt", ".txt")
@@ -71,7 +71,7 @@ def main() -> int:
     for rel in sorted(personalized_prompts()):
         if not prompt_path_enabled(rel, prof):
             continue
-        if rel not in SCAFFOLDS:
+        if not load_scaffold_body(ROOT, rel):
             missing_scaffold.append(rel)
             continue
         msg = scaffold_one(rel, slots, args.dry_run)

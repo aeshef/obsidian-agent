@@ -133,6 +133,14 @@ Suggest established tags to add without removing existing tags. JSON: {"add": [.
 """,
 }
 
+def load_scaffold_body(repo_root: Path, rel_example: str) -> str | None:
+    """Prod scaffolds: prefer checked-in *.example.txt; optional SCAFFOLDS fallback."""
+    path = repo_root / rel_example
+    if path.is_file():
+        return path.read_text(encoding="utf-8")
+    return SCAFFOLDS.get(rel_example)
+
+
 DEFAULT_SLOTS = {
     "USER_LOCALE": "en",
     "USER_TONE": "concise, friendly",

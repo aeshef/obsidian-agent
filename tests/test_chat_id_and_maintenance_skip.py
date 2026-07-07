@@ -8,8 +8,8 @@ from planning_bot.app.chatid_store import load_chat_id, maybe_persist_chat_id
 
 
 def test_load_chat_id_falls_back_to_telegram_user_id(monkeypatch, tmp_path: Path):
-    monkeypatch.setenv("TELEGRAM_USER_ID", "553480079")
-    assert load_chat_id(tmp_path / "missing.txt") == 553480079
+    monkeypatch.setenv("TELEGRAM_USER_ID", "123456789")
+    assert load_chat_id(tmp_path / "missing.txt") == 123456789
 
 
 def test_load_chat_id_prefers_file(monkeypatch, tmp_path: Path):

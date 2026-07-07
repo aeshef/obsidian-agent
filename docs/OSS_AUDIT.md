@@ -19,14 +19,14 @@ North star: one repo, any locale, any module subset, no author identity in git, 
 | **No personal data in git** | ✅ | vault, prod prompts, `vault_paths.yaml`, `badge.yaml` gitignored |
 | **Simple setup** | ✅ | `scripts/setup.sh`, `.cursor/skills/obsidian-agent-onboarding/SKILL.md` |
 
-## Verified: daily check-in E2E (2026-06-09 prod)
+## Verified: daily check-in E2E (generic)
 
-| Artifact | Path (author vault, RU) | Status |
-|----------|---------------------------|--------|
-| Signals history | `400_Рутины/📊 Сигналы/📊 История_Сигналов.md` | ✅ YAML block + summary |
-| Sample entry | `mood:5, energy:3, stress:2, focus:карьера, day_quality:4` | ✅ |
-| Routines today | `400_Рутины/📅 Рутины/📅 Сегодня.md` | ✅ toggles applied (e.g. Зал → `[x]`) |
-| Scheduler | `send_daily_checkin_prompt` 23:45 MSK | ✅ in APScheduler log |
+| Artifact | Path pattern | Status |
+|----------|--------------|--------|
+| Signals history | `{routines_folder}/Signals/Signals_History.md` | YAML block + summary |
+| Sample entry | `mood`, `energy`, `stress`, `focus`, `day_quality` fields | configurable |
+| Routines today | `{routines_folder}/Routines/Today.md` | toggles applied |
+| Scheduler | `send_daily_checkin_prompt` (cron in platform.yaml) | APScheduler |
 
 ## Done (2026-06-10 session)
 
@@ -125,6 +125,6 @@ AGENT_LOCALE=en ./scripts/setup.sh
 
 ## Non-goals
 
-- Auto-migrate author Obsidian note titles (`🎯 Главный_Дашборд.md`).
+- Auto-migrate Obsidian note titles when locale dashboard names differ from defaults.
 - Ship prod prompts, personal vault, or author `vault_paths.yaml` in git.
 - Force all users to Russian folder names.
