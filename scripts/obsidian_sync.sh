@@ -156,6 +156,7 @@ _obsidian_sync_cleanup() {
   rmdir "$SYNC_LOCK" 2>/dev/null || true
 }
 trap '_obsidian_sync_cleanup' EXIT INT TERM
+SYNC_START_EPOCH="$(date +%s)"
 echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ START" >> "$DEBUG_LOG" 2>/dev/null || true
 # LaunchAgent без FDA не может писать в ~/Documents — не крутим rsync впустую
 if [[ "$SYNC_DIR" == "$HOME/.sync/obsidian"* ]] && [[ "$LOCAL_VAULT" == *"/Documents/"* ]]; then
@@ -242,6 +243,36 @@ for line in cleanup_legacy_vault_charts():
     print('[${tag}]', line)
 " ) >> "${AGENT_ROOT}/knowledge_bot/logs/chart_layout.log" 2>&1 || true
   fi
+}
+
+_write_recent_local_task_paths() {
+  local root="${1:-}" since_epoch="${2:-0}" out_file="${3:-}"
+  [ -n "$root" ] && [ -d "$root" ] && [ -n "$out_file" ] || return 1
+  python3 - "$root" "$since_epoch" "$out_file" <<'PY_RECENT_TASKS'
+import os
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+since_epoch = float(sys.argv[2] or "0")
+out_file = Path(sys.argv[3])
+count = 0
+lines: list[str] = []
+
+for dirpath, dirnames, filenames in os.walk(root):
+    dirnames[:] = [d for d in dirnames if d != ".rsync-backup"]
+    for name in filenames:
+        p = Path(dirpath) / name
+        try:
+            if p.stat().st_mtime > since_epoch:
+                lines.append(p.relative_to(root).as_posix())
+                count += 1
+        except OSError:
+            pass
+
+out_file.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+print(count)
+PY_RECENT_TASKS
 }
 
 # Если прошлый maintenance удалил Export/дубли, повторяем удаление на VPS до первого pull:
@@ -340,6 +371,11 @@ for line in ensure_routines_layout(scaffold_stats=False):
 " ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || true
 fi
 # 1. Сервер → Локальный.
+# Перед pull сохраняем файлы задач, изменённые локально за последние 30 мин — они будут
+# принудительно запушены в step 2 даже если сервер «новее» (бот/cron обогнал локальный edit).
+_LOCAL_TASKS_RECENT="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_local_recent.XXXXXX")"
+_recent_epoch_30m=$(( $(date +%s) - 1800 ))
+_write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$_recent_epoch_30m" "$_LOCAL_TASKS_RECENT" 2>/dev/null || true
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
@@ -460,6 +496,14 @@ if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES
   PUSH_EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
 fi
 if cap_module_enabled PLANNING; then
+  # Файлы задач, изменённые за 30 мин до sync (собраны в step 1): пушим принудительно (--ignore-times),
+  # чтобы локальная правка не была подавлена серверной версией, записанной ботом/cron позже нашего edit.
+  _recent_task_count="$(wc -l < "$_LOCAL_TASKS_RECENT" 2>/dev/null | tr -d ' ' || echo 0)"
+  if [ "${_recent_task_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=2 force_push_recent count=${_recent_task_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --ignore-times --files-from="$_LOCAL_TASKS_RECENT" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  fi
+  rm -f "$_LOCAL_TASKS_RECENT" 2>/dev/null || true
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_GOALS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_GOALS}/" || SYNC_OK=0
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" "${PUSH_EXCLUDE_ROUTINES[@]}" --update "$LOCAL_VAULT/${VAULT_FOLDER_ROUTINES}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_ROUTINES}/" || SYNC_OK=0
@@ -521,10 +565,21 @@ if cap_module_enabled PLANNING; then
 fi
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance.
-# 100_: ignore-times — канон сортировки с VPS. 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
+# 100_: ignore-times — канон сортировки с VPS. Но если файл задачи поменяли локально уже ПОСЛЕ старта
+# текущего sync-цикла (Obsidian UI во время длительного maintenance), не тянем его обратно с VPS:
+# иначе финальный pull стирает только что созданные/перемещённые задачи до следующего цикла.
+# 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "$(sh_msg scripts.obsidian_sync.step_4)" >&2
 if cap_module_enabled PLANNING; then
-  "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  _recent_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_recent_tasks.XXXXXX")"
+  _recent_tasks_count="$(_write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SYNC_START_EPOCH" "$_recent_tasks_exclude" 2>/dev/null || echo 0)"
+  if [ "${_recent_tasks_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_recent_local_tasks count=${_recent_tasks_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  else
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  fi
+  rm -f "$_recent_tasks_exclude" 2>/dev/null || true
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${EXCLUDE_300[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/" "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/" || SYNC_OK=0
