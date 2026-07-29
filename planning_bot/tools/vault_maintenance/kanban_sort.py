@@ -224,8 +224,11 @@ def sort_kanban_tasks(target_path: Optional[Path] = None) -> bool:
 
     def extract_deadline_ordinal(task_text: str) -> Optional[int]:
         'Operation implementation.'
-        match = re.search(pdmsg("auto_4f6bd2f69f"), task_text)
-        if not match:
+        pat = (pdmsg("auto_4f6bd2f69f") or "").strip()
+        if not pat:
+            return None
+        match = re.search(pat, task_text)
+        if not match or match.lastindex is None or match.lastindex < 1:
             return None
         try:
             from datetime import datetime

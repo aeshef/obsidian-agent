@@ -72,6 +72,10 @@ async def run_host_bot(
 
     bot = create_bot(resolved, parse_mode=None)
     dp = Dispatcher(storage=MemoryStorage())
+    if planning_bot is not None:
+        # Scheduled weekly review sets ReflectionState via fsm_storage — must bind
+        # the same MemoryStorage the dispatcher uses (otherwise bind_fsm is never called).
+        planning_bot.bind_fsm(dp.storage)
 
     class _Inject(BaseMiddleware):
         def __init__(self, app, planning):

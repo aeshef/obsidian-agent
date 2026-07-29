@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -47,6 +48,31 @@ def _load_trusted_open_totals(path: Path) -> dict[str, int]:
         except (TypeError, ValueError):
             continue
     return out
+
+
+def _goals_mapping_fingerprint(mapping_path: Path) -> str:
+    if not mapping_path.is_file():
+        return ""
+    return hashlib.sha256(mapping_path.read_bytes()).hexdigest()
+
+
+def _goals_mapping_changed(vault: Path, mapping_path: Path) -> bool:
+    """True when goals_task_mapping.json changed since last column-history backfill."""
+    marker = vault / ".sync" / "kanban_flow_goals_mapping_fingerprint.txt"
+    if not marker.is_file():
+        return False
+    cur = _goals_mapping_fingerprint(mapping_path)
+    prev = marker.read_text(encoding="utf-8").strip()
+    return bool(cur) and cur != prev
+
+
+def _persist_goals_mapping_fingerprint(vault: Path, mapping_path: Path) -> None:
+    cur = _goals_mapping_fingerprint(mapping_path)
+    if not cur:
+        return
+    marker = vault / ".sync" / "kanban_flow_goals_mapping_fingerprint.txt"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(cur + "\n", encoding="utf-8")
 
 
 def _write_chart_note(
@@ -126,6 +152,10 @@ def main() -> int:
     schema = _kanban_schema()
     trusted_open_totals = _load_trusted_open_totals(open_hist_path)
 
+    backfill_columns = args.backfill_columns
+    if not backfill_columns and _goals_mapping_changed(vault, mapper.mapping_file):
+        backfill_columns = True
+
     metrics, column_history = compute_kanban_flow_metrics(
         vault,
         action_logs_dir=action_logs_dir,
@@ -135,10 +165,14 @@ def main() -> int:
         board_tasks=tasks,
         cat_by_id=cat_by_id,
         cat_by_title=cat_by_title,
-        backfill_columns=args.backfill_columns,
+        backfill_columns=backfill_columns,
         allow_auto_backfill=not args.no_backfill,
         trusted_open_totals=trusted_open_totals,
     )
+
+    col_meta = (metrics.get("column_history_meta") or {})
+    if backfill_columns or col_meta.get("mode") == "backfill":
+        _persist_goals_mapping_fingerprint(vault, mapper.mapping_file)
 
     ensure_parent(metrics_json_path)
     metrics_json_path.write_text(
@@ -182,7 +216,7 @@ def main() -> int:
     ):
         built.append(png_arrivals.name)
 
-    cfd_cols = [c for c in KANBAN_COLUMNS if c]
+    cfd_cols = [c for c in KANBAN_COLUMNS[:-1] if c]
     if chart_cfd(
         column_history_for_charts,
         cfd_cols,

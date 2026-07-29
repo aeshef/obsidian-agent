@@ -150,6 +150,10 @@ def calibrate_history_with_trusted_totals(
     calibrated_days = 0
     for snap in history:
         d = str(snap.get("date", ""))
+        # Never distort a live board snapshot — it is ground truth for column ratios.
+        if str(snap.get("source", "")) == "board":
+            out.append(dict(snap))
+            continue
         if d not in trusted_open_totals:
             out.append(dict(snap))
             continue
@@ -290,6 +294,26 @@ def _snapshot_from_board_state(
     }
 
 
+def _is_terminal_column(col: str, done_column: str) -> bool:
+    """Done / archive / similar — task leaves open WIP."""
+    c = (col or "").strip()
+    if not c:
+        return False
+    if done_column and c == done_column:
+        return True
+    low = c.casefold()
+    if "archive" in low:
+        return True
+    # Locale archive label (YAML) — e.g. RU short form used in column titles.
+    try:
+        from planning_bot.core.pdmsg import pdmsg
+
+        marker = (pdmsg("goals_mapping_review_source_archive") or "").strip().casefold()
+    except Exception:
+        marker = ""
+    return bool(marker) and marker in low
+
+
 def _replay_apply_event(
     board: Dict[str, dict],
     e: dict,
@@ -332,7 +356,8 @@ def _replay_apply_event(
         cat = _cat()
         if cat:
             st["category"] = cat
-        if to == done_column:
+        if _is_terminal_column(to, done_column):
+            st["column"] = to or done_column
             st["open"] = False
         elif to:
             st["column"] = to
@@ -343,6 +368,51 @@ def _replay_apply_event(
             board[tid] = {"column": done_column, "category": _cat(), "open": False}
         else:
             board[tid]["open"] = False
+
+
+def infer_ghost_close_dates(
+    events: Sequence[dict],
+    *,
+    live_open_ids: FrozenSet[str],
+    backlog_column: str,
+    done_column: str,
+    cat_by_id: Dict[str, str],
+    cat_by_title: Dict[str, str],
+) -> Dict[str, date]:
+    """
+    Tasks still 'open' after full replay but absent from the live board are ghosts
+    (completed/archived/deleted without a logged completion). Close them on the day
+    of their last event so CFD ratios are not permanently backlog-skewed.
+    """
+    board: Dict[str, dict] = {}
+    last_day: Dict[str, date] = {}
+    for e in sorted(
+        [x for x in events if (x.get("data") or {}).get("task_id")],
+        key=lambda x: x["dt"],
+    ):
+        tid = ((e.get("data") or {}).get("task_id") or "").strip().lower()
+        if not tid:
+            continue
+        _replay_apply_event(
+            board,
+            e,
+            backlog_column=backlog_column,
+            done_column=done_column,
+            cat_by_id=cat_by_id,
+            cat_by_title=cat_by_title,
+        )
+        dt = e.get("dt")
+        if dt is not None:
+            last_day[tid] = dt.date() if hasattr(dt, "date") else dt
+    closes: Dict[str, date] = {}
+    for tid, st in board.items():
+        if not st.get("open"):
+            continue
+        if tid in live_open_ids:
+            continue
+        if tid in last_day:
+            closes[tid] = last_day[tid]
+    return closes
 
 
 def replay_column_snapshots_from_events(
@@ -358,6 +428,7 @@ def replay_column_snapshots_from_events(
     live_today_snap: Optional[dict] = None,
     backlog_column: str = BACKLOG_COLUMN,
     done_column: str = DONE_COLUMN,
+    live_open_ids: Optional[FrozenSet[str]] = None,
 ) -> List[dict]:
     """Reconstruct end-of-day WIP by column/segment from action-log replay."""
     stable = sorted(
@@ -366,6 +437,19 @@ def replay_column_snapshots_from_events(
     )
     if not stable:
         return []
+
+    ghost_close = (
+        infer_ghost_close_dates(
+            stable,
+            live_open_ids=live_open_ids or frozenset(),
+            backlog_column=backlog_column,
+            done_column=done_column,
+            cat_by_id=cat_by_id,
+            cat_by_title=cat_by_title,
+        )
+        if live_open_ids is not None
+        else {}
+    )
 
     board: Dict[str, dict] = {}
     snapshots: List[dict] = []
@@ -385,6 +469,11 @@ def replay_column_snapshots_from_events(
                 cat_by_title=cat_by_title,
             )
             idx += 1
+        if ghost_close:
+            for tid, close_d in ghost_close.items():
+                # Keep open through the last-event day; drop from the next morning.
+                if d > close_d and tid in board and board[tid].get("open"):
+                    board[tid]["open"] = False
         if d.isoformat() == today_s and live_today_snap:
             snap = dict(live_today_snap)
             snap["source"] = "board"
@@ -477,6 +566,13 @@ def build_column_history(
         daily_categories=daily_cats,
         open_columns=open_columns,
     )
+    live_open_ids = frozenset(
+        (t.get("task_id") or "").strip().lower()
+        for t in board_tasks
+        if (t.get("task_id") or "").strip()
+        and not t.get("completed")
+        and (t.get("column") or "") in open_columns
+    )
     existing = trim_history(
         _load_json_history(column_history_path), max_days=cfg["history_max_days"]
     )
@@ -505,6 +601,7 @@ def build_column_history(
             start_day=start_day,
             end_day=end_day,
             live_today_snap=live_snap,
+            live_open_ids=live_open_ids,
         )
         history = trim_history(history, max_days=cfg["history_max_days"])
         meta = {
@@ -513,6 +610,16 @@ def build_column_history(
             "start": start_day.isoformat(),
             "end": end_day.isoformat(),
             "reliable_start": reliable_start.isoformat() if reliable_start else None,
+            "ghosts_closed": len(
+                infer_ghost_close_dates(
+                    stable,
+                    live_open_ids=live_open_ids,
+                    backlog_column=BACKLOG_COLUMN,
+                    done_column=DONE_COLUMN,
+                    cat_by_id=cat_by_id,
+                    cat_by_title=cat_by_title,
+                )
+            ),
         }
     else:
         history = upsert_today_snapshot(existing, live_snap)

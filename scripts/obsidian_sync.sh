@@ -432,23 +432,35 @@ PY_ACTION_UNLINK
 fi
 unset _PLANNING_BOT _ACTION_RENAME_MANIFEST _action_unlink
 
-# 1b. Mac-контекст локально: TTL cleanup + context_*.json ДО push (не слать на VPS снапшоты старше TTL)
+# 1b. Mac-контекст локально: materialize from LaunchAgent stdout → TTL cleanup + context_*.json
 _PLANNING_BOT="${AGENT_ROOT}/planning_bot"
-if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
+_PLAN_SP="${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}"
+if [[ -z "$_PLAN_SP" ]]; then
+  _PLAN_SP="$(ls -d "$_PLANNING_BOT/venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+fi
+_PLAN_PYTHONPATH="${AGENT_ROOT}${_PLAN_SP:+:$_PLAN_SP}"
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ]; then
   touch "$_PLANNING_BOT/logs/context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
-  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-  (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/context_sync.py) >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
+  export PYTHONPATH="${_PLAN_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+  if [ -f "$_PLANNING_BOT/tools/ingest_mac_context_stdout.py" ]; then
+    (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/ingest_mac_context_stdout.py) \
+      >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
+  fi
+  if [ -f "$_PLANNING_BOT/tools/context_sync.py" ]; then
+    (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/context_sync.py) \
+      >> "$_PLANNING_BOT/logs/context_sync.log" 2>&1 || true
+  fi
 fi
 
 # 1c. iPhone: удалить невалидные IPhone/*.txt + пересобрать iphone_*.json ДО push (канон Mac → VPS)
 if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/iphone_context_sync.py" ]; then
   touch "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>/dev/null || true
   export VAULT_PATH="$LOCAL_VAULT"
-  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  export PYTHONPATH="${_PLAN_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
   (cd "$_PLANNING_BOT" && PYTHONUNBUFFERED=1 "$PLAN_PYTHON" -u tools/iphone_context_sync.py) >> "$_PLANNING_BOT/logs/iphone_context_sync.log" 2>&1 || true
 fi
-unset _PLANNING_BOT
+unset _PLANNING_BOT _PLAN_SP _PLAN_PYTHONPATH
 
 # 2. Локальный → Сервер (отправить изменения, не затирать более новые на сервере)
 # При push 300_Дашборды не отправляем сервер-авторитетные файлы (бот/cron/maintenance пишут их на сервере).
@@ -541,7 +553,24 @@ fi
 # 3. Обслуживание vault на сервере (VAULT_PATH=$SERVER_VAULT). Kanban — только cron на VPS.
 if cap_module_enabled PLANNING; then
   echo "$(sh_msg scripts.obsidian_sync.step_3)" >&2
-  ssh "${SSH_OPTS[@]}" "$SERVER" "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh >> logs/maintenance.log 2>&1" || { echo "$(sh_msgf scripts.obsidian_sync.step_3_fail '{"log_path":"'${SERVER_BOTS}/planning_bot/logs/maintenance.log'"}')" >&2; _sync_fail "3-server-maintenance"; }
+  # Longer ServerAlive: maintenance can be quiet for >45s; retry once on flaky SSH.
+  _ssh_maint_opts=(-o UseKeychain=yes -o BatchMode=yes -o ConnectTimeout=20 -o ServerAliveInterval=20 -o ServerAliveCountMax=12)
+  _step3_ok=0
+  for _try in 1 2; do
+    if ssh "${_ssh_maint_opts[@]}" "$SERVER" \
+      "cd ${SERVER_BOTS}/planning_bot && ./scripts/run_maintenance_from_sync.sh"; then
+      _step3_ok=1
+      break
+    fi
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=3-server-maintenance retry=${_try}" >> "$DEBUG_LOG" 2>/dev/null || true
+    sleep 3
+  done
+  unset _try _ssh_maint_opts
+  if [ "$_step3_ok" != 1 ]; then
+    echo "$(sh_msgf scripts.obsidian_sync.step_3_fail '{"log_path":"'${SERVER_BOTS}/planning_bot/logs/maintenance.log'"}')" >&2
+    _sync_fail "3-server-maintenance"
+  fi
+  unset _step3_ok
 fi
 
 # 4. Подтянуть обновлённые файлы с сервера после maintenance.
@@ -619,6 +648,32 @@ else
 fi
 unset _pb_venv _pb_sp _chart_py_ok
 
+# 4b. Planning kanban hygiene on every sync cycle:
+# keep board IDs and deterministic sorting independent from knowledge-maintenance profile.
+PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
+_kanban_py="${CHART_PYTHON:-${PLAN_PYTHON:-}}"
+if [ -d "$PLANNING_BOT" ] && [ -n "$_kanban_py" ] && [ -f "$PLANNING_BOT/tools/vault_maintenance/kanban_hygiene.py" ]; then
+  touch "$PLANNING_BOT/logs/kanban_hygiene.log" 2>/dev/null || true
+  export VAULT_PATH="$LOCAL_VAULT"
+  _kanban_sp="${OBSIDIAN_AGENT_PYDEPS_PLANNING:-}"
+  if [ -z "$_kanban_sp" ]; then
+    _kanban_sp="$(ls -d "$PLANNING_BOT/venv/lib/python"*/site-packages 2>/dev/null | head -1)"
+  fi
+  if [ -n "$_kanban_sp" ]; then
+    export PYTHONPATH="${AGENT_ROOT}:${_kanban_sp}${PYTHONPATH:+:$PYTHONPATH}"
+  else
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+  fi
+  if (cd "$PLANNING_BOT" && FROM_SYNC=1 PYTHONUNBUFFERED=1 common_run_python_script "$_kanban_py" "$PLANNING_BOT/tools/vault_maintenance/kanban_hygiene.py") >> "$PLANNING_BOT/logs/kanban_hygiene.log" 2>&1; then
+    : # ok
+  else
+    echo "warning: kanban_hygiene failed (see $PLANNING_BOT/logs/kanban_hygiene.log)" >&2
+    _sync_fail "4b-kanban-hygiene"
+  fi
+fi
+unset _kanban_sp
+unset _kanban_py
+
 # 5. Графики дашборда по action-логам: раз в день + повтор, если лог месяца новее PNG (конец дня).
 # Иначе прогон в 00:03 ставит маркер «сегодня», а события дня в графики не попадают до следующей полуночи.
 # FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
@@ -641,6 +696,19 @@ _chart_png_mtime_max() {
 }
 HAS_LOGS=
 [ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name "${VAULT_FILE_ACTION_LOG_PREFIX}*.md" 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
+
+# 5b-pre. Goals mapping reconcile — before planning charts so kanban WIP segments use fresh mapping.
+if cap_module_enabled PLANNING; then
+  PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
+  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_goals_mapping_review.py" ]; then
+    export VAULT_PATH="$LOCAL_VAULT"
+    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
+    _gmr_py="${CHART_PYTHON:-python3}"
+    cd "$PLANNING_BOT" && common_run_python_script "$_gmr_py" "$PLANNING_BOT/scripts/build_goals_mapping_review.py" --vault "$LOCAL_VAULT" --reconcile --json >> logs/charts.log 2>&1 || true
+  fi
+fi
+unset _gmr_py
+
 _SHOULD_CHARTS=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_CHARTS=1
@@ -675,18 +743,6 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
   fi
 fi
 unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max
-
-# 5b-pre. Goals mapping review (collapsible audit for prompt tuning)
-if cap_module_enabled PLANNING; then
-  PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
-  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_goals_mapping_review.py" ]; then
-    export VAULT_PATH="$LOCAL_VAULT"
-    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    _gmr_py="${CHART_PYTHON:-python3}"
-    cd "$PLANNING_BOT" && common_run_python_script "$_gmr_py" "$PLANNING_BOT/scripts/build_goals_mapping_review.py" --vault "$LOCAL_VAULT" --reconcile --json >> logs/charts.log 2>&1 || true
-  fi
-fi
-unset _gmr_py
 
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
@@ -759,6 +815,7 @@ mkdir -p "$PLANNING_BOT/logs" 2>/dev/null || true
 touch \
   "$PLANNING_BOT/logs/system_audit.log" \
   "$PLANNING_BOT/logs/charts.log" \
+  "$PLANNING_BOT/logs/kanban_hygiene.log" \
   "$PLANNING_BOT/logs/vault_write_maintenance.log" \
   "$PLANNING_BOT/logs/iphone_mail_sync.log" \
   "$PLANNING_BOT/logs/iphone_context_sync.log" \
@@ -782,6 +839,7 @@ common_rotate_log "$SYNC_DIR/mobile_vault_export.log" 3000 1000
 common_rotate_log "$PLANNING_BOT/logs/vault_write_maintenance.log" 8000 4000
 common_rotate_log "$PLANNING_BOT/logs/system_audit.log" 3000 1200
 common_rotate_log "$PLANNING_BOT/logs/charts.log" 1000 500
+common_rotate_log "$PLANNING_BOT/logs/kanban_hygiene.log" 6000 2000
 common_rotate_log "$PLANNING_BOT/logs/add_ids_watcher.log" 12000 3000
 common_rotate_log "$PLANNING_BOT/logs/iphone_mail_sync.log" 8000 4000
 common_rotate_log "$PLANNING_BOT/logs/iphone_context_sync.log" 8000 3000

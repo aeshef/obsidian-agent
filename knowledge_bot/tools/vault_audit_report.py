@@ -18,7 +18,10 @@ def main() -> int:
     ap.add_argument("--out", "-o", default="", help="Output .md (relative to vault or absolute)")
     args = ap.parse_args()
 
-    vault = Path(args.vault).expanduser().resolve() if args.vault else load_config().vault_path
+    # Always load config/.env first so VAULT_REL_KNOWLEDGE and platform.yaml apply
+    # before tags/duplicates scans (otherwise empty "Knowledge" section).
+    cfg = load_config()
+    vault = Path(args.vault).expanduser().resolve() if args.vault else cfg.vault_path
     out = Path(args.out).expanduser() if args.out else None
     path = write_vault_audit_report(vault, out)
     print(f"Report written: {path}")

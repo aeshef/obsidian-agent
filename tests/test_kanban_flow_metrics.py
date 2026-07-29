@@ -96,3 +96,37 @@ def test_replay_column_snapshots_end_of_day():
     assert snaps[0]["by_goal_segment"]["goal_mapped"] == 1
     assert snaps[1]["total_open"] == 1
     assert snaps[1]["by_goal_segment"]["daily_routine"] == 1
+
+
+def test_replay_closes_ghosts_and_archive():
+    """Ghosts (not on live board) close after last event; Archive is terminal."""
+    events = [
+        _evt("2026-06-01 10:00:00", "task_created", {"task_id": "keep"}),
+        _evt("2026-06-01 11:00:00", "task_created", {"task_id": "ghost"}),
+        _evt("2026-06-01 12:00:00", "task_moved", {"task_id": "ghost", "from": "B", "to": "IN"}),
+        _evt("2026-06-02 09:00:00", "task_created", {"task_id": "arch"}),
+        _evt(
+            "2026-06-02 10:00:00",
+            "task_moved",
+            {"task_id": "arch", "from": "B", "to": "Archive"},
+        ),
+    ]
+    snaps = replay_column_snapshots_from_events(
+        events,
+        mapping={},
+        daily_categories=frozenset(),
+        open_columns=frozenset({"B", "IN"}),
+        cat_by_id={},
+        cat_by_title={},
+        start_day=date(2026, 6, 1),
+        end_day=date(2026, 6, 3),
+        backlog_column="B",
+        done_column="DONE",
+        live_open_ids=frozenset({"keep"}),
+    )
+    assert snaps[0]["by_column"].get("B", 0) == 1
+    assert snaps[0]["by_column"].get("IN", 0) == 1
+    assert snaps[1]["total_open"] == 1
+    assert snaps[1]["by_column"].get("B", 0) == 1
+    assert snaps[2]["total_open"] == 1
+    assert snaps[2]["by_column"].get("B", 0) == 1

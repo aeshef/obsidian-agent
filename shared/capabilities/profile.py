@@ -140,13 +140,13 @@ def _default_document() -> dict:
 
 
 def _capabilities_paths() -> tuple[Any, ...]:
-    paths: list[Any] = []
+    # Explicit CAPABILITIES_PATH is exclusive: a missing override must not
+    # silently fall through to the author vault's full-install manifest.
     env_path = (os.environ.get("CAPABILITIES_PATH") or "").strip()
     if env_path:
-        paths.append(env_path)
+        return (env_path,)
     base = agent_config_dir()
-    paths.extend([base / "capabilities.yaml"])
-    return tuple(paths)
+    return (base / "capabilities.yaml",)
 
 
 def _load_yaml_document() -> dict:

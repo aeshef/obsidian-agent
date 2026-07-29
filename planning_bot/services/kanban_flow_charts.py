@@ -15,6 +15,7 @@ _EMOJI_RE = re.compile(
     "["
     f"{chr(0x1F300)}-{chr(0x1FAFF)}"
     f"{chr(0x2600)}-{chr(0x27BF)}"
+    f"{chr(0x2300)}-{chr(0x23FF)}"  # incl. ⏸ ⏳ etc.
     "]+",
     flags=re.UNICODE,
 )

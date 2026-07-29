@@ -9,6 +9,30 @@ from planning_bot.core.config import REFLECTION_DIR
 from planning_bot.core.pdmsg import pdmsg
 
 
+def _thoughts_header() -> str:
+    return (
+        pdmsg("reflection_md_thoughts_header")
+        or pdmsg("auto_29e747c3bc")
+        or "## My thoughts"
+    ).strip()
+
+
+def _reflection_prefix() -> str:
+    return (
+        pdmsg("reflection_file_prefix")
+        or pdmsg("auto_9e853157ef")
+        or "Reflection_"
+    )
+
+
+def _reflection_glob() -> str:
+    return (
+        pdmsg("reflection_glob")
+        or pdmsg("auto_9dc5227b7a")
+        or "Reflection_*.md"
+    )
+
+
 class ReflectionManager:
     def __init__(self, reflection_dir: Path = REFLECTION_DIR) -> None:
         self.reflection_dir = reflection_dir
@@ -23,28 +47,45 @@ class ReflectionManager:
             sunday = today
         else:
             sunday = today + timedelta(days=days_until_sunday)
-        prefix = pdmsg("reflection_file_prefix") or pdmsg("auto_9e853157ef") or "Reflection_"
-        reflection_file = self.reflection_dir / f"{prefix}{sunday.strftime('%Y-%m-%d')}.md"
-        content = pdmsg("reflection_md_title", date=sunday.strftime("%d.%m.%Y"))
-        content += pdmsg("reflection_md_review_header") + review_text + "\n\n"
-        if user_response:
-            content += pdmsg("reflection_md_thoughts_header") + user_response + "\n\n"
-        content += pdmsg(
-            "reflection_md_footer", ts=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        date_s = sunday.strftime("%d.%m.%Y")
+        reflection_file = self.reflection_dir / f"{_reflection_prefix()}{sunday.strftime('%Y-%m-%d')}.md"
+        title = (
+            pdmsg("reflection_md_title", date=date_s)
+            or pdmsg("auto_a3ba53a9d0", p1=date_s)
+            or f"# Weekly reflection {date_s}\n\n"
         )
+        review_header = (
+            pdmsg("reflection_md_review_header")
+            or "## Assistant review\n\n"
+        )
+        content = title if title.endswith("\n") else title + "\n"
+        content += review_header + review_text + "\n\n"
+        if user_response:
+            content += _thoughts_header() + "\n\n" + user_response + "\n\n"
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        footer = (
+            pdmsg("reflection_md_footer", ts=ts)
+            or f"---\n\n*Created: {ts}*\n"
+        )
+        content += footer
         reflection_file.write_text(content, encoding="utf-8")
 
     def get_previous_reflections_summary(self, limit: int = 5) -> str:
-        glob_pat = pdmsg("reflection_glob") or pdmsg("auto_9dc5227b7a") or "Reflection_*.md"
-        reflections = sorted(self.reflection_dir.glob(glob_pat), reverse=True)
+        reflections = sorted(self.reflection_dir.glob(_reflection_glob()), reverse=True)
         if not reflections:
             return ""
         summaries = []
-        thoughts_header = pdmsg("reflection_md_thoughts_header")
+        thoughts_header = _thoughts_header()
         for reflection_file in reflections[:limit]:
             content = reflection_file.read_text(encoding="utf-8")
-            if thoughts_header in content:
+            # Empty separator: `"" in text` is always True, then str.split("") raises.
+            if thoughts_header and thoughts_header in content:
                 thoughts = content.split(thoughts_header, 1)[1].split("---")[0].strip()
                 if thoughts:
                     summaries.append(f"**{reflection_file.stem}:**\n{thoughts[:300]}...")
+                    continue
+            # No user-thoughts section — use a short excerpt of the review body.
+            body = content.strip()
+            if body:
+                summaries.append(f"**{reflection_file.stem}:**\n{body[:300]}...")
         return "\n\n".join(summaries)

@@ -186,6 +186,7 @@ knowledge_vault_audit:
   step_refill_singleton: Refill singleton-тегов
   step_dup_dryrun: Дубликаты dry-run
   step_dup_apply: Дубликаты apply
+  step_export_orphans: Export orphans (export_orphans)
   step_unknown: '{step}'
   step_ok: ok
   step_fail: fail

@@ -234,3 +234,8 @@ knowledge_bot/config/vault_maintenance.yaml
 **/requirements_eda.txt
 **/master_daily_panel.csv
 **/.ipynb_checkpoints/
+
+# Retrieval eval artifacts
+eval/results.json
+eval/results.png
+eval/__pycache__/

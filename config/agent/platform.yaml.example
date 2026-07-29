@@ -6,7 +6,8 @@ vault:
   local_path: "/ABSOLUTE/PATH/TO/Obsidian Vault"
   mobile_path: "/ABSOLUTE/PATH/TO/Mobile Obsidian Vault"
   # Подкаталог базы знаний внутри VAULT_PATH (rel_path в индексе).
-  knowledge_subdir: Knowledge
+  # Author vault uses 700_База_Данных; OSS/onboarding may use Knowledge.
+  knowledge_subdir: 700_База_Данных
 
 server:
   # Remote runtime paths used by sync/deploy scripts. Override in platform.yaml or env.
@@ -131,7 +132,7 @@ planning_kanban_flow:
   replay_min_events_per_month: 200
   trusted_interpolate_max_gap_days: 2
   drop_partial_week_in_lead_cycle_chart: 1
-  drop_today_in_column_charts: 1
+  drop_today_in_column_charts: 0
 
 planning_reflection:
   review_days: 7

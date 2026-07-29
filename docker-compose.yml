@@ -1,0 +1,19 @@
+# Run the unified bot in a container.
+#   1) cp .env.example .env  &&  fill VAULT_PATH is handled by the mount below
+#   2) set TELEGRAM_UNIFIED_BOT_TOKEN and DEEPSEEK_API_KEY in .env
+#   3) point ./vault (host) at your Obsidian vault, or edit the volume path
+#   4) docker compose up --build
+services:
+  unified-bot:
+    build: .
+    image: obsidian-agent:latest
+    container_name: obsidian-agent
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # In-container vault path; override VAULT_PATH from .env so the mount wins.
+      VAULT_PATH: /vault
+      DEPLOY_MODE: single
+    volumes:
+      - ${HOST_VAULT_PATH:-./vault}:/vault
+    # Bots use long-polling (no inbound ports needed).

@@ -75,6 +75,17 @@ export PYTHONPATH=.
 python -m unified_bot.main
 ```
 
+### Option C — Docker
+
+```bash
+cp .env.example .env         # set TELEGRAM_UNIFIED_BOT_TOKEN, DEEPSEEK_API_KEY
+export HOST_VAULT_PATH="/absolute/path/to/your/vault"
+docker compose up --build
+```
+
+The image ships the unified-bot runtime (planning + finance + agent + voice/ASR);
+the vault is mounted at `/vault`, config comes from `.env`. See [Dockerfile](Dockerfile).
+
 Set at minimum in `.env` (or via `python3 scripts/setup/env_tools.py set KEY value`):
 
 | Variable | Purpose |
@@ -170,6 +181,9 @@ obsidian-agent/
 ```
 
 CI runs on push/PR: compile, smoke imports, pytest, capabilities/onboarding guards — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+
+**Retrieval eval:** the knowledge-base RAG pipeline has an automatic known-item
+retrieval benchmark (Recall@k / MRR over the live note index) — see [eval/](eval/).
 
 ---
 

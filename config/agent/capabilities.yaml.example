@@ -1,5 +1,7 @@
 # Product capabilities manifest — copy to capabilities.yaml (gitignored).
-# Missing capabilities.yaml = full install (backward compatible for existing users).
+# Missing capabilities.yaml:
+#   - OBSIDIAN_AGENT_FULL_INSTALL=1 in .env → full install
+#   - otherwise → OSS starter (knowledge off, sync.profile: planning_light)
 #
 # modules: turn off entire Telegram domains (finance / planning / knowledge).
 # connectors: optional data pipelines; off = no agent tools, no sync steps, no prompts.

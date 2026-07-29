@@ -52,6 +52,8 @@ def _throttle_key(service: str, status: int, body: str) -> str:
         return f"{service}:quota_429"
     if status in (401, 403) and any(x in b for x in ("invalid", "key", "unauthorized", "forbidden")):
         return f"{service}:auth_{status}"
+    if status == 403 and "security policy" in b:
+        return f"{service}:security_policy_403"
     return f"{service}:http_{status}"
 
 
@@ -110,6 +112,9 @@ def is_likely_billing_or_quota_error(status: int, body: str) -> bool:
                 "exceeded",
             )
         ):
+            return True
+        # OpenRouter blocks some VPS/datacenter IPs — worth a single alert.
+        if status == 403 and "security policy" in t:
             return True
     return False
 

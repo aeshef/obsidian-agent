@@ -38,7 +38,8 @@ def main() -> int:
         print("Set VAULT_PATH in .env or pass --vault", file=sys.stderr)
         return 1
 
-    cap_file = agent_config_dir() / "capabilities.yaml"
+    env_cap = (os.environ.get("CAPABILITIES_PATH") or "").strip()
+    cap_file = Path(env_cap).expanduser() if env_cap else (agent_config_dir() / "capabilities.yaml")
     if not cap_file.is_file() and not args.allow_missing_capabilities:
         print(
             "capabilities.yaml missing — all modules would be enabled (wrong folders for finance/planning-only).\n"

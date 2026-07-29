@@ -149,12 +149,38 @@ def _llm_asr_sufficient_to_skip_vision(llm_client: Optional[Any], asr_text: str)
         return False
 
 
+# Process-local circuit: OpenRouter IP/security blocks (403) should not spam every media item.
+_vision_openrouter_blocked_until: float = 0.0
+_VISION_BLOCK_COOLDOWN_SEC = 6 * 3600
+
+
+def _vision_block_active() -> bool:
+    import time
+
+    return time.monotonic() < _vision_openrouter_blocked_until
+
+
+def _trip_vision_block(reason: str) -> None:
+    import time
+
+    global _vision_openrouter_blocked_until
+    _vision_openrouter_blocked_until = time.monotonic() + _VISION_BLOCK_COOLDOWN_SEC
+    logging.getLogger("kb.extract").warning(
+        "Vision OpenRouter circuit OPEN for %dh: %s",
+        _VISION_BLOCK_COOLDOWN_SEC // 3600,
+        reason[:160],
+    )
+
+
 def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
     """Extract helper."""
     log = logging.getLogger("kb.extract")
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key or not requests or not images_b64:
         log.info("Vision skip: OPENROUTER_API_KEY, requests or images missing")
+        return ""
+    if _vision_block_active():
+        log.info("Vision skip: OpenRouter circuit open (%s)", context_label)
         return ""
     model = os.environ.get("VISION_MODEL") or os.environ.get(
         "VISION_FALLBACK_MODEL", "google/gemini-2.5-flash"
@@ -183,6 +209,7 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
                 "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json",
                 "HTTP-Referer": "https://github.com/knowledge-bot",
+                "X-Title": "obsidian-agent",
             },
             json_payload=payload,
             timeout=knowledge_vision_api_timeout_sec(),
@@ -199,11 +226,15 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
             return (text or "").strip()
         from knowledge_bot.services.api_billing_alerts import send_billing_alert_if_needed
 
-        send_billing_alert_if_needed("OpenRouter (Vision)", r.status_code, r.text or "")
+        body = r.text or ""
+        send_billing_alert_if_needed("OpenRouter (Vision)", r.status_code, body)
         if r.status_code == 429:
             log.warning("Vision API 429 (rate limit after retry) — stopping batch")
             raise VisionRateLimitError("OpenRouter Vision rate limit (429)")
-        log.warning("Vision API %s: %s", r.status_code, (r.text or "")[:200])
+        # Datacenter / policy blocks (common on VPS): trip circuit so Mac reprocess remains source of vision.
+        if r.status_code == 403 and "security policy" in body.lower():
+            _trip_vision_block(body)
+        log.warning("Vision API %s: %s", r.status_code, body[:200])
         return ""
     except VisionRateLimitError:
         raise
