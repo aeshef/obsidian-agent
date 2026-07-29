@@ -297,6 +297,88 @@ def test_pick_host_domain_unified(monkeypatch):
     assert out == "unified"
 
 
+def test_pick_host_domain_pinned_finance_escalates_to_unified(monkeypatch):
+    """Pinned finance UI must not block cross-domain unified answers."""
+    from shared.telegram.host import agent as host_agent
+    from shared.telegram.host.constants import DOMAIN_UNIFIED
+
+    class _App:
+        def has_domain(self, name: str) -> bool:
+            return name in ("finance", "planning")
+
+        def domains(self) -> list[str]:
+            return ["finance", "planning"]
+
+    async def _fake(text, **kwargs):
+        assert kwargs.get("ui_mode") == "finance"
+        return "unified"
+
+    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
+    out = asyncio.run(
+        host_agent.pick_host_domain(
+            "сколько тратил на еду в дни когда больше всего задач закрыто",
+            "finance",
+            "finance",
+            _App(),
+            chat_id=1,
+        )
+    )
+    assert out == DOMAIN_UNIFIED
+
+
+def test_pick_host_domain_pinned_finance_keeps_finance_for_money_only(monkeypatch):
+    from shared.telegram.host import agent as host_agent
+
+    class _App:
+        def has_domain(self, name: str) -> bool:
+            return name in ("finance", "planning")
+
+        def domains(self) -> list[str]:
+            return ["finance", "planning"]
+
+    async def _fake(text, **kwargs):
+        return "planning"  # would-be misroute; pin wins for single-domain picks
+
+    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
+    out = asyncio.run(
+        host_agent.pick_host_domain(
+            "сколько потратил на еду вчера",
+            "finance",
+            "finance",
+            _App(),
+            chat_id=1,
+        )
+    )
+    assert out == "finance"
+
+
+def test_pick_host_domain_escalates_finance_to_unified_on_cross_signals(monkeypatch):
+    from shared.telegram.host import agent as host_agent
+    from shared.telegram.host.constants import DOMAIN_UNIFIED
+
+    class _App:
+        def has_domain(self, name: str) -> bool:
+            return name in ("finance", "planning")
+
+        def domains(self) -> list[str]:
+            return ["finance", "planning"]
+
+    async def _fake(text, **kwargs):
+        return "finance"  # classic under-route
+
+    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
+    out = asyncio.run(
+        host_agent.pick_host_domain(
+            "сколько я тратил на еду в дни когда у меня больше всего задач закрыто",
+            "auto",
+            None,
+            _App(),
+            chat_id=1,
+        )
+    )
+    assert out == DOMAIN_UNIFIED
+
+
 def test_classify_host_domain_unified_in_allowed(monkeypatch):
     from shared.agent import llm_classify
 
@@ -312,6 +394,18 @@ def test_classify_host_domain_unified_in_allowed(monkeypatch):
         )
     )
     assert out == "unified"
+
+
+def test_host_domain_router_prompt_mentions_unified():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    example = (root / "config/agent/prompts/host_domain_router.example.txt").read_text(
+        encoding="utf-8"
+    )
+    assert "unified" in example
+    assert "not mutually exclusive" in example.lower()
+    assert "food" in example.lower() or "spend" in example.lower()
 
 
 def test_global_insights_in_all_domains(tmp_path, monkeypatch):

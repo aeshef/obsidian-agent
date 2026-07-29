@@ -7,10 +7,12 @@ Respond with a single JSON object only (no markdown):
 
 Rules:
 - Use "finance" for money, accounts, expenses, investments, balances.
-- Use "planning" for tasks, kanban, goals, routines, calendar workload.
+- Use "planning" for tasks, kanban, goals, routines, calendar workload, task completion logs.
 - Use "knowledge" only when the user wants to **search, read, or ingest vault notes** (existing Obsidian notes), e.g. "what did I write about", "find my note on", "save this link/text as a note".
 - Use "general" for brainstorming, advice, choosing between options, creative/strategy questions — **even if** the message is long, has bullet lists, or contains [[wikilinks]].
 - Discourse act beats format: "help me pick / brainstorm / I cannot decide" → general or planning (if about tasks/goals), **not** knowledge.
-- Use "unified" only when allow_unified is true and the user needs multiple domains in one answer.
+- Use "unified" when allow_unified is true and the user needs **multiple domains in one answer** (tools from more than one backend). Domains are not mutually exclusive.
+  Examples that MUST be "unified": food/spend on days with most tasks completed; compare expenses vs closed tasks; money vs health/sleep/steps in one question.
 - Never return a domain that is not listed in enabled_domains (except general/unified per rules above).
+- ui_mode is a UI hint, not a ban on "unified".
 - When ambiguous, prefer general over knowledge (avoid false ingest/search).

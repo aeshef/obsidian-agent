@@ -55,9 +55,13 @@ _PLANNING_ROUTER_LINES: tuple[tuple[str, str], ...] = (
 )
 
 _HOST_DOMAIN_LINES: tuple[tuple[str, str], ...] = (
-    ("finance", "Route to finance when message is about money or accounts."),
-    ("planning", "Route to planning for tasks, kanban, goals, routines."),
+    ("finance", "Route to finance when message is about money or accounts only."),
+    ("planning", "Route to planning for tasks, kanban, goals, routines, completion logs."),
     ("knowledge", "Route to knowledge for notes and documented facts."),
+    (
+        "finance",
+        "When money AND tasks/health/calendar are needed in one answer and allow_unified: use unified.",
+    ),
 )
 
 _CONTEXT_LINES: tuple[tuple[str, str], ...] = (("mac", "Mac focus snapshots inform planning context."),)

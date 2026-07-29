@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from shared.agent.app import AgentApp, build_app
 from shared.agent.llm_classify import (
@@ -14,6 +15,23 @@ from shared.telegram.host.constants import DOMAIN_GENERAL, DOMAIN_IDS, DOMAIN_UN
 log = logging.getLogger("shared.telegram.host.agent")
 
 _host_planning_bot: object | None = None
+
+# Safety net when the domain router under-selects a single domain for join questions.
+_CROSS_MONEY_RE = re.compile(
+    r"(трат|потрат|расход|еда|ед[еуы]|деньг|бюджет|баланс|finance|spend|food)",
+    re.IGNORECASE,
+)
+_CROSS_PLANNING_RE = re.compile(
+    r"(задач|закрыт|канбан|продуктив|completion|task|health|шаг|сон|календар)",
+    re.IGNORECASE,
+)
+
+
+def _looks_finance_planning_cross(text: str) -> bool:
+    t = (text or "").strip()
+    if not t:
+        return False
+    return bool(_CROSS_MONEY_RE.search(t) and _CROSS_PLANNING_RE.search(t))
 
 
 def get_host_planning_bot():
@@ -76,28 +94,52 @@ async def pick_host_domain(
     *,
     chat_id: int | None = None,
 ) -> str:
-    if fixed and agent_app.has_domain(fixed):
-        return fixed
-    if ui_mode in DOMAIN_IDS and agent_app.has_domain(ui_mode):
-        return ui_mode
-
     enabled = [d for d in ("finance", "planning", "knowledge") if agent_app.has_domain(d)]
     if not enabled:
         raise RuntimeError("pick_host_domain: no domain adapters registered")
 
+    prefer: str | None = None
+    if fixed and agent_app.has_domain(fixed):
+        prefer = fixed
+    elif ui_mode in DOMAIN_IDS and agent_app.has_domain(ui_mode):
+        prefer = ui_mode
+
+    # Single-domain install: pin/UI mode is decisive.
+    if prefer and len(enabled) < 2:
+        return prefer
+
+    # Multi-domain: always classify. A pinned UI mode is a hint (passed as ui_mode),
+    # but "unified" must escape the pin — otherwise food×tasks stuck in finance-only.
+    hint = prefer or ui_mode
     dom_name = await classify_host_domain_llm(
         text,
         enabled=enabled,
         chat_id=chat_id,
-        ui_mode=ui_mode,
+        ui_mode=hint,
     )
 
     if dom_name == "general":
         return DOMAIN_GENERAL
     if dom_name == "unified":
-        if len(enabled) < 2:
-            raise LLMClassificationError("host_domain unified but fewer than 2 adapters enabled")
         return DOMAIN_UNIFIED
+
+    # Router sometimes picks finance-only for "еда × закрытые задачи" — escalate.
+    if (
+        dom_name in ("finance", "planning")
+        and "finance" in enabled
+        and "planning" in enabled
+        and _looks_finance_planning_cross(text)
+    ):
+        log.info(
+            "host domain escalate %s → unified (cross finance+planning) text=%.50s",
+            dom_name,
+            text,
+        )
+        return DOMAIN_UNIFIED
+
+    if prefer and dom_name != prefer:
+        # Stay in the pinned single domain unless escalated to unified above.
+        return prefer
 
     if not agent_app.has_domain(dom_name):
         raise LLMClassificationError(
