@@ -87,13 +87,46 @@ else
 fi
 _rsync_folder "${VAULT_FOLDER_ROUTINES}"
 
+# iCloud destinations often return "Resource deadlock avoided" on direct cp.
+# Copy via /tmp + mv, with retries; never fail the whole export for one config file.
+_safe_copy_to_icloud() {
+  local src="$1" dst="$2"
+  local tries=0 tmp parent
+  parent="$(dirname "$dst")"
+  mkdir -p "$parent"
+  while (( tries < 3 )); do
+    tmp="$(mktemp "${TMPDIR:-/tmp}/obs-mobile-copy.XXXXXX")"
+    if cp "$src" "$tmp" 2>/dev/null && mv -f "$tmp" "$dst" 2>/dev/null; then
+      return 0
+    fi
+    rm -f "$tmp" 2>/dev/null || true
+    if rsync -a "$src" "$dst" 2>/dev/null; then
+      return 0
+    fi
+    tries=$((tries + 1))
+    sleep 1
+  done
+  echo "WARN: skip locked/unavailable file: $dst" >&2
+  return 0
+}
+
 mkdir -p "$MOBILE/.obsidian/plugins"
 for f in app.json appearance.json community-plugins.json core-plugins.json templates.json daily-notes.json; do
-  [[ -f "$SRC/.obsidian/$f" ]] && cp "$SRC/.obsidian/$f" "$MOBILE/.obsidian/$f"
+  if [[ -f "$SRC/.obsidian/$f" ]]; then
+    _safe_copy_to_icloud "$SRC/.obsidian/$f" "$MOBILE/.obsidian/$f"
+  fi
 done
 for p in dataview templater-obsidian obsidian-kanban; do
-  [[ -d "$SRC/.obsidian/plugins/$p" ]] && rsync -a "$SRC/.obsidian/plugins/$p/" "$MOBILE/.obsidian/plugins/$p/"
+  if [[ -d "$SRC/.obsidian/plugins/$p" ]]; then
+    mkdir -p "$MOBILE/.obsidian/plugins/$p"
+    rsync -a --exclude='.DS_Store' "$SRC/.obsidian/plugins/$p/" "$MOBILE/.obsidian/plugins/$p/" \
+      || echo "WARN: plugin sync failed: $p" >&2
+  fi
 done
-[[ -d "$SRC/.obsidian/snippets" ]] && rsync -a "$SRC/.obsidian/snippets/" "$MOBILE/.obsidian/snippets/"
+if [[ -d "$SRC/.obsidian/snippets" ]]; then
+  mkdir -p "$MOBILE/.obsidian/snippets"
+  rsync -a --exclude='.DS_Store' "$SRC/.obsidian/snippets/" "$MOBILE/.obsidian/snippets/" \
+    || echo "WARN: snippets sync failed" >&2
+fi
 
-echo "OK: $(du -sh "$MOBILE" | awk '{print $1}') → $MOBILE"
+echo "OK: $(du -sh "$MOBILE" | awk '{print $1}') -> $MOBILE"

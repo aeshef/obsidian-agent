@@ -822,9 +822,11 @@ touch \
   "$PLANNING_BOT/logs/context_sync.log" \
   2>/dev/null || true
 # Log rotation policy: keep recurring LaunchAgent/cron logs bounded without a separate daemon.
+common_scrub_ssh_noise "/tmp/obsidian-sync.err" || true
+common_scrub_ssh_noise "$DEBUG_LOG" || true
 common_rotate_log "$DEBUG_LOG" 2000 1000
 common_rotate_log "/tmp/obsidian-sync.out" 8000 3000
-common_rotate_log "/tmp/obsidian-sync.err" 8000 3000
+common_rotate_log "/tmp/obsidian-sync.err" 4000 1500
 common_rotate_log "/tmp/finance-dashboard-sync.log" 3000 1200
 common_rotate_log "/tmp/calendar-obsidian.out" 12000 3000
 common_rotate_log "/tmp/calendar-obsidian.err" 2000 800
@@ -1301,8 +1303,14 @@ if cap_module_enabled PLANNING && [ -z "${SKIP_MOBILE_VAULT:-}" ] && [ -x "$MOBI
   rm -f "$_mobile_tmp"
   if [ "$_mobile_rc" -eq 0 ]; then
     echo "$NOW_ISO" > "$SYNC_DIR/mobile_vault_last_ok.txt" 2>/dev/null || true
+    rm -f "$SYNC_DIR/mobile_vault_last_fail.txt" "$SYNC_DIR/mobile_vault_consecutive_fails.txt" 2>/dev/null || true
   else
     echo "$(date '+%Y-%m-%dT%H:%M:%S') export_mobile_vault failed rc=${_mobile_rc}" >> "$MOBILE_EXPORT_LOG" 2>/dev/null || true
+    echo "$NOW_ISO" > "$SYNC_DIR/mobile_vault_last_fail.txt" 2>/dev/null || true
+    _mf="$(tr -d '\n' <"$SYNC_DIR/mobile_vault_consecutive_fails.txt" 2>/dev/null || echo 0)"
+    case "$_mf" in ''|*[!0-9]*) _mf=0 ;; esac
+    echo "$((_mf + 1))" > "$SYNC_DIR/mobile_vault_consecutive_fails.txt" 2>/dev/null || true
+    unset _mf
     echo "$(sh_msgf scripts.obsidian_sync.step_5e_fail '{"rc":"'${_mobile_rc}'","log":"'$MOBILE_EXPORT_LOG'"}')" >&2
   fi
   unset _mobile_rc

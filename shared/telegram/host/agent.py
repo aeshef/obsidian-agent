@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import logging
 import re
+from functools import lru_cache
 
 from shared.agent.app import AgentApp, build_app
+from shared.agent.config import load_routing_config
 from shared.agent.llm_classify import (
     LLMClassificationError,
     classify_host_domain_llm,
@@ -16,22 +18,29 @@ log = logging.getLogger("shared.telegram.host.agent")
 
 _host_planning_bot: object | None = None
 
-# Safety net when the domain router under-selects a single domain for join questions.
-_CROSS_MONEY_RE = re.compile(
-    r"(трат|потрат|расход|еда|ед[еуы]|деньг|бюджет|баланс|finance|spend|food)",
-    re.IGNORECASE,
-)
-_CROSS_PLANNING_RE = re.compile(
-    r"(задач|закрыт|канбан|продуктив|completion|task|health|шаг|сон|календар)",
-    re.IGNORECASE,
-)
+# English-only fallbacks when routing.yaml omits cross_domain_escalation patterns.
+_DEFAULT_FINANCE_PATTERN = r"(finance|spend|food|budget|balance|expense)"
+_DEFAULT_PLANNING_PATTERN = r"(task|kanban|completion|health|sleep|calendar|productivity)"
+
+
+@lru_cache(maxsize=1)
+def _cross_domain_patterns() -> tuple[re.Pattern[str], re.Pattern[str]]:
+    host = load_routing_config().get("host") or {}
+    esc = host.get("cross_domain_escalation") or {}
+    finance = str(esc.get("finance_pattern") or "").strip() or _DEFAULT_FINANCE_PATTERN
+    planning = str(esc.get("planning_pattern") or "").strip() or _DEFAULT_PLANNING_PATTERN
+    return (
+        re.compile(finance, re.IGNORECASE),
+        re.compile(planning, re.IGNORECASE),
+    )
 
 
 def _looks_finance_planning_cross(text: str) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    return bool(_CROSS_MONEY_RE.search(t) and _CROSS_PLANNING_RE.search(t))
+    money_re, planning_re = _cross_domain_patterns()
+    return bool(money_re.search(t) and planning_re.search(t))
 
 
 def get_host_planning_bot():
@@ -123,7 +132,7 @@ async def pick_host_domain(
     if dom_name == "unified":
         return DOMAIN_UNIFIED
 
-    # Router sometimes picks finance-only for "еда × закрытые задачи" — escalate.
+    # Router sometimes under-selects a single domain for join questions — escalate.
     if (
         dom_name in ("finance", "planning")
         and "finance" in enabled
@@ -131,7 +140,7 @@ async def pick_host_domain(
         and _looks_finance_planning_cross(text)
     ):
         log.info(
-            "host domain escalate %s → unified (cross finance+planning) text=%.50s",
+            "host domain escalate %s -> unified (cross finance+planning) text=%.50s",
             dom_name,
             text,
         )

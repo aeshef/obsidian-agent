@@ -7,17 +7,17 @@ MONOREPO="$(cd "$ROOT/.." && pwd)"
 source "$MONOREPO/scripts/lib/bootstrap_python.sh"
 bootstrap_python finance_bot
 
-if [ -z "$TELEGRAM_FINANCE_BOT_TOKEN" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo "❌ Ошибка: TELEGRAM_FINANCE_BOT_TOKEN или TELEGRAM_BOT_TOKEN не установлен"
+if [ -z "$TELEGRAM_FINANCE_BOT_TOKEN" ] && [ -z "$TELEGRAM_UNIFIED_BOT_TOKEN" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+    echo "Error: TELEGRAM_FINANCE_BOT_TOKEN, TELEGRAM_UNIFIED_BOT_TOKEN, or TELEGRAM_BOT_TOKEN required"
     exit 1
 fi
 
 if [ -z "$DEEPSEEK_API_KEY" ] && [ -z "$DEEPSEEK_API_TOKEN" ]; then
-    echo "❌ Ошибка: DEEPSEEK_API_KEY (или DEEPSEEK_API_TOKEN) не установлен"
+    echo "Error: DEEPSEEK_API_KEY (or DEEPSEEK_API_TOKEN) required"
     exit 1
 fi
 
-echo "🚀 Запуск finance_bot..."
+echo "Starting finance host (unified bot with finance token preference)..."
 echo ""
 
 mkdir -p logs
