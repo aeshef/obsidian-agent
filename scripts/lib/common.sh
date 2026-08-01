@@ -202,10 +202,27 @@ common_run_python_script() {
     cat "$script" | "$py" -u - "$@"
 }
 
+common_scrub_ssh_noise() {
+    # Drop known noisy OpenSSH banners that drown real sync errors.
+    local file="$1"
+    [ -n "$file" ] && [ -f "$file" ] || return 0
+    local tmp
+    tmp="$(mktemp "${TMPDIR:-/tmp}/obsidian-agent-log.XXXXXX")" || return 0
+    if grep -Ev 'Permanently added |post-quantum key exchange algorithm' "$file" >"$tmp" 2>/dev/null; then
+        mv "$tmp" "$file" || rm -f "$tmp"
+    else
+        rm -f "$tmp"
+    fi
+}
+
 common_rotate_log() {
     local file="$1" max_lines="${2:-5000}" keep_lines="${3:-2000}"
     [ -n "$file" ] && [ -f "$file" ] || return 0
     local line_count tmp
+    # Scrub SSH noise before counting (err logs accumulate thousands of banners).
+    case "$file" in
+        *.err|*sync*.log|*obsidian-sync*) common_scrub_ssh_noise "$file" || true ;;
+    esac
     line_count="$(wc -l < "$file" 2>/dev/null || echo 0)"
     if [ "${line_count:-0}" -le "$max_lines" ]; then
         return 0

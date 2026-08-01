@@ -32,7 +32,7 @@ async def download_voice_file(bot: Bot, file_id: str, dest: Path) -> Path:
 
 async def transcribe_voice_message(message: Message) -> str:
     """ASR for voice message (non-blocking polling — CPU in thread pool)."""
-    from bot.services.asr import transcribe_audio
+    from shared.asr import transcribe_audio
 
     voice = message.voice
     if not voice or not message.bot:

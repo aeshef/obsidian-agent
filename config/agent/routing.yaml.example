@@ -3,6 +3,11 @@
 
 host:
   general_domain: planning
+  # Safety net when the domain router under-selects a single domain for join questions
+  # (e.g. food spend × closed tasks). Locale strings belong here, not in Python.
+  cross_domain_escalation:
+    finance_pattern: '(трат|потрат|расход|еда|ед[еуы]|деньг|бюджет|баланс|finance|spend|food)'
+    planning_pattern: '(задач|закрыт|канбан|продуктив|completion|task|health|шаг|сон|календар)'
 
 agent:
   # First agent loop iteration: tool_choice=required for these domains (when tools exist).

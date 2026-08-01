@@ -87,6 +87,62 @@ def test_tool_handler_runs():
     assert out == "days=7"
 
 
+def test_run_agent_unknown_tool_call_does_not_crash(monkeypatch):
+    """LLM may hallucinate a tool name; loop must return an error tool result, not KeyError."""
+    from shared.agent import core as agent_core
+    from shared.llm import LLMResponse
+
+    reg = ToolRegistry()
+    reg.register(sample_balance)
+    ctx = AgentContext(user_id=1, domain="finance", question="q", system_prompt="s")
+
+    async def _select(*args, **kwargs):
+        return ["sample_balance"]
+
+    monkeypatch.setattr(agent_core, "select_tools", _select)
+
+    calls = {"n": 0}
+
+    class _Router:
+        async def chat_with_tools(self, *args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return LLMResponse(
+                    text="",
+                    tool_calls=[
+                        {
+                            "id": "call_ghost",
+                            "type": "function",
+                            "function": {"name": "ghost_tool", "arguments": "{}"},
+                        }
+                    ],
+                    raw={},
+                )
+            return LLMResponse(text="ok after unknown tool", tool_calls=[], raw={})
+
+    out = asyncio.run(agent_core.run_agent(ctx, reg, _Router(), max_iters=3))
+    assert "ok after unknown tool" in out
+
+
+def test_execute_tool_unknown_name_returns_message():
+    from shared.agent.core import execute_tool
+    from shared.agent.types import ToolCall
+
+    reg = ToolRegistry()
+    reg.register(sample_balance)
+    ctx = AgentContext(user_id=1, domain="finance", question="q", system_prompt="s")
+    tr = asyncio.run(
+        execute_tool(
+            ToolCall(id="1", name="ghost_tool", arguments={}),
+            reg,
+            ctx,
+            allowed_names={"sample_balance"},
+        )
+    )
+    assert "ghost_tool" in tr.content
+    assert "sample_balance" in tr.content or "not" in tr.content.lower()
+
+
 def test_insights_store_threshold(tmp_path):
     from shared.memory.insights import InsightsStore
 

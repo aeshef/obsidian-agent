@@ -28,7 +28,25 @@ def resolve_host_token(
     primary_env: str = "TELEGRAM_UNIFIED_BOT_TOKEN",
     fallback_env: str = "TELEGRAM_BOT_TOKEN",
 ) -> str:
-    return (os.environ.get(primary_env) or os.environ.get(fallback_env) or "").strip()
+    """Resolve Telegram token with legacy domain-token fallbacks."""
+    candidates = (
+        primary_env,
+        fallback_env,
+        "TELEGRAM_UNIFIED_BOT_TOKEN",
+        "TELEGRAM_PLANNING_BOT_TOKEN",
+        "TELEGRAM_FINANCE_BOT_TOKEN",
+        "TELEGRAM_KNOWLEDGE_BOT_TOKEN",
+        "TELEGRAM_BOT_TOKEN",
+    )
+    seen: set[str] = set()
+    for key in candidates:
+        if key in seen:
+            continue
+        seen.add(key)
+        val = (os.environ.get(key) or "").strip()
+        if val:
+            return val
+    return ""
 
 
 async def run_host_bot(
@@ -93,8 +111,8 @@ async def run_host_bot(
                         from knowledge_bot.app.state import activate_bulk_ingest
 
                         activate_bulk_ingest(event.from_user.id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug("bulk ingest restore skipped: %s", e)
             if self._planning is not None and getattr(event, "chat", None):
                 try:
                     from planning_bot.app.chatid_store import maybe_persist_chat_id
@@ -109,8 +127,8 @@ async def run_host_bot(
                             event.chat.id,
                             current=self._planning.chat_id,
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug("planning chat_id persist skipped: %s", e)
             return await handler(event, data)
 
     dp.update.middleware(_Inject(agent_app, planning_bot))

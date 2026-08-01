@@ -84,25 +84,27 @@ def goal_context_key_aliases() -> dict[str, str]:
 
 @lru_cache(maxsize=1)
 def load_routing_config() -> dict:
-    return load_yaml(
-        agent_config_dir() / "routing.yaml",
-        default={
-            "domain_rules": {},
-            "default_intents": {
-                "finance": "add_transaction",
-                "planning": "add_task",
-                "knowledge": "new_note",
-            },
-            "agent": {
-                "tools_first_iter_domains": [
-                    "finance",
-                    "planning",
-                    "knowledge",
-                    "unified",
-                ],
-            },
+    from shared.yaml_config import load_merged_config
+
+    merged = load_merged_config(str(agent_config_dir()), "routing")
+    if merged:
+        return merged
+    return {
+        "domain_rules": {},
+        "default_intents": {
+            "finance": "add_transaction",
+            "planning": "add_task",
+            "knowledge": "new_note",
         },
-    )
+        "agent": {
+            "tools_first_iter_domains": [
+                "finance",
+                "planning",
+                "knowledge",
+                "unified",
+            ],
+        },
+    }
 
 
 def tools_first_iter_domains() -> frozenset[str]:

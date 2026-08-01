@@ -231,7 +231,9 @@ async def run_agent(
             parallel_batch = []
 
         for tc in calls:
-            if registry.get(tc.name).serial:
+            # Unknown names must not KeyError before execute_tool's allowlist/error path.
+            is_serial = registry.has(tc.name) and registry.get(tc.name).serial
+            if is_serial:
                 await _flush_parallel()
                 results.append(await execute_tool(tc, registry, ctx, allowed_names=allowed))
             else:

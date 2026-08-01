@@ -12,12 +12,12 @@ if [ -z "$DEEPSEEK_API_TOKEN" ] && [ -z "$DEEPSEEK_API_KEY" ]; then
     exit 1
 fi
 
-if [ -z "$TELEGRAM_PLANNING_BOT_TOKEN" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
-    echo "❌ Ошибка: TELEGRAM_PLANNING_BOT_TOKEN или TELEGRAM_BOT_TOKEN не установлен"
+if [ -z "$TELEGRAM_PLANNING_BOT_TOKEN" ] && [ -z "$TELEGRAM_UNIFIED_BOT_TOKEN" ] && [ -z "$TELEGRAM_BOT_TOKEN" ]; then
+    echo "Error: TELEGRAM_PLANNING_BOT_TOKEN, TELEGRAM_UNIFIED_BOT_TOKEN, or TELEGRAM_BOT_TOKEN required"
     exit 1
 fi
 
-echo "🚀 Запуск planning_bot..."
+echo "Starting planning host (unified bot with planning token preference)..."
 echo ""
 
 if [ -z "$VAULT_PATH" ]; then

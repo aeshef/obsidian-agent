@@ -40,10 +40,17 @@ fi
 unset _ref _log _lm _pm
 finance="$(_read "$SYNC_DIR/finance_dashboard_last_ok.txt")"
 mobile="$(_read "$SYNC_DIR/mobile_vault_last_ok.txt")"
+mobile_fail="$(_read "$SYNC_DIR/mobile_vault_last_fail.txt")"
+mobile_fails="$(_read "$SYNC_DIR/mobile_vault_consecutive_fails.txt")"
 maint="$(_read "$SYNC_DIR/daily_vault_write_maintenance_date.txt")"
 
 mobile_stale=""
-if [ "$mobile" != "—" ] && [ -n "$mobile" ]; then
+if [ "$mobile_fails" != "—" ] && [ -n "$mobile_fails" ] && [ "${mobile_fails:-0}" -gt 0 ] 2>/dev/null; then
+  mobile_stale=" FAIL×${mobile_fails}"
+  if [ "$mobile_fail" != "—" ] && [ -n "$mobile_fail" ]; then
+    mobile_stale="$mobile_stale (last=${mobile_fail})"
+  fi
+elif [ "$mobile" != "—" ] && [ -n "$mobile" ]; then
   _mobile_epoch="$(date -j -f '%Y-%m-%dT%H:%M:%S' "${mobile%%.*}" '+%s' 2>/dev/null || echo 0)"
   _now_epoch="$(date '+%s')"
   if [ "$_mobile_epoch" -gt 0 ] && [ $((_now_epoch - _mobile_epoch)) -gt 43200 ]; then

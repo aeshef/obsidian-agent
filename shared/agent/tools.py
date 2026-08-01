@@ -95,6 +95,9 @@ class ToolRegistry:
         for fn in fns:
             self.register(fn)
 
+    def has(self, name: str) -> bool:
+        return name in self._tools
+
     def get(self, name: str) -> Tool:
         if name not in self._tools:
             raise KeyError(name)

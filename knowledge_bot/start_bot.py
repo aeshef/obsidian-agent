@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""English docstring omitted (see domain_messages.yaml)."""
-import asyncio
+"""Legacy wrapper: prefer ``python -m knowledge_bot``."""
 import sys
 from pathlib import Path
 
@@ -13,4 +12,4 @@ if str(package_parent) not in sys.path:
 from knowledge_bot.app.bot import main
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
