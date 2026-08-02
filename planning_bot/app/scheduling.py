@@ -30,6 +30,7 @@ def start_scheduler(planning, bot: Bot) -> None:
         checkin_schedule,
         replace_passive_evening_reminders,
     )
+    from shared.telegram import push_policy as pp
 
     global _scheduler
     tz = pytz.timezone(TIMEZONE)
@@ -49,8 +50,31 @@ def start_scheduler(planning, bot: Bot) -> None:
             args=[bot],
             id='daily_checkin_prompt',
         )
+    brief_sources = (
+        planning_routines_enabled()
+        or planning_stuck_alerts_enabled()
+        or planning_deadlines_alerts_enabled()
+        or planning_goals_alerts_enabled()
+    )
+    if pp.morning_brief_enabled() and brief_sources:
+        _scheduler.add_job(
+            planning.send_morning_brief,
+            CronTrigger(
+                hour=pp.morning_brief_hour(),
+                minute=pp.morning_brief_minute(),
+                timezone=tz,
+            ),
+            args=[bot],
+            id='morning_brief',
+        )
+        logger.info(
+            "morning brief scheduled at %02d:%02d %s",
+            pp.morning_brief_hour(),
+            pp.morning_brief_minute(),
+            TIMEZONE,
+        )
     if planning_routines_enabled():
-        for hour in (8, 9, 10):
+        for hour in pp.separate_morning_routine_hours():
             _scheduler.add_job(
                 planning.send_morning_routine_reminder,
                 CronTrigger(hour=hour, minute=0, timezone=tz),
@@ -86,21 +110,21 @@ def start_scheduler(planning, bot: Bot) -> None:
             CronTrigger(hour=0, minute=30, timezone=tz),
             id='daily_add_ids_to_tasks',
         )
-    if planning_goals_alerts_enabled():
+    if planning_goals_alerts_enabled() and pp.separate_goals_alerts_enabled():
         _scheduler.add_job(
             planning.send_goals_alerts,
             CronTrigger(hour=7, minute=0, timezone=tz),
             args=[bot],
             id='daily_goals_alerts',
         )
-    if planning_deadlines_alerts_enabled():
+    if planning_deadlines_alerts_enabled() and pp.separate_deadlines_alerts_enabled():
         _scheduler.add_job(
             planning.send_deadlines_alerts,
             CronTrigger(hour=6, minute=0, timezone=tz),
             args=[bot],
             id='daily_deadlines_alerts',
         )
-    if planning_stuck_alerts_enabled():
+    if planning_stuck_alerts_enabled() and pp.separate_stuck_alerts_enabled():
         _scheduler.add_job(
             planning.send_stuck_alerts,
             CronTrigger(hour=8, minute=0, timezone=tz),

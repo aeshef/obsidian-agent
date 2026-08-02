@@ -60,6 +60,7 @@ class PlanningBot:
     show_routines_statistics = menus.show_routines_statistics
     show_pending_routines = menus.show_pending_routines
     show_goals_progress = menus.show_goals_progress
+    send_morning_brief = menus.send_morning_brief
     send_morning_routine_reminder = menus.send_morning_routine_reminder
     send_evening_routine_reminder = menus.send_evening_routine_reminder
     send_daily_checkin_prompt = menus.send_daily_checkin_prompt

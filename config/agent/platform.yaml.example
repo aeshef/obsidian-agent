@@ -107,6 +107,25 @@ telegram:
   media_album: 1
   media_album_max: 10
 
+# Scheduled Telegram pushes — fewer messages, one visual language, sane times.
+push_policy:
+  morning_brief:
+    enabled: 1
+    hour: 8
+    minute: 15
+    include:
+      routines: 1
+      stuck: 1
+      deadlines: 1
+      goals: 1
+  # Empty = no 08/09/10 routine spam when morning_brief is on.
+  routines_morning_hours: []
+  finance_txn_reminder:
+    enabled: 1
+    hour: 21
+    minute: 0
+    only_if_no_txn_today: 1
+
 knowledge_ingest:
   pending_limit: 100
   media_group_cleanup_delay_sec: 60

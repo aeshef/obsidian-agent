@@ -71,3 +71,28 @@ def platform_float(
     default: float = 0.0,
 ) -> float:
     return _coerce_float(platform_value(section, key, env=env, default=default), default)
+
+
+def platform_bool(
+    section: str,
+    key: str,
+    *,
+    env: str | None = None,
+    default: bool = False,
+) -> bool:
+    raw = platform_value(section, key, env=env, default=default)
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, (int, float)):
+        return bool(int(raw))
+    s = str(raw or "").strip().lower()
+    if s in ("1", "true", "yes", "on"):
+        return True
+    if s in ("0", "false", "no", "off", ""):
+        return False
+    return default
+
+
+def platform_section(section: str) -> dict:
+    block = load_platform_config().get(section) or {}
+    return block if isinstance(block, dict) else {}

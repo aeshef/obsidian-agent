@@ -1,8 +1,11 @@
-"""Config-driven domain text dispatch (finance / planning / knowledge menus)."""
+"""Config-driven domain text dispatch — reply-menu buttons only.
+
+Free text never lands here: the host routes it to the unified agent so pinned
+modes keep quick-action keyboards without trapping questions in a domain silo.
+"""
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -23,23 +26,25 @@ from shared.telegram.host.menus import (
 
 log = logging.getLogger("shared.telegram.host.domain_dispatch")
 
-_MENU_DETECTORS = {
-    "finance": is_finance_menu,
-    "planning": is_planning_menu,
-    "knowledge": is_knowledge_menu,
-}
-
 
 def _menu_matches(domain: str, text: str) -> bool:
-    key = domain_menu_detection_key(domain)
-    detector = _MENU_DETECTORS.get(key) or _MENU_DETECTORS.get(domain)
-    return bool(detector and detector(text))
+    # Resolve detectors at call time so tests can monkeypatch menus.*.
+    key = domain_menu_detection_key(domain) or domain
+    if key == "finance":
+        return is_finance_menu(text)
+    if key == "planning":
+        return is_planning_menu(text)
+    if key == "knowledge":
+        return is_knowledge_menu(text)
+    return False
 
 
-def _should_handle(domain: str, ui_mode: str, text: str) -> bool:
+def _should_handle_menu(domain: str, ui_mode: str, text: str) -> bool:
+    if not _menu_matches(domain, text):
+        return False
     if ui_mode == domain:
         return True
-    if ui_mode == UI_MODE_AUTO and auto_menu_match_enabled(domain) and _menu_matches(domain, text):
+    if ui_mode == UI_MODE_AUTO and auto_menu_match_enabled(domain):
         return True
     return False
 
@@ -53,16 +58,17 @@ async def try_dispatch_domain_text(
     *,
     planning=None,
 ) -> bool:
-    """Route pinned-domain or reply-menu text. True = handled (caller should return)."""
+    """Route reply-menu taps only. True = handled (caller should return)."""
     for domain in domain_routing_order():
         if not agent_app.has_domain(domain):
             continue
-        if not _should_handle(domain, ui_mode, text):
+        if not _should_handle_menu(domain, ui_mode, text):
             continue
         handler = DOMAIN_HANDLERS.get(domain)
         if handler is None:
             log.warning("domain_dispatch: no handler for %s", domain)
             return False
+        log.info("domain_dispatch menu domain=%s ui_mode=%s", domain, ui_mode)
         return await handler(
             message, state, agent_app, text, ui_mode, planning
         )

@@ -1,4 +1,4 @@
-"""Auto-mode free text/voice dispatch (host router + voice wire)."""
+"""Free-text / voice dispatch: one brain (unified agent) + thin action gates."""
 from __future__ import annotations
 
 import logging
@@ -6,14 +6,65 @@ import logging
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from shared.telegram.host.agent import pick_host_domain
 from shared.telegram.host.auto_routing import MessageWithText, auto_handler_for
 from shared.telegram.host.constants import UI_MODE_AUTO
+from shared.telegram.host.keyboards import keyboard_for_mode
+from shared.telegram.agent_delivery import deliver_agent_answer
 
 log = logging.getLogger("shared.telegram.host.auto_dispatch")
 
 # Re-export for callers that build ASR proxies.
-__all__ = ["MessageWithText", "dispatch_auto_free_text"]
+__all__ = ["MessageWithText", "dispatch_auto_free_text", "auto_handler_for"]
+
+
+def _looks_like_txn_candidate(text: str) -> bool:
+    """Cheap prefilter before finance-intent LLM (avoid tax on every question)."""
+    import re
+
+    t = (text or "").strip()
+    if not t or len(t) > 160 or "?" in t:
+        return False
+    return bool(re.search(r"\d", t))
+
+
+async def _try_finance_transaction(
+    message: Message,
+    state: FSMContext,
+    agent_app,
+    text: str,
+) -> bool:
+    """Keep NLU transaction entry — not yet a first-class agent write tool."""
+    if not agent_app.has_domain("finance"):
+        return False
+    if not _looks_like_txn_candidate(text):
+        return False
+    from shared.agent.llm_classify import LLMClassificationError, classify_finance_intent_llm
+
+    try:
+        intent = await classify_finance_intent_llm(text, chat_id=message.chat.id)
+    except LLMClassificationError as e:
+        log.warning("finance txn gate skipped (classify failed): %s", e)
+        return False
+    if intent != "add_transaction":
+        return False
+    from bot.handlers.transactions import _process_transactions
+
+    await _process_transactions(text, message, state)
+    return True
+
+
+async def _try_knowledge_save(message: Message, agent_app, text: str) -> bool:
+    """Bare URL → ingest. Other save phrasing stays with the unified agent."""
+    if not agent_app.has_domain("knowledge"):
+        return False
+    import re
+
+    if not re.match(r"^https?://\S+$", (text or "").strip(), re.IGNORECASE):
+        return False
+    from knowledge_bot.app.handlers.query import handle_message as kb_handle
+
+    await kb_handle(MessageWithText(message, text))
+    return True
 
 
 async def dispatch_auto_free_text(
@@ -22,18 +73,41 @@ async def dispatch_auto_free_text(
     agent_app,
     text: str,
 ) -> None:
-    """Route free text in Auto mode via LLM domain pick → handler registry."""
+    """Pinned or Auto: free text → unified agent (all tools), with action gates.
+
+    Menu buttons are handled earlier by domain_dispatch. Here we only keep
+    thin host actions that are not agent tools yet (txn NLU, knowledge save),
+    then answer with the full unified harness.
+    """
     data = await state.get_data()
     uid = message.from_user.id if message.from_user else message.chat.id
     ui_mode = data.get("ui_mode", UI_MODE_AUTO)
 
-    domain = await pick_host_domain(
-        text,
-        ui_mode,
-        data.get("fixed_domain"),
+    try:
+        from knowledge_bot.app.state import is_bulk_ingest
+
+        if is_bulk_ingest(uid):
+            from knowledge_bot.app.handlers.query import handle_message as kb_handle
+
+            await kb_handle(MessageWithText(message, text))
+            return
+    except Exception:
+        pass
+
+    if await _try_finance_transaction(message, state, agent_app, text):
+        log.info("free text → finance transaction len=%d", len(text))
+        return
+
+    if await _try_knowledge_save(message, agent_app, text):
+        log.info("free text → knowledge save len=%d", len(text))
+        return
+
+    log.info("free text → unified ui_mode=%s len=%d", ui_mode, len(text))
+    await deliver_agent_answer(
+        message.bot,
+        message.chat.id,
         agent_app,
-        chat_id=message.chat.id,
+        text,
+        unified=True,
+        reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
     )
-    log.info("auto dispatch domain=%s len=%d", domain, len(text))
-    handler = auto_handler_for(domain)
-    await handler(message, state, agent_app, text, ui_mode, uid)

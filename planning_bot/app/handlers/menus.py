@@ -129,6 +129,96 @@ async def show_goals_progress(self, message: Message):
         )
 
 
+def _plain_bullet_lines(items: list[str], *, limit: int = 5) -> str:
+    lines = [f"• {item}" for item in items[:limit]]
+    if len(items) > limit:
+        lines.append(pmsg("more_tasks_suffix", count=len(items) - limit).strip())
+    return "\n".join(lines)
+
+
+async def send_morning_brief(self, bot: Bot):
+    """One morning push: routines + stuck (+ optional deadlines/goals) in one style."""
+    from shared.i18n import msg, msgf
+    from shared.telegram.push_format import format_push_sections
+    from shared.telegram.push_policy import morning_brief_includes
+
+    try:
+        if not self.chat_id:
+            logger.warning("Chat ID not set, skip morning brief")
+            return
+
+        sections: list[tuple[str, str]] = []
+
+        if morning_brief_includes("routines", default=True):
+            pending = get_pending_tasks()
+            morning = pending.get("morning") or []
+            if morning:
+                sections.append(
+                    (
+                        msg("push", "section_routines"),
+                        _plain_bullet_lines(morning),
+                    )
+                )
+
+        if morning_brief_includes("stuck", default=True):
+            days = _stuck_task_days()
+            stuck = get_stuck_tasks(self, stuck_days=days)
+            if stuck:
+                body = "\n".join(
+                    f"• {t['title'][:60]} · {t.get('column', '')} · {t['days_stuck']}d"
+                    for t in stuck[:6]
+                )
+                sections.append((msg("push", "section_stuck"), body))
+
+        if morning_brief_includes("deadlines", default=True):
+            missed = self.kanban.get_tasks_with_missed_deadlines()
+            upcoming = self.kanban.get_tasks_with_deadlines(days_ahead=7)
+            if missed or upcoming:
+                lines: list[str] = []
+                for task in (missed or [])[:4]:
+                    lines.append(
+                        msgf(
+                            "push",
+                            "deadline_overdue_item",
+                            title=task.get("title", "")[:50],
+                        )
+                    )
+                for task in (upcoming or [])[:4]:
+                    lines.append(
+                        msgf(
+                            "push",
+                            "deadline_upcoming_item",
+                            title=task.get("title", "")[:50],
+                            deadline=task.get("deadline", ""),
+                        )
+                    )
+                if lines:
+                    sections.append((msg("push", "section_deadlines"), "\n".join(lines)))
+
+        if morning_brief_includes("goals", default=True):
+            current_quarter = self.goals_mapper.get_current_quarter()
+            problematic = self.goals_analyzer.get_problematic_goals(current_quarter)
+            if problematic:
+                body = "\n".join(
+                    f"• {p.get('goal', {}).get('text', '?')[:60]}"
+                    for p in problematic[:5]
+                )
+                sections.append((msg("push", "section_goals"), body))
+
+        text = format_push_sections(
+            msg("push", "morning_brief_title"),
+            sections,
+            footer=msg("push", "morning_brief_footer"),
+        )
+        if not text:
+            logger.info("Morning brief empty — skip send")
+            return
+        await bot.send_message(chat_id=self.chat_id, text=text)
+        logger.info("Sent morning brief sections=%s", len(sections))
+    except Exception as e:
+        logger.error("Morning brief failed: %s", e)
+
+
 async def send_morning_routine_reminder(self, bot: Bot):
     try:
         if not should_send_morning_reminder() or not self.chat_id:
@@ -138,11 +228,12 @@ async def send_morning_routine_reminder(self, bot: Bot):
         pending = get_pending_tasks()
         if not pending["morning"]:
             return
-        text = pmsg("morning_reminder")
-        text += "".join(f"• {task}\n" for task in pending["morning"][:5])
-        if len(pending["morning"]) > 5:
-            text += pmsg("more_tasks_suffix", count=len(pending["morning"]) - 5)
-        await bot.send_message(chat_id=self.chat_id, text=text, parse_mode="Markdown")
+        from shared.i18n import msg
+        from shared.telegram.push_format import format_push
+
+        body = _plain_bullet_lines(pending["morning"])
+        text = format_push(msg("push", "section_routines"), body)
+        await bot.send_message(chat_id=self.chat_id, text=text)
         logger.info("Sent morning routine reminder")
     except Exception as e:
         logger.error("Morning routine reminder failed: %s", e)
@@ -172,11 +263,12 @@ async def send_evening_routine_reminder(self, bot: Bot):
         pending = get_pending_tasks()
         if not pending["evening"]:
             return
-        text = pmsg("evening_reminder")
-        text += "".join(f"• {task}\n" for task in pending["evening"][:5])
-        if len(pending["evening"]) > 5:
-            text += pmsg("more_tasks_suffix", count=len(pending["evening"]) - 5)
-        await bot.send_message(chat_id=self.chat_id, text=text, parse_mode="Markdown")
+        from shared.i18n import msg
+        from shared.telegram.push_format import format_push
+
+        body = _plain_bullet_lines(pending["evening"])
+        text = format_push(msg("push", "section_evening_routines"), body)
+        await bot.send_message(chat_id=self.chat_id, text=text)
         logger.info("Sent evening routine reminder")
     except Exception as e:
         logger.error("Evening routine reminder failed: %s", e)
@@ -337,19 +429,15 @@ async def send_stuck_alerts(self, bot: Bot):
         stuck = get_stuck_tasks(self, stuck_days=days)
         if not stuck:
             return
-        lines = [pmsg("stuck_tasks_header", days=days)]
-        for t in stuck:
-            lines.append(
-                pmsg(
-                    "stuck_task_line",
-                    title=t["title"][:60],
-                    column=t.get("column", ""),
-                    days=t["days_stuck"],
-                )
-            )
-        await bot.send_message(
-            chat_id=self.chat_id, text="".join(lines).strip(), parse_mode="Markdown"
+        from shared.i18n import msg
+        from shared.telegram.push_format import format_push
+
+        body = "\n".join(
+            f"• {t['title'][:60]} · {t.get('column', '')} · {t['days_stuck']}d"
+            for t in stuck[:8]
         )
+        text = format_push(msg("push", "section_stuck"), body)
+        await bot.send_message(chat_id=self.chat_id, text=text)
         logger.info("Stuck-task alerts sent: %s tasks", len(stuck))
     except Exception as e:
         logger.error("Stuck alerts failed: %s", e)

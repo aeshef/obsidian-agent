@@ -60,21 +60,19 @@ async def try_handle_knowledge_text(
         await kb_handle(message)
         return True
 
-    if data.get(KB_QUERY_PENDING_KEY):
-        if state is not None:
-            await state.update_data(kb_query_pending=False)
-        await _answer_knowledge_agent(message, agent_app, question=text)
-        return True
+    # Legacy flag clear (button no longer sets a trap).
+    if data.get(KB_QUERY_PENDING_KEY) and state is not None:
+        await state.update_data(kb_query_pending=False)
 
-    from shared.telegram.host.auto_routing import _route_knowledge_intent
-
-    await _route_knowledge_intent(
-        message,
+    # Menu-only path ends above; free text is handled by host unified dispatch.
+    # Keep knowledge-domain agent for any residual callers that land here.
+    await deliver_agent_answer(
+        message.bot,
+        message.chat.id,
         agent_app,
         text,
-        ui_mode=DOMAIN_KNOWLEDGE,
-        uid=uid,
-        auto_unified_kb=False,
+        unified=True,
+        reply_markup=kb,
     )
     return True
 

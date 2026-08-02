@@ -371,6 +371,20 @@ finance:
   wizard_income_amount: 'Enter income amount (e.g.: 1500.00):'
   wizard_no_category: Uncategorized
   wizard_select_account: 'Select account:'
+push:
+  divider: "────────"
+  morning_brief_title: "✦ Morning brief"
+  morning_brief_footer: "Reply in text — I'll use the full toolset."
+  section_routines: "Routines"
+  section_evening_routines: "Evening routines"
+  section_stuck: "Stuck"
+  section_deadlines: "Deadlines"
+  section_goals: "Goals"
+  deadline_overdue_item: "• ⚠ {title} · overdue"
+  deadline_upcoming_item: "• {title} · {deadline}"
+  finance_txn_title: "✦ Finance · evening"
+  finance_insight_title: "✦ Finance · insight"
+  finance_subs_title: "✦ Finance · subscriptions"
 host:
   agent_error: '❌ Agent error: {error}'
   telegram_flood: '⏳ Telegram rate limit. Wait ~{seconds}s and try again.'
@@ -380,14 +394,14 @@ host:
   history_cleared: 🧹 History cleared.
   llm_routing_failed: '❌ LLM unavailable or returned invalid response: {error}'
   main_menu: 🏠 Main menu
-  mode_auto: 💬 Chat (auto)
+  mode_auto: 💬 Assistant
   mode_finance: 💰 Finance
   mode_knowledge: 📚 Knowledge base
   mode_planning: 📋 Planning
   memory_menu: 🧠 Memory
-  placeholder_auto: Question — domain will be selected automatically
-  placeholder_knowledge: Media loading or question about notes
-  placeholder_root: Choose mode or ask a question
+  placeholder_auto: Ask anything — full tool access
+  placeholder_knowledge: Question, link, or media
+  placeholder_root: Ask a question or pick a mode
   planning_callback_unavailable: Planning unavailable
   planning_unavailable: '⚠️ Planning module failed to load (see unified_bot.log).
 
@@ -396,24 +410,23 @@ host:
     '
   planning_unavailable_short: ⚠️ Planning module unavailable.
   start_welcome: |
-    👋 Assistant
+    ✦ Assistant
 
-    Bottom row — modes: finance, planning, knowledge, or auto chat.
-    «🧠 Memory» — observations, confirm and reset.
-  switch_auto: '💬 Auto: domain by message context. Domain buttons via 🏠 Main.'
-  switch_finance: 💰 Finance mode. Buttons — like in finance-bot; free text — income/expense
-    or question.
-  switch_knowledge: '📚 Knowledge base mode.
+    Write freely — one brain with every tool.
+    Bottom buttons are quick scenarios (finance / planning / knowledge).
+    «🧠 Memory» — observations and confirmations.
+  switch_auto: '💬 Assistant: one brain for every question. Domain buttons are shortcuts via 🏠.'
+  switch_finance: 💰 Finance · quick buttons. Any question — full assistant; phrases like "coffee 5" — expense.
+  switch_knowledge: '📚 Knowledge · quick buttons.
 
-    • "📥 Bulk load ON" — batch auto-saving of videos/photos
+    • "📥 Bulk load ON" — batch media auto-save
 
-    • "🔍 Query base" — text search through notes
+    • A single-line URL — save a note
 
-    • Regular media without bulk — review and "💾 Save"
+    • Any question — full assistant (knowledge + planning + finance)
 
     '
-  switch_planning: 📋 Planning mode. Buttons — like in planning-bot; text — task or
-    question.
+  switch_planning: 📋 Planning · quick buttons. Any question or task — full assistant with every tool.
 knowledge:
   access_denied: ⛔️ Access denied
   author_context_line: 'Consider author''s personality: {context}
@@ -497,8 +510,7 @@ knowledge:
     Title: {title}'
   processing: ⏳ Processing...
   query_error: 'Database query error: {error}'
-  query_prompt: 🔍 Write your database question in the next message (text only, no
-    attachments).
+  query_prompt: '✦ Just type your question — full assistant answers (knowledge + planning + finance).'
   review:
     asr_header: '🎤 ASR (sample):'
     field_category: 📂 Category
