@@ -126,6 +126,12 @@ async def execute_tool(
         content = result if isinstance(result, str) else str(result)
         # Do not log tool output body (PII); name and size only.
         log.info("tool %s ok (%d chars)", tc.name, len(content))
+        try:
+            from shared.memory.working_set import observe_tool_output
+
+            observe_tool_output(ctx.user_id, ctx.domain, tc.name, content)
+        except Exception:
+            log.debug("working_set observe_tool_output skipped", exc_info=True)
         return ToolResult(id=tc.id, name=tc.name, content=content)
     except Exception as e:
         log.exception("tool %s failed", tc.name)
@@ -157,6 +163,13 @@ async def run_agent(
     schemas = registry.schemas(selected)
     log.info("agent tools selected: %s", selected)
     await progress.on_tools_selected(selected)
+
+    from shared.agent.trace import start_run
+    import time as _time
+
+    trace = start_run(user_id=ctx.user_id, domain=ctx.domain, question=ctx.question or "")
+    if trace is not None:
+        trace.selected_tools = list(selected)
 
     api_messages: list[dict[str, Any]] = [
         {"role": "system", "content": ctx.system_prompt},
@@ -193,6 +206,7 @@ async def run_agent(
                     lambda t=text: asyncio.create_task(progress.on_answer_delta(t))
                 )
 
+        _t0 = _time.perf_counter()
         resp: LLMResponse = await router.chat_with_tools(
             api_messages,
             schemas,
@@ -201,6 +215,18 @@ async def run_agent(
             tool_choice=tool_choice,
             on_text_delta=on_delta,
         )
+        if trace is not None:
+            usage = (resp.raw or {}).get("usage") if isinstance(resp.raw, dict) else None
+            model = ""
+            if isinstance(resp.raw, dict):
+                model = str(resp.raw.get("model") or "")
+            trace.add_llm(
+                iteration=iteration,
+                latency_ms=(_time.perf_counter() - _t0) * 1000.0,
+                model=model,
+                usage=usage if isinstance(usage, dict) else None,
+                tool_calls=len(resp.tool_calls or []),
+            )
         if resp.text:
             last_text = resp.text
 
@@ -208,12 +234,16 @@ async def run_agent(
             if resp.text:
                 final = resp.text.strip()
                 _warn_ungrounded_currency(final, tool_bodies)
+                if trace is not None:
+                    trace.finish(reason="answer", answer=final)
                 return final
             from shared.i18n import msg
 
             out = last_text or msg("agent", "no_answer")
             if last_text:
                 _warn_ungrounded_currency(out, tool_bodies)
+            if trace is not None:
+                trace.finish(reason="no_answer", answer=out)
             return out
 
         calls = parse_tool_calls(resp.tool_calls)
@@ -223,6 +253,8 @@ async def run_agent(
                 if resp.text:
                     final = resp.text.strip()
                     _warn_ungrounded_currency(final, tool_bodies)
+                    if trace is not None:
+                        trace.finish(reason="tool_budget", answer=final)
                     return final
                 break
             log.info(
@@ -271,10 +303,14 @@ async def run_agent(
         names = [c.name for c in calls]
         log.info("agent iter %s: tools=%s", iteration + 1, names)
         await progress.on_tool_iteration(iteration + 1, names)
+        if trace is not None:
+            trace.add_tools(iteration=iteration + 1, names=names)
 
     from shared.i18n import msg
 
     out = last_text or msg("agent", "max_iters_reached")
     if last_text:
         _warn_ungrounded_currency(out, tool_bodies)
+    if trace is not None:
+        trace.finish(reason="max_iters", answer=out)
     return out

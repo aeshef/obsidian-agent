@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
+from functools import lru_cache
 from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import func, select
@@ -124,7 +125,7 @@ async def get_spending_by_category(
     category: str = "",
     group_by: str = "",
 ) -> str:
-    """Spending by category (consumption). category=parent matches children (Food → Food/*). group_by=day for per-day totals (join with task completions)."""
+    """Spending by category (consumption). category=parent matches children (Food → Food/*). Optional group_by=day|month for date-grain totals."""
     uid, rows = await _fetch_rows(
         ctx,
         from_date=from_date,
@@ -395,6 +396,7 @@ async def get_badge_status(ctx: AgentContext, day: str = "") -> str:
 def build_finance_registry() -> ToolRegistry:
     from shared.capabilities.registry import filter_finance_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
+    from shared.agent.chart_tools import attach_chart_tools
 
     reg = ToolRegistry()
     register_tools(
@@ -416,8 +418,29 @@ def build_finance_registry() -> ToolRegistry:
             ]
         ),
     )
+    from shared.agent.series_tools import attach_series_tools
+
     attach_memory_tools(reg)
+    attach_chart_tools(reg)
+    attach_series_tools(reg)
     return reg
+
+
+@lru_cache(maxsize=1)
+def _finance_balance_fast_re():
+    import re
+
+    from shared.agent.config import load_routing_config
+
+    host = load_routing_config().get("host") or {}
+    block = (host.get("fast_answer") or {}).get("finance_balance") or []
+    if isinstance(block, str):
+        parts = [block]
+    else:
+        parts = [str(p) for p in block if str(p).strip()]
+    if not parts:
+        parts = [r"\bbalance\b"]
+    return re.compile("|".join(f"(?:{p})" for p in parts), re.IGNORECASE)
 
 
 class FinanceAdapter(DomainAdapter):
@@ -429,6 +452,20 @@ class FinanceAdapter(DomainAdapter):
 
     def build_registry(self) -> ToolRegistry:
         return build_finance_registry()
+
+    async def try_fast_answer(self, ctx: AgentContext):
+        """High-confidence balance-only questions skip the multi-tool agent loop."""
+        from shared.agent.types import AgentAnswer
+
+        q = (ctx.question or "").strip()
+        if not q or len(q) > 64:
+            return None
+        if not _finance_balance_fast_re().search(q):
+            return None
+        text = await get_balance(ctx)
+        if not text or not str(text).strip():
+            return None
+        return AgentAnswer(text=str(text).strip())
 
     async def base_prompt(self, ctx: AgentContext) -> str:
         from bot.services.financial_analyst import _load_prompt

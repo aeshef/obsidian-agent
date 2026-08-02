@@ -12,3 +12,10 @@ insights:
   domain_limit: 10
   periodic_ttl_days: 45
   profile_excerpt_max: 400
+
+# Agent-proposed appends to user_profile.md (confirm required; never auto-write).
+profile_append:
+  section_header: "## Agent notes"
+  max_chars: 500
+  pending_ttl_hours: 48
+

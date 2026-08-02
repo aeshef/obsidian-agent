@@ -334,6 +334,28 @@ memory_tools:
   empty_history: "(история диалога [{dom}] пуста)"
   history_header: "Последние реплики [{dom}] (до {count} сообщений):"
   history_from_domain: " (запрошено из домена {domain})"
+  capture_empty: "Текст наблюдения пуст."
+  capture_pending: "Кандидат id={id} [{domain}] (подтверждений={count}): {text}"
+  capture_ready: "Сохранено наблюдение id={id} [{domain}]: {text}"
+  pending_empty: "Нет ожидающих наблюдений."
+  pending_header: "Ожидают подтверждения ({count}):"
+  pending_item: "  id={id} [{domain}/{kind}] x{count}: {text}"
+  bad_pending_id: "Некорректный pending_id."
+  confirm_ok: "Подтверждено наблюдение id={id}."
+  confirm_fail: "Не удалось подтвердить id={id}."
+  reject_ok: "Отклонено наблюдение id={id}."
+  reject_fail: "Не удалось отклонить id={id}."
+  working_set_empty: "(working set пуст)"
+  working_set_pin_empty: "Нечего закрепить (пустое value)."
+  working_set_pin_ok: "Закреплено [{kind}] {value}."
+  working_set_cleared: "Working set очищен (kind={kind}, value={value})."
+  profile_append_empty: "Текст для профиля пуст."
+  profile_append_pending: "Черновик профиля id={id}: {text} — подтверди confirm_profile_append."
+  profile_append_ok: "Добавлено в {path} (id={id})."
+  profile_append_fail: "Не удалось подтвердить/отклонить id={id}."
+  profile_append_rejected: "Отклонено id={id}."
+  profile_append_bad_id: "Некорректный pending_id профиля."
+
 
 memory_layers:
   profile_unset: "(профиль не задан)"
@@ -355,6 +377,31 @@ memory_insights:
   prompt_line: "- [{date}] {text}"
   confirmed_ui_line: "• [{domain}, {date}, {kind}] {text}"
   pending_ui_line: "• [{domain}, {date}, {kind}] #{id}: {text} (×{count})"
+
+chart_tools:
+  vault_missing: "Путь к vault не настроен (VAULT_PATH)."
+  none_found: "Нет графиков по query={query} family={family}."
+  list_header: "Графики ({count}):"
+  stale_hint: "{count} график(ов) старше {hours}ч — можно refresh_vault_charts."
+  caption: "{key} [{family}]"
+  send_ok: "В очередь на отправку: {count} график(ов) (всего queued={queued}): {names}"
+  refresh_disabled: "Обновление графиков выключено (chart_refresh.enabled в platform config)."
+  refresh_unknown: "Нет builder в allowlist для builder={builder} family={family}. Доступно: {available}"
+  refresh_done: "Пересборка графиков: {ok}/{total} builders ok."
+
+series_tools:
+  empty_input: "Нужны series_a и series_b (строки YYYY-MM-DD|value)."
+  no_points: "Не удалось разобрать точки день/значение."
+  header: "Выровненные ряды по дням:"
+
+knowledge_write:
+  disabled: "Запись в knowledge выключена (KNOWLEDGE_AGENT_WRITES=1)."
+  empty_text: "Текст для append пуст."
+  vault_missing: "Путь к vault не настроен (VAULT_PATH)."
+  bad_path: "Путь вне knowledge root: {path}"
+  missing: "Заметка не найдена: {path}"
+  dry_run: "Dry-run: +{chars} символов → {path} (dry_run=false для записи)."
+  ok: "Добавлено {chars} символов в {path}."
 
 charts:
   no_data: "Нет данных"

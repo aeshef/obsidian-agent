@@ -1,0 +1,11 @@
+id: working-set-observe-charts
+kind: working_set_observe
+input:
+  tool_name: list_vault_charts
+  content: |
+    Charts (1):
+    chart_finance_demo_png [finance] ok mtime=2026-08-01T12:00:00+00:00 path=dashboards/charts/demo.png
+expect:
+  entities_contains:
+    - "chart:chart_finance_demo_png"
+    - "tool:list_vault_charts"

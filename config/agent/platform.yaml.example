@@ -18,10 +18,13 @@ server:
 agent:
   max_iters: 6
   tool_denied_hint_max: 12
-  # Cap tools selected for one agent turn (always-on tools still included).
-  max_tools_selected: 8
+  # Cap optional tools from LLM tool-select (always-on tools are never dropped).
+  max_tools_selected: 12
   # Soft budget for tool calls executed across iterations.
   max_tool_calls: 12
+  max_charts_per_send: 4
+  # Mark catalog entries older than this many hours as stale (0 = disable).
+  chart_stale_hours: 48
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:
@@ -30,7 +33,7 @@ agent_progress:
   status_max_chars: 380
   max_tools_in_status: 6
   # sendMessageDraft для статуса tools (шаг N: tool_a, …)
-  draft_stream: 0
+  draft_stream: 1
   # Потоковый финальный ответ (SSE → Telegram)
   answer_stream: 1
   # 1 = sendMessageDraft + финальный sendMessage; 0 = send_message + edit_message
@@ -100,6 +103,9 @@ telegram:
   flood_retry_max: 5
   flood_retry_after_padding_ms: 250
   flood_notify_seconds_default: 30
+  # Group consecutive vault photos into Telegram albums (max 10 per album).
+  media_album: 1
+  media_album_max: 10
 
 knowledge_ingest:
   pending_limit: 100
@@ -179,3 +185,27 @@ llm_reachable:
 
 json_parse:
   error_preview_chars: 400
+
+agent_trace:
+  # 1 = append jsonl cost/latency traces (no tool bodies)
+  enabled: 0
+  path: logs/agent_traces.jsonl
+
+# On-demand chart rebuild allowlist (relative to AGENT_ROOT). Disabled by default.
+chart_refresh:
+  enabled: 0
+  timeout_sec: 180
+  max_builders_per_call: 1
+  builders:
+    finance:
+      script: finance_bot/scripts/build_finance_dashboard.py
+      args: ["--vault", "{vault}"]
+    planning_activity:
+      script: planning_bot/scripts/build_daily_task_activity_chart.py
+      args: ["--vault", "{vault}"]
+    planning_completions:
+      script: planning_bot/scripts/build_daily_completions_by_category_chart.py
+      args: ["--vault", "{vault}"]
+    kanban_flow:
+      script: planning_bot/scripts/build_kanban_flow_dashboard.py
+      args: ["--vault", "{vault}"]

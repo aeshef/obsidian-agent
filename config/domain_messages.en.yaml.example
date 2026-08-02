@@ -46,6 +46,31 @@ budget:
   txn_type_expense: expense
   txn_type_income: income
   txn_type_transfer: transfer
+chart_tools:
+  vault_missing: "Vault path is not configured (set VAULT_PATH)."
+  none_found: "No charts matched query={query} family={family}."
+  list_header: "Charts ({count}):"
+  stale_hint: "{count} chart(s) older than {hours}h — consider refresh_vault_charts."
+  caption: "{key} [{family}]"
+  send_ok: "Queued {count} chart(s) for delivery (total queued={queued}): {names}"
+  refresh_disabled: "Chart refresh is disabled (chart_refresh.enabled in platform config)."
+  refresh_unknown: "No allowlisted builder for builder={builder} family={family}. Available: {available}"
+  refresh_done: "Chart rebuild finished: {ok}/{total} builders ok."
+
+series_tools:
+  empty_input: "Both series_a and series_b are required (YYYY-MM-DD|value lines)."
+  no_points: "No parseable day/value points found in either series."
+  header: "Aligned day series:"
+
+knowledge_write:
+  disabled: "Knowledge writes disabled (set KNOWLEDGE_AGENT_WRITES=1)."
+  empty_text: "Append text is empty."
+  vault_missing: "Vault path is not configured (set VAULT_PATH)."
+  bad_path: "Path not allowed under knowledge root: {path}"
+  missing: "Note not found: {path}"
+  dry_run: "Dry-run append {chars} chars → {path} (pass dry_run=false to write)."
+  ok: "Appended {chars} chars to {path}."
+
 charts:
   insufficient_data: Not enough data for the chart «{title}».
   no_data: No data
@@ -623,6 +648,28 @@ memory_tools:
   history_from_domain: ' (requested from domain {domain})'
   history_header: 'Recent messages [{dom}] (up to {count} messages):'
   unknown_domain: 'Unknown domain: {dom}. Allowed: {allowed}.'
+  capture_empty: "Observation text is empty."
+  capture_pending: "Queued observation id={id} [{domain}] (confirmations={count}): {text}"
+  capture_ready: "Saved observation id={id} [{domain}]: {text}"
+  pending_empty: "No pending observations."
+  pending_header: "Pending observations ({count}):"
+  pending_item: "  id={id} [{domain}/{kind}] x{count}: {text}"
+  bad_pending_id: "Invalid pending_id."
+  confirm_ok: "Confirmed observation id={id}."
+  confirm_fail: "Could not confirm id={id} (missing or already handled)."
+  reject_ok: "Rejected observation id={id}."
+  reject_fail: "Could not reject id={id} (missing or already handled)."
+  working_set_empty: "(working set is empty)"
+  working_set_pin_empty: "Nothing to pin (empty value)."
+  working_set_pin_ok: "Pinned [{kind}] {value}."
+  working_set_cleared: "Working set cleared (kind={kind}, value={value})."
+  profile_append_empty: "Profile append text is empty."
+  profile_append_pending: "Pending profile append id={id}: {text} — call confirm_profile_append to write."
+  profile_append_ok: "Appended to {path} (pending id={id})."
+  profile_append_fail: "Could not confirm/reject profile append id={id}."
+  profile_append_rejected: "Rejected profile append id={id}."
+  profile_append_bad_id: "Invalid profile append pending_id."
+
 note_lookup:
   empty_query: empty query or index
   no_exact_match: no exact match in index

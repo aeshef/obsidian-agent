@@ -84,6 +84,32 @@ def _run_case(case: dict[str, Any]) -> None:
                 raise AssertionError(f"missing {frag!r} in:\n{text}")
         return
 
+    if kind == "charts_catalog":
+        from shared.charts_catalog import iter_config_chart_keys
+
+        keys = iter_config_chart_keys()
+        min_keys = int(expect.get("min_keys") or 1)
+        if len(keys) < min_keys:
+            raise AssertionError(f"chart keys={len(keys)} < {min_keys}")
+        return
+
+    if kind == "working_set_observe":
+        from shared.memory import working_set as ws
+
+        ws.clear_working_set()
+        ws.clear_working_set_pattern_cache()
+        ws.observe_tool_output(
+            1,
+            "unified",
+            str(inp.get("tool_name") or "tool"),
+            str(inp.get("content") or ""),
+        )
+        got = ws.get_working_set(1, "unified")
+        for ent in expect.get("entities_contains") or []:
+            if str(ent) not in got.entities:
+                raise AssertionError(f"missing entity {ent!r} in {list(got.entities)}")
+        return
+
     if kind == "conversation_contract":
         from shared.agent.config import agent_config_dir
         from shared.prompts import load_prompt

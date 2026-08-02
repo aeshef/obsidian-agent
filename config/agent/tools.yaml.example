@@ -3,7 +3,7 @@
 # Статичные подсказки — fallback. В runtime tool-select использует shared/capabilities/hints.py
 # (только включённые модули и коннекторы).
 domain_hints:
-  finance: "денежные операции и сводки"
-  planning: "задачи, цели, календарь, опционально health/mac context"
-  knowledge: "именованная заметка — read_knowledge_note; обзор темы — search_knowledge_base"
-  unified: "включённые домены; канбан — apply_kanban_task; интервалы from_date/to_date"
+  finance: "money ops/summaries; dashboard charts list/send/refresh_vault_charts"
+  planning: "tasks/goals/calendar; optional health/mac; dashboard charts list/send/refresh_vault_charts"
+  knowledge: "named note read_knowledge_note; topic overview search_knowledge_base"
+  unified: "enabled modules; kanban apply_kanban_task; date ranges; dashboard charts list/send/refresh_vault_charts; pin_working_set"

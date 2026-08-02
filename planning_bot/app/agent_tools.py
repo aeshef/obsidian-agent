@@ -283,7 +283,7 @@ async def search_tasks(
     return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def get_task_timeline(
     ctx: AgentContext,
     task_id: str = "",
@@ -402,6 +402,25 @@ async def get_routines_status(ctx: AgentContext, day: str = "") -> str:
     return format_routines_status(day)
 
 
+@tool(category="routines")
+async def get_daily_signals(
+    ctx: AgentContext,
+    from_date: str = "",
+    to_date: str = "",
+    days: int = 0,
+    limit: int = 14,
+) -> str:
+    """Subjective daily signals history (mood/energy/etc from check-in). from_date/to_date/days; default last 7 days."""
+    from planning_bot.services.signals_query import format_daily_signals
+
+    return format_daily_signals(
+        from_date=from_date,
+        to_date=to_date,
+        days=days,
+        limit=limit,
+    )
+
+
 @tool(category="reflection")
 async def get_activity_events(
     ctx: AgentContext,
@@ -464,7 +483,7 @@ async def get_activity_events(
     )
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def get_kanban_flow(ctx: AgentContext) -> str:
     """Kanban flow metrics: throughput, lead/cycle time, WIP segments vs goals mapping (from cached JSON)."""
     import json
@@ -483,7 +502,7 @@ async def get_kanban_flow(ctx: AgentContext) -> str:
     return format_kanban_flow_for_agent(metrics, pdmsg)
 
 
-@tool(category="log", always=True)
+@tool(category="log")
 async def get_action_log(
     ctx: AgentContext,
     day: str = "",
@@ -539,6 +558,7 @@ def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
 def build_planning_registry() -> ToolRegistry:
     from shared.capabilities.registry import filter_planning_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
+    from shared.agent.chart_tools import attach_chart_tools
 
     reg = ToolRegistry()
     register_tools(
@@ -562,14 +582,19 @@ def build_planning_registry() -> ToolRegistry:
                 get_mac_series,
                 get_mac_snapshots,
                 get_routines_status,
+                get_daily_signals,
                 get_activity_events,
                 get_kanban_flow,
                 get_action_log,
             ]
         ),
     )
+    from shared.agent.series_tools import attach_series_tools
+
     _enrich_apply_kanban_tool(reg)
     attach_memory_tools(reg)
+    attach_chart_tools(reg)
+    attach_series_tools(reg)
     return reg
 
 

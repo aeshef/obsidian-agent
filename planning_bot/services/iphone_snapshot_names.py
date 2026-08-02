@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
+from functools import lru_cache
 from typing import Optional
 
 # (comment)
 from planning_bot.core.pdmsg import pdmsg
+
 LEGACY_FILENAME_RE = re.compile(
     r"^(\d{2})\.(\d{2})\.(\d{4}), (\d{2}):(\d{2})(?:\s+copy)?\.txt$",
     re.IGNORECASE,
@@ -18,7 +20,20 @@ CANONICAL_FILENAME_RE = re.compile(
 COLON_CANONICAL_FILENAME_RE = re.compile(
     r"^(\d{4})-(\d{2})-(\d{2}), (\d{2}):(\d{2})(?:_\d+)?\.txt$",
 )
-KONTEXT_PREFIX_RE = re.compile(pdmsg("auto_86a3ff42a2"), re.IGNORECASE)
+
+
+@lru_cache(maxsize=1)
+def _kontext_prefix_re() -> re.Pattern[str]:
+    """Lazy: domain_messages may be patched after first import (tests / locale)."""
+    pat = (pdmsg("auto_86a3ff42a2") or "").strip()
+    if not pat or "(" not in pat:
+        # Safe no-match stub with one group so callers can use group(1).
+        pat = r"^(?!)$(.+)"
+    return re.compile(pat, re.IGNORECASE)
+
+
+def clear_kontext_prefix_cache() -> None:
+    _kontext_prefix_re.cache_clear()
 
 
 def normalize_snapshot_basename(name: str) -> str:
@@ -29,7 +44,7 @@ def normalize_snapshot_basename(name: str) -> str:
 def parse_filename_ts(filename: str) -> Optional[datetime]:
     'Operation implementation.'
     base = normalize_snapshot_basename(filename.strip())
-    km = KONTEXT_PREFIX_RE.match(base)
+    km = _kontext_prefix_re().match(base)
     if km:
         from planning_bot.services.context_parser import _parse_ts as parse_mac_ts
 
@@ -77,7 +92,7 @@ def needs_rename_filename(filename: str) -> bool:
         return True
     if COLON_CANONICAL_FILENAME_RE.match(base):
         return True
-    if KONTEXT_PREFIX_RE.match(base):
+    if _kontext_prefix_re().match(base):
         return True
     return False
 
