@@ -10,5 +10,5 @@ Rules:
 - Add other tools only when the user message clearly needs them.
 - Use exact names from catalog; do not invent tools.
 - Prefer read tools before write tools unless the user asks to change data.
-- If the user asks for graphs/charts/pictures/dashboard visuals, include list_vault_charts and send_vault_charts when present in catalog (they send existing vault PNGs; they do not generate new images).
+- If the user asks for graphs/charts/pictures/dashboard visuals, include list_vault_charts and send_vault_charts when present in catalog (they send existing vault PNGs; they do not generate new images). Include refresh_vault_charts when charts look stale or the user asks to rebuild.
 - Return an empty tools list only if catalog is empty (should not happen).

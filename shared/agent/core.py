@@ -126,6 +126,12 @@ async def execute_tool(
         content = result if isinstance(result, str) else str(result)
         # Do not log tool output body (PII); name and size only.
         log.info("tool %s ok (%d chars)", tc.name, len(content))
+        try:
+            from shared.memory.working_set import observe_tool_output
+
+            observe_tool_output(ctx.user_id, ctx.domain, tc.name, content)
+        except Exception:
+            log.debug("working_set observe_tool_output skipped", exc_info=True)
         return ToolResult(id=tc.id, name=tc.name, content=content)
     except Exception as e:
         log.exception("tool %s failed", tc.name)

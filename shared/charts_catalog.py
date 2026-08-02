@@ -167,14 +167,34 @@ def catalog_charts(
     return entries
 
 
-def format_catalog(entries: list[ChartEntry], *, limit: int = 80) -> str:
+def format_catalog(
+    entries: list[ChartEntry],
+    *,
+    limit: int = 80,
+    stale_hours: int = 0,
+) -> str:
     if not entries:
         return ""
+    now = datetime.now(timezone.utc)
     lines = []
     for e in entries[: max(1, limit)]:
         status = "ok" if e.exists else "missing"
         mtime = e.mtime_iso or "-"
-        lines.append(f"{e.key} [{e.family}] {status} mtime={mtime} path={e.rel_path}")
+        age_s = ""
+        if e.exists and e.mtime_iso:
+            try:
+                ts = datetime.fromisoformat(e.mtime_iso.replace("Z", "+00:00"))
+                if ts.tzinfo is None:
+                    ts = ts.replace(tzinfo=timezone.utc)
+                age_h = max(0.0, (now - ts).total_seconds() / 3600.0)
+                age_s = f" age_h={age_h:.1f}"
+                if stale_hours > 0 and age_h > stale_hours:
+                    status = "stale"
+            except ValueError:
+                pass
+        lines.append(
+            f"{e.key} [{e.family}] {status} mtime={mtime}{age_s} path={e.rel_path}"
+        )
     if len(entries) > limit:
         lines.append(f"... +{len(entries) - limit} more")
     return "\n".join(lines)

@@ -22,7 +22,7 @@ from shared.capabilities.profile import (
 def _hint_finance(prof) -> str:
     parts = [
         "money operations and summaries",
-        "dashboard chart PNGs via list_vault_charts/send_vault_charts",
+        "dashboard chart PNGs via list_vault_charts/send_vault_charts/refresh_vault_charts",
     ]
     if prof.connector(CONNECTOR_BROKER_SYNC):
         parts.append("broker portfolio")
@@ -38,7 +38,7 @@ def _hint_planning(prof) -> str:
         "tasks",
         "goals",
         "kanban create/move/complete via apply_kanban_task",
-        "dashboard chart PNGs via list_vault_charts/send_vault_charts",
+        "dashboard chart PNGs via list_vault_charts/send_vault_charts/refresh_vault_charts",
     ]
     if prof.connector(CONNECTOR_APPLE_CALENDAR):
         parts.append("calendar")
@@ -76,7 +76,9 @@ def _hint_unified(prof) -> str:
         bits.append(_hint_knowledge(prof))
     if len(enabled) >= 2:
         bits.append("cross-domain queries with explicit date ranges")
-    bits.append("dashboard chart PNGs via list_vault_charts/send_vault_charts")
+    bits.append(
+        "dashboard chart PNGs via list_vault_charts/send_vault_charts/refresh_vault_charts"
+    )
     return "; ".join(bits) if bits else "general assistant"
 
 

@@ -49,6 +49,9 @@ host:
       - '\bsubscription\w*'
       - '\bздоровье\b'
       - '\bhealth\b'
+    # Extracted from tool outputs into working-set entities/notes (locale-neutral).
+    chart_key_pattern: '\b(?:chart_[a-z0-9_]+|fs:[a-z0-9_]+)\b'
+    note_path_pattern: '([\w./-]+\.md)\b'
 
 agent:
   # First agent loop iteration: tool_choice=required for these domains (when tools exist).

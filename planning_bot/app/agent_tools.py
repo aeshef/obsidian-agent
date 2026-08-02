@@ -283,7 +283,7 @@ async def search_tasks(
     return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def get_task_timeline(
     ctx: AgentContext,
     task_id: str = "",
@@ -464,7 +464,7 @@ async def get_activity_events(
     )
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def get_kanban_flow(ctx: AgentContext) -> str:
     """Kanban flow metrics: throughput, lead/cycle time, WIP segments vs goals mapping (from cached JSON)."""
     import json
@@ -483,7 +483,7 @@ async def get_kanban_flow(ctx: AgentContext) -> str:
     return format_kanban_flow_for_agent(metrics, pdmsg)
 
 
-@tool(category="log", always=True)
+@tool(category="log")
 async def get_action_log(
     ctx: AgentContext,
     day: str = "",

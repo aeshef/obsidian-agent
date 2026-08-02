@@ -345,6 +345,10 @@ memory_tools:
   confirm_fail: "Не удалось подтвердить id={id}."
   reject_ok: "Отклонено наблюдение id={id}."
   reject_fail: "Не удалось отклонить id={id}."
+  working_set_empty: "(working set пуст)"
+  working_set_pin_empty: "Нечего закрепить (пустое value)."
+  working_set_pin_ok: "Закреплено [{kind}] {value}."
+  working_set_cleared: "Working set очищен (kind={kind}, value={value})."
 
 
 memory_layers:
@@ -372,8 +376,12 @@ chart_tools:
   vault_missing: "Путь к vault не настроен (VAULT_PATH)."
   none_found: "Нет графиков по query={query} family={family}."
   list_header: "Графики ({count}):"
+  stale_hint: "{count} график(ов) старше {hours}ч — можно refresh_vault_charts."
   caption: "{key} [{family}]"
   send_ok: "В очередь на отправку: {count} график(ов) (всего queued={queued}): {names}"
+  refresh_disabled: "Обновление графиков выключено (chart_refresh.enabled в platform config)."
+  refresh_unknown: "Нет builder в allowlist для builder={builder} family={family}. Доступно: {available}"
+  refresh_done: "Пересборка графиков: {ok}/{total} builders ok."
 
 charts:
   no_data: "Нет данных"

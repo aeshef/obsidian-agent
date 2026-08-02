@@ -167,3 +167,48 @@ async def reject_observation(ctx: AgentContext, pending_id: int) -> str:
     ok = get_store().reject(pid)
     return dmsg("memory_tools", "reject_ok" if ok else "reject_fail", id=pid)
 
+
+@tool(category="memory")
+async def list_working_set(ctx: AgentContext) -> str:
+    """Show short-lived follow-up context (categories, dates, notes, pinned entities)."""
+    from shared.memory.working_set import get_working_set
+
+    text = get_working_set(ctx.user_id, ctx.domain).format()
+    return text or dmsg("memory_tools", "working_set_empty")
+
+
+@tool(category="memory")
+async def pin_working_set(
+    ctx: AgentContext,
+    value: str,
+    kind: str = "entities",
+) -> str:
+    """Pin a follow-up entity. kind=categories|dates|notes|entities, or a free prefix (chart, task, …)."""
+    from shared.memory.working_set import pin_entity
+
+    body = (value or "").strip()
+    if not body:
+        return dmsg("memory_tools", "working_set_pin_empty")
+    ws = pin_entity(ctx.user_id, ctx.domain, kind or "entities", body)
+    return dmsg("memory_tools", "working_set_pin_ok", kind=kind or "entities", value=body) + (
+        "\n" + ws.format() if ws.format() else ""
+    )
+
+
+@tool(category="memory")
+async def clear_working_set_items(
+    ctx: AgentContext,
+    kind: str = "",
+    value: str = "",
+) -> str:
+    """Clear working-set items. Omit kind to clear all for this domain; kind alone clears that bucket; kind+value clears one item."""
+    from shared.memory.working_set import clear_entities
+
+    clear_entities(ctx.user_id, ctx.domain, kind=kind or "", value=value or "")
+    return dmsg(
+        "memory_tools",
+        "working_set_cleared",
+        kind=kind or "*",
+        value=value or "*",
+    )
+

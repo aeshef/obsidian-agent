@@ -11,6 +11,9 @@ MEMORY_TOOL_NAMES = (
     "list_pending_observations",
     "confirm_observation",
     "reject_observation",
+    "list_working_set",
+    "pin_working_set",
+    "clear_working_set_items",
 )
 
 
@@ -26,6 +29,9 @@ def attach_memory_tools(registry: ToolRegistry) -> ToolRegistry:
         memory_tools.list_pending_observations,
         memory_tools.confirm_observation,
         memory_tools.reject_observation,
+        memory_tools.list_working_set,
+        memory_tools.pin_working_set,
+        memory_tools.clear_working_set_items,
     ):
         if fn.__name__ not in registry.names():
             registry.register(fn)

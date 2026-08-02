@@ -7,4 +7,7 @@ expect:
     - "Conversation contract"
     - "clarifying question"
     - "list_vault_charts"
+    - "send_vault_charts"
+    - "refresh_vault_charts"
     - "capture_observation"
+    - "pin_working_set"

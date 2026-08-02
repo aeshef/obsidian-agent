@@ -50,8 +50,12 @@ chart_tools:
   vault_missing: "Vault path is not configured (set VAULT_PATH)."
   none_found: "No charts matched query={query} family={family}."
   list_header: "Charts ({count}):"
+  stale_hint: "{count} chart(s) older than {hours}h — consider refresh_vault_charts."
   caption: "{key} [{family}]"
   send_ok: "Queued {count} chart(s) for delivery (total queued={queued}): {names}"
+  refresh_disabled: "Chart refresh is disabled (chart_refresh.enabled in platform config)."
+  refresh_unknown: "No allowlisted builder for builder={builder} family={family}. Available: {available}"
+  refresh_done: "Chart rebuild finished: {ok}/{total} builders ok."
 
 charts:
   insufficient_data: Not enough data for the chart «{title}».
@@ -641,6 +645,10 @@ memory_tools:
   confirm_fail: "Could not confirm id={id} (missing or already handled)."
   reject_ok: "Rejected observation id={id}."
   reject_fail: "Could not reject id={id} (missing or already handled)."
+  working_set_empty: "(working set is empty)"
+  working_set_pin_empty: "Nothing to pin (empty value)."
+  working_set_pin_ok: "Pinned [{kind}] {value}."
+  working_set_cleared: "Working set cleared (kind={kind}, value={value})."
 
 note_lookup:
   empty_query: empty query or index
