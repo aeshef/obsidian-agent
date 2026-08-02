@@ -304,6 +304,9 @@ finance_txn_core:
 finance_txn_query:
   expenses_total: "Всего расходов: {total:,.0f} RUB"
   no_expenses_in_period: "(нет расходов в периоде)"
+  category_filter: "filter={category} (родитель включает дочерние)"
+  by_day_header: "По дням:"
+  by_day_line: "  {day}: {total:,.0f} ({detail})"
   debts_empty: "Долги: (нет счетов долгов)"
   debts_header: "Долги (балансы external_balance на счетах-контрагентах):"
   receivable_line: "  Мне должны — {name}: {balance} {currency}"
