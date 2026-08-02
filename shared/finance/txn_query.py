@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 
 from shared.domain_messages import dmsg
+from shared.finance.category_match import category_matches
 from shared.finance_classification import is_consumption_expense, misc_category_label
 from shared.parsing.date_range import DateRange
 
@@ -35,16 +36,9 @@ async def fetch_transaction_rows(
         q = q.where(Transaction.type == txn_type)
     rows = (await session.execute(q.order_by(Transaction.occurred_at.desc()))).scalars().all()
     out: list[dict[str, Any]] = []
-    cat_q = (category or "").strip()
-    cat_l = cat_q.lower()
     for t in rows:
-        if cat_l:
-            tc = (t.category or "").lower()
-            if cat_q.endswith("/"):
-                if not tc.startswith(cat_l):
-                    continue
-            elif cat_l not in tc:
-                continue
+        if not category_matches(category, t.category):
+            continue
         out.append(
             {
                 "date": t.occurred_at.strftime("%Y-%m-%d"),
@@ -58,19 +52,60 @@ async def fetch_transaction_rows(
     return out
 
 
-def format_spending_by_category(rows: list[dict[str, Any]], *, label: str) -> str:
-    by_cat: dict[str, float] = defaultdict(float)
-    total = 0.0
+def format_spending_by_category(
+    rows: list[dict[str, Any]],
+    *,
+    label: str,
+    category: str | None = None,
+    group_by_day: bool = False,
+) -> str:
+    """Aggregate consumption expenses; optional hierarchical category filter + daily split."""
+    filtered: list[dict[str, Any]] = []
     for r in rows:
         if r.get("type") != "expense" or not is_consumption_expense(r):
             continue
-        amt = float(r["amount"])
         cat = (r.get("category") or misc_category_label()).strip()
-        by_cat[cat] += amt
-        total += amt
-    if not by_cat:
+        if not category_matches(category, cat):
+            continue
+        filtered.append({**r, "category": cat})
+
+    if not filtered:
         return f"{label}\n{dmsg('finance_txn_query', 'no_expenses_in_period')}"
+
+    total = sum(float(r["amount"]) for r in filtered)
     lines = [label, dmsg("finance_txn_query", "expenses_total", total=total)]
+    if category and str(category).strip():
+        lines.append(dmsg("finance_txn_query", "category_filter", category=str(category).strip()))
+
+    if group_by_day:
+        by_day_cat: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        by_day_total: dict[str, float] = defaultdict(float)
+        for r in filtered:
+            day = str(r.get("date") or "")
+            amt = float(r["amount"])
+            by_day_cat[day][r["category"]] += amt
+            by_day_total[day] += amt
+        lines.append(dmsg("finance_txn_query", "by_day_header"))
+        for day in sorted(by_day_total):
+            parts = [
+                f"{cat}={amt:,.0f}"
+                for cat, amt in sorted(by_day_cat[day].items(), key=lambda x: -x[1])
+            ]
+            detail = "; ".join(parts)
+            lines.append(
+                dmsg(
+                    "finance_txn_query",
+                    "by_day_line",
+                    day=day,
+                    total=by_day_total[day],
+                    detail=detail,
+                )
+            )
+        return "\n".join(lines)
+
+    by_cat: dict[str, float] = defaultdict(float)
+    for r in filtered:
+        by_cat[r["category"]] += float(r["amount"])
     for cat, amt in sorted(by_cat.items(), key=lambda x: -x[1]):
         pct = (amt / total * 100) if total else 0
         lines.append(f"  {cat}: {amt:,.0f} ({pct:.0f}%)")

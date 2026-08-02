@@ -95,7 +95,7 @@ async def get_transactions(
     days: int = 0,
     category: str = "",
 ) -> str:
-    """Transactions in interval: from_date/to_date YYYY-MM-DD or days. category: exact name or prefix."""
+    """Transactions in interval (from/to YYYY-MM-DD or days). category matches parent+children (Еда, Еда/, Еда/* → Еда/Вне дома, Еда/Продукты)."""
     analyst = _analyst(ctx)
     uid, rows = await _fetch_rows(
         ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
@@ -119,14 +119,27 @@ async def get_spending_by_category(
     from_date: str = "",
     to_date: str = "",
     days: int = 0,
+    category: str = "",
+    group_by: str = "",
 ) -> str:
-    """Spending by category (consumption only) for interval (from/to or days)."""
-    uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
+    """Spending by category (consumption). category=parent matches children (Еда → Еда/*). group_by=day for per-day totals (join with task completions)."""
+    uid, rows = await _fetch_rows(
+        ctx,
+        from_date=from_date,
+        to_date=to_date,
+        days=days,
+        default_days=30,
+        category=category or None,
+    )
     if uid is None:
         return dmsg(*_FA, "user_not_found")
     dr = resolve_date_range(from_date=from_date, to_date=to_date, days=days, default_days=30)
+    gb = (group_by or "").strip().lower()
     return format_spending_by_category(
-        rows, label=dmsg(*_FA, "spending_by_category", range=_range_label(dr, days=days))
+        rows,
+        label=dmsg(*_FA, "spending_by_category", range=_range_label(dr, days=days)),
+        category=category or None,
+        group_by_day=gb in ("day", "days", "daily", "date"),
     )
 
 
