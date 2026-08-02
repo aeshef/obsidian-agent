@@ -79,6 +79,83 @@ def test_select_tools_llm_rejects_unknown(monkeypatch, tmp_path):
         asyncio.run(select_tools_llm("вопрос", reg, domain="finance"))
 
 
+def test_select_tools_budget_keeps_optional_when_always_exceeds_cap(monkeypatch, tmp_path):
+    """Unified host has many always tools; optional picks must not be wiped."""
+    from shared.agent.llm_classify import select_tools_llm
+    from shared.agent.platform_config import load_platform_config
+
+    agent_dir = tmp_path / "config" / "agent"
+    (agent_dir / "prompts").mkdir(parents=True)
+    (agent_dir / "prompts" / "tool_select_router.txt").write_text("pick tools", encoding="utf-8")
+    (agent_dir / "tools.yaml").write_text("domain_hints: {}\n", encoding="utf-8")
+    (agent_dir / "platform.yaml").write_text(
+        "agent:\n  max_tools_selected: 2\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AGENT_ROOT", str(tmp_path))
+    from shared.agent import config as agent_cfg
+
+    agent_cfg.load_tools_config.cache_clear()
+    load_platform_config.cache_clear()
+
+    @tool(category="a", always=True)
+    async def always_one(ctx: AgentContext) -> str:
+        """always one"""
+        return "1"
+
+    @tool(category="a", always=True)
+    async def always_two(ctx: AgentContext) -> str:
+        """always two"""
+        return "2"
+
+    @tool(category="a", always=True)
+    async def always_three(ctx: AgentContext) -> str:
+        """always three"""
+        return "3"
+
+    @tool(category="charts")
+    async def send_vault_charts(ctx: AgentContext) -> str:
+        """send charts"""
+        return "charts"
+
+    @tool(category="charts")
+    async def list_vault_charts(ctx: AgentContext) -> str:
+        """list charts"""
+        return "list"
+
+    @tool(category="x")
+    async def extra_tool(ctx: AgentContext) -> str:
+        """extra"""
+        return "x"
+
+    reg = ToolRegistry()
+    for fn in (
+        always_one,
+        always_two,
+        always_three,
+        send_vault_charts,
+        list_vault_charts,
+        extra_tool,
+    ):
+        reg.register(fn)
+
+    async def _fake(system, payload, *, label):
+        return {
+            "tools": ["send_vault_charts", "list_vault_charts", "extra_tool"],
+            "reason": "charts",
+        }
+
+    monkeypatch.setattr("shared.agent.llm_classify._chat_json_classify", _fake)
+    selected = asyncio.run(select_tools_llm("скинь графики", reg, domain="unified"))
+    assert "always_one" in selected
+    assert "always_two" in selected
+    assert "always_three" in selected
+    # Optional cap=2 keeps first two LLM picks, drops the third — not all optionals.
+    assert "send_vault_charts" in selected
+    assert "list_vault_charts" in selected
+    assert "extra_tool" not in selected
+
+
 def test_tool_handler_runs():
     reg = ToolRegistry()
     reg.register(sample_txn)

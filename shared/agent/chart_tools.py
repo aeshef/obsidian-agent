@@ -26,7 +26,7 @@ async def list_vault_charts(
     family: str = "",
     only_existing: bool = True,
 ) -> str:
-    """List dashboard chart PNGs. query matches key/filename/family; family filters bucket (planning, health, finance, kanban, …)."""
+    """List existing dashboard chart PNG files in the vault (not generate). query matches key/filename/family; family filters planning/health/finance/kanban/…"""
     vault = vault_root_optional()
     if vault is None:
         return dmsg(*_NS, "vault_missing")
@@ -49,7 +49,7 @@ async def send_vault_charts(
     family: str = "",
     limit: int = 0,
 ) -> str:
-    """Queue matching chart PNGs for Telegram delivery (photo). Prefer a specific query; omit query to send a small existing set for family."""
+    """Send existing vault dashboard chart PNGs as Telegram photos. Use when the user asks for graphs/charts/pictures. Prefer a specific query; omit query to send a small existing set for family."""
     vault = vault_root_optional()
     if vault is None:
         return dmsg(*_NS, "vault_missing")

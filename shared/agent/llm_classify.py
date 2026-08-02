@@ -275,21 +275,21 @@ async def select_tools_llm(
             domain,
         )
 
-    # Soft budget: keep always-on tools, trim optional picks.
-    max_selected = platform_int("agent", "max_tools_selected", default=0)
-    if max_selected and max_selected > 0:
-        room = max(0, max_selected - len(always))
-        if len(optional) > room:
-            kept = optional[:room]
-            dropped = optional[room:]
-            selected = set(always) | set(kept)
-            log.info(
-                "tool select budget: kept=%s dropped=%s max=%s domain=%s",
-                kept,
-                dropped,
-                max_selected,
-                domain,
-            )
+    # Soft budget: always-on tools are never dropped. max_tools_selected caps
+    # optional LLM picks only (unified host has many always tools).
+    max_optional = platform_int("agent", "max_tools_selected", default=0)
+    if max_optional and max_optional > 0 and len(optional) > max_optional:
+        kept = optional[:max_optional]
+        dropped = optional[max_optional:]
+        selected = set(always) | set(kept)
+        log.info(
+            "tool select budget: kept=%s dropped=%s max_optional=%s always=%s domain=%s",
+            kept,
+            dropped,
+            max_optional,
+            len(always),
+            domain,
+        )
 
     out = sorted(selected)
     log.info(

@@ -18,8 +18,8 @@ server:
 agent:
   max_iters: 6
   tool_denied_hint_max: 12
-  # Cap tools selected for one agent turn (always-on tools still included).
-  max_tools_selected: 8
+  # Cap optional tools from LLM tool-select (always-on tools are never dropped).
+  max_tools_selected: 12
   # Soft budget for tool calls executed across iterations.
   max_tool_calls: 12
   max_charts_per_send: 4
