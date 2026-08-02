@@ -154,6 +154,9 @@ def test_push_policy_defaults(monkeypatch, tmp_path):
     cfg = tmp_path / "platform.yaml"
     cfg.write_text(
         "push_policy:\n"
+        "  quiet_hours:\n"
+        "    start: 23\n"
+        "    end: 7\n"
         "  morning_brief:\n"
         "    enabled: 1\n"
         "    hour: 8\n"
@@ -163,7 +166,15 @@ def test_push_policy_defaults(monkeypatch, tmp_path):
         "      deadlines: 1\n"
         "  routines_morning_hours: []\n"
         "  finance_txn_reminder:\n"
-        "    only_if_no_txn_today: 1\n",
+        "    only_if_no_txn_today: 1\n"
+        "  finance_daily_insight:\n"
+        "    enabled: 0\n"
+        "  serendipity:\n"
+        "    hour_start: 11\n"
+        "    hour_end: 20\n"
+        "host_ui:\n"
+        "  show_auto_mode_button: 0\n"
+        "  show_knowledge_query_button: 0\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(pc, "agent_config_dir", lambda: tmp_path)
@@ -171,6 +182,37 @@ def test_push_policy_defaults(monkeypatch, tmp_path):
     assert pp.morning_brief_enabled() is True
     assert pp.morning_brief_hour() == 8
     assert pp.separate_morning_routine_hours() == []
+    assert pp.evening_routine_hours() == []
     assert pp.separate_stuck_alerts_enabled() is False
     assert pp.finance_txn_reminder_only_if_no_txn() is True
+    assert pp.finance_daily_insight_enabled() is False
+    assert pp.serendipity_hour_start() == 11
+    assert pp.show_auto_mode_button() is False
+    assert pp.show_knowledge_query_button() is False
+    from datetime import datetime
+
+    assert pp.in_quiet_hours(datetime(2026, 8, 2, 23, 30)) is True
+    assert pp.in_quiet_hours(datetime(2026, 8, 2, 8, 0)) is False
+    assert pp.in_quiet_hours(datetime(2026, 8, 2, 6, 0)) is True
     pc.load_platform_config.cache_clear()
+
+
+def test_root_keyboard_hides_auto_by_default(monkeypatch, tmp_path):
+    from shared.agent import platform_config as pc
+    from shared.capabilities.profile import clear_capabilities_cache
+    from shared.telegram.host.keyboards import root_keyboard
+    from shared.telegram.host import labels as L
+
+    cfg = tmp_path / "platform.yaml"
+    cfg.write_text("host_ui:\n  show_auto_mode_button: 0\n", encoding="utf-8")
+    monkeypatch.setattr(pc, "agent_config_dir", lambda: tmp_path)
+    pc.load_platform_config.cache_clear()
+    monkeypatch.setenv("CAP_MODULE_FINANCE", "1")
+    monkeypatch.setenv("CAP_MODULE_PLANNING", "1")
+    monkeypatch.setenv("CAP_MODULE_KNOWLEDGE", "1")
+    clear_capabilities_cache()
+    labels = {btn.text for row in root_keyboard().keyboard for btn in row}
+    assert L.mode_auto() not in labels
+    assert L.mode_finance() in labels
+    pc.load_platform_config.cache_clear()
+    clear_capabilities_cache()

@@ -108,7 +108,11 @@ telegram:
   media_album_max: 10
 
 # Scheduled Telegram pushes — fewer messages, one visual language, sane times.
+# All clocks/flags live here (no scenario hardcode in Python).
 push_policy:
+  quiet_hours:
+    start: 23
+    end: 7
   morning_brief:
     enabled: 1
     hour: 8
@@ -120,11 +124,43 @@ push_policy:
       goals: 1
   # Empty = no 08/09/10 routine spam when morning_brief is on.
   routines_morning_hours: []
+  # Empty when planning_checkin.replace_passive_evening_reminders is true.
+  routines_evening_hours: []
   finance_txn_reminder:
     enabled: 1
     hour: 21
     minute: 0
     only_if_no_txn_today: 1
+  finance_subscriptions:
+    enabled: 1
+    hour: 10
+    minute: 0
+  # Off by default — was a major feed-spam source (MWF + jitter).
+  finance_daily_insight:
+    enabled: 0
+    days: mon,wed,fri
+    hour: 9
+    minute: 0
+    jitter_sec: 7200
+  finance_weekly_analysis:
+    enabled: 1
+    day_of_week: sun
+    hour: 19
+    minute: 0
+  finance_monthly_analysis:
+    enabled: 1
+    day: 1
+    hour: 9
+    minute: 0
+  serendipity:
+    enabled: 1
+    hour_start: 11
+    hour_end: 20
+
+# Reply-keyboard chrome. Free text always uses the unified agent with all tools.
+host_ui:
+  show_auto_mode_button: 0
+  show_knowledge_query_button: 0
 
 knowledge_ingest:
   pending_limit: 100

@@ -140,11 +140,14 @@ async def send_morning_brief(self, bot: Bot):
     """One morning push: routines + stuck (+ optional deadlines/goals) in one style."""
     from shared.i18n import msg, msgf
     from shared.telegram.push_format import format_push_sections
-    from shared.telegram.push_policy import morning_brief_includes
+    from shared.telegram.push_policy import in_quiet_hours, morning_brief_includes
 
     try:
         if not self.chat_id:
             logger.warning("Chat ID not set, skip morning brief")
+            return
+        if in_quiet_hours():
+            logger.info("Skip morning brief: quiet hours")
             return
 
         sections: list[tuple[str, str]] = []
@@ -225,6 +228,11 @@ async def send_morning_routine_reminder(self, bot: Bot):
             if not self.chat_id:
                 logger.warning("Chat ID not set, skip morning routine reminder")
             return
+        from shared.telegram.push_policy import in_quiet_hours
+
+        if in_quiet_hours():
+            logger.info("Skip morning routine reminder: quiet hours")
+            return
         pending = get_pending_tasks()
         if not pending["morning"]:
             return
@@ -259,6 +267,11 @@ async def send_evening_routine_reminder(self, bot: Bot):
         if not should_send_evening_reminder() or not self.chat_id:
             if not self.chat_id:
                 logger.warning("Chat ID not set, skip evening routine reminder")
+            return
+        from shared.telegram.push_policy import in_quiet_hours
+
+        if in_quiet_hours():
+            logger.info("Skip evening routine reminder: quiet hours")
             return
         pending = get_pending_tasks()
         if not pending["evening"]:
@@ -424,6 +437,11 @@ async def send_stuck_alerts(self, bot: Bot):
     try:
         if not self.chat_id:
             logger.warning("Chat ID not set, stuck alerts skipped")
+            return
+        from shared.telegram.push_policy import in_quiet_hours
+
+        if in_quiet_hours():
+            logger.info("Skip stuck alerts: quiet hours")
             return
         days = _stuck_task_days()
         stuck = get_stuck_tasks(self, stuck_days=days)

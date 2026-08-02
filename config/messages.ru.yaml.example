@@ -62,6 +62,9 @@ push:
   finance_txn_title: "✦ Финансы · вечер"
   finance_insight_title: "✦ Финансы · инсайт"
   finance_subs_title: "✦ Финансы · подписки"
+  finance_weekly_title: "✦ Финансы · неделя"
+  finance_monthly_title: "✦ Финансы · месяц"
+  serendipity_title: "✦ Из vault"
 
 wire:
   voice_transcribing: "🎤 Распознаю речь..."

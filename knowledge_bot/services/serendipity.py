@@ -69,10 +69,20 @@ def _set_last_sent_date(tz) -> None:
     )
 
 
+def _window_hours() -> tuple[int, int]:
+    """Hours from env override or push_policy (no hard-coded scenario clock)."""
+    from shared.telegram import push_policy as pp
+
+    env0 = (os.environ.get("SERENDIPITY_HOUR_START") or "").strip()
+    env1 = (os.environ.get("SERENDIPITY_HOUR_END") or "").strip()
+    h0 = int(env0) if env0.isdigit() else pp.serendipity_hour_start()
+    h1 = int(env1) if env1.isdigit() else pp.serendipity_hour_end()
+    return h0, h1
+
+
 def _next_fire_at(tz) -> datetime:
-    """Helper."""
-    h0 = int(os.environ.get("SERENDIPITY_HOUR_START", "10"))
-    h1 = int(os.environ.get("SERENDIPITY_HOUR_END", "22"))
+    """Pick a random fire time inside the configured daytime window."""
+    h0, h1 = _window_hours()
     if h1 <= h0:
         h1 = min(23, h0 + 4)
     now = datetime.now(tz)
@@ -258,17 +268,29 @@ def _extract_media_rel_paths(frontmatter: dict[str, Any]) -> list[str]:
 
 
 
-async def _send_serendipity_note_contents(bot, uid: int, cfg: AppConfig, rel: str, msg: str) -> None:
+async def _send_serendipity_text(bot, uid: int, body: str) -> bool:
+    from shared.i18n import msg as i18n_msg
+    from shared.telegram.push_format import format_push
+    from shared.telegram import push_policy as pp
+
+    if pp.in_quiet_hours(datetime.now(_tz())):
+        log.info("serendipity: skip send — quiet hours")
+        return False
+    text = format_push(i18n_msg("push", "serendipity_title"), body)
+    await bot.send_message(uid, text, disable_web_page_preview=True)
+    return True
+
+
+async def _send_serendipity_note_contents(bot, uid: int, cfg: AppConfig, rel: str, msg: str) -> bool:
+    """Send styled serendipity push. Returns False if skipped (e.g. quiet hours)."""
     note_path = _safe_note_path(cfg.vault_path, rel)
     if not note_path:
-        await bot.send_message(uid, _line_with_path(msg, rel), disable_web_page_preview=True)
-        return
+        return await _send_serendipity_text(bot, uid, _line_with_path(msg, rel))
 
     try:
         raw = note_path.read_text(encoding="utf-8", errors="replace")
     except Exception:
-        await bot.send_message(uid, _line_with_path(msg, rel), disable_web_page_preview=True)
-        return
+        return await _send_serendipity_text(bot, uid, _line_with_path(msg, rel))
 
     fm, _ = _parse_frontmatter_and_body(raw)
     title = str(fm.get("title") or note_path.stem).strip() or note_path.stem
@@ -277,7 +299,8 @@ async def _send_serendipity_note_contents(bot, uid: int, cfg: AppConfig, rel: st
     from knowledge_bot.i18n.domain_text import serendipity as ser_msg
 
     header = intro or ser_msg("header_fallback", title=title)
-    await bot.send_message(uid, _line_with_path(header, rel), disable_web_page_preview=True)
+    if not await _send_serendipity_text(bot, uid, _line_with_path(header, rel)):
+        return False
 
     media_files = _extract_media_rel_paths(fm)
     for media_rel in media_files:
@@ -295,6 +318,7 @@ async def _send_serendipity_note_contents(bot, uid: int, cfg: AppConfig, rel: st
                 await bot.send_document(uid, media)
         except Exception:
             log.warning("serendipity media send failed: %s", media_rel, exc_info=True)
+    return True
 
 
 async def serendipity_loop(bot) -> None:
@@ -302,13 +326,19 @@ async def serendipity_loop(bot) -> None:
     if flag not in ("1", "true", "yes", "on"):
         log.info("serendipity disabled (SERENDIPITY_ENABLED not set)")
         return
+    from shared.telegram import push_policy as pp
+
+    if not pp.serendipity_push_enabled():
+        log.info("serendipity disabled (push_policy.serendipity.enabled=0)")
+        return
     cfg = load_config()
     uid = cfg.telegram_user_id
     if not uid:
         log.warning("serendipity: TELEGRAM_USER_ID not set, skip")
         return
     tz = _tz()
-    log.info("serendipity loop: tz=%s", tz)
+    h0, h1 = _window_hours()
+    log.info("serendipity loop: tz=%s window=%02d-%02d", tz, h0, h1)
     while True:
         try:
             target = _next_fire_at(tz)
@@ -328,8 +358,9 @@ async def serendipity_loop(bot) -> None:
             if not out:
                 continue
             rel, msg = out
-            await _send_serendipity_note_contents(bot, uid, cfg, rel, msg)
-            _set_last_sent_date(tz)
+            sent = await _send_serendipity_note_contents(bot, uid, cfg, rel, msg)
+            if sent:
+                _set_last_sent_date(tz)
         except Exception:
             log.exception("serendipity send failed")
 

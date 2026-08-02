@@ -63,12 +63,15 @@ def bulk_record_failed(user_id: int) -> None:
 
 
 def main_reply_keyboard(*, bulk_active: bool) -> ReplyKeyboardMarkup:
+    from shared.telegram.push_policy import show_knowledge_query_button
+
     b = ReplyKeyboardBuilder()
     if bulk_active:
         b.row(KeyboardButton(text=BTN_BULK_OFF))
     else:
         b.row(KeyboardButton(text=BTN_BULK_ON))
-    b.row(KeyboardButton(text=BTN_QUERY))
+    if show_knowledge_query_button() and BTN_QUERY:
+        b.row(KeyboardButton(text=BTN_QUERY))
     return b.as_markup(resize_keyboard=True)
 
 

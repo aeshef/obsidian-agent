@@ -6,6 +6,7 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
 from shared.i18n import msg
 from shared.telegram.host import labels as L
 from shared.telegram.keyboards import append_button_rows
+from shared.telegram.push_policy import show_auto_mode_button, show_knowledge_query_button
 
 
 def configure_host_keyboards() -> None:
@@ -35,8 +36,11 @@ def root_keyboard() -> ReplyKeyboardMarkup:
     bottom: list[KeyboardButton] = []
     if prof.module(MODULE_KNOWLEDGE):
         bottom.append(KeyboardButton(text=L.mode_knowledge()))
-    bottom.append(KeyboardButton(text=L.mode_auto()))
-    rows.append(bottom)
+    # Free text always hits the unified agent — separate Assistant button is optional.
+    if show_auto_mode_button():
+        bottom.append(KeyboardButton(text=L.mode_auto()))
+    if bottom:
+        rows.append(bottom)
     rows.append([KeyboardButton(text=L.memory_menu())])
     return ReplyKeyboardMarkup(
         keyboard=rows,
@@ -62,12 +66,13 @@ def knowledge_keyboard(*, bulk_active: bool = False) -> ReplyKeyboardMarkup:
     from shared.telegram.keyboards import reply_keyboard_from_rows
 
     bulk_btn = kb_lbl.bulk_off() if bulk_active else kb_lbl.bulk_on()
+    button_rows: list[list[str]] = [[bulk_btn]]
+    # Free text already uses the unified agent — tip button is optional noise.
+    if show_knowledge_query_button():
+        button_rows.append([kb_lbl.query_button()])
+    button_rows.append([L.back_home()])
     rows = reply_keyboard_from_rows(
-        [
-            [bulk_btn],
-            [kb_lbl.query_button()],
-            [L.back_home()],
-        ],
+        button_rows,
         resize_keyboard=True,
         input_field_placeholder=msg(
             "host", "placeholder_knowledge", default="Media ingest or question about notes"
