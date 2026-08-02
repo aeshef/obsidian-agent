@@ -7,7 +7,6 @@ from shared.agent.progress import AgentProgress, NullAgentProgress, agent_progre
 from shared.agent.types import AgentAnswer
 from shared.telegram.agent_progress import TelegramAgentProgress
 from shared.telegram.messaging import send_long_message
-from shared.telegram_utils import strip_telegram_markdown
 
 if TYPE_CHECKING:
     from aiogram import Bot
@@ -31,7 +30,7 @@ async def deliver_agent_answer(
     unified: bool = False,
     reply_markup: Any = None,
 ) -> AgentAnswer:
-    """Agent loop + optional step status; final — send_long_message (not draft)."""
+    """Agent loop + optional step status; final via rich markdown when enabled."""
     progress = _progress_for(bot, chat_id)
     try:
         if unified:
@@ -47,7 +46,8 @@ async def deliver_agent_answer(
     finally:
         await progress.on_complete()
 
-    text = strip_telegram_markdown(result.text)
+    # Keep LLM markdown; transport strips only on plain-text fallback.
+    text = result.text or ""
     if isinstance(progress, TelegramAgentProgress):
         await progress.finalize_answer(text, reply_markup=reply_markup)
     elif not progress.answer_delivered_in_chat():

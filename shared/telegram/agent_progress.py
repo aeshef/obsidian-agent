@@ -14,6 +14,12 @@ from shared.telegram.flood_guard import (
     send_message_guarded,
 )
 from shared.telegram.message_draft import new_draft_id, send_message_draft
+from shared.telegram.rich_message import (
+    rich_max_chars,
+    rich_messages_enabled,
+    send_rich_message,
+    send_rich_message_draft,
+)
 from shared.telegram_utils import split_message, strip_telegram_markdown
 
 if TYPE_CHECKING:
@@ -94,8 +100,10 @@ class TelegramAgentProgress:
             default=80 if answer_draft_enabled() else 900,
         )
         interval = interval_ms / 1000.0
-        cap = max_message_chars()
-        safe = strip_telegram_markdown(text or "")[:cap]
+        if rich_messages_enabled():
+            safe = (text or "")[: rich_max_chars()]
+        else:
+            safe = strip_telegram_markdown(text or "")[: max_message_chars()]
         self._pending_answer_text = safe
         if len(safe) < min_chars:
             return
@@ -113,11 +121,29 @@ class TelegramAgentProgress:
         return self._answer_delivered and self._answer_message_id is not None
 
     async def finalize_answer(self, text: str, *, reply_markup: Any = None) -> None:
-        full = strip_telegram_markdown(text or "")
-        if not full:
+        raw = (text or "").strip()
+        if not raw:
             return
-        chunks = split_message(full, max_len=max_message_chars())
         async with self._answer_lock:
+            if rich_messages_enabled() and len(raw) <= rich_max_chars():
+                msg = await send_rich_message(
+                    self._bot,
+                    self._chat_id,
+                    raw,
+                    reply_markup=reply_markup,
+                )
+                if msg is not None:
+                    self._answer_delivered = True
+                    self._answer_message_id = getattr(msg, "message_id", None)
+                    self._last_pushed_answer_text = raw
+                    self._pending_answer_text = raw
+                    return
+                log.info("rich finalize failed — plain fallback")
+
+            full = strip_telegram_markdown(raw)
+            if not full:
+                return
+            chunks = split_message(full, max_len=max_message_chars())
             if self._answer_stream_mode == "draft" or self._answer_message_id is None:
                 await self._send_answer_chunks(chunks, reply_markup=reply_markup)
                 self._answer_delivered = True
@@ -193,11 +219,23 @@ class TelegramAgentProgress:
         if answer_draft_enabled() and self._answer_stream_mode != "edit":
             if self._answer_draft_id is None:
                 self._answer_draft_id = new_draft_id(self._chat_id)
+            if rich_messages_enabled():
+                ok = await send_rich_message_draft(
+                    self._bot,
+                    chat_id=self._chat_id,
+                    draft_id=self._answer_draft_id,
+                    text=safe,
+                )
+                if ok:
+                    self._answer_stream_mode = "draft"
+                    self._last_pushed_answer_text = safe
+                    return
+                log.info("sendRichMessageDraft unavailable, try plain draft")
             ok = await send_message_draft(
                 self._bot,
                 chat_id=self._chat_id,
                 draft_id=self._answer_draft_id,
-                text=safe,
+                text=strip_telegram_markdown(safe) if rich_messages_enabled() else safe,
             )
             if ok:
                 self._answer_stream_mode = "draft"
@@ -205,7 +243,9 @@ class TelegramAgentProgress:
                 return
             log.info("sendMessageDraft unavailable, fallback to edit_message for this answer")
             self._answer_stream_mode = "edit"
-        await self._push_answer_edit(safe)
+        await self._push_answer_edit(
+            strip_telegram_markdown(safe) if rich_messages_enabled() else safe
+        )
 
     async def _push_answer_edit(self, safe: str) -> None:
         if safe == self._last_pushed_answer_text:
