@@ -306,7 +306,7 @@ def apply_kanban_action(
     logger=None,
 ) -> str:
     act = (action or "").strip().lower()
-    if act not in ("create", "move", "complete"):
+    if act not in ("create", "move", "complete", "delete"):
         return pdmsg("kanban_unknown_action", action=action)
 
     writes_ok = kanban_writes_allowed()
@@ -458,14 +458,19 @@ def _apply_move_or_complete(
             )
         target_col = resolved
         new_block = block
+    elif act == "delete":
+        new_block = block
+        target_col = ""
     else:
         return f"unsupported {act}"
 
     if dry_run:
+        if act == "delete":
+            return f"[dry-run] delete id={task_id} from {src_col}"
         return f"[dry-run] {act} id={task_id}: {src_col} → {target_col}"
     if not writes_ok:
         return (
-            pdmsg("auto_a909f1b98e", act={act}, task_id={task_id}, target_col={target_col})
+            pdmsg("auto_a909f1b98e", act={act}, task_id={task_id}, target_col={target_col or src_col})
         )
 
     def _mutate() -> None:
@@ -482,9 +487,10 @@ def _apply_move_or_complete(
         else:
             sections[src_col].pop(idx)
             blk = new_block
-        if target_col not in sections:
-            sections[target_col] = []
-        sections[target_col].append(blk)
+        if act != "delete":
+            if target_col not in sections:
+                sections[target_col] = []
+            sections[target_col].append(blk)
         board.content = _rebuild_kanban_content(sections, board.content)
         board.save()
 
@@ -494,11 +500,19 @@ def _apply_move_or_complete(
     else:
         _mutate()
     _sync_state_file(board)
+    task_title = (kp.title_from_block(new_block) or "")[:80]
+    category = kp.metadata_from_block(new_block).get("category")
     if logger:
-        task_title = (kp.title_from_block(new_block) or "")[:80]
-        category = kp.metadata_from_block(new_block).get("category")
         if act == "complete":
             logger.log_task_completed(task_title, task_id=task_id, category=category)
+        elif act == "delete":
+            logger.log_task_deleted(
+                task_title,
+                task_id=task_id,
+                category=category,
+                from_column=src_col,
+                source="explicit",
+            )
         else:
             logger.log_task_moved(
                 task_title,
@@ -507,6 +521,8 @@ def _apply_move_or_complete(
                 task_id=task_id,
                 category=category,
             )
+    if act == "delete":
+        return pdmsg("kanban_task_deleted", task_id=task_id, title=task_title)
     return f"OK: {act} id={task_id} → {target_col}"
 
 

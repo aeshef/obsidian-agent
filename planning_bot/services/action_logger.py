@@ -18,7 +18,9 @@ from planning_bot.services.action_log_format import (
 
 _log = logging.getLogger(__name__)
 
-_TASK_EVENT_TYPES = frozenset({"task_moved", "task_completed", "task_created"})
+_TASK_EVENT_TYPES = frozenset(
+    {"task_moved", "task_completed", "task_created", "task_deleted", "task_removed"}
+)
 
 
 @lru_cache(maxsize=1)
@@ -274,6 +276,48 @@ class ActionLogger:
         if category:
             payload["category"] = category
         self.log_action("task_moved", payload)
+
+    def log_task_deleted(
+        self,
+        task_title: str,
+        task_id: Optional[str] = None,
+        *,
+        category: Optional[str] = None,
+        from_column: Optional[str] = None,
+        source: str = "explicit",
+    ):
+        """Intentional delete (bot/agent). Never auto-restore these."""
+        if task_id:
+            history = self.get_task_history(task_id=task_id)
+            if any(h.get("type") == "task_deleted" for h in history):
+                return
+        payload: Dict = {"title": task_title, "source": source or "explicit"}
+        if task_id:
+            payload["task_id"] = task_id
+        if category:
+            payload["category"] = category
+        if from_column:
+            payload["from"] = from_column
+        self.log_action("task_deleted", payload)
+
+    def log_task_removed(
+        self,
+        task_title: str,
+        task_id: Optional[str] = None,
+        *,
+        from_column: Optional[str] = None,
+        source: str = "monitor",
+    ):
+        """Passive observation: task disappeared from the board (may be sync wipe).
+
+        Not the same as task_deleted — restore may still treat these as orphans.
+        """
+        payload: Dict = {"title": task_title, "source": source or "monitor"}
+        if task_id:
+            payload["task_id"] = task_id
+        if from_column:
+            payload["from"] = from_column
+        self.log_action("task_removed", payload)
 
     def count_completed_tasks_this_week(self) -> int:
         'Operation implementation.'

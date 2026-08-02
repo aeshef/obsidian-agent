@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Re-create kanban tasks logged as task_created but missing from board/archive.
 
-Preserves original task_id and created date. Skips completed/deleted and
-title duplicates already on the board. Optional --from-json for a precomputed
-orphan list (see orphan scan in agent ops).
+Modes:
+  sync-orphan (default) — only recent creates that look like sync wipes:
+    no task_deleted, not completed, missing from board, created within --since
+    (default: 14 days). Never restores intentional deletes.
+  all — every missing create without task_deleted/completed (legacy bulk; avoid).
+
+Preserves original task_id and created date.
 """
 from __future__ import annotations
 
@@ -11,7 +15,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[2]
@@ -100,7 +104,8 @@ def _collect_from_logs(
                 created[tid] = ev
             elif action == "task_completed":
                 completed.add(tid)
-            elif action in {"task_deleted", "task_removed"}:
+            elif action == "task_deleted":
+                # Explicit intent only — task_removed (monitor) does NOT block restore.
                 deleted.add(tid)
     orphans: list[dict] = []
     for tid, ev in created.items():
@@ -121,12 +126,23 @@ def _collect_from_logs(
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--since", default="", help="Log timestamp >= YYYY-MM-DD or YYYY-MM-DD HH:MM")
-    ap.add_argument("--until", default="", help="Log timestamp <= (same formats)")
+    ap.add_argument(
+        "--mode",
+        choices=("sync-orphan", "all"),
+        default="sync-orphan",
+        help="sync-orphan=recent wipe suspects (default); all=historical bulk",
+    )
+    ap.add_argument("--since", default="", help="Log timestamp >= YYYY-MM-DD (overrides mode default)")
+    ap.add_argument("--until", default="", help="Log timestamp <=")
     ap.add_argument(
         "--from-json",
         default="",
         help="Use precomputed orphan list JSON instead of scanning logs",
+    )
+    ap.add_argument(
+        "--ids",
+        default="",
+        help="Comma-separated task_ids to restore (whitelist; safest)",
     )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
@@ -138,21 +154,31 @@ def main() -> int:
         arch_text = KANBAN_ARCHIVE_FILE.read_text(encoding="utf-8")
     on_ids, on_titles = _ids_and_titles(board_text + "\n" + arch_text)
 
+    id_whitelist = {x.strip().lower() for x in args.ids.split(",") if x.strip()}
+
     if args.from_json:
-        raw = json.loads(Path(args.from_json).read_text(encoding="utf-8"))
-        candidates = list(raw)
+        candidates = list(json.loads(Path(args.from_json).read_text(encoding="utf-8")))
     else:
-        since_dt = _parse_when(args.since) if args.since else None
+        if args.since:
+            since_dt = _parse_when(args.since)
+        elif args.mode == "sync-orphan":
+            since_dt = datetime.now() - timedelta(days=14)
+        else:
+            since_dt = None
         until_dt = _parse_when(args.until) if args.until else None
         candidates = _collect_from_logs(since_dt=since_dt, until_dt=until_dt)
 
     missing: list[tuple[str, ...]] = []
     skipped_present = 0
     skipped_title = 0
+    skipped_filter = 0
     for ev in candidates:
         tid = (ev.get("task_id") or "").strip().lower()
         title = (ev.get("title") or "").strip()
         if not tid or not title:
+            continue
+        if id_whitelist and tid not in id_whitelist:
+            skipped_filter += 1
             continue
         if tid in on_ids:
             skipped_present += 1
@@ -167,8 +193,8 @@ def main() -> int:
         missing.append((title, cat, pri, tid, created_date))
 
     print(
-        f"restore candidates={len(candidates)} missing={len(missing)} "
-        f"skip_id={skipped_present} skip_title={skipped_title}"
+        f"mode={args.mode} candidates={len(candidates)} missing={len(missing)} "
+        f"skip_id={skipped_present} skip_title={skipped_title} skip_filter={skipped_filter}"
     )
     for row in missing[:15]:
         print(f"  {row[3]} {row[4]} {row[0][:70]}")

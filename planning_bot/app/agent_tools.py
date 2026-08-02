@@ -314,7 +314,7 @@ async def apply_kanban_task(
     column: str = "",
     all_matching: bool = False,
 ) -> str:
-    """Board mutation: create | move | complete (KANBAN_AGENT_WRITES=1). For many new tasks use titles=[...] in one call."""
+    """Board mutation: create | move | complete | delete (KANBAN_AGENT_WRITES=1). delete = intentional remove + task_deleted log. For many new tasks use titles=[...] in one call."""
     from planning_bot.services.kanban_agent import apply_kanban_action
 
     bot = _bot(ctx)
