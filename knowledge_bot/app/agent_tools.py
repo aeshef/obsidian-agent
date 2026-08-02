@@ -28,10 +28,13 @@ def _max_kb_media() -> int:
 
 
 def _queue_kb_media(ctx: AgentContext, items: list[tuple[str, str]]) -> None:
-    from shared.agent.types import KB_MEDIA_EXTRAS_KEY
+    from shared.agent.types import CHART_MEDIA_EXTRAS_KEY, KB_MEDIA_EXTRAS_KEY
     from knowledge_bot.services.query.note_media import merge_media_files
 
     if not items:
+        return
+    # Dashboard chart sends win — do not pile note images on top.
+    if ctx.extras.get(CHART_MEDIA_EXTRAS_KEY):
         return
     cur = list(ctx.extras.get(KB_MEDIA_EXTRAS_KEY) or [])
     ctx.extras[KB_MEDIA_EXTRAS_KEY] = merge_media_files(
@@ -128,8 +131,12 @@ async def read_knowledge_note(ctx: AgentContext, note_title: str) -> str:
 
 
 @tool(category="notes", always=True)
-async def search_knowledge_base(ctx: AgentContext, query: str) -> str:
-    """Search Obsidian vault knowledge catalog."""
+async def search_knowledge_base(
+    ctx: AgentContext,
+    query: str,
+    include_media: bool = False,
+) -> str:
+    """Search Obsidian vault knowledge notes. For dashboard charts use list_vault_charts/send_vault_charts instead. Set include_media=true only when the user wants images from notes."""
     from knowledge_bot.core.config import load_config
     from knowledge_bot.core.llm import LLMClient
     from knowledge_bot.services.query import run_brain_query
@@ -154,7 +161,8 @@ async def search_knowledge_base(ctx: AgentContext, query: str) -> str:
     err_q = dmsg(*_KA, "err_prefix_empty_question")
     if text.startswith(err_nf) or text.startswith(err_empty) or text.startswith(err_q):
         return dmsg(*_KA, "search_kb_prefix", text=text)
-    _queue_kb_media(ctx, list(result.media_files))
+    if include_media:
+        _queue_kb_media(ctx, list(result.media_files))
     return text
 
 

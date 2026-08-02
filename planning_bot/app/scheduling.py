@@ -85,7 +85,7 @@ def start_scheduler(planning, bot: Bot) -> None:
             planning_daily_checkin_enabled() and replace_passive_evening_reminders()
         )
         if not skip_evening_passive:
-            for hour in (21, 22, 23):
+            for hour in pp.evening_routine_hours():
                 _scheduler.add_job(
                     planning.send_evening_routine_reminder,
                     CronTrigger(hour=hour, minute=0, timezone=tz),

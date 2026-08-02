@@ -385,6 +385,9 @@ push:
   finance_txn_title: "✦ Finance · evening"
   finance_insight_title: "✦ Finance · insight"
   finance_subs_title: "✦ Finance · subscriptions"
+  finance_weekly_title: "✦ Finance · week"
+  finance_monthly_title: "✦ Finance · month"
+  serendipity_title: "✦ From vault"
 host:
   agent_error: '❌ Agent error: {error}'
   telegram_flood: '⏳ Telegram rate limit. Wait ~{seconds}s and try again.'
