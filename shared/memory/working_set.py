@@ -1,19 +1,49 @@
-"""Short-lived working set: entities inferred from recent turns for follow-ups."""
+"""Short-lived working set: entities inferred from recent turns for follow-ups.
+
+Locale category tokens belong in ``routing.yaml`` (``host.working_set.category_patterns``).
+"""
 from __future__ import annotations
 
 import re
 import threading
 from collections import OrderedDict
 from dataclasses import dataclass, field
+from functools import lru_cache
+
 from shared.agent.types import AgentContext, AgentMessage
 
 _ISO = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
-_CATEGORY_HINT = re.compile(
-    r"(?i)\b(еда|food|транспорт|transport|подписк\w*|subscription\w*|здоровье|health)\b"
-)
 _MAX_ITEMS = 12
 _lock = threading.Lock()
 _store: dict[tuple[int, str], "WorkingSet"] = {}
+
+# English-only fallbacks; locale lists live in routing.yaml.example.
+_DEFAULT_CATEGORY_PATTERNS = (
+    r"\bfood\b",
+    r"\btransport\b",
+    r"\bsubscription\w*\b",
+    r"\bhealth\b",
+)
+
+
+@lru_cache(maxsize=1)
+def _category_hint_re() -> re.Pattern[str]:
+    from shared.agent.config import load_routing_config
+
+    host = load_routing_config().get("host") or {}
+    block = host.get("working_set") or {}
+    raw = block.get("category_patterns") or list(_DEFAULT_CATEGORY_PATTERNS)
+    if isinstance(raw, str):
+        parts = [raw]
+    else:
+        parts = [str(p) for p in raw if str(p).strip()]
+    if not parts:
+        parts = list(_DEFAULT_CATEGORY_PATTERNS)
+    return re.compile("|".join(f"(?:{p})" for p in parts), re.IGNORECASE)
+
+
+def clear_working_set_pattern_cache() -> None:
+    _category_hint_re.cache_clear()
 
 
 @dataclass
@@ -70,8 +100,8 @@ def observe_text(user_id: int, domain: str, text: str) -> WorkingSet:
     t = text or ""
     for m in _ISO.finditer(t):
         ws.touch_date(m.group(1))
-    for m in _CATEGORY_HINT.finditer(t):
-        ws.touch_category(m.group(1))
+    for m in _category_hint_re().finditer(t):
+        ws.touch_category(m.group(0))
     return ws
 
 

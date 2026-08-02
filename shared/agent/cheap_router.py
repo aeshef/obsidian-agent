@@ -1,4 +1,8 @@
-"""Cheap heuristic domain router — skip LLM for high-confidence single-domain phrases."""
+"""Cheap heuristic domain router — skip LLM for high-confidence single-domain phrases.
+
+Locale-specific patterns live in ``config/agent/routing.yaml`` (see
+``routing.yaml.example``). Python keeps English-only fallbacks for OSS/CI.
+"""
 from __future__ import annotations
 
 import logging
@@ -10,32 +14,24 @@ from shared.agent.config import load_routing_config
 
 log = logging.getLogger("shared.agent.cheap_router")
 
-# Fallbacks when routing.yaml omits cheap_router patterns.
+# English-only fallbacks when routing.yaml omits cheap_router patterns.
 _DEFAULTS: dict[str, tuple[str, ...]] = {
     "finance": (
-        r"\bбаланс\b",
-        r"\bсколько\s+потрат",
-        r"\bтрат[аы]?\b",
-        r"\bрасход",
-        r"\bподписк",
-        r"\bдолг",
         r"\bbalance\b",
         r"\bspending\b",
+        r"\bexpenses?\b",
+        r"\bsubscription",
+        r"\bdebt\b",
     ),
     "planning": (
-        r"\bканбан\b",
-        r"\bзадач",
-        r"\bкалендар",
-        r"\bрутин",
         r"\bkanban\b",
         r"\btasks?\b",
         r"\bcalendar\b",
+        r"\broutine",
     ),
     "knowledge": (
-        r"\bв\s+базе\b",
-        r"\bнайди\s+заметк",
         r"\bknowledge\b",
-        r"\bnote\b",
+        r"\bnotes?\b",
         r"\bvault\b",
     ),
 }
@@ -60,6 +56,13 @@ def _domain_patterns() -> dict[str, re.Pattern[str]]:
 
 def clear_cheap_router_cache() -> None:
     _domain_patterns.cache_clear()
+    load_routing_config.cache_clear()
+    try:
+        from shared.yaml_config import load_merged_config
+
+        load_merged_config.cache_clear()
+    except Exception:
+        pass
 
 
 def cheap_route_domain(

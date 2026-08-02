@@ -6,7 +6,7 @@ def normalize_category_query(query: str | None) -> str:
     """Normalize user/LLM category filters to a comparable stem.
 
     Accepts hierarchical globs the prompts historically suggested:
-    ``Еда/*``, ``Еда*``, ``Еда/`` → prefix stem ``еда`` (match parent + children).
+    ``Food/*``, ``Food*``, ``Food/`` → prefix stem ``food`` (match parent + children).
     """
     q = (query or "").strip().lower()
     if not q:
@@ -25,9 +25,9 @@ def category_matches(query: str | None, category: str | None) -> bool:
     Matching rules (case-insensitive):
     - empty query → match all
     - exact label
-    - parent of a slash-path: ``Еда`` matches ``Еда/Вне дома``
-    - legacy substring (``вне дома`` in ``Еда/Вне дома``)
-    - ``Еда/*`` / ``Еда/`` normalized like parent prefix
+    - parent of a slash-path: ``Food`` matches ``Food/Out``
+    - legacy substring (``out`` in ``Food/Out``)
+    - ``Food/*`` / ``Food/`` normalized like parent prefix
     """
     stem = normalize_category_query(query)
     if not stem:
@@ -37,5 +37,5 @@ def category_matches(query: str | None, category: str | None) -> bool:
         return False
     if cat == stem or cat.startswith(stem + "/"):
         return True
-    # Keep substring fallback for leaf fragments ("вне дома", "products").
+    # Keep substring fallback for leaf fragments ("out", "products").
     return stem in cat

@@ -97,7 +97,7 @@ async def get_transactions(
     days: int = 0,
     category: str = "",
 ) -> str:
-    """Transactions in interval (from/to YYYY-MM-DD or days). category matches parent+children (Еда, Еда/, Еда/* → Еда/Вне дома, Еда/Продукты)."""
+    """Transactions in interval (from/to YYYY-MM-DD or days). category matches parent+children (Food, Food/, Food/* → Food/Out, Food/Groceries)."""
     analyst = _analyst(ctx)
     uid, rows = await _fetch_rows(
         ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
@@ -124,7 +124,7 @@ async def get_spending_by_category(
     category: str = "",
     group_by: str = "",
 ) -> str:
-    """Spending by category (consumption). category=parent matches children (Еда → Еда/*). group_by=day for per-day totals (join with task completions)."""
+    """Spending by category (consumption). category=parent matches children (Food → Food/*). group_by=day for per-day totals (join with task completions)."""
     uid, rows = await _fetch_rows(
         ctx,
         from_date=from_date,
