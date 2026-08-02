@@ -1,0 +1,13 @@
+id: cross-domain-food-tasks
+kind: cross_domain
+input:
+  text: "траты на еду и закрытые задачи за неделю"
+expect:
+  looks_cross: true
+---
+id: cross-domain-balance-only
+kind: cross_domain
+input:
+  text: "покажи баланс карт"
+expect:
+  looks_cross: false

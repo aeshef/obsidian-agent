@@ -1,4 +1,4 @@
-"""Capabilities manifest: defaults preserve full product; profiles gate sync/tools."""
+"""Capabilities manifest: full-install / starter defaults; partial YAML is fail-closed."""
 from __future__ import annotations
 
 import os
@@ -9,6 +9,7 @@ import yaml
 
 from shared.capabilities.profile import (
     CONNECTOR_BROKER_SYNC,
+    CONNECTOR_APPLE_HEALTH,
     MODULE_FINANCE,
     MODULE_KNOWLEDGE,
     MODULE_PLANNING,
@@ -17,6 +18,7 @@ from shared.capabilities.profile import (
     CapabilityProfile,
     clear_capabilities_cache,
     load_capabilities,
+    profile_from_document,
 )
 from shared.capabilities.registry import filter_finance_tools, filter_planning_tools
 from shared.capabilities.sync_steps import (
@@ -74,6 +76,7 @@ def test_finance_only_profile_disables_planning_sync(monkeypatch, tmp_path: Path
         yaml.dump(
             {
                 "modules": {"finance": True, "planning": False, "knowledge": False},
+                "connectors": {"domestic_bank_cards": True},
                 "sync": {"profile": SYNC_PROFILE_FINANCE_ONLY},
             }
         ),
@@ -86,6 +89,19 @@ def test_finance_only_profile_disables_planning_sync(monkeypatch, tmp_path: Path
     assert sync_step_enabled(STEP_FINANCE_DASHBOARD, prof)
     assert not sync_step_enabled(STEP_PLANNING_CHARTS, prof)
     assert not sync_step_enabled(STEP_KB_MAINTENANCE, prof)
+    # Fail-closed: omitted connectors stay off.
+    assert not prof.connector(CONNECTOR_BROKER_SYNC)
+
+
+def test_partial_yaml_omitted_keys_fail_closed():
+    prof = profile_from_document(
+        {"modules": {"finance": True}, "sync": {"profile": SYNC_PROFILE_FINANCE_ONLY}}
+    )
+    assert prof.module(MODULE_FINANCE)
+    assert not prof.module(MODULE_PLANNING)
+    assert not prof.module(MODULE_KNOWLEDGE)
+    assert not prof.connector(CONNECTOR_BROKER_SYNC)
+    assert not prof.connector(CONNECTOR_APPLE_HEALTH)
 
 
 def test_connector_off_filters_finance_broker_tool():
@@ -172,7 +188,11 @@ def test_feature_off_disables_nutrition_sync(monkeypatch, tmp_path: Path):
         yaml.dump(
             {
                 "modules": {"finance": False, "planning": True, "knowledge": False},
-                "connectors": {"apple_health": True},
+                "connectors": {
+                    "apple_health": True,
+                    "apple_calendar": True,
+                    "mac_context": True,
+                },
                 "features": {"health_nutrition_chart": False},
             }
         ),

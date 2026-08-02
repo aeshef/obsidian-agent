@@ -145,8 +145,15 @@ AGENT_EXCLUDES=(
   --exclude='user_profile.md'
 )
 
+# Keep long remote pip/venv sessions alive; bare ssh hung on ensure_bot_venv.
+DEPLOY_SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=20 -o ServerAliveCountMax=12)
+
 ssh_check() {
-  ssh -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "$(sh_msgf scripts.deploy.ssh_failed "{\"server\":\"$SERVER\"}")"; exit 1; }
+  ssh "${DEPLOY_SSH_OPTS[@]}" -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "$(sh_msgf scripts.deploy.ssh_failed "{\"server\":\"$SERVER\"}")"; exit 1; }
+}
+
+deploy_ssh() {
+  ssh "${DEPLOY_SSH_OPTS[@]}" "$SERVER" "$@"
 }
 
 rsync_comp() {
@@ -174,7 +181,7 @@ rsync_agent_paths() {
   local flags="-avz --checksum"
   [ "$DRYRUN" = 1 ] && flags="-navz"
   if [ "$DRYRUN" = 0 ]; then
-    ssh "$SERVER" "mkdir -p '$SERVER_BOTS/$name'"
+    deploy_ssh "mkdir -p '$SERVER_BOTS/$name'"
   fi
   echo "🔄 rsync $name → $dst"
   rsync $flags "${AGENT_EXCLUDES[@]}" "$src" "$dst"
@@ -188,17 +195,17 @@ install_deps() {
   [ "$INSTALL_DEPS" = 1 ] || return 0
   echo "📦 ensure .venv + pip install ($name)"
   [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
-  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
+  deploy_ssh "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
 }
 
 ensure_venv_link() {
   local name="$1"
-  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name" 2>/dev/null || true
+  deploy_ssh "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name" 2>/dev/null || true
 }
 
 _restart_bot_remote() {
   local name="$1" bot_pattern="$2"
-  ssh "$SERVER" "set -e
+  deploy_ssh "set -e
     cd $SERVER_BOTS/$name
     pkill -f '$bot_pattern' 2>/dev/null || true
     sleep 2

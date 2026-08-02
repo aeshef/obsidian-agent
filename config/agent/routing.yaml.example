@@ -8,6 +8,23 @@ host:
   cross_domain_escalation:
     finance_pattern: '(трат|потрат|расход|еда|ед[еуы]|деньг|бюджет|баланс|finance|spend|food)'
     planning_pattern: '(задач|закрыт|канбан|продуктив|completion|task|health|шаг|сон|календар)'
+  # High-confidence single-domain phrases skip the LLM domain classifier.
+  cheap_router:
+    finance:
+      - '\bбаланс\b'
+      - '\bсколько\s+потрат'
+      - '\bподписк'
+      - '\bbalance\b'
+      - '\bspending\b'
+    planning:
+      - '\bканбан\b'
+      - '\bкалендар'
+      - '\bkanban\b'
+      - '\bcalendar\b'
+    knowledge:
+      - '\bв\s+базе\b'
+      - '\bнайди\s+заметк'
+      - '\bknowledge\b'
 
 agent:
   # First agent loop iteration: tool_choice=required for these domains (when tools exist).

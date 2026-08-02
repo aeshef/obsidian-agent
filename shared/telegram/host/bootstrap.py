@@ -6,7 +6,6 @@ import os
 
 from shared.telegram.bot_factory import create_bot
 from aiogram import BaseMiddleware, Dispatcher
-from aiogram.fsm.storage.memory import MemoryStorage
 
 from shared.logging_setup import setup_logging
 from shared.telegram.host.agent import build_host_agent_app
@@ -49,6 +48,21 @@ def resolve_host_token(
     return ""
 
 
+def _build_fsm_storage():
+    """Prefer SQLite FSM; fall back to memory if DB init fails."""
+    from aiogram.fsm.storage.memory import MemoryStorage
+
+    if (os.environ.get("FSM_STORAGE") or "").strip().lower() in ("memory", "mem"):
+        return MemoryStorage()
+    try:
+        from shared.telegram.fsm_sqlite import SQLiteStorage
+
+        return SQLiteStorage()
+    except Exception as e:
+        log.warning("FSM SQLite unavailable (%s); using MemoryStorage", e)
+        return MemoryStorage()
+
+
 async def run_host_bot(
     *,
     token: str | None = None,
@@ -77,6 +91,12 @@ async def run_host_bot(
         prof.sync_profile,
     )
 
+    # Ensure finance_bot is importable as top-level ``bot`` without fragile PYTHONPATH.
+    if prof.module(MODULE_FINANCE):
+        from shared.bootstrap import setup_bot
+
+        setup_bot("finance_bot")
+
     planning_bot = None
     if prof.module(MODULE_PLANNING):
         try:
@@ -89,10 +109,11 @@ async def run_host_bot(
     agent_app = build_host_agent_app(planning_bot)
 
     bot = create_bot(resolved, parse_mode=None)
-    dp = Dispatcher(storage=MemoryStorage())
+    storage = _build_fsm_storage()
+    dp = Dispatcher(storage=storage)
     if planning_bot is not None:
         # Scheduled weekly review sets ReflectionState via fsm_storage — must bind
-        # the same MemoryStorage the dispatcher uses (otherwise bind_fsm is never called).
+        # the same storage the dispatcher uses (otherwise bind_fsm is never called).
         planning_bot.bind_fsm(dp.storage)
 
     class _Inject(BaseMiddleware):

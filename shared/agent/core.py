@@ -170,6 +170,10 @@ async def run_agent(
 
     last_text: str | None = None
     tool_bodies: list[str] = []
+    tool_calls_used = 0
+    from shared.agent.platform_config import platform_int
+
+    max_tool_calls = platform_int("agent", "max_tool_calls", default=0)
     for iteration in range(limit):
         from shared.agent.config import tools_first_iter_domains
 
@@ -178,6 +182,8 @@ async def run_agent(
             if iteration == 0 and ctx.domain in tools_first_iter_domains() and schemas
             else "auto"
         )
+        if max_tool_calls and tool_calls_used >= max_tool_calls:
+            tool_choice = "none"
         on_delta = None
         if answer_stream_enabled() and tool_choice != "required":
             loop = asyncio.get_running_loop()
@@ -211,6 +217,21 @@ async def run_agent(
             return out
 
         calls = parse_tool_calls(resp.tool_calls)
+        if max_tool_calls and tool_calls_used + len(calls) > max_tool_calls:
+            keep = max(0, max_tool_calls - tool_calls_used)
+            if keep <= 0:
+                if resp.text:
+                    final = resp.text.strip()
+                    _warn_ungrounded_currency(final, tool_bodies)
+                    return final
+                break
+            log.info(
+                "agent tool-call budget: truncating %s -> %s (max=%s)",
+                len(calls),
+                keep,
+                max_tool_calls,
+            )
+            calls = calls[:keep]
         api_messages.append(
             {
                 "role": "assistant",
@@ -241,6 +262,7 @@ async def run_agent(
                     execute_tool(tc, registry, ctx, allowed_names=allowed)
                 )
         await _flush_parallel()
+        tool_calls_used += len(calls)
         for tr in results:
             tool_bodies.append(tr.content or "")
             api_messages.append(

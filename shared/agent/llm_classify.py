@@ -250,11 +250,14 @@ async def select_tools_llm(
 
     selected: set[str] = set(always)
     unknown: list[str] = []
+    optional: list[str] = []
     for item in picked:
         name = str(item).strip()
         if not name:
             continue
         if name in registry._tools:
+            if name not in always:
+                optional.append(name)
             selected.add(name)
         else:
             unknown.append(name)
@@ -271,6 +274,22 @@ async def select_tools_llm(
             sorted(selected),
             domain,
         )
+
+    # Soft budget: keep always-on tools, trim optional picks.
+    max_selected = platform_int("agent", "max_tools_selected", default=0)
+    if max_selected and max_selected > 0:
+        room = max(0, max_selected - len(always))
+        if len(optional) > room:
+            kept = optional[:room]
+            dropped = optional[room:]
+            selected = set(always) | set(kept)
+            log.info(
+                "tool select budget: kept=%s dropped=%s max=%s domain=%s",
+                kept,
+                dropped,
+                max_selected,
+                domain,
+            )
 
     out = sorted(selected)
     log.info(

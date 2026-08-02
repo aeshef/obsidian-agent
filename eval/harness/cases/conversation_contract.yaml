@@ -1,0 +1,9 @@
+id: host-query-contract
+kind: conversation_contract
+input:
+  prompt_stem: host_query
+expect:
+  contains_any:
+    - "Conversation contract"
+    - "clarifying question"
+    - "group_by=day"

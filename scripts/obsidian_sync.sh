@@ -20,6 +20,11 @@ _sync_fail() {
   SYNC_OK=0
   SYNC_FAIL_STEP="${1:-unknown}"
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ FAIL step=${SYNC_FAIL_STEP}" >> "$DEBUG_LOG" 2>/dev/null || true
+  # Persist last critical fail step for check_sync_health (not only debug log).
+  if [ -n "${SYNC_DIR:-}" ]; then
+    echo "${SYNC_FAIL_STEP}" > "$SYNC_DIR/last_sync_fail_step.txt" 2>/dev/null || true
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') ${SYNC_FAIL_STEP}" >> "$SYNC_DIR/sync_fail_steps.log" 2>/dev/null || true
+  fi
 }
 
 # Без set -e: ошибка одной папки не останавливает синк остальных
@@ -1322,14 +1327,17 @@ fi
 echo "$(sh_msg scripts.obsidian_sync.step_7)" >&2
 if [ "${SYNC_OK:-0}" = "1" ]; then
   if echo "$NOW_ISO" > "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null; then WROTE=1; else WROTE=0; fi
-  rm -f "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
+  rm -f "$SYNC_DIR/last_sync_failed.txt" "$SYNC_DIR/last_sync_fail_step.txt" 2>/dev/null || true
   READ_BACK="$(head -1 "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null)"
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ OK last_sync_ok=$SYNC_DIR wrote=$WROTE content=$READ_BACK" >> "$DEBUG_LOG" 2>/dev/null || true
 else
   WROTE=0
-  echo "$NOW_ISO critical steps failed (see $DEBUG_LOG)" > "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
+  _fail_step="${SYNC_FAIL_STEP:-unknown}"
+  echo "$NOW_ISO step=${_fail_step} (see $DEBUG_LOG)" > "$SYNC_DIR/last_sync_failed.txt" 2>/dev/null || true
+  echo "$_fail_step" > "$SYNC_DIR/last_sync_fail_step.txt" 2>/dev/null || true
   READ_BACK="$(head -1 "$SYNC_DIR/last_sync_ok.txt" 2>/dev/null)"
-  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ WARN critical sync steps failed; step=${SYNC_FAIL_STEP:-unknown}; last_sync_ok not updated (prev=$READ_BACK)" >> "$DEBUG_LOG" 2>/dev/null || true
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ WARN critical sync steps failed; step=${_fail_step}; last_sync_ok not updated (prev=$READ_BACK)" >> "$DEBUG_LOG" 2>/dev/null || true
+  unset _fail_step
 fi
 HEALTH_SCRIPT="${AGENT_ROOT}/scripts/check_sync_health.sh"
 if [ -x "$HEALTH_SCRIPT" ]; then

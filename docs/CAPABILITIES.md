@@ -6,7 +6,7 @@ Declarative product profile: which Telegram domains, data connectors, and Mac sy
 |-----------|-----------------|
 | No `capabilities.yaml`, `OBSIDIAN_AGENT_FULL_INSTALL=1` in `.env` | Full install (all modules/connectors, `sync.profile: full`) — author default |
 | No `capabilities.yaml`, no full-install flag | OSS **starter** from `capabilities.starter.yaml.example` (finance+planning, knowledge off, `planning_light`) |
-| `capabilities.yaml` present | Merged with in-memory defaults; env `CAP_MODULE_*` / `CAP_CONNECTOR_*` override |
+| `capabilities.yaml` present | **Fail-closed:** omitted module/connector keys are off (no deep-merge of all-on defaults). Env `CAP_MODULE_*` / `CAP_CONNECTOR_*` override |
 
 `capabilities.yaml.example` and `capabilities.starter.yaml.example` are **not** read at runtime — only copied by setup scripts.
 

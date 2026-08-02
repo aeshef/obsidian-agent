@@ -1,3 +1,11 @@
+# Eval
+
+- **Agent harness (offline goldens):** [`eval/harness/`](harness/) — routing, category
+  match, conversation contract. Run: `PYTHONPATH=. python -m eval.harness`
+- **Retrieval eval (LLM):** known-item RAG below.
+
+---
+
 # Retrieval eval
 
 Automatic **known-item retrieval** evaluation for the knowledge-base RAG

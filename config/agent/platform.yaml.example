@@ -2,21 +2,26 @@
 # Переопределение: env (см. docs/ENV_REFERENCE.md) имеет приоритет над YAML.
 
 vault:
-  # Local Obsidian vault root. Keep production value in config/agent/platform.yaml or env.
-  local_path: "/ABSOLUTE/PATH/TO/Obsidian Vault"
-  mobile_path: "/ABSOLUTE/PATH/TO/Mobile Obsidian Vault"
+  # Local Obsidian vault root. Prefer env VAULT_PATH / MOBILE_VAULT over absolute paths here.
+  local_path: ""
+  # iCloud mobile vault — leave empty and set MOBILE_VAULT in .env (preferred).
+  mobile_path: ""
   # Подкаталог базы знаний внутри VAULT_PATH (rel_path в индексе).
   # Author vault uses 700_База_Данных; OSS/onboarding may use Knowledge.
   knowledge_subdir: 700_База_Данных
 
 server:
-  # Remote runtime paths used by sync/deploy scripts. Override in platform.yaml or env.
-  bots_root: "/ABSOLUTE/REMOTE/PATH/TO/bots"
-  vault_path: "/ABSOLUTE/REMOTE/PATH/TO/obsidian-vault"
+  # Remote runtime paths — prefer SERVER_BOTS / SERVER_VAULT env over committing absolutes.
+  bots_root: ""
+  vault_path: ""
 
 agent:
   max_iters: 6
   tool_denied_hint_max: 12
+  # Cap tools selected for one agent turn (always-on tools still included).
+  max_tools_selected: 8
+  # Soft budget for tool calls executed across iterations.
+  max_tool_calls: 12
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:

@@ -1,0 +1,14 @@
+id: period-compare-format
+kind: period_compare_format
+input:
+  label_a: "2026-07-01 … 2026-07-31"
+  total_a: 12000
+  label_b: "2026-06-01 … 2026-06-30"
+  total_b: 10000
+  category: Еда
+expect:
+  contains:
+    - "Compare spend (Еда)"
+    - "12,000"
+    - "10,000"
+    - "+20%"

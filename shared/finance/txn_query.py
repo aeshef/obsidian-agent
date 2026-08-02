@@ -112,6 +112,48 @@ def format_spending_by_category(
     return "\n".join(lines)
 
 
+def spending_total(
+    rows: list[dict[str, Any]],
+    *,
+    category: str | None = None,
+) -> float:
+    """Sum consumption expenses, optional hierarchical category filter."""
+    total = 0.0
+    for r in rows:
+        if r.get("type") != "expense" or not is_consumption_expense(r):
+            continue
+        cat = (r.get("category") or misc_category_label()).strip()
+        if not category_matches(category, cat):
+            continue
+        total += float(r["amount"])
+    return total
+
+
+def format_period_compare(
+    *,
+    label_a: str,
+    total_a: float,
+    label_b: str,
+    total_b: float,
+    category: str | None = None,
+) -> str:
+    """Human-readable A vs B spend comparison."""
+    delta = total_a - total_b
+    if total_b:
+        pct = (delta / total_b) * 100.0
+        pct_s = f"{pct:+.0f}%"
+    else:
+        pct_s = "n/a"
+    cat = (category or "").strip() or "all"
+    lines = [
+        f"Compare spend ({cat})",
+        f"  A {label_a}: {total_a:,.0f}",
+        f"  B {label_b}: {total_b:,.0f}",
+        f"  Δ A−B: {delta:+,.0f} ({pct_s})",
+    ]
+    return "\n".join(lines)
+
+
 async def format_debts_summary(session, user_id: int) -> str:
     from bot.models import Account
 

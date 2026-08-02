@@ -1,0 +1,23 @@
+id: food-category-parent
+kind: category_match
+input:
+  parent: Еда
+  leaf: Еда/Вне дома
+expect:
+  matches: true
+---
+id: food-category-exact-only
+kind: category_match
+input:
+  parent: Еда/Продукты
+  leaf: Еда/Вне дома
+expect:
+  matches: false
+---
+id: food-category-wildcard-style
+kind: category_match
+input:
+  parent: Еда
+  leaf: Еда
+expect:
+  matches: true

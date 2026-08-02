@@ -7,7 +7,7 @@ from functools import lru_cache
 from typing import Any, Mapping
 
 from shared.agent.config import agent_config_dir
-from shared.yaml_config import deep_merge, load_yaml
+from shared.yaml_config import load_yaml
 
 MODULE_FINANCE = "finance"
 MODULE_PLANNING = "planning"
@@ -51,7 +51,7 @@ _ENV_MODULE = {
 _ENV_CONNECTOR = {c: f"CAP_CONNECTOR_{c.upper()}" for c in _ALL_CONNECTORS}
 
 
-def _as_bool(val: Any, default: bool = True) -> bool:
+def _as_bool(val: Any, default: bool = False) -> bool:
     if val is None:
         return default
     if isinstance(val, bool):
@@ -82,11 +82,15 @@ def _normalize_connectors_block(raw: Any) -> Any:
 
 
 def _parse_bool_map(raw: Any, keys: tuple[str, ...], *, default: bool) -> dict[str, bool]:
+    """Parse a bool map. Omitted keys use ``default`` (fail-closed → False)."""
     if not isinstance(raw, dict):
         return {k: default for k in keys}
     out: dict[str, bool] = {}
     for key in keys:
-        out[key] = _as_bool(raw.get(key), default)
+        if key in raw:
+            out[key] = _as_bool(raw.get(key), default)
+        else:
+            out[key] = default
     return out
 
 
@@ -100,10 +104,10 @@ class CapabilityProfile:
     feature_overrides: Mapping[str, bool] = field(default_factory=dict)
 
     def module(self, name: str) -> bool:
-        return bool(self.modules.get(name, True))
+        return bool(self.modules.get(name, False))
 
     def connector(self, name: str) -> bool:
-        return bool(self.connectors.get(name, True))
+        return bool(self.connectors.get(name, False))
 
     def enabled_modules(self) -> list[str]:
         return [m for m in _ALL_MODULES if self.module(m)]
@@ -176,22 +180,26 @@ def _apply_env_overrides(modules: dict[str, bool], connectors: dict[str, bool]) 
 
 
 def profile_from_document(doc: dict[str, Any]) -> CapabilityProfile:
-    """Build profile from a manifest dict (tests, onboarding checks). No env overrides."""
-    defaults = _default_document()
-    merged = deep_merge(defaults, doc) if isinstance(doc, dict) and doc else defaults
-    modules = _parse_bool_map(merged.get("modules"), _ALL_MODULES, default=True)
+    """Build profile from a manifest dict (tests, onboarding checks). No env overrides.
+
+    Partial manifests are fail-closed: omitted module/connector keys are False.
+    An empty/missing document uses the full-install all-on defaults.
+    """
+    if not isinstance(doc, dict) or not doc:
+        doc = _default_document()
+    modules = _parse_bool_map(doc.get("modules"), _ALL_MODULES, default=False)
     connectors = _parse_bool_map(
-        _normalize_connectors_block(merged.get("connectors")),
+        _normalize_connectors_block(doc.get("connectors")),
         _ALL_CONNECTORS,
-        default=True,
+        default=False,
     )
-    sync_block = merged.get("sync") if isinstance(merged.get("sync"), dict) else {}
+    sync_block = doc.get("sync") if isinstance(doc.get("sync"), dict) else {}
     profile = str((sync_block or {}).get("profile") or SYNC_PROFILE_FULL).strip() or SYNC_PROFILE_FULL
     feature_overrides: dict[str, bool] = {}
-    feat_raw = merged.get("features")
+    feat_raw = doc.get("features")
     if isinstance(feat_raw, dict):
         for key, val in feat_raw.items():
-            feature_overrides[str(key)] = _as_bool(val, True)
+            feature_overrides[str(key)] = _as_bool(val, False)
     return CapabilityProfile(
         modules=modules,
         connectors=connectors,
@@ -201,15 +209,16 @@ def profile_from_document(doc: dict[str, Any]) -> CapabilityProfile:
 
 
 def load_capabilities() -> CapabilityProfile:
-    defaults = _default_document()
     raw = _load_yaml_document()
     if raw:
-        doc = deep_merge(defaults, raw)
+        # Present YAML is authoritative — do not deep-merge all-on defaults
+        # (omitted keys must stay off).
+        doc = raw
     elif _full_install_default():
-        doc = defaults
+        doc = _default_document()
     else:
         starter = _starter_document()
-        doc = deep_merge(defaults, starter) if starter else defaults
+        doc = starter if starter else _default_document()
     base = profile_from_document(doc)
     modules = dict(base.modules)
     connectors = dict(base.connectors)
