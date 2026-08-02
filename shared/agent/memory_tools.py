@@ -212,3 +212,49 @@ async def clear_working_set_items(
         value=value or "*",
     )
 
+
+@tool(category="memory")
+async def propose_profile_append(ctx: AgentContext, text: str) -> str:
+    """Propose a short bullet for user_profile.md (Agent notes). Does NOT write until confirm_profile_append."""
+    from shared.memory.profile_append import propose
+
+    pid, body = propose(ctx.user_id, text)
+    if pid is None:
+        return dmsg("memory_tools", "profile_append_empty")
+    return dmsg("memory_tools", "profile_append_pending", id=pid, text=body)
+
+
+@tool(category="memory")
+async def confirm_profile_append(ctx: AgentContext, pending_id: int) -> str:
+    """Confirm a pending profile append by id (from propose_profile_append)."""
+    from shared.memory.profile_append import confirm
+
+    try:
+        pid = int(pending_id)
+    except (TypeError, ValueError):
+        return dmsg("memory_tools", "profile_append_bad_id")
+    ok, name = confirm(ctx.user_id, pid)
+    return dmsg(
+        "memory_tools",
+        "profile_append_ok" if ok else "profile_append_fail",
+        id=pid,
+        path=name or "-",
+    )
+
+
+@tool(category="memory")
+async def reject_profile_append(ctx: AgentContext, pending_id: int) -> str:
+    """Reject a pending profile append by id."""
+    from shared.memory.profile_append import reject
+
+    try:
+        pid = int(pending_id)
+    except (TypeError, ValueError):
+        return dmsg("memory_tools", "profile_append_bad_id")
+    ok = reject(ctx.user_id, pid)
+    return dmsg(
+        "memory_tools",
+        "profile_append_rejected" if ok else "profile_append_fail",
+        id=pid,
+    )
+

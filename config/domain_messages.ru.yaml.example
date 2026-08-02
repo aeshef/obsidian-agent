@@ -349,6 +349,12 @@ memory_tools:
   working_set_pin_empty: "Нечего закрепить (пустое value)."
   working_set_pin_ok: "Закреплено [{kind}] {value}."
   working_set_cleared: "Working set очищен (kind={kind}, value={value})."
+  profile_append_empty: "Текст для профиля пуст."
+  profile_append_pending: "Черновик профиля id={id}: {text} — подтверди confirm_profile_append."
+  profile_append_ok: "Добавлено в {path} (id={id})."
+  profile_append_fail: "Не удалось подтвердить/отклонить id={id}."
+  profile_append_rejected: "Отклонено id={id}."
+  profile_append_bad_id: "Некорректный pending_id профиля."
 
 
 memory_layers:
@@ -382,6 +388,20 @@ chart_tools:
   refresh_disabled: "Обновление графиков выключено (chart_refresh.enabled в platform config)."
   refresh_unknown: "Нет builder в allowlist для builder={builder} family={family}. Доступно: {available}"
   refresh_done: "Пересборка графиков: {ok}/{total} builders ok."
+
+series_tools:
+  empty_input: "Нужны series_a и series_b (строки YYYY-MM-DD|value)."
+  no_points: "Не удалось разобрать точки день/значение."
+  header: "Выровненные ряды по дням:"
+
+knowledge_write:
+  disabled: "Запись в knowledge выключена (KNOWLEDGE_AGENT_WRITES=1)."
+  empty_text: "Текст для append пуст."
+  vault_missing: "Путь к vault не настроен (VAULT_PATH)."
+  bad_path: "Путь вне knowledge root: {path}"
+  missing: "Заметка не найдена: {path}"
+  dry_run: "Dry-run: +{chars} символов → {path} (dry_run=false для записи)."
+  ok: "Добавлено {chars} символов в {path}."
 
 charts:
   no_data: "Нет данных"

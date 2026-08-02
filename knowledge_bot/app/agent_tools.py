@@ -166,10 +166,15 @@ def build_knowledge_registry() -> ToolRegistry:
     reg = ToolRegistry()
     if not knowledge_module_enabled():
         return reg
+    from knowledge_bot.app.knowledge_write_tools import append_knowledge_note
+    from shared.agent.series_tools import attach_series_tools
+
     reg.register(read_knowledge_note)
     reg.register(search_knowledge_base)
+    reg.register(append_knowledge_note)
     attach_memory_tools(reg)
     attach_chart_tools(reg)
+    attach_series_tools(reg)
     return reg
 
 

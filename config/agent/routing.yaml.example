@@ -4,6 +4,13 @@
 
 host:
   general_domain: planning
+  # Narrow phrases for DomainAdapter.try_fast_answer (skip full agent loop).
+  fast_answer:
+    finance_balance:
+      - '\bбаланс\b'
+      - '\bbalance\b'
+      - '\bсколько\s+на\s+(сч[её]т|карт)'
+      - '\baccount\s+balances?\b'
   # Safety net when the domain router under-selects a single domain for join questions
   # (e.g. food spend × closed tasks).
   cross_domain_escalation:

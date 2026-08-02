@@ -111,7 +111,7 @@ def _planning_extra_allow(prof: CapabilityProfile, tool: Any) -> bool:
     from shared.capabilities.planning_gates import planning_routines_enabled
 
     name = _tool_name(tool)
-    if name == "get_routines_status":
+    if name in ("get_routines_status", "get_daily_signals"):
         return planning_routines_enabled()
     return True
 

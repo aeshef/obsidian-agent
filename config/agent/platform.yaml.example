@@ -33,7 +33,7 @@ agent_progress:
   status_max_chars: 380
   max_tools_in_status: 6
   # sendMessageDraft для статуса tools (шаг N: tool_a, …)
-  draft_stream: 0
+  draft_stream: 1
   # Потоковый финальный ответ (SSE → Telegram)
   answer_stream: 1
   # 1 = sendMessageDraft + финальный sendMessage; 0 = send_message + edit_message

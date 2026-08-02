@@ -14,6 +14,9 @@ MEMORY_TOOL_NAMES = (
     "list_working_set",
     "pin_working_set",
     "clear_working_set_items",
+    "propose_profile_append",
+    "confirm_profile_append",
+    "reject_profile_append",
 )
 
 
@@ -32,6 +35,9 @@ def attach_memory_tools(registry: ToolRegistry) -> ToolRegistry:
         memory_tools.list_working_set,
         memory_tools.pin_working_set,
         memory_tools.clear_working_set_items,
+        memory_tools.propose_profile_append,
+        memory_tools.confirm_profile_append,
+        memory_tools.reject_profile_append,
     ):
         if fn.__name__ not in registry.names():
             registry.register(fn)

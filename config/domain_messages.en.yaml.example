@@ -57,6 +57,20 @@ chart_tools:
   refresh_unknown: "No allowlisted builder for builder={builder} family={family}. Available: {available}"
   refresh_done: "Chart rebuild finished: {ok}/{total} builders ok."
 
+series_tools:
+  empty_input: "Both series_a and series_b are required (YYYY-MM-DD|value lines)."
+  no_points: "No parseable day/value points found in either series."
+  header: "Aligned day series:"
+
+knowledge_write:
+  disabled: "Knowledge writes disabled (set KNOWLEDGE_AGENT_WRITES=1)."
+  empty_text: "Append text is empty."
+  vault_missing: "Vault path is not configured (set VAULT_PATH)."
+  bad_path: "Path not allowed under knowledge root: {path}"
+  missing: "Note not found: {path}"
+  dry_run: "Dry-run append {chars} chars → {path} (pass dry_run=false to write)."
+  ok: "Appended {chars} chars to {path}."
+
 charts:
   insufficient_data: Not enough data for the chart «{title}».
   no_data: No data
@@ -649,6 +663,12 @@ memory_tools:
   working_set_pin_empty: "Nothing to pin (empty value)."
   working_set_pin_ok: "Pinned [{kind}] {value}."
   working_set_cleared: "Working set cleared (kind={kind}, value={value})."
+  profile_append_empty: "Profile append text is empty."
+  profile_append_pending: "Pending profile append id={id}: {text} — call confirm_profile_append to write."
+  profile_append_ok: "Appended to {path} (pending id={id})."
+  profile_append_fail: "Could not confirm/reject profile append id={id}."
+  profile_append_rejected: "Rejected profile append id={id}."
+  profile_append_bad_id: "Invalid profile append pending_id."
 
 note_lookup:
   empty_query: empty query or index

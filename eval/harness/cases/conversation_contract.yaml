@@ -11,3 +11,5 @@ expect:
     - "refresh_vault_charts"
     - "capture_observation"
     - "pin_working_set"
+    - "align_day_series"
+    - "propose_profile_append"

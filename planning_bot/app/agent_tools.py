@@ -402,6 +402,25 @@ async def get_routines_status(ctx: AgentContext, day: str = "") -> str:
     return format_routines_status(day)
 
 
+@tool(category="routines")
+async def get_daily_signals(
+    ctx: AgentContext,
+    from_date: str = "",
+    to_date: str = "",
+    days: int = 0,
+    limit: int = 14,
+) -> str:
+    """Subjective daily signals history (mood/energy/etc from check-in). from_date/to_date/days; default last 7 days."""
+    from planning_bot.services.signals_query import format_daily_signals
+
+    return format_daily_signals(
+        from_date=from_date,
+        to_date=to_date,
+        days=days,
+        limit=limit,
+    )
+
+
 @tool(category="reflection")
 async def get_activity_events(
     ctx: AgentContext,
@@ -563,15 +582,19 @@ def build_planning_registry() -> ToolRegistry:
                 get_mac_series,
                 get_mac_snapshots,
                 get_routines_status,
+                get_daily_signals,
                 get_activity_events,
                 get_kanban_flow,
                 get_action_log,
             ]
         ),
     )
+    from shared.agent.series_tools import attach_series_tools
+
     _enrich_apply_kanban_tool(reg)
     attach_memory_tools(reg)
     attach_chart_tools(reg)
+    attach_series_tools(reg)
     return reg
 
 
