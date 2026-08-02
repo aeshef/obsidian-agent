@@ -106,6 +106,10 @@ telegram:
   # Group consecutive vault photos into Telegram albums (max 10 per album).
   media_album: 1
   media_album_max: 10
+  # Bot API 10.1+ Rich Messages — agent answers as GFM (headings, tables, lists).
+  # Falls back to plain text if Telegram rejects the payload.
+  rich_messages: 1
+  rich_max_chars: 32000
 
 # Scheduled Telegram pushes — fewer messages, one visual language, sane times.
 # All clocks/flags live here (no scenario hardcode in Python).
