@@ -16,7 +16,9 @@ from shared.finance.txn_query import (
     fetch_transaction_rows,
     format_broker_overview,
     format_debts_summary,
+    format_period_compare,
     format_spending_by_category,
+    spending_total,
 )
 from shared.parsing.date_range import resolve_date_range
 
@@ -95,7 +97,7 @@ async def get_transactions(
     days: int = 0,
     category: str = "",
 ) -> str:
-    """Transactions in interval: from_date/to_date YYYY-MM-DD or days. category: exact name or prefix."""
+    """Transactions in interval (from/to YYYY-MM-DD or days). category matches parent+children (Food, Food/, Food/* → Food/Out, Food/Groceries)."""
     analyst = _analyst(ctx)
     uid, rows = await _fetch_rows(
         ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
@@ -119,14 +121,73 @@ async def get_spending_by_category(
     from_date: str = "",
     to_date: str = "",
     days: int = 0,
+    category: str = "",
+    group_by: str = "",
 ) -> str:
-    """Spending by category (consumption only) for interval (from/to or days)."""
-    uid, rows = await _fetch_rows(ctx, from_date=from_date, to_date=to_date, days=days, default_days=30)
+    """Spending by category (consumption). category=parent matches children (Food → Food/*). group_by=day for per-day totals (join with task completions)."""
+    uid, rows = await _fetch_rows(
+        ctx,
+        from_date=from_date,
+        to_date=to_date,
+        days=days,
+        default_days=30,
+        category=category or None,
+    )
     if uid is None:
         return dmsg(*_FA, "user_not_found")
     dr = resolve_date_range(from_date=from_date, to_date=to_date, days=days, default_days=30)
+    gb = (group_by or "").strip().lower()
     return format_spending_by_category(
-        rows, label=dmsg(*_FA, "spending_by_category", range=_range_label(dr, days=days))
+        rows,
+        label=dmsg(*_FA, "spending_by_category", range=_range_label(dr, days=days)),
+        category=category or None,
+        group_by_day=gb in ("day", "days", "daily", "date"),
+    )
+
+
+@tool(category="transactions")
+async def compare_spend_periods(
+    ctx: AgentContext,
+    from_date_a: str = "",
+    to_date_a: str = "",
+    from_date_b: str = "",
+    to_date_b: str = "",
+    days_a: int = 0,
+    days_b: int = 0,
+    category: str = "",
+) -> str:
+    """Compare consumption spend between two periods (optional hierarchical category)."""
+    uid = await _user_id(ctx)
+    if not uid:
+        return dmsg(*_FA, "user_not_found")
+    cat = category or None
+    dr_a = resolve_date_range(
+        from_date=from_date_a,
+        to_date=to_date_a,
+        days=days_a,
+        default_days=30,
+        anchor=_analyst(ctx)._now().date(),
+    )
+    dr_b = resolve_date_range(
+        from_date=from_date_b,
+        to_date=to_date_b,
+        days=days_b,
+        default_days=30,
+        anchor=_analyst(ctx)._now().date(),
+    )
+    async with AsyncSessionLocal() as session:
+        rows_a = await fetch_transaction_rows(
+            session, uid, dr=dr_a, category=cat, txn_type="expense"
+        )
+        rows_b = await fetch_transaction_rows(
+            session, uid, dr=dr_b, category=cat, txn_type="expense"
+        )
+    return format_period_compare(
+        label_a=_range_label(dr_a, days=days_a),
+        total_a=spending_total(rows_a, category=cat),
+        label_b=_range_label(dr_b, days=days_b),
+        total_b=spending_total(rows_b, category=cat),
+        category=cat,
     )
 
 
@@ -342,6 +403,7 @@ def build_finance_registry() -> ToolRegistry:
             [
                 get_transactions,
                 get_spending_by_category,
+                compare_spend_periods,
                 get_balance,
                 get_recent,
                 compute_summary,

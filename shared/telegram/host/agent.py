@@ -117,7 +117,18 @@ async def pick_host_domain(
     if prefer and len(enabled) < 2:
         return prefer
 
-    # Multi-domain: always classify. A pinned UI mode is a hint (passed as ui_mode),
+    # Cheap heuristic for unambiguous single-domain phrases (skip LLM).
+    from shared.agent.cheap_router import cheap_route_domain
+
+    cheap = cheap_route_domain(
+        text,
+        enabled=enabled,
+        cross_domain_check=_looks_finance_planning_cross,
+    )
+    if cheap and agent_app.has_domain(cheap) and (not prefer or prefer == cheap):
+        return cheap
+
+    # Multi-domain: classify. A pinned UI mode is a hint (passed as ui_mode),
     # but "unified" must escape the pin — otherwise food×tasks stuck in finance-only.
     hint = prefer or ui_mode
     dom_name = await classify_host_domain_llm(

@@ -182,15 +182,13 @@ class AgentApp:
         return AgentAnswer(text=answer_text or self._no_answer_text(), media_files=media)
 
     async def _unified_system_prompt(self, ctx: AgentContext) -> str:
-        from planning_bot.core.settings import load_prompt
         from shared.agent.platform_config import agent_config_dir
+        from shared.i18n import msgf
+        from shared.prompts import load_prompt
+        from shared.tz import now_in_tz
 
         base = load_prompt(agent_config_dir(), "host_query", subdir="prompts", required=True)
-        from planning_bot.services.reference_date import reference_now
-
-        now = reference_now()
-        from shared.i18n import msgf
-
+        now = now_in_tz()
         date_hint = msgf("agent", "date_hint", date=now.strftime("%Y-%m-%d (%A)"))
         followup = msgf("agent", "host_followup_hint")
         layers: list[MemoryLayer] = []

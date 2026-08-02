@@ -1,13 +1,54 @@
 # Host routing settings. Domain/intent classification — LLM (shared/agent/llm_classify.py).
 # On LLM failure the request errors out (no keyword fallback).
+# Locale strings (RU/EN) belong here — never hardcode them in Python.
 
 host:
   general_domain: planning
   # Safety net when the domain router under-selects a single domain for join questions
-  # (e.g. food spend × closed tasks). Locale strings belong here, not in Python.
+  # (e.g. food spend × closed tasks).
   cross_domain_escalation:
     finance_pattern: '(трат|потрат|расход|еда|ед[еуы]|деньг|бюджет|баланс|finance|spend|food)'
     planning_pattern: '(задач|закрыт|канбан|продуктив|completion|task|health|шаг|сон|календар)'
+  # High-confidence single-domain phrases skip the LLM domain classifier.
+  cheap_router:
+    finance:
+      - '\bбаланс\b'
+      - '\bсколько\s+потрат'
+      - '\bтрат[аы]?\b'
+      - '\bрасход'
+      - '\bподписк'
+      - '\bдолг'
+      - '\bbalance\b'
+      - '\bspending\b'
+      - '\bexpenses?\b'
+      - '\bsubscription'
+      - '\bdebt\b'
+    planning:
+      - '\bканбан\b'
+      - '\bзадач'
+      - '\bкалендар'
+      - '\bрутин'
+      - '\bkanban\b'
+      - '\btasks?\b'
+      - '\bcalendar\b'
+      - '\broutine'
+    knowledge:
+      - '\bв\s+базе\b'
+      - '\bнайди\s+заметк'
+      - '\bknowledge\b'
+      - '\bnotes?\b'
+      - '\bvault\b'
+  # Optional tokens captured into the short-lived working-set memory layer.
+  working_set:
+    category_patterns:
+      - '\bеда\b'
+      - '\bfood\b'
+      - '\bтранспорт\b'
+      - '\btransport\b'
+      - '\bподписк\w*'
+      - '\bsubscription\w*'
+      - '\bздоровье\b'
+      - '\bhealth\b'
 
 agent:
   # First agent loop iteration: tool_choice=required for these domains (when tools exist).

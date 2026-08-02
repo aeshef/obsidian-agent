@@ -145,8 +145,15 @@ AGENT_EXCLUDES=(
   --exclude='user_profile.md'
 )
 
+# Keep long remote pip/venv sessions alive; bare ssh hung on ensure_bot_venv.
+DEPLOY_SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=20 -o ServerAliveCountMax=12)
+
 ssh_check() {
-  ssh -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "$(sh_msgf scripts.deploy.ssh_failed "{\"server\":\"$SERVER\"}")"; exit 1; }
+  ssh "${DEPLOY_SSH_OPTS[@]}" -o ConnectTimeout=5 "$SERVER" "echo ok" >/dev/null 2>&1 || { echo "$(sh_msgf scripts.deploy.ssh_failed "{\"server\":\"$SERVER\"}")"; exit 1; }
+}
+
+deploy_ssh() {
+  ssh "${DEPLOY_SSH_OPTS[@]}" "$SERVER" "$@"
 }
 
 rsync_comp() {
@@ -174,7 +181,7 @@ rsync_agent_paths() {
   local flags="-avz --checksum"
   [ "$DRYRUN" = 1 ] && flags="-navz"
   if [ "$DRYRUN" = 0 ]; then
-    ssh "$SERVER" "mkdir -p '$SERVER_BOTS/$name'"
+    deploy_ssh "mkdir -p '$SERVER_BOTS/$name'"
   fi
   echo "🔄 rsync $name → $dst"
   rsync $flags "${AGENT_EXCLUDES[@]}" "$src" "$dst"
@@ -188,17 +195,17 @@ install_deps() {
   [ "$INSTALL_DEPS" = 1 ] || return 0
   echo "📦 ensure .venv + pip install ($name)"
   [ -f "$MONOREPO/constraints.txt" ] && rsync -az "$MONOREPO/constraints.txt" "$SERVER:$SERVER_BOTS/constraints.txt"
-  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
+  deploy_ssh "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name --recreate"
 }
 
 ensure_venv_link() {
   local name="$1"
-  ssh "$SERVER" "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name" 2>/dev/null || true
+  deploy_ssh "bash $SERVER_BOTS/scripts/ensure_bot_venv.sh $name" 2>/dev/null || true
 }
 
 _restart_bot_remote() {
   local name="$1" bot_pattern="$2"
-  ssh "$SERVER" "set -e
+  deploy_ssh "set -e
     cd $SERVER_BOTS/$name
     pkill -f '$bot_pattern' 2>/dev/null || true
     sleep 2
@@ -263,7 +270,7 @@ verify_deploy_checksums() {
       continue
     fi
     lc="$(shasum -a 256 "$local_f" | awk '{print $1}')"
-    rc="$(ssh "$SERVER" "test -f '$remote_f' && shasum -a 256 '$remote_f' | awk '{print \$1}'" 2>/dev/null || true)"
+    rc="$(deploy_ssh "test -f '$remote_f' && shasum -a 256 '$remote_f' | awk '{print \$1}'" 2>/dev/null || true)"
     if [ -z "$rc" ]; then
       echo "  ❌ missing on server: $rel"
       missing=1
@@ -290,7 +297,7 @@ sync_repo_config_remote() {
   [ -d "$cfg" ] || return 0
   [ "$DRYRUN" = 1 ] && { echo "dry-run: sync config/*.yaml.example"; return 0; }
   echo "📋 sync repo config examples → $SERVER:$SERVER_BOTS/config/"
-  ssh "$SERVER" "mkdir -p '$SERVER_BOTS/config'"
+  deploy_ssh "mkdir -p '$SERVER_BOTS/config'"
   for f in "$cfg"/*.yaml.example; do
     [ -f "$f" ] || continue
     rsync -az "$f" "$SERVER:$SERVER_BOTS/config/"
@@ -305,7 +312,7 @@ sync_repo_config_remote() {
     rsync -az "$cfg/$prod" "$SERVER:$SERVER_BOTS/config/"
     echo "  ↑ prod $prod"
   done
-  ssh "$SERVER" "AGENT_LOCALE='${AGENT_LOCALE:-en}' bash '$SERVER_BOTS/scripts/ensure_repo_config.sh' '$SERVER_BOTS'" \
+  deploy_ssh "AGENT_LOCALE='${AGENT_LOCALE:-en}' bash '$SERVER_BOTS/scripts/ensure_repo_config.sh' '$SERVER_BOTS'" \
     || { echo "⚠️  ensure_repo_config.sh failed (check server config/)" >&2; return 1; }
 }
 
@@ -319,7 +326,7 @@ rsync_server_scripts() {
     --exclude='install_launchagent.sh' \
     "$MONOREPO/scripts/" "$SERVER:$SERVER_BOTS/scripts/"
   rsync -az "$MONOREPO/scripts/lib/" "$SERVER:$SERVER_BOTS/scripts/lib/"
-  ssh "$SERVER" "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
+  deploy_ssh "chmod +x $SERVER_BOTS/scripts/*.sh $SERVER_BOTS/scripts/lib/*.sh 2>/dev/null || true"
 }
 
 sync_bot_prompts_optional() {
@@ -373,7 +380,7 @@ verify_bots() {
 
   local failed=0 out
   local restarted_list="${RESTARTED[*]}"
-  out="$(ssh "$SERVER" "set +e
+  out="$(deploy_ssh "set +e
     failed=0
     for b in $restarted_list; do
       wd=\$(cat $SERVER_BOTS/\$b/logs/watchdog.pid 2>/dev/null || echo '-')
@@ -529,11 +536,11 @@ _comp_list="${COMPONENTS[*]}"
 echo "$(sh_msgf scripts.deploy.deploy_done "{\"components\":\"${_comp_list:-all}\",\"restart\":\"$([ $NO_RESTART = 1 ] && echo no || echo yes)\"}")"
 if [ "$DRYRUN" = 0 ]; then
   echo "📋 ensure bot prompts on server (missing .txt from examples)..."
-  ssh "$SERVER" "cd '$SERVER_BOTS' && bash scripts/ensure_bot_prompts.sh --warn-stubs" 2>/dev/null || true
+  deploy_ssh "cd '$SERVER_BOTS' && bash scripts/ensure_bot_prompts.sh --warn-stubs" 2>/dev/null || true
 fi
 if [ "$DRYRUN" = 0 ] && { [ "$_deploy_all" = 1 ] || printf '%s\n' "${COMPONENTS[@]}" | grep -qx knowledge_bot; }; then
   echo "🏷 ensure tags.txt JSON prompt on server..."
-  ssh "$SERVER" "python3 $SERVER_BOTS/scripts/ensure_tags_prompt.py \
+  deploy_ssh "python3 $SERVER_BOTS/scripts/ensure_tags_prompt.py \
     --tags $SERVER_BOTS/knowledge_bot/config/prompts/tags.txt \
     --example $SERVER_BOTS/knowledge_bot/config/prompts/tags.example.txt" 2>/dev/null || true
 fi

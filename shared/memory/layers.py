@@ -26,6 +26,9 @@ def build_memory_layers(domain: str) -> list:
 
     layers.append(GlobalInsightsMemory())
     layers.append(InsightsMemory(domain))
+    from shared.memory.working_set import working_set_layer
+
+    layers.append(working_set_layer())
     return layers
 
 

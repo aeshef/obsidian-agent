@@ -1,0 +1,23 @@
+id: cheap-router-balance
+kind: cheap_router
+input:
+  text: "Какой сейчас баланс?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: finance
+---
+id: cheap-router-kanban
+kind: cheap_router
+input:
+  text: "Покажи канбан"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: planning
+---
+id: cheap-router-cross-abstain
+kind: cheap_router
+input:
+  text: "Сколько потратил на еду в дни когда закрывал задачи?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: null
