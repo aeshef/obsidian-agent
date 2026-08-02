@@ -728,6 +728,8 @@ planning:
   apply_kanban_tool_hint: "Kanban: create|move|complete|delete. delete = intentional remove (logs task_deleted, never auto-restore). Many tasks → one create with titles=[...]. category (#goal): {categories}. priority: {priorities}."
   kanban_task_created: "Task created id={task_id}: {title} | #goal/{category} #priority/{priority}"
   kanban_task_deleted: "Deleted task id={task_id}: {title}"
+  kanban_orphan_heal_summary: "kanban_orphan_heal: mode={mode} candidates={candidates} missing={missing} skip_id={skip_id} skip_title={skip_title}"
+  kanban_orphan_heal_ok: "kanban_orphan_heal: restored={count} → {path}"
   kanban_batch_created: "Batch created tasks: {count}"
   kanban_persist_verify_failed: "Task not persisted on disk (write race?): {missing}"
   kanban_category_remapped: "Category \"{requested}\" is not in kanban schema → saved as \"{used}\". Allowed: {allowed}."

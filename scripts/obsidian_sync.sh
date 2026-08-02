@@ -627,12 +627,11 @@ if cap_module_enabled PLANNING; then
   fi
   rm -f "$_recent_tasks_exclude" "$_protect_tasks_exclude" 2>/dev/null || true
   unset _tasks_pull_mode _protect_count _exclude_count
-  # Heal: re-add task_created from last 7d missing on board (never task_deleted).
+  # Same heal as VPS cron (Python service, locale via domain_messages) — after pull protect.
   if [ -d "${AGENT_ROOT}/planning_bot" ]; then
     (
       export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-      cd "$AGENT_ROOT" && ./scripts/oa-python.sh planning_bot/scripts/restore_missing_tasks_from_log.py \
-        --mode sync-orphan --since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" \
+      cd "$AGENT_ROOT" && ./scripts/oa-python.sh -m planning_bot.services.kanban_orphan_heal --days 7 \
         >> "${AGENT_ROOT}/planning_bot/logs/kanban_orphan_heal.log" 2>&1
     ) || true
   fi
