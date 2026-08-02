@@ -1,0 +1,6 @@
+id: charts-catalog-smoke
+kind: charts_catalog
+input:
+  only_existing: false
+expect:
+  min_keys: 1

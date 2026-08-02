@@ -539,6 +539,7 @@ def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
 def build_planning_registry() -> ToolRegistry:
     from shared.capabilities.registry import filter_planning_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
+    from shared.agent.chart_tools import attach_chart_tools
 
     reg = ToolRegistry()
     register_tools(
@@ -570,6 +571,7 @@ def build_planning_registry() -> ToolRegistry:
     )
     _enrich_apply_kanban_tool(reg)
     attach_memory_tools(reg)
+    attach_chart_tools(reg)
     return reg
 
 

@@ -6,4 +6,5 @@ expect:
   contains_any:
     - "Conversation contract"
     - "clarifying question"
-    - "group_by=day"
+    - "list_vault_charts"
+    - "capture_observation"

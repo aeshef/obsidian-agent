@@ -334,6 +334,18 @@ memory_tools:
   empty_history: "(история диалога [{dom}] пуста)"
   history_header: "Последние реплики [{dom}] (до {count} сообщений):"
   history_from_domain: " (запрошено из домена {domain})"
+  capture_empty: "Текст наблюдения пуст."
+  capture_pending: "Кандидат id={id} [{domain}] (подтверждений={count}): {text}"
+  capture_ready: "Сохранено наблюдение id={id} [{domain}]: {text}"
+  pending_empty: "Нет ожидающих наблюдений."
+  pending_header: "Ожидают подтверждения ({count}):"
+  pending_item: "  id={id} [{domain}/{kind}] x{count}: {text}"
+  bad_pending_id: "Некорректный pending_id."
+  confirm_ok: "Подтверждено наблюдение id={id}."
+  confirm_fail: "Не удалось подтвердить id={id}."
+  reject_ok: "Отклонено наблюдение id={id}."
+  reject_fail: "Не удалось отклонить id={id}."
+
 
 memory_layers:
   profile_unset: "(профиль не задан)"
@@ -355,6 +367,13 @@ memory_insights:
   prompt_line: "- [{date}] {text}"
   confirmed_ui_line: "• [{domain}, {date}, {kind}] {text}"
   pending_ui_line: "• [{domain}, {date}, {kind}] #{id}: {text} (×{count})"
+
+chart_tools:
+  vault_missing: "Путь к vault не настроен (VAULT_PATH)."
+  none_found: "Нет графиков по query={query} family={family}."
+  list_header: "Графики ({count}):"
+  caption: "{key} [{family}]"
+  send_ok: "В очередь на отправку: {count} график(ов) (всего queued={queued}): {names}"
 
 charts:
   no_data: "Нет данных"

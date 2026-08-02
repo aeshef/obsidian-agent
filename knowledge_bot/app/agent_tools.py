@@ -161,6 +161,7 @@ async def search_knowledge_base(ctx: AgentContext, query: str) -> str:
 def build_knowledge_registry() -> ToolRegistry:
     from shared.capabilities.registry import knowledge_module_enabled
     from shared.memory.episodic import attach_memory_tools
+    from shared.agent.chart_tools import attach_chart_tools
 
     reg = ToolRegistry()
     if not knowledge_module_enabled():
@@ -168,6 +169,7 @@ def build_knowledge_registry() -> ToolRegistry:
     reg.register(read_knowledge_note)
     reg.register(search_knowledge_base)
     attach_memory_tools(reg)
+    attach_chart_tools(reg)
     return reg
 
 

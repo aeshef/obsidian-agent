@@ -46,6 +46,13 @@ budget:
   txn_type_expense: expense
   txn_type_income: income
   txn_type_transfer: transfer
+chart_tools:
+  vault_missing: "Vault path is not configured (set VAULT_PATH)."
+  none_found: "No charts matched query={query} family={family}."
+  list_header: "Charts ({count}):"
+  caption: "{key} [{family}]"
+  send_ok: "Queued {count} chart(s) for delivery (total queued={queued}): {names}"
+
 charts:
   insufficient_data: Not enough data for the chart «{title}».
   no_data: No data
@@ -623,6 +630,18 @@ memory_tools:
   history_from_domain: ' (requested from domain {domain})'
   history_header: 'Recent messages [{dom}] (up to {count} messages):'
   unknown_domain: 'Unknown domain: {dom}. Allowed: {allowed}.'
+  capture_empty: "Observation text is empty."
+  capture_pending: "Queued observation id={id} [{domain}] (confirmations={count}): {text}"
+  capture_ready: "Saved observation id={id} [{domain}]: {text}"
+  pending_empty: "No pending observations."
+  pending_header: "Pending observations ({count}):"
+  pending_item: "  id={id} [{domain}/{kind}] x{count}: {text}"
+  bad_pending_id: "Invalid pending_id."
+  confirm_ok: "Confirmed observation id={id}."
+  confirm_fail: "Could not confirm id={id} (missing or already handled)."
+  reject_ok: "Rejected observation id={id}."
+  reject_fail: "Could not reject id={id} (missing or already handled)."
+
 note_lookup:
   empty_query: empty query or index
   no_exact_match: no exact match in index

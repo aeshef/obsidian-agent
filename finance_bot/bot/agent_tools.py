@@ -124,7 +124,7 @@ async def get_spending_by_category(
     category: str = "",
     group_by: str = "",
 ) -> str:
-    """Spending by category (consumption). category=parent matches children (Food → Food/*). group_by=day for per-day totals (join with task completions)."""
+    """Spending by category (consumption). category=parent matches children (Food → Food/*). Optional group_by=day|month for date-grain totals."""
     uid, rows = await _fetch_rows(
         ctx,
         from_date=from_date,
@@ -395,6 +395,7 @@ async def get_badge_status(ctx: AgentContext, day: str = "") -> str:
 def build_finance_registry() -> ToolRegistry:
     from shared.capabilities.registry import filter_finance_tools, register_tools
     from shared.memory.episodic import attach_memory_tools
+    from shared.agent.chart_tools import attach_chart_tools
 
     reg = ToolRegistry()
     register_tools(
@@ -417,6 +418,7 @@ def build_finance_registry() -> ToolRegistry:
         ),
     )
     attach_memory_tools(reg)
+    attach_chart_tools(reg)
     return reg
 
 

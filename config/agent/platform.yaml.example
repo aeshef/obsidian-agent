@@ -22,6 +22,7 @@ agent:
   max_tools_selected: 8
   # Soft budget for tool calls executed across iterations.
   max_tool_calls: 12
+  max_charts_per_send: 4
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:
@@ -179,3 +180,8 @@ llm_reachable:
 
 json_parse:
   error_preview_chars: 400
+
+agent_trace:
+  # 1 = append jsonl cost/latency traces (no tool bodies)
+  enabled: 0
+  path: logs/agent_traces.jsonl
