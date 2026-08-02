@@ -70,6 +70,8 @@ class AgentAnswer:
 
 
 KB_MEDIA_EXTRAS_KEY = "kb_media_files"
+# Dashboard chart PNGs queued by send_vault_charts — kept separate from KB note media.
+CHART_MEDIA_EXTRAS_KEY = "chart_media_files"
 
 
 @dataclass

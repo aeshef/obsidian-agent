@@ -131,7 +131,9 @@ class AgentApp:
             role=adapter.role,
             agent_progress=agent_progress or NullAgentProgress(),
         )
-        media = list(ctx.extras.get(KB_MEDIA_EXTRAS_KEY) or [])
+        from shared.agent.media_queue import collect_outbound_media
+
+        media = collect_outbound_media(ctx)
         if answer_text:
             append_turn(user_id, domain, "user", question)
             append_turn(user_id, domain, "assistant", answer_text)
@@ -175,7 +177,9 @@ class AgentApp:
             role=ModelRole.ANALYZE,
             agent_progress=agent_progress or NullAgentProgress(),
         )
-        media = list(ctx.extras.get(KB_MEDIA_EXTRAS_KEY) or [])
+        from shared.agent.media_queue import collect_outbound_media
+
+        media = collect_outbound_media(ctx)
         if answer_text:
             append_turn(user_id, "unified", "user", question)
             append_turn(user_id, "unified", "assistant", answer_text)

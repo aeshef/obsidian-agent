@@ -6,4 +6,4 @@ domain_hints:
   finance: "money ops/summaries; dashboard charts list/send/refresh_vault_charts"
   planning: "tasks/goals/calendar; optional health/mac; dashboard charts list/send/refresh_vault_charts"
   knowledge: "named note read_knowledge_note; topic overview search_knowledge_base"
-  unified: "enabled modules; kanban apply_kanban_task; date ranges; dashboard charts list/send/refresh_vault_charts; pin_working_set"
+  unified: "enabled modules; kanban apply_kanban_task; date ranges; dashboard charts via list/send/refresh_vault_charts only (not search_knowledge_base); pin_working_set"

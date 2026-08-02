@@ -34,7 +34,7 @@ async def test_send_vault_charts_queues_media(tmp_path: Path, monkeypatch):
     from shared.vault_paths_config import vault_paths_config
     from shared.chart_paths import charts_root
     from shared.agent.chart_tools import send_vault_charts
-    from shared.agent.types import AgentContext, KB_MEDIA_EXTRAS_KEY
+    from shared.agent.types import AgentContext, CHART_MEDIA_EXTRAS_KEY
 
     vault_paths_config.cache_clear()
     root = charts_root(tmp_path)
@@ -51,6 +51,6 @@ async def test_send_vault_charts_queues_media(tmp_path: Path, monkeypatch):
         extras={},
     )
     out = await send_vault_charts(ctx, query="trends", limit=1)
-    media = ctx.extras.get(KB_MEDIA_EXTRAS_KEY) or []
+    media = ctx.extras.get(CHART_MEDIA_EXTRAS_KEY) or []
     assert media, out
     assert media[0][0].endswith("trends.png")
