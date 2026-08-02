@@ -1,7 +1,0 @@
-# domain_hints — одна строка контекста для LLM tool-select (без привязки к фразам/сценариям).
-
-domain_hints:
-  finance: "денежные операции и сводки; dashboard chart PNGs via list_vault_charts/send_vault_charts/refresh_vault_charts; pin_working_set"
-  planning: "задачи, цели, календарь, здоровье Apple Watch (вес, шаги, сон, пульс), Mac-контекст, события по задачам; интервалы from_date/to_date/days, Mac from_ts/to_ts; dashboard chart PNGs via list_vault_charts/send_vault_charts/refresh_vault_charts; pin_working_set"
-  knowledge: "именованная заметка — read_knowledge_note; обзор темы — search_knowledge_base"
-  unified: "любые домены: finance + planning + knowledge; канбан create/move/complete — apply_kanban_task; интервалы from_date/to_date/days, Mac from_ts/to_ts; dashboard chart PNGs — только list_vault_charts/send_vault_charts/refresh_vault_charts (не search_knowledge_base); pin_working_set"
