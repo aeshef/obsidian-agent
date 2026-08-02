@@ -207,8 +207,20 @@ json_parse:
 
 agent_trace:
   # 1 = append jsonl cost/latency traces (no tool bodies)
-  enabled: 0
+  enabled: 1
   path: logs/agent_traces.jsonl
+  # USD per 1M tokens — used by cost dashboard / rollup (override for your model).
+  pricing:
+    default_model: deepseek-v4-flash
+    prompt_per_m: 0.14
+    completion_per_m: 0.28
+    models:
+      deepseek-v4-flash:
+        prompt_per_m: 0.14
+        completion_per_m: 0.28
+      deepseek-chat:
+        prompt_per_m: 0.27
+        completion_per_m: 1.10
 
 # On-demand chart rebuild allowlist (relative to AGENT_ROOT). Disabled by default.
 chart_refresh:
@@ -228,3 +240,6 @@ chart_refresh:
     kanban_flow:
       script: planning_bot/scripts/build_kanban_flow_dashboard.py
       args: ["--vault", "{vault}"]
+    agent_cost:
+      script: scripts/build_agent_cost_dashboard.py
+      args: ["--vault", "{vault}", "--days", "14"]
