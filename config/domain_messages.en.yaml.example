@@ -38,6 +38,10 @@ budget:
   no_data: (no data)
   no_operations: (no transactions)
   no_transactions: (no operations)
+  no_query_matches: '(no operations matching "{query}")'
+  query_matches_header: '{label}: {count} matches for "{query}" (income {inc_sum}₽, expenses {exp_sum}₽)'
+  income_categories: 'Income by category:'
+  income_lines: 'Income lines (date | type | amount | category | comment):'
   recent_header: 'Last {n} operations:'
   summary: '{label}: operations {count}, expenses {exp_sum}₽, income {inc_sum}₽ (excluding
     transfers between accounts and broker withdrawals)'

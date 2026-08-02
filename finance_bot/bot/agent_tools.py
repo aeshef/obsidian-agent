@@ -9,7 +9,12 @@ from typing import TYPE_CHECKING, Optional
 from sqlalchemy import func, select
 
 from shared.agent.app import DomainAdapter
-from shared.agent.budget import format_txn_recent, format_txn_summary
+from shared.agent.budget import (
+    filter_rows_by_query,
+    format_txn_matches,
+    format_txn_recent,
+    format_txn_summary,
+)
 from shared.agent.tools import ToolRegistry, tool
 from shared.agent.types import AgentContext, ModelRole
 from shared.domain_messages import dmsg
@@ -97,18 +102,39 @@ async def get_transactions(
     to_date: str = "",
     days: int = 0,
     category: str = "",
+    query: str = "",
+    txn_type: str = "",
 ) -> str:
-    """Transactions in interval (from/to YYYY-MM-DD or days). category matches parent+children (Food, Food/, Food/* → Food/Out, Food/Groceries)."""
+    """Transactions in interval with categories AND comments/descriptions.
+
+    from/to YYYY-MM-DD or days. category matches parent+children.
+    query = case-insensitive substring on description or category (e.g. employer name).
+    txn_type = income|expense to narrow. Income lines always include comments when present.
+    """
     analyst = _analyst(ctx)
+    tt = (txn_type or "").strip().lower()
+    if tt not in ("", "income", "expense"):
+        tt = ""
     uid, rows = await _fetch_rows(
-        ctx, from_date=from_date, to_date=to_date, days=days, default_days=30, category=category or None
+        ctx,
+        from_date=from_date,
+        to_date=to_date,
+        days=days,
+        default_days=30,
+        category=category or None,
+        txn_type=tt or None,
     )
     if uid is None:
         return dmsg(*_FA, "user_not_found")
+    q = (query or "").strip()
+    if q:
+        rows = filter_rows_by_query(rows, q)
     dr = resolve_date_range(
         from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
     )
     label = dmsg(*_FA, "transactions_label", range=_range_label(dr, days=days))
+    if q:
+        return format_txn_matches(rows, label=label, query=q)
     monthly = analyst._monthly_summary_text(rows) if rows else ""
     body = format_txn_summary(rows, label=label)
     if monthly:
