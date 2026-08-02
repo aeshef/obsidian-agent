@@ -203,19 +203,9 @@ def include_host_voice(dp: Dispatcher) -> None:
             await safe_edit_status(status, msgf("wire", "voice_preview", preview=preview))
             log.info("host voice ui_mode=%s len=%d", ui_mode, len(text))
 
-            if ui_mode == DOMAIN_FINANCE:
-                from bot.handlers.financial_query import handle_smart_text
-
-                await handle_smart_text(
-                    message,
-                    state,
-                    agent_app=agent_app,
-                    text_override=text,
-                )
-                return
-
             from shared.telegram.host.auto_dispatch import dispatch_auto_free_text
 
+            # Same path as typed free text: txn/save gates → unified agent.
             await dispatch_auto_free_text(message, state, agent_app, text)
         except LLMClassificationError as e:
             log.error("host voice LLM routing failed: %s", e, exc_info=True)

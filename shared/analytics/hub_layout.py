@@ -42,7 +42,10 @@ def render_analytics_hub(
     sections: list[tuple[str, list[tuple[str | None, str | None, str | None]]]] = [
         (
             "analytics_section_overview",
-            [(None, "md", "chart_analytics_insights_md")],
+            [
+                (None, "md", "chart_analytics_insights_md"),
+                (None, "md", "agent_cost_dashboard_md"),
+            ],
         ),
         (
             "analytics_section_body",
@@ -70,6 +73,13 @@ def render_analytics_hub(
         rendered_blocks: list[str] = []
         for subtitle_key, kind, asset_key in blocks:
             if kind == "md":
+                # Optional notes (e.g. agent cost) appear only after first build.
+                if asset_key == "agent_cost_dashboard_md":
+                    try:
+                        if not chart_path(vault, asset_key).is_file():
+                            continue
+                    except Exception:
+                        continue
                 rendered_blocks.append(_md_embed(asset_key))
                 rendered_blocks.append("")
                 continue

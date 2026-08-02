@@ -206,6 +206,19 @@ async def run_agent(
                     lambda t=text: asyncio.create_task(progress.on_answer_delta(t))
                 )
 
+        context_chars = 0
+        for _m in api_messages:
+            context_chars += len(str((_m or {}).get("content") or ""))
+            # tool_calls JSON on assistant turns also inflate context
+            tcs = (_m or {}).get("tool_calls")
+            if tcs:
+                context_chars += len(str(tcs))
+        tools_schema_chars = len(str(schemas)) if schemas else 0
+        if trace is not None:
+            trace.note_context(
+                messages_chars=context_chars, tools_schema_chars=tools_schema_chars
+            )
+
         _t0 = _time.perf_counter()
         resp: LLMResponse = await router.chat_with_tools(
             api_messages,
@@ -226,6 +239,7 @@ async def run_agent(
                 model=model,
                 usage=usage if isinstance(usage, dict) else None,
                 tool_calls=len(resp.tool_calls or []),
+                context_chars=context_chars,
             )
         if resp.text:
             last_text = resp.text

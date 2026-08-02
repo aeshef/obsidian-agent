@@ -33,15 +33,16 @@ async def _get_users_with_chat_id(session) -> list:
 
 
 async def send_subscriptions_digest(bot) -> None:
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push
+
     try:
         subs = load_subscriptions()
         due = [s for s in subs if is_due_within(s, 3)]
         if not due:
             return
-        text_lines = [fmsg("scheduler_subscriptions_header"), ""] + [
-            f"• {format_subscription_line(s)}" for s in due
-        ]
-        text = "\n".join(text_lines)
+        body = "\n".join(f"• {format_subscription_line(s)}" for s in due)
+        text = format_push(msg("push", "finance_subs_title") or fmsg("scheduler_subscriptions_header"), body)
 
         async with AsyncSessionLocal() as session:
             users = await _get_users_with_chat_id(session)
@@ -82,7 +83,38 @@ async def run_daily_broker_sync() -> None:
         raise
 
 
+async def _user_has_txn_today(session, user_id: int, tz_name: str) -> bool:
+    from datetime import datetime, timedelta
+
+    from sqlalchemy import func, select
+
+    from .models import Transaction
+
+    tz = pytz.timezone(tz_name)
+    now = datetime.now(tz)
+    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    # Store occurred_at naive UTC-ish; compare local day window in UTC approx.
+    start_utc = start.astimezone(pytz.UTC).replace(tzinfo=None)
+    end_utc = (start + timedelta(days=1)).astimezone(pytz.UTC).replace(tzinfo=None)
+    q = await session.execute(
+        select(func.count())
+        .select_from(Transaction)
+        .where(
+            Transaction.user_id == user_id,
+            Transaction.occurred_at >= start_utc,
+            Transaction.occurred_at < end_utc,
+        )
+    )
+    return int(q.scalar_one() or 0) > 0
+
+
 async def send_daily_txn_reminder(bot) -> None:
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push
+    from shared.telegram import push_policy as pp
+
+    if not pp.finance_txn_reminder_enabled():
+        return
     try:
         kb = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -93,12 +125,18 @@ async def send_daily_txn_reminder(bot) -> None:
                 [InlineKeyboardButton(text=fin_menu("last_ops"), callback_data="action:last")],
             ]
         )
+        tz_name = get_settings().TIMEZONE
+        body = fmsg("scheduler_daily_reminder")
+        text = format_push(msg("push", "finance_txn_title"), body)
         async with AsyncSessionLocal() as session:
             users = await _get_users_with_chat_id(session)
             for u in users:
                 try:
+                    if pp.finance_txn_reminder_only_if_no_txn():
+                        if await _user_has_txn_today(session, u.id, tz_name):
+                            continue
                     await bot.send_message(
-                        chat_id=u.chat_id, text=fmsg("scheduler_daily_reminder"), reply_markup=kb
+                        chat_id=u.chat_id, text=text, reply_markup=kb
                     )
                 except Exception as e:
                     log.warning("send_daily_txn_reminder: failed user_id=%s: %s", u.id, e)
@@ -109,6 +147,9 @@ async def send_daily_txn_reminder(bot) -> None:
 
 async def send_daily_insight(bot) -> None:
     """Morning random-time finance insight (9:00–11:00)."""
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push
+
     try:
         analyst = FinancialAnalyst()
         async with AsyncSessionLocal() as session:
@@ -117,7 +158,8 @@ async def send_daily_insight(bot) -> None:
                 try:
                     insight = await analyst.daily_insight(u.telegram_id)
                     if insight:
-                        await bot.send_message(chat_id=u.chat_id, text=f"💡 {insight}")
+                        text = format_push(msg("push", "finance_insight_title"), insight)
+                        await bot.send_message(chat_id=u.chat_id, text=text)
                 except Exception as e:
                     log.warning("send_daily_insight: user_id=%s: %s", u.id, e)
     except Exception as e:
@@ -232,8 +274,19 @@ def start_scheduler(bot) -> None:
         scheduler.add_job(run_daily_broker_sync, CronTrigger(hour=7, minute=0, timezone=tz))
     else:
         log.info("broker_sync connector off — skip daily broker sync job")
+    from shared.telegram import push_policy as pp
+
     scheduler.add_job(send_subscriptions_digest, CronTrigger(hour=10, minute=0, timezone=tz), args=[bot])
-    scheduler.add_job(send_daily_txn_reminder, CronTrigger(hour=21, minute=0, timezone=tz), args=[bot])
+    if pp.finance_txn_reminder_enabled():
+        scheduler.add_job(
+            send_daily_txn_reminder,
+            CronTrigger(
+                hour=pp.finance_txn_reminder_hour(),
+                minute=pp.finance_txn_reminder_minute(),
+                timezone=tz,
+            ),
+            args=[bot],
+        )
     scheduler.add_job(send_weekly_analysis, CronTrigger(day_of_week="sun", hour=19, minute=0, timezone=tz), args=[bot])
     scheduler.add_job(send_monthly_analysis, CronTrigger(day=1, hour=9, minute=0, timezone=tz), args=[bot])
     if is_badge_enabled():

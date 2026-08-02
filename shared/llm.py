@@ -344,12 +344,23 @@ class LLMClient:
             "tool_choice": tool_choice,
             "temperature": temperature,
             "stream": True,
+            # OpenAI-compatible: final SSE chunk carries usage when set.
+            "stream_options": {"include_usage": True},
         }
         try:
-            text, tool_calls = self._stream_chat_completion(
+            text, tool_calls, meta = self._stream_chat_completion(
                 payload, timeout, on_text_delta=on_text_delta
             )
-            return LLMResponse(text=text, tool_calls=tool_calls, raw={})
+            raw: dict[str, Any] = {"model": meta.get("model") or model}
+            if meta.get("usage"):
+                raw["usage"] = meta["usage"]
+                log.info(
+                    "LLM tools stream usage: prompt=%s completion=%s total=%s",
+                    (meta["usage"] or {}).get("prompt_tokens"),
+                    (meta["usage"] or {}).get("completion_tokens"),
+                    (meta["usage"] or {}).get("total_tokens"),
+                )
+            return LLMResponse(text=text, tool_calls=tool_calls, raw=raw)
         except Exception:
             log.exception("chat_with_tools_stream failed")
             if raise_on_error:
@@ -362,7 +373,7 @@ class LLMClient:
         timeout: float,
         *,
         on_text_delta: Callable[[str], None] | None,
-    ) -> tuple[str | None, list[dict[str, Any]]]:
+    ) -> tuple[str | None, list[dict[str, Any]], dict[str, Any]]:
         url = deepseek_chat_completions_url(override=self.base_url)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -387,6 +398,8 @@ class LLMClient:
 
         text_parts: list[str] = []
         tool_acc: dict[int, dict[str, Any]] = {}
+        usage: dict[str, Any] = {}
+        model_name = str(payload.get("model") or "")
         for line in self._iter_sse_data_lines(resp):
             if line == "[DONE]":
                 break
@@ -394,6 +407,10 @@ class LLMClient:
                 chunk = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if chunk.get("model"):
+                model_name = str(chunk.get("model") or model_name)
+            if isinstance(chunk.get("usage"), dict) and chunk["usage"]:
+                usage = chunk["usage"]
             choice = (chunk.get("choices") or [{}])[0]
             delta = choice.get("delta") or {}
             if delta.get("content"):
@@ -418,7 +435,7 @@ class LLMClient:
         text = "".join(text_parts) if text_parts else None
         if tool_calls and on_text_delta:
             pass  # do not stream answer when model chose tools
-        return text, tool_calls
+        return text, tool_calls, {"usage": usage, "model": model_name}
 
     @staticmethod
     def _iter_sse_data_lines(resp: requests.Response) -> Iterator[str]:

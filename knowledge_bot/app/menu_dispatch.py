@@ -80,8 +80,9 @@ def _build_handlers(
         elif action_id == "query":
 
             async def _query(_m=message, _kb=reply_markup, _st=state, _uid=uid):
+                # No pending trap — next free text always hits the unified agent.
                 if _st is not None:
-                    await _st.update_data(kb_query_pending=True)
+                    await _st.update_data(kb_query_pending=False)
                 kb = _kb or main_reply_keyboard(bulk_active=is_bulk_ingest(_uid))
                 await _m.answer(msg("knowledge", "query_prompt"), reply_markup=kb)
 
