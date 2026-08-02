@@ -124,6 +124,30 @@ async def list_vault_charts(
     return header + "\n" + body
 
 
+def _recent_chart_keys(ctx: AgentContext) -> list[str]:
+    try:
+        from shared.memory.working_set import get_working_set
+
+        ws = get_working_set(ctx.user_id, ctx.domain)
+        keys: list[str] = []
+        for ent in reversed(list(ws.entities.keys())):
+            if ent.startswith("chart:"):
+                keys.append(ent.split(":", 1)[1])
+        return keys
+    except Exception:
+        return []
+
+
+def _remember_charts(ctx: AgentContext, entries: list[ChartEntry]) -> None:
+    try:
+        from shared.memory.working_set import pin_entity
+
+        for e in entries:
+            pin_entity(ctx.user_id, ctx.domain, "chart", e.key)
+    except Exception:
+        pass
+
+
 @tool(category="charts")
 async def send_vault_charts(
     ctx: AgentContext,
@@ -135,38 +159,47 @@ async def send_vault_charts(
     vault = vault_root_optional()
     if vault is None:
         return dmsg(*_NS, "vault_missing")
-    q = (query or "").strip()
+    # Prefer explicit tool arg; else rank by the user utterance.
+    tool_q = (query or "").strip()
+    q = tool_q or (ctx.question or "").strip()
+    recent_keys = _recent_chart_keys(ctx)
     try:
-        lim = int(limit) if limit else (1 if q else _max_send())
+        lim = int(limit) if limit else (1 if tool_q or recent_keys else _max_send())
     except (TypeError, ValueError):
-        lim = 1 if q else _max_send()
+        lim = 1 if tool_q or recent_keys else _max_send()
     lim = max(1, min(lim, _max_send()))
 
-    # Broad catalog first; rank by query so "cost/agent" beats sibling agent charts.
     entries = [
         e
-        for e in catalog_charts(
-            vault, query="", family=family, only_existing=True
-        )
+        for e in catalog_charts(vault, query="", family=family, only_existing=True)
     ]
     if q:
         ranked = rank_charts_for_query(entries, q)
-        # Keep only positive matches when the user named something specific.
-        scored = [(score_chart_match(e, q), e) for e in ranked]
-        positive = [e for s, e in scored if s > 0]
+        positive = [e for e in ranked if score_chart_match(e, q) > 0]
         if positive:
             entries = positive
-        else:
-            # Fallback: substring filter from catalog helper
-            entries = [
-                e
-                for e in catalog_charts(
-                    vault, query=q, family=family, only_existing=True
-                )
-            ]
-            entries = rank_charts_for_query(entries, q)
+            if not limit:
+                lim = 1
+        elif tool_q:
+            entries = rank_charts_for_query(
+                [
+                    e
+                    for e in catalog_charts(
+                        vault, query=tool_q, family=family, only_existing=True
+                    )
+                ],
+                tool_q,
+            )
+    if recent_keys and (not tool_q or not any(score_chart_match(e, q) > 0 for e in entries)):
+        by_key = {e.key: e for e in catalog_charts(vault, only_existing=True)}
+        recalled = [by_key[k] for k in recent_keys if k in by_key]
+        if recalled:
+            entries = recalled
+            if not limit:
+                lim = 1
+
     if not entries:
-        return dmsg(*_NS, "none_found", query=query or "-", family=family or "-")
+        return dmsg(*_NS, "none_found", query=tool_q or q or "-", family=family or "-")
 
     picked = entries[:lim]
     items: list[tuple[str, str]] = []
@@ -174,6 +207,7 @@ async def send_vault_charts(
         caption = dmsg(*_NS, "caption", key=e.key, family=e.family)
         items.append((e.rel_path, caption))
     queued = queue_chart_media(ctx, items, max_total=_max_send())
+    _remember_charts(ctx, picked)
     names = ", ".join(Path(e.rel_path).name for e in picked)
     return dmsg(
         *_NS,
