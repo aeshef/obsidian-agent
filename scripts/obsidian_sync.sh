@@ -593,22 +593,49 @@ fi
 echo "$(sh_msg scripts.obsidian_sync.step_4)" >&2
 if cap_module_enabled PLANNING; then
   _recent_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_recent_tasks.XXXXXX")"
+  _protect_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_protect_tasks.XXXXXX")"
   _recent_tasks_count="$(_write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SYNC_START_EPOCH" "$_recent_tasks_exclude" 2>/dev/null || echo 0)"
+  _protect_count="$(_sync_write_pull_protect_excludes "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" "$_protect_tasks_exclude" 2>>"$DEBUG_LOG" || echo 0)"
+  if [ "${_protect_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 protect_local_task_ids count=${_protect_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    cat "$_protect_tasks_exclude" >> "$_recent_tasks_exclude" 2>/dev/null || true
+    # Local board has IDs the server lost — push it before any pull can clobber.
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --ignore-times --files-from="$_protect_tasks_exclude" \
+      "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  fi
   _tasks_pull_mode="ignore-times"
   if [ -n "${SYNC_FAIL_STEP:-}" ] || [ "${SYNC_OK:-1}" != "1" ]; then
     _tasks_pull_mode="update"
     echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 tasks_pull_safe mode=update reason=prior_fail step=${SYNC_FAIL_STEP:-none}" >> "$DEBUG_LOG" 2>/dev/null || true
   fi
+  _exclude_count="$(wc -l < "$_recent_tasks_exclude" 2>/dev/null | tr -d ' ' || echo 0)"
   if [ "$_tasks_pull_mode" = "update" ]; then
-    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
-  elif [ "${_recent_tasks_count:-0}" -gt 0 ]; then
-    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_recent_local_tasks count=${_recent_tasks_count}" >> "$DEBUG_LOG" 2>/dev/null || true
-    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    if [ "${_exclude_count:-0}" -gt 0 ]; then
+      "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update --exclude-from="$_recent_tasks_exclude" \
+        "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    else
+      "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update \
+        "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    fi
+  elif [ "${_exclude_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_protected_or_recent_tasks count=${_exclude_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" \
+      "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   else
-    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times \
+      "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   fi
-  rm -f "$_recent_tasks_exclude" 2>/dev/null || true
-  unset _tasks_pull_mode
+  rm -f "$_recent_tasks_exclude" "$_protect_tasks_exclude" 2>/dev/null || true
+  unset _tasks_pull_mode _protect_count _exclude_count
+  # Heal: re-add task_created from last 7d missing on board (never task_deleted).
+  if [ -d "${AGENT_ROOT}/planning_bot" ]; then
+    (
+      export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+      cd "$AGENT_ROOT" && ./scripts/oa-python.sh planning_bot/scripts/restore_missing_tasks_from_log.py \
+        --mode sync-orphan --since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" \
+        >> "${AGENT_ROOT}/planning_bot/logs/kanban_orphan_heal.log" 2>&1
+    ) || true
+  fi
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
   _authority_pull_exclude_4=()

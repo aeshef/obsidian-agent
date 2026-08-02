@@ -4,7 +4,7 @@
 Modes:
   sync-orphan (default) — only recent creates that look like sync wipes:
     no task_deleted, not completed, missing from board, created within --since
-    (default: 14 days). Never restores intentional deletes.
+    (default: 7 days). Never restores intentional deletes / historical junk.
   all — every missing create without task_deleted/completed (legacy bulk; avoid).
 
 Preserves original task_id and created date.
@@ -162,7 +162,7 @@ def main() -> int:
         if args.since:
             since_dt = _parse_when(args.since)
         elif args.mode == "sync-orphan":
-            since_dt = datetime.now() - timedelta(days=14)
+            since_dt = datetime.now() - timedelta(days=7)
         else:
             since_dt = None
         until_dt = _parse_when(args.until) if args.until else None

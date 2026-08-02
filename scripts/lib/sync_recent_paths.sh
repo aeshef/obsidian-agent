@@ -139,6 +139,65 @@ if removed:
 PY_FILTER_FP
 }
 
+# Build rsync --exclude-from entries for task markdown where LOCAL has task IDs
+# that the server copy lacks. Prevents step-4 --ignore-times (or a newer server
+# mtime) from shrinking the board after a local restore / create.
+_sync_write_pull_protect_excludes() {
+  local tasks_root="${1:-}"
+  local out_file="${2:-}"
+  [ -n "$tasks_root" ] && [ -d "$tasks_root" ] && [ -n "$out_file" ] || return 1
+  [ -n "${SERVER:-}" ] && [ -n "${SERVER_VAULT:-}" ] || return 1
+  python3 - "$tasks_root" "$out_file" "$SERVER" "$SERVER_VAULT/${VAULT_FOLDER_TASKS}" <<'PY_PULL_PROTECT' || true
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+tasks_root = Path(sys.argv[1])
+out_file = Path(sys.argv[2])
+server = sys.argv[3]
+server_tasks = sys.argv[4].rstrip("/")
+id_re = re.compile(r"🆔\s*ID:\s*([0-9a-fA-F-]{6,})", re.I)
+
+def ids_of(text: str) -> set[str]:
+    return {m.group(1).lower() for m in id_re.finditer(text or "")}
+
+excludes: list[str] = []
+for path in tasks_root.rglob("*.md"):
+    if ".rsync-backup" in path.parts:
+        continue
+    try:
+        local_text = path.read_text(encoding="utf-8")
+    except OSError:
+        continue
+    local_ids = ids_of(local_text)
+    if len(local_ids) < 3:
+        continue
+    rel = path.relative_to(tasks_root).as_posix()
+    try:
+        proc = subprocess.run(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", server,
+             f"cat {server_tasks}/{rel}"],
+            capture_output=True, text=True, timeout=20, check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        continue
+    if proc.returncode != 0:
+        continue
+    server_ids = ids_of(proc.stdout)
+    only_local = local_ids - server_ids
+    if only_local:
+        excludes.append(rel)
+        print(
+            f"protect pull {rel}: keep {len(only_local)} local-only task id(s)",
+            file=sys.stderr,
+        )
+
+out_file.write_text("\n".join(excludes) + ("\n" if excludes else ""), encoding="utf-8")
+print(len(excludes))
+PY_PULL_PROTECT
+}
+
 _local_file_mtime_gt() {
   local file_path="$1" since_epoch="$2"
   [ -f "$file_path" ] || return 1
