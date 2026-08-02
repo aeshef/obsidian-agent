@@ -350,10 +350,14 @@ for line in ensure_routines_layout(scaffold_stats=False):
 " ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || true
 fi
 # 1. Сервер → Локальный.
-# Перед pull сохраняем файлы задач, изменённые локально за последние 30 мин — они будут
-# принудительно запушены в step 2 даже если сервер «новее» (бот/cron обогнал локальный edit).
+# Перед pull сохраняем локальные правки задач с last_sync_ok (мин. 30м, макс. 7д) —
+# force-push в step 2, даже если сервер «новее» (бот/cron обогнал локальный edit).
+# Фиксированное окно 30м недостаточно: после серии FAIL maintenance локальная доска
+# с новыми задачами не попадала в force-push, --update проигрывал mtime сервера,
+# а step 4 --ignore-times затирал задачи (лог task_created при этом оставался).
 _LOCAL_TASKS_RECENT="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_local_recent.XXXXXX")"
-_recent_epoch_30m=$(( $(date +%s) - 1800 ))
+_recent_epoch_30m="$(_sync_recent_tasks_since_epoch)"
+echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=1 recent_tasks_since_epoch=${_recent_epoch_30m}" >> "$DEBUG_LOG" 2>/dev/null || true
 _write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$_recent_epoch_30m" "$_LOCAL_TASKS_RECENT" 2>/dev/null || true
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
@@ -492,8 +496,9 @@ if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES
   PUSH_EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
 fi
 if cap_module_enabled PLANNING; then
-  # Файлы задач, изменённые за 30 мин до sync (собраны в step 1): пушим принудительно (--ignore-times),
-  # чтобы локальная правка не была подавлена серверной версией, записанной ботом/cron позже нашего edit.
+  # Recent local task files (since last_sync_ok / 30m): force-push with --ignore-times.
+  # Safety filter: never clobber a server kanban that has task IDs missing locally.
+  _sync_filter_force_push_tasks_safe "$_LOCAL_TASKS_RECENT" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" 2>>"$DEBUG_LOG" || true
   _recent_task_count="$(wc -l < "$_LOCAL_TASKS_RECENT" 2>/dev/null | tr -d ' ' || echo 0)"
   if [ "${_recent_task_count:-0}" -gt 0 ]; then
     echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=2 force_push_recent count=${_recent_task_count}" >> "$DEBUG_LOG" 2>/dev/null || true
@@ -582,18 +587,28 @@ fi
 # 100_: ignore-times — канон сортировки с VPS. Но если файл задачи поменяли локально уже ПОСЛЕ старта
 # текущего sync-цикла (Obsidian UI во время длительного maintenance), не тянем его обратно с VPS:
 # иначе финальный pull стирает только что созданные/перемещённые задачи до следующего цикла.
+# Если step 3 (maintenance) уже упал — НЕ делаем ignore-times pull доски: сервер может быть
+# в частично обновлённом/старом состоянии относительно локальных task_created; только --update.
 # 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "$(sh_msg scripts.obsidian_sync.step_4)" >&2
 if cap_module_enabled PLANNING; then
   _recent_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_recent_tasks.XXXXXX")"
   _recent_tasks_count="$(_write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SYNC_START_EPOCH" "$_recent_tasks_exclude" 2>/dev/null || echo 0)"
-  if [ "${_recent_tasks_count:-0}" -gt 0 ]; then
+  _tasks_pull_mode="ignore-times"
+  if [ -n "${SYNC_FAIL_STEP:-}" ] || [ "${SYNC_OK:-1}" != "1" ]; then
+    _tasks_pull_mode="update"
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 tasks_pull_safe mode=update reason=prior_fail step=${SYNC_FAIL_STEP:-none}" >> "$DEBUG_LOG" 2>/dev/null || true
+  fi
+  if [ "$_tasks_pull_mode" = "update" ]; then
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  elif [ "${_recent_tasks_count:-0}" -gt 0 ]; then
     echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_recent_local_tasks count=${_recent_tasks_count}" >> "$DEBUG_LOG" 2>/dev/null || true
     "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   else
     "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   fi
   rm -f "$_recent_tasks_exclude" 2>/dev/null || true
+  unset _tasks_pull_mode
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
   _authority_pull_exclude_4=()
