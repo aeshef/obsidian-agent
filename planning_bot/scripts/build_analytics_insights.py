@@ -20,13 +20,18 @@ from shared.analytics.daily_panel import (
 from shared.analytics.hypotheses import run_partial_weight_hypotheses, run_sleep_hypotheses
 from shared.analytics.panel_charts import (
     chart_dual_zscore,
+    chart_life_os_regimes,
+    chart_life_os_scores,
     chart_panel_correlations,
+    chart_sleep_debt,
     chart_sleep_hours,
     chart_sleep_stages,
     chart_sleep_weight_scatter,
     chart_weight_trend,
     panel_coverage,
 )
+from shared.analytics.sleep_debt import compute_sleep_debt_series
+from shared.analytics.life_os_scores import compute_life_os_daily
 from shared.analytics.vault_analytics_config import vault_analytics_config
 from shared.chart_paths import chart_path, chart_wikilink_png, charts_root, data_path, ensure_parent
 from shared.vault_paths_config import folder, vault_rel_path
@@ -227,6 +232,109 @@ def main() -> int:
         if fn(png):
             generated.append(png_key)
             _write_chart_note(vault, md_key, png_key, pdmsg(title_key), ts)
+
+    debt_cfg = cfg.get("sleep_debt") or {}
+    debt_series = compute_sleep_debt_series(
+        rows,
+        target_hours=float(debt_cfg.get("target_hours") or 8.0),
+        decay=float(debt_cfg.get("decay") or 0.9),
+    )
+    # Enrich rows for Life OS
+    debt_by_day = {str(r["date"])[:10]: r.get("debt") for r in debt_series}
+    for r in rows:
+        r["sleep_debt"] = debt_by_day.get(str(r.get("date") or "")[:10])
+
+    # Optional: goal_mapped completions from kanban flow metrics
+    try:
+        flow_path = chart_path(vault, "kanban_flow_metrics_json")
+        if flow_path.is_file():
+            flow = json.loads(flow_path.read_text(encoding="utf-8"))
+            seg = {str(x.get("date"))[:10]: x for x in (flow.get("completions_by_goal_segment") or [])}
+            debt_flow = {str(x.get("date"))[:10]: x for x in (flow.get("daily_flow") or [])}
+            prev_debt = None
+            for r in rows:
+                d = str(r.get("date") or "")[:10]
+                r["goal_mapped_completions"] = (seg.get(d) or {}).get("goal_mapped")
+                fd = (debt_flow.get(d) or {}).get("flow_debt")
+                if fd is not None and prev_debt is not None:
+                    r["flow_debt_delta"] = float(fd) - float(prev_debt)
+                if fd is not None:
+                    prev_debt = float(fd)
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+
+    life_cfg = cfg.get("life_os") or {}
+    life_series = compute_life_os_daily(
+        rows,
+        mid=float(life_cfg.get("mid") or 50),
+        high_drain=float(life_cfg.get("high_drain") or 65),
+    )
+    life_path = data_path(vault, "life_os_daily_json")
+    ensure_parent(life_path)
+    life_path.write_text(
+        json.dumps({"updated": ts, "rows": life_series}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    debt_png = chart_path(vault, "chart_analytics_sleep_debt_png")
+    if chart_sleep_debt(
+        debt_series,
+        debt_png,
+        title=pdmsg("analytics_title_sleep_debt"),
+        label_debt=pdmsg("analytics_label_sleep_debt"),
+        label_sleep=pdmsg("analytics_label_sleep_hours_axis"),
+        label_target=pdmsg("analytics_label_sleep_target"),
+    ):
+        generated.append("sleep_debt")
+        _write_chart_note(
+            vault,
+            "chart_analytics_sleep_debt_md",
+            "chart_analytics_sleep_debt_png",
+            pdmsg("analytics_title_sleep_debt"),
+            ts,
+        )
+
+    scores_png = chart_path(vault, "chart_analytics_life_os_scores_png")
+    if chart_life_os_scores(
+        life_series,
+        scores_png,
+        title=pdmsg("analytics_title_life_os_scores"),
+        label_capacity=pdmsg("analytics_label_capacity"),
+        label_output=pdmsg("analytics_label_output"),
+        label_drain=pdmsg("analytics_label_drain"),
+        label_axis=pdmsg("analytics_label_percentile_axis"),
+    ):
+        generated.append("life_os_scores")
+        _write_chart_note(
+            vault,
+            "chart_analytics_life_os_scores_md",
+            "chart_analytics_life_os_scores_png",
+            pdmsg("analytics_title_life_os_scores"),
+            ts,
+            extra=pdmsg("analytics_life_os_scores_how").strip(),
+        )
+
+    regimes_png = chart_path(vault, "chart_analytics_life_os_regimes_png")
+    if chart_life_os_regimes(
+        life_series,
+        regimes_png,
+        title=pdmsg("analytics_title_life_os_regimes"),
+        regime_labels={
+            "flow": pdmsg("analytics_regime_flow"),
+            "charge": pdmsg("analytics_regime_charge"),
+            "overreach": pdmsg("analytics_regime_overreach"),
+            "recovery": pdmsg("analytics_regime_recovery"),
+        },
+    ):
+        generated.append("life_os_regimes")
+        _write_chart_note(
+            vault,
+            "chart_analytics_life_os_regimes_md",
+            "chart_analytics_life_os_regimes_png",
+            pdmsg("analytics_title_life_os_regimes"),
+            ts,
+            extra=pdmsg("analytics_life_os_regimes_how").strip(),
+        )
 
     heat_png = chart_path(vault, "chart_analytics_sleep_heatmap_png")
     drew_heat = _heatmap(

@@ -19,6 +19,14 @@ sleep:
     - iphone_hrv_ms_lag1
     - iphone_resting_hr_bpm_lag1
 
+sleep_debt:
+  target_hours: 8.0
+  decay: 0.9
+
+life_os:
+  mid: 50
+  high_drain: 65
+
 # Outcome column → pdmsg label key (planning.*).
 outcomes:
   tasks_completed:
