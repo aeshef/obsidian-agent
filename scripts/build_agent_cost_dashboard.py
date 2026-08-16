@@ -19,7 +19,24 @@ from pathlib import Path
 
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[1]
+    """Agent root even when LaunchAgent feeds the script via stdin (no real __file__)."""
+    import os
+
+    env = (os.environ.get("AGENT_ROOT") or "").strip()
+    if env:
+        p = Path(env)
+        if p.is_dir():
+            return p.resolve()
+    try:
+        here = Path(__file__)
+        if here.is_file():
+            return here.resolve().parents[1]
+    except Exception:
+        pass
+    cwd = Path.cwd().resolve()
+    if (cwd / "shared").is_dir() and ((cwd / "scripts").is_dir() or (cwd / "planning_bot").is_dir()):
+        return cwd
+    return cwd
 
 
 def _default_trace_path() -> Path:
@@ -41,10 +58,10 @@ def _vault_out_paths(vault: Path) -> tuple[Path, Path, Path, Path]:
         except Exception:
             return charts_root(vault) / fallback_rel
 
-    md = _asset("agent_cost_dashboard_md", "Analytics/Agent_cost.md")
-    tokens_png = _asset("chart_agent_tokens_daily_png", "Analytics/Agent_tokens_daily.png")
-    cost_png = _asset("chart_agent_cost_daily_png", "Analytics/Agent_cost_daily.png")
-    tools_png = _asset("chart_agent_tools_png", "Analytics/Agent_tools.png")
+    md = _asset("agent_cost_dashboard_md", "System/Agent_cost.md")
+    tokens_png = _asset("chart_agent_tokens_daily_png", "System/Agent_tokens_daily.png")
+    cost_png = _asset("chart_agent_cost_daily_png", "System/Agent_cost_daily.png")
+    tools_png = _asset("chart_agent_tools_png", "System/Agent_tools.png")
     return md, tokens_png, cost_png, tools_png
 
 
@@ -117,47 +134,47 @@ def render_markdown(
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     d = summary.as_dict()
     lines: list[str] = [
-        "# ✦ Agent cost & harness",
+        "# ✦ Стоимость агента",
         "",
-        f"> [!info] Window — last **{d['days']}d** · updated `{ts}`",
-        f"> Runs **{d['runs']}** · tokens **{d['total_tokens']:,}** · "
-        f"est. **${d['est_cost_usd']:.4f}** · tools executed **{d['tool_calls_executed']}**",
+        f"> [!info] Окно — последние **{d['days']}д** · обновлено `{ts}`",
+        f"> Прогонов **{d['runs']}** · токенов **{d['total_tokens']:,}** · "
+        f"оценка **${d['est_cost_usd']:.4f}** · вызовов инструментов **{d['tool_calls_executed']}**",
         "",
-        "## Why this exists",
+        "## Зачем это",
         "",
-        "Transparent view of agent spend and efficiency: tokens, estimated USD, "
-        "tool calls, context size, latency. No message bodies — only ops metrics "
-        "from `agent_traces.jsonl`.",
+        "Прозрачный срез по тратам и эффективности агента: токены, оценка в USD, "
+        "вызовы инструментов, размер контекста, латентность. Без тел сообщений — "
+        "только операционные метрики из `agent_traces.jsonl`.",
         "",
-        "## Snapshot",
+        "## Снимок",
         "",
-        "| Metric | Value |",
+        "| Метрика | Значение |",
         "| --- | ---: |",
-        f"| Runs | {d['runs']} |",
-        f"| Prompt tokens | {d['prompt_tokens']:,} |",
-        f"| Completion tokens | {d['completion_tokens']:,} |",
-        f"| Total tokens | {d['total_tokens']:,} |",
-        f"| Est. cost (USD) | ${d['est_cost_usd']:.4f} |",
-        f"| Cost / run | ${(d['est_cost_usd'] / d['runs']) if d['runs'] else 0:.5f} |",
-        f"| Tool calls executed | {d['tool_calls_executed']} |",
-        f"| Avg LLM rounds / run | {d['avg_rounds']:.2f} |",
-        f"| Avg tools selected | {d['avg_selected_tools']:.1f} |",
-        f"| Avg context peak (chars) | {d['avg_context_peak']:.0f} |",
-        f"| Latency p50 / p95 (ms) | {d['p50_latency_ms']:.0f} / {d['p95_latency_ms']:.0f} |",
-        f"| Usage coverage | {d['usage_coverage_pct']:.1f}% |",
+        f"| Прогонов | {d['runs']} |",
+        f"| Токены промпта | {d['prompt_tokens']:,} |",
+        f"| Токены ответа | {d['completion_tokens']:,} |",
+        f"| Токены всего | {d['total_tokens']:,} |",
+        f"| Оценка стоимости (USD) | ${d['est_cost_usd']:.4f} |",
+        f"| Стоимость / прогон | ${(d['est_cost_usd'] / d['runs']) if d['runs'] else 0:.5f} |",
+        f"| Вызовов инструментов | {d['tool_calls_executed']} |",
+        f"| Среднее LLM-раундов / прогон | {d['avg_rounds']:.2f} |",
+        f"| Среднее выбранных инструментов | {d['avg_selected_tools']:.1f} |",
+        f"| Пик контекста (символы) | {d['avg_context_peak']:.0f} |",
+        f"| Латентность p50 / p95 (мс) | {d['p50_latency_ms']:.0f} / {d['p95_latency_ms']:.0f} |",
+        f"| Покрытие usage | {d['usage_coverage_pct']:.1f}% |",
         "",
-        "## Insights",
+        "## Наблюдения",
         "",
     ]
     for tip in d.get("insights") or []:
         lines.append(f"- {tip}")
     if not d.get("insights"):
-        lines.append("- (none)")
+        lines.append("- (пока нет)")
 
-    lines.extend(["", "## Daily", ""])
+    lines.extend(["", "## По дням", ""])
     daily = d.get("daily") or []
     if daily:
-        lines.append("| Date | Runs | Tokens | Est. $ | Tools |")
+        lines.append("| Дата | Прогоны | Токены | Оценка $ | Тулы |")
         lines.append("| --- | ---: | ---: | ---: | ---: |")
         for row in daily[-21:]:
             lines.append(
@@ -175,8 +192,8 @@ def render_markdown(
                     mermaid_xychart_lines(
                         xs,
                         {"tokens": tok},
-                        "Daily tokens",
-                        y_label="tokens",
+                        "Токены по дням",
+                        y_label="токены",
                     ),
                     "```",
                     "",
@@ -184,77 +201,76 @@ def render_markdown(
                     mermaid_xychart_lines(
                         xs,
                         {"cost_x1e4": cost},
-                        "Daily est. cost (USD x10000)",
+                        "Оценка стоимости (USD ×10000)",
                         y_label="USD*10000",
                     ),
                     "```",
                 ]
             )
     else:
-        lines.append("_No daily rows yet._")
+        lines.append("_По дням пока нет строк._")
 
     if tokens_png and tokens_png.is_file():
-        lines.extend(["", "### Tokens chart", "", _wikilink(vault, tokens_png), ""])
+        lines.extend(["", "### График токенов", "", _wikilink(vault, tokens_png), ""])
     if cost_png and cost_png.is_file():
-        lines.extend(["", "### Cost chart", "", _wikilink(vault, cost_png), ""])
+        lines.extend(["", "### График стоимости", "", _wikilink(vault, cost_png), ""])
 
-    lines.extend(["", "## By domain", ""])
+    lines.extend(["", "## По доменам", ""])
     dom_cost = d.get("domain_cost") or []
     if dom_cost:
-        lines.append("| Domain | Runs | Est. $ |")
+        lines.append("| Домен | Прогоны | Оценка $ |")
         lines.append("| --- | ---: | ---: |")
         for row in dom_cost:
             lines.append(
                 f"| {row['domain']} | {row['runs']} | ${row['est_cost_usd']:.4f} |"
             )
         pie = [(r["domain"], float(r["est_cost_usd"]) * 1_000_000) for r in dom_cost]
-        # mermaid pie needs positive ints-ish; scale microdollars
         if sum(v for _, v in pie) > 0:
             lines.extend(
                 [
                     "",
                     "```mermaid",
-                    mermaid_pie([(a, max(1.0, b)) for a, b in pie], "Cost by domain (scaled)"),
+                    mermaid_pie([(a, max(1.0, b)) for a, b in pie], "Стоимость по доменам"),
                     "```",
                 ]
             )
     else:
-        lines.append("_No domain split._")
+        lines.append("_Разбивки по доменам пока нет._")
 
-    lines.extend(["", "## End reasons", ""])
+    lines.extend(["", "## Причины завершения", ""])
     reasons = d.get("end_reasons") or {}
     if reasons:
-        lines.append("| Reason | Count |")
+        lines.append("| Причина | Кол-во |")
         lines.append("| --- | ---: |")
         for k, v in reasons.items():
             lines.append(f"| `{k}` | {v} |")
     else:
-        lines.append("_n/a_")
+        lines.append("_н/д_")
 
-    lines.extend(["", "## Top tools (executed)", ""])
+    lines.extend(["", "## Топ инструментов", ""])
     top = d.get("top_tools") or []
     if top:
-        lines.append("| Tool | Calls |")
+        lines.append("| Инструмент | Вызовы |")
         lines.append("| --- | ---: |")
         for name, n in top:
             lines.append(f"| `{name}` | {n} |")
         if tools_png and tools_png.is_file():
             lines.extend(["", _wikilink(vault, tools_png), ""])
     else:
-        lines.append("_No tool executions recorded._")
+        lines.append("_Вызовов инструментов пока не записано._")
 
     lines.extend(
         [
             "",
-            "## How to refresh",
+            "## Как обновить",
             "",
             "```bash",
             "PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --days 14",
-            "# or: PYTHONPATH=. python scripts/agent_trace_rollup.py --days 14 --json",
+            "# или: PYTHONPATH=. python scripts/agent_trace_rollup.py --days 14 --json",
             "```",
             "",
-            "Pricing: `config/agent/platform.yaml` → `agent_trace.pricing` "
-            "(USD per 1M tokens). Traces: `AGENT_TRACE=1`.",
+            "Цены: `config/agent/platform.yaml` → `agent_trace.pricing` "
+            "(USD за 1M токенов). Трейсы: `AGENT_TRACE=1`.",
             "",
         ]
     )
@@ -283,11 +299,14 @@ def main(argv: list[str] | None = None) -> int:
     summary = summarize_traces(rows, days=args.days)
 
     summary_json = root / "logs" / "agent_trace_summary.json"
-    summary_json.parent.mkdir(parents=True, exist_ok=True)
-    summary_json.write_text(
-        json.dumps(summary.as_dict(), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    try:
+        summary_json.parent.mkdir(parents=True, exist_ok=True)
+        summary_json.write_text(
+            json.dumps(summary.as_dict(), ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        print(f"warning: could not write {summary_json}: {exc}", file=sys.stderr)
 
     vault = args.vault or vault_root_optional()
     if vault is None:
@@ -307,14 +326,14 @@ def main(argv: list[str] | None = None) -> int:
         xs = [r["date"][5:] for r in summary.daily]
         _try_plot_lines(
             tokens_png,
-            "Agent tokens / day",
+            "Токены агента / день",
             xs,
             [float(r["tokens"]) for r in summary.daily],
-            "tokens",
+            "токены",
         )
         _try_plot_lines(
             cost_png,
-            "Agent est. cost / day (USD)",
+            "Оценка стоимости агента / день (USD)",
             xs,
             [float(r["est_cost_usd"]) for r in summary.daily],
             "USD",
@@ -322,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.no_png and summary.top_tools:
         labels = [n for n, _ in summary.top_tools[:10]]
         vals = [float(v) for _, v in summary.top_tools[:10]]
-        _try_plot_bars(tools_png, "Top tools executed", labels, vals)
+        _try_plot_bars(tools_png, "Топ вызванных инструментов", labels, vals)
 
     md = render_markdown(
         summary,

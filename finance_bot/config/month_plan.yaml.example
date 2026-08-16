@@ -1,0 +1,17 @@
+# Месячный план flexible spend.
+# cp month_plan.yaml.example month_plan.yaml и заполни.
+#
+# Логика:
+#   commitment = subscriptions + inferred_recurring + planned_expenses(месяц) + buffer_savings
+#   flexible_pool = income_expected_rub − commitment
+#   daily_allowance ≈ flexible_pool / дней_в_месяце
+#   remaining_today ≈ (flexible_pool − spent) / дней_осталось
+
+income_expected_rub: 0
+buffer_savings_rub: 0
+
+# Тихие регулярки (ЖКХ, транспорт…) — можно заполнить вручную или из медиан.
+inferred_recurring: []
+#  - name: ЖКХ
+#    amount: 4500
+#    category: Коммуналка

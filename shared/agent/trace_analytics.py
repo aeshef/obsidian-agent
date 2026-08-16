@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.agent.trace_cost import estimate_cost_usd, primary_model
+from shared.domain_messages import dmsg
 
 
 def parse_ts(raw: Any) -> datetime | None:
@@ -138,7 +139,12 @@ class TraceSummary:
 def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
     s = TraceSummary(days=days)
     if not rows:
-        s.insights.append("No agent runs in the selected window — enable AGENT_TRACE=1.")
+        s.insights.append(
+            dmsg(
+                "trace_insight_empty_window",
+                default="No agent runs in the selected window — enable AGENT_TRACE=1.",
+            )
+        )
         return s
 
     latencies: list[float] = []
@@ -242,7 +248,9 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
 def _build_insights(s: TraceSummary) -> list[str]:
     out: list[str] = []
     if s.runs == 0:
-        return ["No data."]
+        return [
+            dmsg("trace_insight_no_data", default="No data."),
+        ]
     cov = (
         100.0 * (1.0 - s.rounds_missing_usage / s.llm_rounds_total)
         if s.llm_rounds_total
@@ -250,30 +258,73 @@ def _build_insights(s: TraceSummary) -> list[str]:
     )
     if cov < 85:
         out.append(
-            f"Usage coverage {cov:.0f}% — streaming rounds may omit tokens; "
-            "dashboard estimates gaps from context size."
+            dmsg(
+                "trace_insight_usage_low",
+                default=(
+                    "Usage coverage {cov:.0f}% — streaming rounds may omit tokens; "
+                    "dashboard estimates gaps from context size."
+                ),
+                cov=cov,
+            )
         )
     else:
-        out.append(f"Usage coverage {cov:.0f}% across {s.llm_rounds_total} LLM rounds.")
+        out.append(
+            dmsg(
+                "trace_insight_usage_ok",
+                default="Usage coverage {cov:.0f}% across {rounds} LLM rounds.",
+                cov=cov,
+                rounds=s.llm_rounds_total,
+            )
+        )
     if s.avg_rounds > 3.5:
         out.append(
-            f"Avg {s.avg_rounds:.1f} LLM rounds/run — look for redundant tool loops "
-            "or tighten max_tool_calls."
+            dmsg(
+                "trace_insight_avg_rounds",
+                default=(
+                    "Avg {avg:.1f} LLM rounds per run — check extra tool loops "
+                    "or tighten max_tool_calls."
+                ),
+                avg=s.avg_rounds,
+            )
         )
     if s.avg_selected_tools > 10:
         out.append(
-            f"Avg {s.avg_selected_tools:.1f} tools selected/run — tool-select budget "
-            "still wide; smaller sets cut prompt tokens."
+            dmsg(
+                "trace_insight_avg_tools",
+                default=(
+                    "Avg {avg:.1f} tools selected per run — wide selection budget; "
+                    "a smaller set cuts prompt tokens."
+                ),
+                avg=s.avg_selected_tools,
+            )
         )
     budget = int(s.end_reasons.get("tool_budget") or 0)
     if budget:
-        out.append(f"{budget} run(s) hit tool_budget — answers may be truncated.")
+        out.append(
+            dmsg(
+                "trace_insight_tool_budget",
+                default="{n} run(s) hit tool_budget — answers may be truncated.",
+                n=budget,
+            )
+        )
     if s.est_cost_usd > 0 and s.runs:
         out.append(
-            f"~${s.est_cost_usd:.4f} estimated over {s.days}d "
-            f"(${s.est_cost_usd / s.runs:.5f}/run)."
+            dmsg(
+                "trace_insight_cost",
+                default="~${cost:.4f} estimate over {days}d (${per:.5f}/run).",
+                cost=s.est_cost_usd,
+                days=s.days,
+                per=s.est_cost_usd / s.runs,
+            )
         )
     if s.top_tools:
         name, n = s.top_tools[0]
-        out.append(f"Hottest tool: {name} ×{n}.")
+        out.append(
+            dmsg(
+                "trace_insight_top_tool",
+                default="Most frequent tool: {name} x{n}.",
+                name=name,
+                n=n,
+            )
+        )
     return out

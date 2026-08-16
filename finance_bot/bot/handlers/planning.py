@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from ..db import AsyncSessionLocal
 from ..models import User, PlannedExpense
-from ..services.planning_forecast import generate_forecast
+from ..services.planning_forecast import generate_forecast, generate_month_plan_summary
 from bot.ui import fmsg
 from shared.ui import common
 
@@ -58,7 +58,7 @@ async def cmd_forecast(callback: types.CallbackQuery) -> None:
     try:
         text = await generate_forecast(callback.from_user.id)
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:menu")],
+            [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:plan_list")],
         ])
         await callback.message.edit_text(text, reply_markup=kb)
     except Exception as e:
@@ -66,7 +66,28 @@ async def cmd_forecast(callback: types.CallbackQuery) -> None:
         await callback.message.edit_text(
             fmsg("plan_forecast_error", error=e),
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:menu")],
+                [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:plan_list")],
+            ]),
+        )
+
+
+@router.callback_query(F.data == "action:month_plan")
+async def cmd_month_plan(callback: types.CallbackQuery) -> None:
+    """Flexible spend for the current month."""
+    await callback.answer()
+    await callback.message.edit_text(fmsg("plan_progress"))
+    try:
+        text = await generate_month_plan_summary(callback.from_user.id)
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:plan_list")],
+        ])
+        await callback.message.edit_text(text, reply_markup=kb)
+    except Exception as e:
+        log.error(f"Month plan error: {e}", exc_info=True)
+        await callback.message.edit_text(
+            fmsg("plan_month_error", error=e),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:plan_list")],
             ]),
         )
 
@@ -109,6 +130,7 @@ async def list_plans(callback: types.CallbackQuery) -> None:
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=fmsg("plan_add_btn"), callback_data="plan:add")],
+        [InlineKeyboardButton(text=fmsg("plan_month_btn"), callback_data="action:month_plan")],
         [InlineKeyboardButton(text=fmsg("plan_forecast_btn"), callback_data="action:forecast")],
         [InlineKeyboardButton(text=fmsg("plan_back"), callback_data="action:menu")],
     ])
@@ -117,7 +139,6 @@ async def list_plans(callback: types.CallbackQuery) -> None:
     except Exception:
         await callback.message.answer(text, reply_markup=kb)
     await callback.answer()
-
 
 @router.callback_query(F.data == "plan:add")
 async def plan_add_start(callback: types.CallbackQuery, state: FSMContext) -> None:

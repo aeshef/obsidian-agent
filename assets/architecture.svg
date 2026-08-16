@@ -20,13 +20,13 @@
   <rect x="0" y="0" width="1200" height="780" fill="#0d1117"/>
 
   <text x="48" y="52" class="title" font-size="26">obsidian-agent</text>
-  <text x="48" y="76" class="sub" font-size="15"><>=>@5?>: B@8 Telegram-1>B0, >1I89 A;>9 shared/, A8=E@>=870F8O Mac ” VPS</text>
+  <text x="48" y="76" class="sub" font-size="15"><>=>@5?>: B@8 Telegram-1>B0, >1I89 A;>9 shared/, A8=E@>=870F8O Mac ï¿½ VPS</text>
 
   <!-- Clients -->
   <g>
     <rect x="430" y="104" width="200" height="62" rx="12" class="panel"/>
     <text x="530" y="132" text-anchor="middle" class="title" font-size="17">Telegram</text>
-    <text x="530" y="152" text-anchor="middle" class="tag">B5:AB · 3>;>A · D>B> · D09;K</text>
+    <text x="530" y="152" text-anchor="middle" class="tag">B5:AB ï¿½ 3>;>A ï¿½ D>B> ï¿½ D09;K</text>
 
     <rect x="680" y="104" width="220" height="62" rx="12" class="panel"/>
     <text x="790" y="132" text-anchor="middle" class="title" font-size="17">Obsidian.app</text>
@@ -38,28 +38,28 @@
   <g>
     <rect x="60" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#3fb950" stroke-width="1.8"/>
     <text x="80" y="250" class="title" font-size="18">planning_bot</text>
-    <text x="80" y="274" class="tag">entry: planning_bot.app.main · aiogram 3</text>
-    <text x="80" y="300" class="lbl" font-size="14">Kanban · F5;8 · @CB8=K</text>
-    <text x="80" y="322" class="lbl" font-size="14">@5D;5:A8O · :0;5=40@L</text>
-    <text x="80" y="350" class="tag">’ 100_040G8 · 200_&5;8 · 400_ CB8=K</text>
+    <text x="80" y="274" class="tag">entry: planning_bot.app.main ï¿½ aiogram 3</text>
+    <text x="80" y="300" class="lbl" font-size="14">Kanban ï¿½ F5;8 ï¿½ @CB8=K</text>
+    <text x="80" y="322" class="lbl" font-size="14">@5D;5:A8O ï¿½ :0;5=40@L</text>
+    <text x="80" y="350" class="tag">ï¿½ 100_040G8 ï¿½ 200_&5;8 ï¿½ 400_ CB8=K</text>
   </g>
   <!-- knowledge -->
   <g>
     <rect x="430" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#58a6ff" stroke-width="1.8"/>
     <text x="450" y="250" class="title" font-size="18">knowledge_bot</text>
-    <text x="450" y="274" class="tag">entry: start_bot.py · aiogram 3</text>
-    <text x="450" y="300" class="lbl" font-size="14">extract: web · youtube · OCR</text>
-    <text x="450" y="322" class="lbl" font-size="14">B538 · RAG-70?@>AK ?> 70<5B:0<</text>
-    <text x="450" y="350" class="tag">’ 700_070_0==KE</text>
+    <text x="450" y="274" class="tag">entry: start_bot.py ï¿½ aiogram 3</text>
+    <text x="450" y="300" class="lbl" font-size="14">extract: web ï¿½ youtube ï¿½ OCR</text>
+    <text x="450" y="322" class="lbl" font-size="14">B538 ï¿½ RAG-70?@>AK ?> 70<5B:0<</text>
+    <text x="450" y="350" class="tag">ï¿½ 700_070_0==KE</text>
   </g>
   <!-- finance -->
   <g>
     <rect x="800" y="220" width="340" height="150" rx="12" fill="#161b22" stroke="#d29922" stroke-width="1.8"/>
     <text x="820" y="250" class="title" font-size="18">finance_bot</text>
-    <text x="820" y="274" class="tag">entry: bot.main · aiogram 3</text>
-    <text x="820" y="300" class="lbl" font-size="14">NLU-B@0=70:F88 · 3>;>A</text>
-    <text x="820" y="322" class="lbl" font-size="14">Tinkoff sync · 40H1>@4</text>
-    <text x="820" y="350" class="tag">’ finance.db · @0D8:8</text>
+    <text x="820" y="274" class="tag">entry: bot.main ï¿½ aiogram 3</text>
+    <text x="820" y="300" class="lbl" font-size="14">NLU-B@0=70:F88 ï¿½ 3>;>A</text>
+    <text x="820" y="322" class="lbl" font-size="14">Tinkoff sync ï¿½ 40H1>@4</text>
+    <text x="820" y="350" class="tag">ï¿½ finance.db ï¿½ @0D8:8</text>
   </g>
 
   <!-- shared -->
@@ -69,7 +69,7 @@
     <text x="80" y="482" class="tag">>1I0O 8=D@0AB@C:BC@0 157 4><5==>9 ;>38:8</text>
     <g font-size="13" fill="#c9d1d9">
       <rect x="80"  y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
-      <text x="155" y="510" text-anchor="middle">llm.py · DeepSeek</text>
+      <text x="155" y="510" text-anchor="middle">llm.py ï¿½ DeepSeek</text>
       <rect x="246" y="494" width="110" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
       <text x="301" y="510" text-anchor="middle">paths.py</text>
       <rect x="372" y="494" width="90" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
@@ -77,9 +77,9 @@
       <rect x="478" y="494" width="160" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
       <text x="558" y="510" text-anchor="middle">telegram/ (voice, mw)</text>
       <rect x="654" y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
-      <text x="729" y="510" text-anchor="middle">logging · tz · config</text>
+      <text x="729" y="510" text-anchor="middle">logging ï¿½ tz ï¿½ config</text>
       <rect x="820" y="494" width="150" height="24" rx="6" fill="#241a3d" stroke="#3a2d5e"/>
-      <text x="895" y="510" text-anchor="middle">constants · prompts</text>
+      <text x="895" y="510" text-anchor="middle">constants ï¿½ prompts</text>
     </g>
   </g>
 
@@ -87,12 +87,12 @@
   <g>
     <rect x="60" y="566" width="520" height="86" rx="12" class="panel"/>
     <text x="80" y="594" class="title" font-size="16">scripts/  ops</text>
-    <text x="80" y="616" class="tag">deploy.sh · watchdog · bootstrap_python · setup.sh</text>
-    <text x="80" y="638" class="tag">CI smoke · ensure_bot_venv · cleanup_server_stale</text>
+    <text x="80" y="616" class="tag">deploy.sh ï¿½ watchdog ï¿½ bootstrap_python ï¿½ setup.sh</text>
+    <text x="80" y="638" class="tag">CI smoke ï¿½ ensure_bot_venv ï¿½ cleanup_server_stale</text>
 
     <rect x="620" y="566" width="520" height="86" rx="12" class="panel"/>
-    <text x="640" y="594" class="title" font-size="16">obsidian_sync.sh  Mac ” VPS</text>
-    <text x="640" y="616" class="tag">rsync 100/200/300/400/700 · maintenance =0 A5@25@5</text>
+    <text x="640" y="594" class="title" font-size="16">obsidian_sync.sh  Mac ï¿½ VPS</text>
+    <text x="640" y="616" class="tag">rsync 100/200/300/400/700 ï¿½ maintenance =0 A5@25@5</text>
     <text x="640" y="638" class="tag">3@0D8:8 build_*.py AB@>OBAO ;>:0;L=> (matplotlib)</text>
   </g>
 
@@ -108,7 +108,7 @@
       <text x="880" y="720">700_070_0==KE</text>
       <text x="1030" y="720" fill="#d29922">finance.db</text>
     </g>
-    <text x="80" y="742" class="tag">VPS ?8H5B 40==K5 · Mac 45@68B .app 8 3@0D8:8 · sync 45@68B :>?88 2 A>3;0A88</text>
+    <text x="80" y="742" class="tag">VPS ?8H5B 40==K5 ï¿½ Mac 45@68B .app 8 3@0D8:8 ï¿½ sync 45@68B :>?88 2 A>3;0A88</text>
   </g>
 
   <!-- Edges: Telegram -> bots -->

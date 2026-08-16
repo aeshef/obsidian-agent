@@ -260,3 +260,158 @@ def panel_coverage(rows: Sequence[dict], metrics: Sequence[tuple[str, str]]) -> 
         cnt = int(np.isfinite(_col(rows, key)).sum())
         out.append((label, cnt, n))
     return out
+
+
+def chart_sleep_debt(
+    series: Sequence[dict],
+    png_path: Path,
+    *,
+    title: str,
+    label_debt: str,
+    label_sleep: str,
+    label_target: str,
+) -> bool:
+    if len(series) < 5:
+        return False
+    debt = _col(series, "debt")
+    sleep = _col(series, "sleep_hours")
+    if int(np.isfinite(debt).sum()) < 5:
+        return False
+    plt = _mpl()
+    dates = _dates(series)
+    x = np.arange(len(dates))
+    fig, ax1 = plt.subplots(figsize=(10, 4))
+    ax1.fill_between(x, debt, color="#ef9a9a", alpha=0.85, label=label_debt)
+    ax1.set_ylabel(label_debt, color="#c62828")
+    ax1.tick_params(axis="y", labelcolor="#c62828")
+    ax2 = ax1.twinx()
+    # Only plot sleep bars where data exists — missing days are gaps, not 0h
+    sleep_plot = np.where(np.isfinite(sleep), sleep, np.nan)
+    ax2.bar(x, sleep_plot, color="#5c6bc0", alpha=0.35, width=0.85, label=label_sleep)
+    missing_idx = [i for i, r in enumerate(series) if r.get("missing") or not np.isfinite(sleep[i])]
+    if missing_idx:
+        ax1.scatter(
+            missing_idx,
+            [float(debt[i]) if np.isfinite(debt[i]) else 0 for i in missing_idx],
+            marker="x",
+            color="#9e9e9e",
+            s=28,
+            zorder=5,
+            label="gap",
+        )
+    target = None
+    for r in series:
+        if r.get("target_hours") is not None:
+            try:
+                target = float(r["target_hours"])
+                break
+            except (TypeError, ValueError):
+                pass
+    if target is not None:
+        ax2.axhline(target, color="#ef6c00", linestyle="--", linewidth=1, label=label_target)
+    ax1.set_title(title, fontsize=11)
+    ax2.set_ylabel(label_sleep)
+    step = max(1, len(dates) // 10)
+    ax1.set_xticks(x[::step])
+    ax1.set_xticklabels([dates[i][5:] for i in range(0, len(dates), step)], rotation=45, ha="right", fontsize=7)
+    lines1, lab1 = ax1.get_legend_handles_labels()
+    lines2, lab2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, lab1 + lab2, fontsize=8, loc="upper left")
+    fig.tight_layout()
+    ensure_parent(png_path)
+    fig.savefig(png_path, dpi=144, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return True
+
+
+def chart_life_os_scores(
+    series: Sequence[dict],
+    png_path: Path,
+    *,
+    title: str,
+    label_capacity: str,
+    label_output: str,
+    label_drain: str,
+    label_axis: str = "0–100 percentile",
+) -> bool:
+    if len(series) < 5:
+        return False
+    plt = _mpl()
+    dates = _dates(series)
+    x = np.arange(len(dates))
+    cap = _col(series, "capacity")
+    out = _col(series, "output")
+    drain = _col(series, "drain")
+    fig, axes = plt.subplots(3, 1, figsize=(10, 7.2), sharex=True)
+    specs = (
+        (axes[0], cap, "#43a047", label_capacity),
+        (axes[1], out, "#1e88e5", label_output),
+        (axes[2], drain, "#e53935", label_drain),
+    )
+    for ax, vals, color, label in specs:
+        ax.fill_between(x, vals, color=color, alpha=0.25)
+        ax.plot(x, vals, color=color, linewidth=2.2, label=label)
+        ax.axhline(50, color="#999", linestyle=":", linewidth=0.9)
+        ax.set_ylim(0, 100)
+        ax.set_ylabel(label_axis, fontsize=8)
+        ax.legend(loc="upper left", fontsize=9)
+        ax.grid(True, alpha=0.25)
+    axes[0].set_title(title, fontsize=12)
+    step = max(1, len(dates) // 10)
+    axes[2].set_xticks(x[::step])
+    axes[2].set_xticklabels([dates[i][5:] for i in range(0, len(dates), step)], rotation=45, ha="right", fontsize=7)
+    fig.tight_layout()
+    ensure_parent(png_path)
+    fig.savefig(png_path, dpi=144, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return True
+
+
+def chart_life_os_regimes(
+    series: Sequence[dict],
+    png_path: Path,
+    *,
+    title: str,
+    regime_labels: dict,
+) -> bool:
+    if len(series) < 5:
+        return False
+    colors = {
+        "flow": "#66bb6a",
+        "charge": "#42a5f5",
+        "overreach": "#ffa726",
+        "recovery": "#ef5350",
+    }
+    plt = _mpl()
+    dates = _dates(series)
+    n = len(dates)
+    fig, ax = plt.subplots(figsize=(11, 2.6))
+    for i, r in enumerate(series):
+        reg = str(r.get("regime") or "recovery")
+        ax.barh(0, 1, left=i, height=0.7, color=colors.get(reg, "#ccc"), edgecolor="white", linewidth=0.3)
+    ax.set_xlim(0, n)
+    ax.set_yticks([])
+    ax.set_title(title, fontsize=11)
+    step = max(1, n // 10)
+    ax.set_xticks(list(range(0, n, step)))
+    ax.set_xticklabels([dates[i][5:] for i in range(0, n, step)], rotation=45, ha="right", fontsize=7)
+    from matplotlib.patches import Patch
+
+    handles = [
+        Patch(color=colors[k], label=regime_labels.get(k, k))
+        for k in ("flow", "charge", "overreach", "recovery")
+        if k in colors
+    ]
+    ax.legend(
+        handles=handles,
+        fontsize=8,
+        loc="upper center",
+        ncol=2,
+        bbox_to_anchor=(0.5, 1.55),
+        frameon=True,
+    )
+    fig.tight_layout()
+    ensure_parent(png_path)
+    fig.savefig(png_path, dpi=144, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return True

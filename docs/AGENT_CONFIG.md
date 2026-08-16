@@ -28,7 +28,7 @@ Git ships **templates only** (`config/agent/*.example.yaml`, `prompts/*.example.
 ## Приоритет настроек
 
 1. Переменные окружения (см. `.env.example`, `docs/ENV_REFERENCE.md`)
-2. `config/agent/platform.yaml` — лимиты, таймауты, `vault.knowledge_subdir`
+2. `config/agent/platform.yaml` — лимиты, таймауты, `vault.knowledge_subdir`, `vault.knowledge_index_extra_folders`
 3. Значения из `*.example.yaml` (если локальный файл не создан)
 
 ## Ключевые файлы
@@ -46,8 +46,9 @@ Git ships **templates only** (`config/agent/*.example.yaml`, `prompts/*.example.
 
 Каталог базы знаний внутри `VAULT_PATH`:
 
-- `platform.yaml` → `vault.knowledge_subdir` (дефолт в шаблоне: `Knowledge`)
+- `platform.yaml` → `vault.knowledge_subdir` (write root + primary index root; дефолт в шаблоне: `Knowledge`)
 - env: `VAULT_REL_KNOWLEDGE`
+- `platform.yaml` → `vault.knowledge_index_extra_folders` — доп. корни индекса (ключи из `vault_paths.folders`, напр. `handwritten`); read/search only, без agent writes
 
 Остальные топ-уровневые папки vault — в `shared/paths.py` (`VaultPaths`); при необходимости вынесите их в тот же `platform.yaml` в форке.
 

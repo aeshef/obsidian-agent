@@ -139,7 +139,7 @@ def main():
         return 1
 
     try:
-        _process_tasks(goals_mapper, llm, missing, all_goals, limit)
+        mapped = _process_tasks(goals_mapper, llm, missing, all_goals, limit)
     except Exception:
         if REMAP_ALL:
             logger.error("Remap failed; staging kept at %s", goals_mapper.mapping_file)
@@ -149,6 +149,17 @@ def main():
             logger.info("Skipping promote (--no-promote); staging at %s", goals_mapper.mapping_file)
 
     if REMAP_ALL and not NO_PROMOTE:
+        processed = min(limit, len(missing))
+        if processed < len(missing):
+            logger.error(
+                "Refusing to promote partial remap-all: processed %s/%s tasks "
+                "(raise GOALS_MAPPING_LIMIT or rerun until staging is complete). "
+                "Staging kept at %s; production untouched.",
+                processed,
+                len(missing),
+                goals_mapper.mapping_file,
+            )
+            return 2
         promote_mapping_file(goals_mapper.mapping_file, production_path)
         clear_remap_in_progress(prod_mapper.vault_path)
         logger.info("Promoted staging mapping → %s", production_path)

@@ -71,51 +71,69 @@ def _iter_note_files(base: Path) -> list[Path]:
     return sorted(out)
 
 
-def build_index(vault_path: Path) -> dict[str, Any]:
-    """Full scan of knowledge subdir: metadata + body preview for selection."""
-    from shared.vault_layout import knowledge_subdir
+def _entry_from_path(
+    vault_path: Path, path: Path, *, preview_cap: int
+) -> dict[str, Any] | None:
+    try:
+        raw = path.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        log.warning("skip read %s: %s", path, e)
+        return None
+    fm, body = _parse_frontmatter(raw)
+    rel = path.relative_to(vault_path).as_posix()
+    title = fm.get("title")
+    if not isinstance(title, str) or not title.strip():
+        title = path.stem.replace("_", " ")
+    ntype = fm.get("type")
+    if not isinstance(ntype, str) or not ntype.strip():
+        ntype = "?"
+    tags = fm.get("tags") or []
+    if isinstance(tags, str):
+        tags = [tags]
+    elif not isinstance(tags, list):
+        tags = []
+    summary = fm.get("summary")
+    if not isinstance(summary, str):
+        summary = ""
+    preview, truncated = _preview_body(body, preview_cap)
+    return {
+        "rel_path": rel,
+        "type": ntype.strip(),
+        "title": title.strip(),
+        "tags": [str(t) for t in tags],
+        "summary": summary,
+        "preview": preview,
+        "preview_truncated": truncated,
+        "mtime": path.stat().st_mtime,
+    }
 
-    base = vault_path / knowledge_subdir()
+
+def build_index(vault_path: Path) -> dict[str, Any]:
+    """Full scan of knowledge index roots: metadata + body preview for selection."""
+    from shared.vault_layout import knowledge_index_roots
+
+    roots = knowledge_index_roots()
     preview_cap = int(os.environ.get("KNOWLEDGE_SELECT_PREVIEW_CHARS", "12000"))
     entries: list[dict[str, Any]] = []
-    for path in _iter_note_files(base):
-        try:
-            raw = path.read_text(encoding="utf-8", errors="replace")
-        except OSError as e:
-            log.warning("skip read %s: %s", path, e)
+    seen: set[str] = set()
+    for root in roots:
+        base = vault_path / root
+        if not base.is_dir():
+            log.warning("index root missing, skip: %s", base)
             continue
-        fm, body = _parse_frontmatter(raw)
-        rel = path.relative_to(vault_path).as_posix()
-        title = fm.get("title")
-        if not isinstance(title, str) or not title.strip():
-            title = path.stem.replace("_", " ")
-        ntype = fm.get("type")
-        if not isinstance(ntype, str) or not ntype.strip():
-            ntype = "?"
-        tags = fm.get("tags") or []
-        if isinstance(tags, str):
-            tags = [tags]
-        elif not isinstance(tags, list):
-            tags = []
-        summary = fm.get("summary")
-        if not isinstance(summary, str):
-            summary = ""
-        preview, truncated = _preview_body(body, preview_cap)
-        entries.append(
-            {
-                "rel_path": rel,
-                "type": ntype.strip(),
-                "title": title.strip(),
-                "tags": [str(t) for t in tags],
-                "summary": summary,
-                "preview": preview,
-                "preview_truncated": truncated,
-                "mtime": path.stat().st_mtime,
-            }
-        )
+        for path in _iter_note_files(base):
+            entry = _entry_from_path(vault_path, path, preview_cap=preview_cap)
+            if entry is None:
+                continue
+            rel = entry["rel_path"]
+            if rel in seen:
+                continue
+            seen.add(rel)
+            entries.append(entry)
     return {
         "generated_at": time.time(),
         "vault": str(vault_path.resolve()),
+        "index_roots": list(roots),
         "count": len(entries),
         "entries": entries,
     }
@@ -126,6 +144,8 @@ def index_max_age() -> float:
 
 
 def index_needs_refresh(vault_path: Path) -> bool:
+    from shared.vault_layout import knowledge_index_roots
+
     p = index_json_path()
     if not p.exists():
         return True
@@ -134,6 +154,11 @@ def index_needs_refresh(vault_path: Path) -> bool:
         stored = raw.get("vault")
         if stored and Path(stored).resolve() != Path(vault_path).resolve():
             log.info("index was built for another vault, rebuilding")
+            return True
+        stored_roots = raw.get("index_roots")
+        current_roots = knowledge_index_roots()
+        if stored_roots != current_roots:
+            log.info("index roots changed (%s -> %s), rebuilding", stored_roots, current_roots)
             return True
     except Exception:
         return True

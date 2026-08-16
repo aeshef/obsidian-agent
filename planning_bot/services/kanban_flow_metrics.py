@@ -884,7 +884,106 @@ def aging_open_tasks(
                 }
             )
     stale.sort(key=lambda x: (-int(x.get("age_days") or 0), x.get("title") or ""))
-    return {"buckets": buckets, "stale_tasks": stale[:40], "stale_count": len(stale)}
+
+    # Cemetery matrices: category/column × age bucket
+    age_keys = ("0_7", "8_14", "15_30", "31_plus")
+    by_cat: dict[str, dict[str, int]] = defaultdict(lambda: {k: 0 for k in age_keys})
+    by_col: dict[str, dict[str, int]] = defaultdict(lambda: {k: 0 for k in age_keys})
+    for t in tasks:
+        if t.get("completed"):
+            continue
+        col = t.get("column") or ""
+        if col not in open_columns:
+            continue
+        created_s = (t.get("created_date") or "").strip()
+        age = None
+        if created_s:
+            try:
+                created = datetime.strptime(created_s[:10], "%Y-%m-%d").date()
+                age = (today - created).days
+            except ValueError:
+                age = None
+        if age is None:
+            bucket = "31_plus"
+        elif age <= 7:
+            bucket = "0_7"
+        elif age <= 14:
+            bucket = "8_14"
+        elif age <= 30:
+            bucket = "15_30"
+        else:
+            bucket = "31_plus"
+        cat = (t.get("category") or "").strip() or "_"
+        by_cat[cat][bucket] += 1
+        by_col[_strip_col_label(col)][bucket] += 1
+
+    return {
+        "buckets": buckets,
+        "stale_tasks": stale[:40],
+        "stale_count": len(stale),
+        "by_category": dict(by_cat),
+        "by_column": dict(by_col),
+    }
+
+
+def _strip_col_label(name: str) -> str:
+    import re
+
+    s = re.sub(
+        "[" f"{chr(0x1F300)}-{chr(0x1FAFF)}" f"{chr(0x2600)}-{chr(0x27BF)}" "]+",
+        "",
+        name or "",
+        flags=re.UNICODE,
+    ).strip()
+    return s or (name or "").strip() or "?"
+
+
+def deadline_blitz_stats(
+    timelines: Dict[str, dict],
+    board_tasks: Sequence[dict],
+) -> dict[str, Any]:
+    """Classify completed tasks vs deadline: on_day / early / late / no_deadline."""
+    deadlines: dict[str, date] = {}
+    for t in board_tasks:
+        tid = (t.get("task_id") or "").strip()
+        if not tid:
+            continue
+        raw = (t.get("deadline") or "").strip()
+        if not raw:
+            continue
+        try:
+            deadlines[tid.lower()] = datetime.strptime(raw[:10], "%Y-%m-%d").date()
+        except ValueError:
+            continue
+
+    counts = {"on_day": 0, "early": 0, "late": 0, "no_deadline": 0}
+    for tid, tl in timelines.items():
+        if not tl.get("done_at"):
+            continue
+        done_d = tl["done_at"].date() if hasattr(tl["done_at"], "date") else None
+        if done_d is None:
+            continue
+        # Timeline dict keys are "id:{task_id}"; deadlines map uses raw task_id.
+        raw_tid = (tl.get("task_id") or "").strip().lower()
+        if not raw_tid and isinstance(tid, str) and tid.startswith("id:"):
+            raw_tid = tid[3:].strip().lower()
+        dl = deadlines.get(raw_tid) if raw_tid else None
+        if dl is None:
+            counts["no_deadline"] += 1
+        elif done_d == dl:
+            counts["on_day"] += 1
+        elif done_d < dl:
+            counts["early"] += 1
+        else:
+            counts["late"] += 1
+    total = sum(counts.values())
+    with_dl = counts["on_day"] + counts["early"] + counts["late"]
+    return {
+        "counts": counts,
+        "total": total,
+        "with_deadline": with_dl,
+        "without_deadline": counts["no_deadline"],
+    }
 
 
 def weekly_lead_cycle_series(
@@ -1059,6 +1158,7 @@ def compute_kanban_flow_metrics(
     aging = aging_open_tasks(
         board_tasks, today=end_day, stale_days=cfg["aging_stale_days"]
     )
+    deadline_blitz = deadline_blitz_stats(timelines, board_tasks)
     blocked = blocked_ratio_snapshot(
         board_tasks,
         blocked_column=KANBAN_COLUMNS[4] if len(KANBAN_COLUMNS) > 4 else "",
@@ -1101,6 +1201,7 @@ def compute_kanban_flow_metrics(
         "lead_cycle_stats": lead_cycle,
         "transitions": transitions,
         "aging": aging,
+        "deadline_blitz": deadline_blitz,
         "blocked": blocked,
         "goal_mapping_insight": insight,
         "column_snapshot": snap,

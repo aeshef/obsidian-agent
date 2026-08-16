@@ -1,0 +1,8 @@
+# Snapshot targets for scripts/reinit_opening_balances.py
+# cp reinit_opening_balances.yaml.example reinit_opening_balances.yaml
+# Keep personal account names/amounts only in the gitignored yaml.
+
+targets: []
+# targets:
+#   - name: Example Bank
+#     amount: "1000.00"

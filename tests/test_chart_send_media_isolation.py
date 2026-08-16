@@ -40,19 +40,19 @@ def test_kb_media_alone_still_delivered():
 def test_score_prefers_cost_chart():
     cost = ChartEntry(
         key="chart_agent_cost_daily_png",
-        rel_path="300/Графики/Аналитика/Агент_стоимость_день.png",
+        rel_path="300/Графики/Система/Агент_стоимость_день.png",
         family="analytics",
         exists=True,
     )
     tokens = ChartEntry(
         key="chart_agent_tokens_daily_png",
-        rel_path="300/Графики/Аналитика/Агент_токены_день.png",
+        rel_path="300/Графики/Система/Агент_токены_день.png",
         family="analytics",
         exists=True,
     )
     tools = ChartEntry(
         key="chart_agent_tools_png",
-        rel_path="300/Графики/Аналитика/Агент_тулы.png",
+        rel_path="300/Графики/Система/Агент_тулы.png",
         family="analytics",
         exists=True,
     )

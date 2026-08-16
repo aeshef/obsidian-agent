@@ -137,14 +137,15 @@ class KanbanBoard:
         with kanban_transaction(self.file_path):
             self.load()
             self.load_state()
-            if created_date is None:
-                created_date = datetime.now().strftime("%Y-%m-%d")
+            default_created = created_date or datetime.now().strftime("%Y-%m-%d")
             ids: list[str] = []
             for row in items:
                 if len(row) < 3:
                     continue
                 title, category, priority = row[0], row[1], row[2]
                 preset_id = row[3] if len(row) > 3 and row[3] else None
+                # Optional per-row created date (YYYY-MM-DD) as 5th tuple element.
+                row_created = row[4] if len(row) > 4 and row[4] else default_created
                 if not (title or "").strip():
                     continue
                 ids.append(
@@ -152,7 +153,7 @@ class KanbanBoard:
                         title.strip(),
                         category,
                         priority,
-                        created_date=created_date,
+                        created_date=str(row_created)[:10],
                         task_id=preset_id,
                     )
                 )

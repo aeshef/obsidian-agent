@@ -160,26 +160,42 @@ class KanbanMonitor:
                     priority = task.get("priority", pdmsg("auto_16916c0f4c"))
                     self.logger.log_task_created(task_title, category, priority)
         
-        # (comment)
+        # Disappeared from active board (not archive). May be intentional Obsidian
+        # delete OR sync wipe — log task_removed (observed), never task_deleted.
         for task_id, old_column in self.last_state.items():
             if task_id not in current_state:
                 task = self.get_task_by_id(task_id)
+                if task and task.get("source") == "archive":
+                    continue
                 if task:
-                    if task.get("source") == "archive":
-                        continue
                     task_title = task.get("title", pdmsg("auto_29940f450a"))
-                    changes.append({
-                        "task_id": task_id,
-                        "title": task_title,
-                        "from": old_column,
-                        "to": None,
-                        "type": "removed"
-                    })
+                else:
+                    hist = self.logger.get_task_history(task_id=task_id)
+                    task_title = ""
+                    for h in reversed(hist or []):
+                        data = h.get("data") or {}
+                        if data.get("title"):
+                            task_title = data["title"]
+                            break
+                    if not task_title:
+                        task_title = task_id
+                changes.append({
+                    "task_id": task_id,
+                    "title": task_title,
+                    "from": old_column,
+                    "to": None,
+                    "type": "removed",
+                })
         
-        # (comment)
+        # Small disappear batches are almost always intentional Obsidian deletes.
+        # Mass disappearances still look like sync wipes → task_removed (heal may restore).
+        _intentional_remove_max = 5
+        removed_n = sum(1 for c in changes if c.get("type") == "removed")
+        treat_removed_as_deleted = 0 < removed_n <= _intentional_remove_max
+
         for change in changes:
+            tid = change.get("task_id")
             if change["type"] == "move":
-                tid = change.get("task_id")
                 category = change.get("category")
                 if change["to"] == DONE_COLUMN:
                     self.logger.log_task_completed(change["title"], task_id=tid, category=category)
@@ -190,6 +206,21 @@ class KanbanMonitor:
                         change["to"],
                         task_id=tid,
                         category=category,
+                    )
+            elif change["type"] == "removed":
+                if treat_removed_as_deleted:
+                    self.logger.log_task_deleted(
+                        change["title"],
+                        task_id=tid,
+                        from_column=change.get("from"),
+                        source="obsidian",
+                    )
+                else:
+                    self.logger.log_task_removed(
+                        change["title"],
+                        task_id=tid,
+                        from_column=change.get("from"),
+                        source="monitor",
                     )
         
         # (comment)

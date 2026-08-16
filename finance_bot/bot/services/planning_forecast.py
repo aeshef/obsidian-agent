@@ -175,3 +175,92 @@ async def generate_forecast(telegram_id: int) -> str:
     text = re.sub(r"__(.+?)__", r"\1", text)
     text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
     return text.strip()
+
+
+async def generate_month_plan_summary(telegram_id: int) -> str:
+    """Flexible month plan: income − commitments → daily free-to-spend."""
+    from bot.ui import fmsg
+    from bot.services.month_plan import (
+        build_month_plan,
+        inferred_from_config,
+        load_month_plan_config,
+        load_subscriptions,
+        month_plan_config_path,
+        planned_for_month,
+        subscriptions_yaml_path,
+    )
+
+    now = datetime.now()
+    ym = f"{now.year:04d}-{now.month:02d}"
+    async with AsyncSessionLocal() as session:
+        user = (
+            await session.execute(select(User).where(User.telegram_id == telegram_id))
+        ).scalar_one_or_none()
+        if not user:
+            return fmsg("plan_month_need_user")
+
+        plans = (
+            await session.execute(
+                select(PlannedExpense).where(
+                    PlannedExpense.user_id == user.id,
+                    PlannedExpense.status == "active",
+                )
+            )
+        ).scalars().all()
+        planned_rows = [
+            {
+                "name": p.name,
+                "amount": float(p.amount or 0),
+                "currency": p.currency or "RUB",
+                "due_date": p.due_date,
+                "category": getattr(p, "category", "") or "",
+            }
+            for p in plans
+        ]
+        month_spend = (
+            await session.execute(
+                select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+                    Transaction.user_id == user.id,
+                    Transaction.type == "expense",
+                    Transaction.occurred_at >= datetime(now.year, now.month, 1),
+                )
+            )
+        ).scalar_one()
+        try:
+            month_spend_f = float(month_spend or 0)
+        except (TypeError, ValueError):
+            month_spend_f = 0.0
+
+    mp_cfg = load_month_plan_config(month_plan_config_path())
+    income = float(mp_cfg.get("income_expected_rub") or 0)
+    if income <= 0:
+        return fmsg("plan_month_need_income", path=str(month_plan_config_path().name))
+
+    buffer = float(mp_cfg.get("buffer_savings_rub") or 0)
+    inferred = inferred_from_config(mp_cfg)
+    subs = load_subscriptions(subscriptions_yaml_path())
+    specifics = planned_for_month(planned_rows, ym)
+    recurring_sum = sum(x.amount for x in subs) + sum(x.amount for x in inferred)
+    flexible_spent = max(0.0, month_spend_f - recurring_sum)
+    snap = build_month_plan(
+        ym=ym,
+        today=now.date(),
+        income_expected=income,
+        subscriptions=subs,
+        specifics=specifics,
+        inferred=inferred,
+        buffer_savings=buffer,
+        flexible_spent=flexible_spent,
+    )
+    lines = [
+        fmsg("plan_month_header", ym=ym),
+        fmsg("plan_month_income", amount=snap.income_expected),
+        fmsg("plan_month_commitment", amount=snap.commitment),
+        fmsg("plan_month_flexible", amount=snap.flexible_pool),
+        fmsg("plan_month_spent", amount=snap.flexible_spent, burn=snap.burn_pct),
+        fmsg("plan_month_fair_daily", amount=snap.daily_allowance),
+        fmsg("plan_month_daily", amount=snap.daily_allowance_remaining),
+        "",
+        fmsg("plan_month_hint"),
+    ]
+    return "\n".join(lines)

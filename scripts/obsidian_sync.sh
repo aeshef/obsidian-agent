@@ -350,10 +350,14 @@ for line in ensure_routines_layout(scaffold_stats=False):
 " ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || true
 fi
 # 1. Сервер → Локальный.
-# Перед pull сохраняем файлы задач, изменённые локально за последние 30 мин — они будут
-# принудительно запушены в step 2 даже если сервер «новее» (бот/cron обогнал локальный edit).
+# Перед pull сохраняем локальные правки задач с last_sync_ok (мин. 30м, макс. 7д) —
+# force-push в step 2, даже если сервер «новее» (бот/cron обогнал локальный edit).
+# Фиксированное окно 30м недостаточно: после серии FAIL maintenance локальная доска
+# с новыми задачами не попадала в force-push, --update проигрывал mtime сервера,
+# а step 4 --ignore-times затирал задачи (лог task_created при этом оставался).
 _LOCAL_TASKS_RECENT="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_local_recent.XXXXXX")"
-_recent_epoch_30m=$(( $(date +%s) - 1800 ))
+_recent_epoch_30m="$(_sync_recent_tasks_since_epoch)"
+echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=1 recent_tasks_since_epoch=${_recent_epoch_30m}" >> "$DEBUG_LOG" 2>/dev/null || true
 _write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$_recent_epoch_30m" "$_LOCAL_TASKS_RECENT" 2>/dev/null || true
 if cap_module_enabled PLANNING; then
   "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
@@ -492,8 +496,9 @@ if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES
   PUSH_EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
 fi
 if cap_module_enabled PLANNING; then
-  # Файлы задач, изменённые за 30 мин до sync (собраны в step 1): пушим принудительно (--ignore-times),
-  # чтобы локальная правка не была подавлена серверной версией, записанной ботом/cron позже нашего edit.
+  # Recent local task files (since last_sync_ok / 30m): force-push with --ignore-times.
+  # Safety filter: never clobber a server kanban that has task IDs missing locally.
+  _sync_filter_force_push_tasks_safe "$_LOCAL_TASKS_RECENT" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" 2>>"$DEBUG_LOG" || true
   _recent_task_count="$(wc -l < "$_LOCAL_TASKS_RECENT" 2>/dev/null | tr -d ' ' || echo 0)"
   if [ "${_recent_task_count:-0}" -gt 0 ]; then
     echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=2 force_push_recent count=${_recent_task_count}" >> "$DEBUG_LOG" 2>/dev/null || true
@@ -582,18 +587,54 @@ fi
 # 100_: ignore-times — канон сортировки с VPS. Но если файл задачи поменяли локально уже ПОСЛЕ старта
 # текущего sync-цикла (Obsidian UI во время длительного maintenance), не тянем его обратно с VPS:
 # иначе финальный pull стирает только что созданные/перемещённые задачи до следующего цикла.
+# Если step 3 (maintenance) уже упал — НЕ делаем ignore-times pull доски: сервер может быть
+# в частично обновлённом/старом состоянии относительно локальных task_created; только --update.
 # 300_: --update + EXCLUDE_300 (в т.ч. Аудит_*.md) — не затирать Mac-only отчёты.
 echo "$(sh_msg scripts.obsidian_sync.step_4)" >&2
 if cap_module_enabled PLANNING; then
   _recent_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_recent_tasks.XXXXXX")"
+  _protect_tasks_exclude="$(mktemp "${TMPDIR:-/tmp}/obsidian_sync_protect_tasks.XXXXXX")"
   _recent_tasks_count="$(_write_recent_local_task_paths "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SYNC_START_EPOCH" "$_recent_tasks_exclude" 2>/dev/null || echo 0)"
-  if [ "${_recent_tasks_count:-0}" -gt 0 ]; then
-    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_recent_local_tasks count=${_recent_tasks_count}" >> "$DEBUG_LOG" 2>/dev/null || true
-    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
-  else
-    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  _protect_count="$(_sync_write_pull_protect_excludes "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" "$_protect_tasks_exclude" 2>>"$DEBUG_LOG" || echo 0)"
+  if [ "${_protect_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 protect_local_task_ids count=${_protect_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    cat "$_protect_tasks_exclude" >> "$_recent_tasks_exclude" 2>/dev/null || true
+    # Local board has IDs the server lost — push it before any pull can clobber.
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" "${PUSH_DELETE_FLAGS[@]}" --ignore-times --files-from="$_protect_tasks_exclude" \
+      "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
   fi
-  rm -f "$_recent_tasks_exclude" 2>/dev/null || true
+  _tasks_pull_mode="ignore-times"
+  if [ -n "${SYNC_FAIL_STEP:-}" ] || [ "${SYNC_OK:-1}" != "1" ]; then
+    _tasks_pull_mode="update"
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 tasks_pull_safe mode=update reason=prior_fail step=${SYNC_FAIL_STEP:-none}" >> "$DEBUG_LOG" 2>/dev/null || true
+  fi
+  _exclude_count="$(wc -l < "$_recent_tasks_exclude" 2>/dev/null | tr -d ' ' || echo 0)"
+  if [ "$_tasks_pull_mode" = "update" ]; then
+    if [ "${_exclude_count:-0}" -gt 0 ]; then
+      "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update --exclude-from="$_recent_tasks_exclude" \
+        "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    else
+      "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --update \
+        "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+    fi
+  elif [ "${_exclude_count:-0}" -gt 0 ]; then
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=4 skip_protected_or_recent_tasks count=${_exclude_count}" >> "$DEBUG_LOG" 2>/dev/null || true
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times --exclude-from="$_recent_tasks_exclude" \
+      "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  else
+    "$RSYNC_BIN" "${FLAGS[@]}" "${EXCLUDE_BACKUP[@]}" --ignore-times \
+      "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_TASKS}/" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}/" || SYNC_OK=0
+  fi
+  rm -f "$_recent_tasks_exclude" "$_protect_tasks_exclude" 2>/dev/null || true
+  unset _tasks_pull_mode _protect_count _exclude_count
+  # Same heal as VPS cron (Python service, locale via domain_messages) — after pull protect.
+  if [ -d "${AGENT_ROOT}/planning_bot" ]; then
+    (
+      export VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+      cd "$AGENT_ROOT" && ./scripts/oa-python.sh -m planning_bot.services.kanban_orphan_heal --days 7 \
+        >> "${AGENT_ROOT}/planning_bot/logs/kanban_orphan_heal.log" 2>&1
+    ) || true
+  fi
 fi
 if cap_module_enabled FINANCE || cap_module_enabled PLANNING || cap_module_enabled KNOWLEDGE; then
   _authority_pull_exclude_4=()
@@ -781,6 +822,88 @@ if [ "$_SHOULD_CAL" = "1" ]; then
   fi
 fi
 unset _SHOULD_CAL _CAL_JSON _CAL_PNG _cal_j _cal_p
+
+# 5c.1 Стоимость агента — traces с VPS → PNG/MD в Графики/Система/ + хаб 🛠 Система.md.
+# Не валим весь sync при SSH-флапе: трейсы живут только на сервере, без них графики просто остаются вчерашними.
+# Пересобираем если: FORCE / нет маркера на сегодня / нет PNG / локальные traces не трогали сегодня
+# (иначе после ночного scp+маркера дневные прогоны на VPS до завтра не попадают на график — как залипание на 08-03).
+AGENT_COST_MARKER="$SYNC_DIR/agent_cost_dashboard_date.txt"
+_AC_COST_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Система/Агент_стоимость_день.png"
+_TRACE_LOCAL="$AGENT_ROOT/logs/agent_traces.jsonl"
+_SHOULD_AGENT_COST=0
+_TRACE_DAY=""
+if [ -f "$_TRACE_LOCAL" ]; then
+  _TRACE_DAY=$(stat -f '%Sm' -t '%Y-%m-%d' "$_TRACE_LOCAL" 2>/dev/null || date -r "$(stat -c '%Y' "$_TRACE_LOCAL" 2>/dev/null)" '+%Y-%m-%d' 2>/dev/null || true)
+fi
+if [ -n "${FORCE_CHARTS:-}" ] || [ -n "${FORCE_AGENT_COST:-}" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ ! -f "$AGENT_COST_MARKER" ] || [ "$(cat "$AGENT_COST_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ ! -f "$_AC_COST_PNG" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ -z "$_TRACE_DAY" ] || [ "$_TRACE_DAY" != "$TODAY" ]; then
+  _SHOULD_AGENT_COST=1
+fi
+unset _TRACE_DAY
+_rebuild_system_hub() {
+  PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
+  if [ ! -f "$PLANNING_BOT/scripts/build_system_dashboard_hub.py" ]; then
+    return 0
+  fi
+  export VAULT_PATH="$LOCAL_VAULT"
+  export LOCAL_VAULT
+  export PYTHONPATH="${CHART_PYTHONPATH:-$AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  _hub_py="${CHART_PYTHON:-}"
+  if [ -z "$_hub_py" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
+    _hub_py="$AGENT_ROOT/planning_bot/venv/bin/python"
+  fi
+  [ -z "$_hub_py" ] && _hub_py=python3
+  mkdir -p "$PLANNING_BOT/logs" 2>/dev/null || true
+  (cd "$PLANNING_BOT" && common_run_python_script "$_hub_py" "$PLANNING_BOT/scripts/build_system_dashboard_hub.py" \
+      --vault "$LOCAL_VAULT") >>"$PLANNING_BOT/logs/charts.log" 2>&1 || true
+  unset _hub_py
+}
+if [ "$_SHOULD_AGENT_COST" = "1" ] && [ -n "$SERVER" ] && [ -n "$SERVER_BOTS" ]; then
+  mkdir -p "$AGENT_ROOT/logs" 2>/dev/null || true
+  echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost" >> "$DEBUG_LOG" 2>/dev/null || true
+  if scp "${SSH_OPTS[@]}" "$SERVER:$SERVER_BOTS/logs/agent_traces.jsonl" "$_TRACE_LOCAL" >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1; then
+    _AC_PY="${CHART_PYTHON:-}"
+    if [ -z "$_AC_PY" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
+      _AC_PY="$AGENT_ROOT/planning_bot/venv/bin/python"
+    fi
+    if [ -n "$_AC_PY" ] && [ -f "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" ]; then
+      export LOCAL_VAULT
+      export AGENT_ROOT
+      export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+      if (cd "$AGENT_ROOT" && common_run_python_script "$_AC_PY" "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" \
+          --vault "$LOCAL_VAULT" --days 30 --path "$_TRACE_LOCAL") >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1; then
+        echo "$TODAY" > "$AGENT_COST_MARKER"
+        _rebuild_system_hub
+      else
+        echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost build-fail (see logs/agent_cost_dashboard.log)" >> "$DEBUG_LOG" 2>/dev/null || true
+      fi
+    fi
+  else
+    # SSH/scp флапает часто (Network unreachable). Не ставим маркер — попробуем на следующем цикле.
+    # Если локальные traces уже есть — всё же пересоберём PNG (лучше вчерашние данные, чем пустой хаб).
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost scp-fail (soft)" >> "$DEBUG_LOG" 2>/dev/null || true
+    if [ -f "$_TRACE_LOCAL" ] && [ ! -f "$_AC_COST_PNG" ]; then
+      _AC_PY="${CHART_PYTHON:-}"
+      if [ -z "$_AC_PY" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
+        _AC_PY="$AGENT_ROOT/planning_bot/venv/bin/python"
+      fi
+      if [ -n "$_AC_PY" ] && [ -f "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" ]; then
+        export LOCAL_VAULT AGENT_ROOT
+        export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+        (cd "$AGENT_ROOT" && common_run_python_script "$_AC_PY" "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" \
+            --vault "$LOCAL_VAULT" --days 30 --path "$_TRACE_LOCAL") >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1 || true
+        _rebuild_system_hub
+      fi
+    fi
+  fi
+  unset _AC_PY
+fi
+unset _SHOULD_AGENT_COST _AC_COST_PNG _TRACE_LOCAL
 
 # 5d. График КБЖУ: перенесён сразу после 5b.4b (iphone_context_sync) — иначе PNG строится по
 # вчерашнему iphone_week.json и день с ручным .txt в IPhone/ даёт пустой/битый столбец.
@@ -1230,6 +1353,12 @@ if [ "$_SHOULD_CROSS" = "1" ]; then
   fi
 fi
 unset _SHOULD_CROSS _CROSS_MARKER
+
+# 5d-c2. System hub — каждый цикл (дешёвый markdown), не только при daily CROSS.
+# Иначе после переезда Аналитика→Система хаб остаётся пустым до следующего дня.
+if [ -d "${PLANNING_BOT:-}" ] && [ -f "$PLANNING_BOT/scripts/build_system_dashboard_hub.py" ]; then
+  _rebuild_system_hub
+fi
 
 # 5d-d. Health hub markdown (locale template; not overwritten by nutrition chart)
 if cap_step_enabled SYNC_HEALTH_ANALYTICS && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_health_dashboard_hub.py" ]; then

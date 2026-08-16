@@ -146,14 +146,50 @@ def _select_timeout() -> float:
     )
 
 
+def _partition_entries_for_catalog(
+    entries: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Extra index roots first (small), then primary knowledge_subdir (large, truncatable)."""
+    from shared.vault_layout import knowledge_index_roots, knowledge_subdir
+
+    primary = knowledge_subdir().strip("/")
+    primary_prefix = f"{primary}/" if primary else ""
+    extra_prefixes = [
+        f"{r.strip('/')}/"
+        for r in knowledge_index_roots()
+        if r.strip("/") and r.strip("/") != primary
+    ]
+    extra: list[dict[str, Any]] = []
+    main: list[dict[str, Any]] = []
+    for e in entries:
+        rel = e.get("rel_path") or ""
+        if not isinstance(rel, str):
+            continue
+        if any(rel == p.rstrip("/") or rel.startswith(p) for p in extra_prefixes):
+            extra.append(e)
+        elif primary_prefix and (rel == primary or rel.startswith(primary_prefix)):
+            main.append(e)
+        else:
+            # Unknown root — treat as extra so it is not starved by truncation.
+            extra.append(e)
+    return extra, main
+
+
 def _build_compact_catalog(entries: list[dict[str, Any]]) -> tuple[str, dict[str, str]]:
-    """Module helper (user strings in YAML)."""
+    """Module helper (user strings in YAML).
+
+    Extra index roots (e.g. handwritten) are packed first so catalog char-cap
+    does not drop them behind thousands of primary KB notes.
+    """
     lines: list[str] = []
     short_to_full: dict[str, str] = {}
     total_chars = 0
     snip_cap = _catalog_snippet_chars()
+    extra, main = _partition_entries_for_catalog(entries)
+    ordered = extra + main
+    truncated = False
 
-    for e in entries:
+    for e in ordered:
         rel = e.get("rel_path", "")
         prefix = _base_prefix()
         short = rel[len(prefix) :] if prefix and rel.startswith(prefix) else rel
@@ -166,13 +202,25 @@ def _build_compact_catalog(entries: list[dict[str, Any]]) -> tuple[str, dict[str
         else:
             line = f"{short}|{title}|{tags}" if tags else f"{short}|{title}"
         if total_chars + len(line) + 1 > _compact_catalog_max_chars():
-            log.warning("compact catalog truncated at %d/%d entries", len(lines), len(entries))
+            truncated = True
             break
         lines.append(line)
         short_to_full[short] = rel
         total_chars += len(line) + 1
 
-    log.info("compact catalog: %d entries, %d chars", len(lines), total_chars)
+    if truncated:
+        log.warning(
+            "compact catalog truncated at %d/%d entries (extra_roots=%d first)",
+            len(lines),
+            len(ordered),
+            len(extra),
+        )
+    log.info(
+        "compact catalog: %d entries (%d extra-root), %d chars",
+        len(lines),
+        min(len(extra), len(lines)),
+        total_chars,
+    )
     return "\n".join(lines), short_to_full
 
 

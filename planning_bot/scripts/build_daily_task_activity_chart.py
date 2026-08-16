@@ -86,12 +86,14 @@ def main() -> None:
     }
 
     prio_by_id, prio_by_title, active_task_ids = _load_kanban_priority_index(vault)
-    moved_task_ids = {
-        str((e.get("data") or {}).get("task_id"))
+    # Intentional deletes only (apply_kanban delete → task_deleted).
+    # Do NOT treat "moved once, missing now" as deleted — that flooded the chart
+    # with years of silent Obsidian removals and sync orphans.
+    explicit_deleted_ids = {
+        str((e.get("data") or {}).get("task_id")).lower()
         for e in events
-        if e.get("type") == "task_moved" and (e.get("data") or {}).get("task_id")
+        if e.get("type") == "task_deleted" and (e.get("data") or {}).get("task_id")
     }
-    deleted_task_ids = moved_task_ids - active_task_ids
 
     # (comment)
     prio_counts: dict[str, Counter] = {
@@ -107,9 +109,13 @@ def main() -> None:
         if pr in (pdmsg("auto_3520ab2a19"), pdmsg("auto_16916c0f4c"), pdmsg("auto_d821e337dd")):
             return pr
         tid = d.get("task_id")
-        if tid and str(tid) in prio_by_id:
-            return prio_by_id[str(tid)]
-        if tid and str(tid) in deleted_task_ids:
+        tid_s = str(tid) if tid else ""
+        tid_l = tid_s.lower()
+        if tid_s and tid_s in prio_by_id:
+            return prio_by_id[tid_s]
+        if tid_l and tid_l in prio_by_id:
+            return prio_by_id[tid_l]
+        if tid_l and tid_l in explicit_deleted_ids:
             return pdmsg("auto_13d6c8eea4")
         title = (d.get("title") or "").strip()
         if title and title in prio_by_title:

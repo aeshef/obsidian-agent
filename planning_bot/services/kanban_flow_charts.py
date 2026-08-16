@@ -368,3 +368,93 @@ def chart_wip_goal_segments(
     fig.savefig(png_path, dpi=130, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return True
+
+
+def chart_backlog_cemetery(
+    by_category: Dict[str, Dict[str, int]],
+    png_path: Path,
+    *,
+    title: str,
+    bucket_labels: Dict[str, str],
+) -> bool:
+    """Heatmap: category × age bucket — backlog cemetery."""
+    keys = ["0_7", "8_14", "15_30", "31_plus"]
+    cats = sorted(
+        (c for c, buckets in by_category.items() if sum(int(buckets.get(k, 0) or 0) for k in keys) > 0),
+        key=lambda c: (-sum(int((by_category.get(c) or {}).get(k, 0) or 0) for k in keys), c),
+    )
+    if not cats:
+        return False
+    mat = np.array(
+        [[int((by_category.get(c) or {}).get(k, 0) or 0) for k in keys] for c in cats],
+        dtype=float,
+    )
+    if float(mat.sum()) <= 0:
+        return False
+    plt = _mpl()
+    fig, ax = plt.subplots(figsize=(8, max(3.5, 0.45 * len(cats) + 1.5)))
+    im = ax.imshow(mat, aspect="auto", cmap="YlOrRd")
+    ax.set_xticks(np.arange(len(keys)))
+    ax.set_xticklabels([bucket_labels.get(k, k) for k in keys], fontsize=8)
+    ax.set_yticks(np.arange(len(cats)))
+    ax.set_yticklabels([c if c != "_" else "?" for c in cats], fontsize=8)
+    for i in range(len(cats)):
+        for j in range(len(keys)):
+            v = int(mat[i, j])
+            if v:
+                ax.text(j, i, str(v), ha="center", va="center", fontsize=8, color="#222")
+    ax.set_title(title, fontsize=11)
+    fig.colorbar(im, ax=ax, fraction=0.04)
+    fig.tight_layout()
+    ensure_parent(png_path)
+    fig.savefig(png_path, dpi=130, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return True
+
+
+def chart_deadline_blitz(
+    counts: Dict[str, int],
+    png_path: Path,
+    *,
+    title: str,
+    labels: Dict[str, str],
+) -> bool:
+    """Two panels: timed (early/on_day/late) + coverage bar for no_deadline."""
+    timed_order = ["early", "on_day", "late"]
+    timed_vals = [int(counts.get(k, 0) or 0) for k in timed_order]
+    none_v = int(counts.get("no_deadline", 0) or 0)
+    if sum(timed_vals) + none_v == 0:
+        return False
+    plt = _mpl()
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(10, 4), gridspec_kw={"width_ratios": [3, 1.2]}
+    )
+    colors = ["#81c784", "#64b5f6", "#e57373"]
+    ax1.bar(
+        [labels.get(k, k) for k in timed_order],
+        timed_vals,
+        color=colors,
+        edgecolor="white",
+    )
+    ax1.set_title(labels.get("panel_timed", title), fontsize=10)
+    ax1.set_ylabel(labels.get("y", "tasks"))
+    for i, v in enumerate(timed_vals):
+        if v:
+            ax1.text(i, v, str(v), ha="center", va="bottom", fontsize=9)
+
+    ax2.bar(
+        [labels.get("no_deadline", "none"), labels.get("with_dl", "with")],
+        [none_v, sum(timed_vals)],
+        color=["#bdbdbd", "#90caf9"],
+        edgecolor="white",
+    )
+    ax2.set_title(labels.get("panel_none", "coverage"), fontsize=10)
+    for i, v in enumerate([none_v, sum(timed_vals)]):
+        if v:
+            ax2.text(i, v, str(v), ha="center", va="bottom", fontsize=9)
+    fig.suptitle(title, fontsize=11, y=1.02)
+    fig.tight_layout()
+    ensure_parent(png_path)
+    fig.savefig(png_path, dpi=130, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return True

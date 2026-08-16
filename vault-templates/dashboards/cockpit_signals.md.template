@@ -1,0 +1,30 @@
+## 📡 Сигналы сегодня
+
+```dataviewjs
+const candidates = ["300_Дашборды/Данные/life_os_daily.json"]
+let rows = []
+for (const p of candidates) {
+  try {
+    const raw = await dv.io.load(p)
+    if (raw) {
+      const data = JSON.parse(raw)
+      rows = data.rows || []
+      if (rows.length) break
+    }
+  } catch (e) {}
+}
+if (!rows.length) {
+  dv.paragraph("_Нет данных Life OS_")
+} else {
+  let last = rows[rows.length - 1]
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (rows[i].regime) { last = rows[i]; break }
+  }
+  const regime = last.regime || "?"
+  const debt = last.sleep_debt != null ? Number(last.sleep_debt).toFixed(1) : "—"
+  const cap = last.capacity != null ? Math.round(last.capacity) : "—"
+  const out = last.output != null ? Math.round(last.output) : "—"
+  const drain = last.drain != null ? Math.round(last.drain) : "—"
+  dv.paragraph(`**${last.date || ""}** · ${regime} · Cap ${cap} · Out ${out} · Drain ${drain} · sleep debt ${debt}h`)
+}
+```

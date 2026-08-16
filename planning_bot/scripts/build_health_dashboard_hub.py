@@ -8,6 +8,32 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+
+def _bootstrap_path() -> None:
+    env = (os.environ.get("AGENT_ROOT") or "").strip()
+    candidates: list[Path] = []
+    if env:
+        candidates.append(Path(env))
+    try:
+        here = Path(__file__)
+        if here.is_file():
+            candidates.append(here.resolve().parents[2])
+    except Exception:
+        pass
+    cwd = Path.cwd()
+    if (cwd / "core").is_dir():
+        candidates.append(cwd.parent)
+    candidates.append(cwd)
+    for c in candidates:
+        if (c / "shared").is_dir() and (c / "planning_bot").is_dir():
+            s = str(c.resolve())
+            if s not in sys.path:
+                sys.path.insert(0, s)
+            return
+
+
+_bootstrap_path()
+
 from planning_bot.core.pdmsg import pdmsg
 from shared.vault_paths_config import folder, vault_file
 
@@ -29,10 +55,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--vault", type=str)
     args = ap.parse_args()
-    vault = Path(args.vault).resolve() if args.vault else _discover_vault(Path(__file__).resolve())
+    vault = Path(args.vault).resolve() if args.vault else _discover_vault(Path.cwd())
     hub = vault / folder("dashboards") / vault_file("health_dashboard_md")
     body = pdmsg("health_dashboard_hub")
     if not body.strip():
+        print("health_dashboard_hub message empty", file=sys.stderr)
         return 1
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     if "{updated}" in body:

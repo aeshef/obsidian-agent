@@ -2,8 +2,6 @@
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from shared.telegram.agent_progress import TelegramAgentProgress, format_progress_line
 
 
@@ -24,8 +22,7 @@ def test_format_progress_line_empty_tools():
     assert format_progress_line(1, []) == "Шаг 1: …"
 
 
-@pytest.mark.asyncio
-async def test_answer_delta_concurrent_single_message():
+def test_answer_delta_concurrent_single_message():
     bot = MagicMock()
     sent = MagicMock(message_id=100)
     bot.send_message = AsyncMock(return_value=sent)
@@ -39,53 +36,84 @@ async def test_answer_delta_concurrent_single_message():
             return 0
         return default
 
-    with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
-        with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=False):
-            with patch("shared.telegram.agent_progress.platform_int", side_effect=_platform_int):
-                await asyncio.gather(
-                    progress.on_answer_delta("hello world one"),
-                    progress.on_answer_delta("hello world one two"),
-                    progress.on_answer_delta("hello world one two three"),
-                )
+    async def _run():
+        with patch("shared.telegram.agent_progress.rich_messages_enabled", return_value=False):
+            with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
+                with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=False):
+                    with patch("shared.telegram.agent_progress.platform_int", side_effect=_platform_int):
+                        await asyncio.gather(
+                            progress.on_answer_delta("hello world one"),
+                            progress.on_answer_delta("hello world one two"),
+                            progress.on_answer_delta("hello world one two three"),
+                        )
+
+    asyncio.run(_run())
     assert bot.send_message.await_count == 1
     assert bot.edit_message_text.await_count >= 1
 
 
-@pytest.mark.asyncio
-async def test_answer_delta_draft_then_finalize_send_message():
+def test_answer_delta_draft_then_finalize_send_message():
     bot = MagicMock()
     final_msg = MagicMock(message_id=200)
     bot.send_message = AsyncMock(return_value=final_msg)
 
-    with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
-        with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=True):
-            with patch(
-                "shared.telegram.agent_progress.send_message_draft",
-                new_callable=AsyncMock,
-                return_value=True,
-            ) as draft_mock:
-                with patch(
-                    "shared.telegram.agent_progress.platform_int",
-                    side_effect=lambda _s, key, default=0: (
-                        10 if key == "answer_stream_min_chars" else 0
-                    ),
-                ):
-                    progress = TelegramAgentProgress(bot, chat_id=1)
-                    await progress.on_answer_delta("draft stream text here")
-                    assert progress._answer_stream_mode == "draft"
-                    assert draft_mock.await_count >= 1
-                    assert bot.send_message.await_count == 0
+    async def _run():
+        with patch("shared.telegram.agent_progress.rich_messages_enabled", return_value=False):
+            with patch("shared.telegram.agent_progress.answer_stream_enabled", return_value=True):
+                with patch("shared.telegram.agent_progress.answer_draft_enabled", return_value=True):
+                    with patch(
+                        "shared.telegram.agent_progress.send_message_draft",
+                        new_callable=AsyncMock,
+                        return_value=True,
+                    ) as draft_mock:
+                        with patch(
+                            "shared.telegram.agent_progress.platform_int",
+                            side_effect=lambda _s, key, default=0: (
+                                10 if key == "answer_stream_min_chars" else 0
+                            ),
+                        ):
+                            progress = TelegramAgentProgress(bot, chat_id=1)
+                            await progress.on_answer_delta("draft stream text here")
+                            assert progress._answer_stream_mode == "draft"
+                            assert draft_mock.await_count >= 1
+                            assert bot.send_message.await_count == 0
 
-                    await progress.finalize_answer(
-                        "draft stream text here final",
-                        reply_markup=None,
-                    )
+                            await progress.finalize_answer(
+                                "draft stream text here final",
+                                reply_markup=None,
+                            )
+                            return progress
+
+    progress = asyncio.run(_run())
     assert bot.send_message.await_count == 1
     assert progress.answer_delivered_in_chat()
 
 
-@pytest.mark.asyncio
-async def test_finalize_answer_edit_omits_reply_keyboard_markup():
+def test_finalize_answer_uses_rich_message():
+    bot = MagicMock()
+    bot.send_message = AsyncMock()
+    rich_msg = MagicMock(message_id=301)
+    progress = TelegramAgentProgress(bot, chat_id=1)
+
+    async def _run():
+        with patch("shared.telegram.agent_progress.rich_messages_enabled", return_value=True):
+            with patch(
+                "shared.telegram.agent_progress.send_rich_message",
+                new_callable=AsyncMock,
+                return_value=rich_msg,
+            ) as rich_mock:
+                await progress.finalize_answer(
+                    "# Title\n\n**bold** and a table\n\n| a | b |\n|---|---|\n| 1 | 2 |\n"
+                )
+                return rich_mock
+
+    rich_mock = asyncio.run(_run())
+    rich_mock.assert_awaited_once()
+    assert progress.answer_delivered_in_chat()
+    assert bot.send_message.await_count == 0
+
+
+def test_finalize_answer_edit_omits_reply_keyboard_markup():
     from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
     bot = MagicMock()
@@ -96,6 +124,11 @@ async def test_finalize_answer_edit_omits_reply_keyboard_markup():
     progress._answer_message_id = 42
     progress._last_pushed_answer_text = "old"
     kb = ReplyKeyboardMarkup(keyboard=[[KeyboardButton(text="🏠")]])
-    await progress.finalize_answer("new final text", reply_markup=kb)
+
+    async def _run():
+        with patch("shared.telegram.agent_progress.rich_messages_enabled", return_value=False):
+            await progress.finalize_answer("new final text", reply_markup=kb)
+
+    asyncio.run(_run())
     bot.edit_message_text.assert_awaited_once()
     assert "reply_markup" not in (bot.edit_message_text.await_args.kwargs or {})

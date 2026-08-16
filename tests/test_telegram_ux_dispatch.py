@@ -30,6 +30,18 @@ def test_txn_candidate_prefilter():
     assert _looks_like_txn_candidate("coffee 300") is True
     assert _looks_like_txn_candidate("how much did I spend?") is False
     assert _looks_like_txn_candidate("what is on the board") is False
+    bulk = (
+        "20 июля перевод с уралсиба на jusan 60000р\n"
+        "27 июля перевод с уралсиба на jusan 20000р\n"
+        "2 августа перевод с уралсиба на jusan 20000р\n"
+        "4 августа перевод с уралсиба на jusan 15000р\n"
+        "4 августа лиза пополнила мне уралсиб на 10000\n"
+        "5 августа перевел с уралсиба на jusan 30000р\n"
+        "7 августа перевел с уралсиба на jusan 20000р"
+    )
+    assert len(bulk) > 160
+    assert _looks_like_txn_candidate(bulk) is True
+    assert _looks_like_txn_candidate("x" * 200) is False
 
 
 def test_domain_dispatch_ignores_pinned_free_text(monkeypatch):

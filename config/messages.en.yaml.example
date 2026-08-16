@@ -259,6 +259,20 @@ finance:
   plan_confirm_yes: ✅ Yes
   plan_due_none: no deadline
   plan_forecast_btn: 📊 Forecast
+  plan_month_btn: 📅 Month plan
+  plan_month_header: '📅 Month plan {ym}
+
+    '
+  plan_month_income: '• Expected income: {amount:,.0f} ₽'
+  plan_month_commitment: '• Commitments: {amount:,.0f} ₽'
+  plan_month_flexible: '• Flexible pool: {amount:,.0f} ₽'
+  plan_month_spent: '• Spent from flexible: {amount:,.0f} ₽ ({burn:.0f}%)'
+  plan_month_fair_daily: '• Fair daily: {amount:,.0f} ₽/day'
+  plan_month_daily: '• Today ≈ {amount:,.0f} ₽/day'
+  plan_month_hint: '_Set income/buffer/inferred in month_plan.yaml; subscriptions in subscriptions.yaml_'
+  plan_month_need_income: 'Set income_expected_rub in {path} to unlock daily allowance.'
+  plan_month_need_user: 'Run /start first'
+  plan_month_error: '❌ Month plan: {error}'
   plan_forecast_error: '❌ Error: {error}
 
 
@@ -383,6 +397,7 @@ push:
   deadline_overdue_item: "• ⚠ {title} · overdue"
   deadline_upcoming_item: "• {title} · {deadline}"
   finance_txn_title: "✦ Finance · evening"
+  finance_badge_title: "✦ Finance · badge"
   finance_insight_title: "✦ Finance · insight"
   finance_subs_title: "✦ Finance · subscriptions"
   finance_weekly_title: "✦ Finance · week"
