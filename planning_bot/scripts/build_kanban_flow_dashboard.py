@@ -15,7 +15,9 @@ from planning_bot.core.vault_discover import discover_vault
 from planning_bot.services.kanban_flow_charts import (
     chart_aging_buckets,
     chart_arrivals_departures,
+    chart_backlog_cemetery,
     chart_cfd,
+    chart_deadline_blitz,
     chart_goal_segment_completions,
     chart_lead_cycle_weekly,
     chart_transitions_heatmap,
@@ -136,6 +138,8 @@ def main() -> int:
     png_trans = chart_path(vault, "chart_kanban_flow_transitions_png")
     png_goal = chart_path(vault, "chart_kanban_flow_goal_mapping_png")
     png_wip_seg = chart_path(vault, "chart_kanban_flow_wip_segments_png")
+    png_cemetery = chart_path(vault, "chart_kanban_backlog_cemetery_png")
+    png_blitz = chart_path(vault, "chart_kanban_deadline_blitz_png")
     md_arrivals = chart_path(vault, "chart_kanban_flow_arrivals_md")
     md_cfd = chart_path(vault, "chart_kanban_flow_cfd_md")
     md_lead = chart_path(vault, "chart_kanban_flow_lead_cycle_md")
@@ -143,6 +147,8 @@ def main() -> int:
     md_trans = chart_path(vault, "chart_kanban_flow_transitions_md")
     md_goal = chart_path(vault, "chart_kanban_flow_goal_mapping_md")
     md_wip = chart_path(vault, "chart_kanban_flow_wip_segments_md")
+    md_cemetery = chart_path(vault, "chart_kanban_backlog_cemetery_md")
+    md_blitz = chart_path(vault, "chart_kanban_deadline_blitz_md")
 
     board = KanbanBoard()
     tasks = board.get_tasks(exclude_today=False, exclude_blocked=False)
@@ -280,6 +286,38 @@ def main() -> int:
     ):
         built.append(png_wip_seg.name)
 
+    aging_by_cat = (metrics.get("aging") or {}).get("by_category") or {}
+    if chart_backlog_cemetery(
+        aging_by_cat,
+        png_cemetery,
+        title=pdmsg("kanban_flow_chart_cemetery_title"),
+        bucket_labels={
+            "0_7": pdmsg("kanban_flow_aging_0_7"),
+            "8_14": pdmsg("kanban_flow_aging_8_14"),
+            "15_30": pdmsg("kanban_flow_aging_15_30"),
+            "31_plus": pdmsg("kanban_flow_aging_31_plus"),
+        },
+    ):
+        built.append(png_cemetery.name)
+
+    blitz_counts = ((metrics.get("deadline_blitz") or {}).get("counts") or {})
+    if chart_deadline_blitz(
+        blitz_counts,
+        png_blitz,
+        title=pdmsg("kanban_flow_chart_deadline_blitz_title"),
+        labels={
+            "early": pdmsg("kanban_flow_deadline_early"),
+            "on_day": pdmsg("kanban_flow_deadline_on_day"),
+            "late": pdmsg("kanban_flow_deadline_late"),
+            "no_deadline": pdmsg("kanban_flow_deadline_none"),
+            "with_dl": pdmsg("kanban_flow_deadline_panel_timed"),
+            "y": pdmsg("kanban_flow_label_completions"),
+            "panel_timed": pdmsg("kanban_flow_deadline_panel_timed"),
+            "panel_none": pdmsg("kanban_flow_deadline_panel_none"),
+        },
+    ):
+        built.append(png_blitz.name)
+
     now_iso = datetime.now().strftime("%Y-%m-%d %H:%M")
     _write_chart_note(
         md_arrivals,
@@ -335,6 +373,22 @@ def main() -> int:
         subtitle=pdmsg("kanban_flow_hub_section_wip_segments"),
         png_key="chart_kanban_flow_wip_segments_png",
         ready=png_wip_seg.name in built,
+        generated_at=now_iso,
+    )
+    _write_chart_note(
+        md_cemetery,
+        title=pdmsg("kanban_flow_chart_cemetery_title"),
+        subtitle=pdmsg("kanban_flow_hub_section_cemetery"),
+        png_key="chart_kanban_backlog_cemetery_png",
+        ready=png_cemetery.name in built,
+        generated_at=now_iso,
+    )
+    _write_chart_note(
+        md_blitz,
+        title=pdmsg("kanban_flow_chart_deadline_blitz_title"),
+        subtitle=pdmsg("kanban_flow_hub_section_deadline_blitz"),
+        png_key="chart_kanban_deadline_blitz_png",
+        ready=png_blitz.name in built,
         generated_at=now_iso,
     )
     print(pdmsg("kanban_flow_build_ok", charts=len(built), hub="-", json=str(metrics_json_path)))

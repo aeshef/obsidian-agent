@@ -4,12 +4,12 @@
 strings:
   nav_callout: |
     > [!abstract] Дашборды
-    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс & поток]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]]
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс & поток]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Жизнь]] · [[🛠 Система|🛠 Система]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]]
   preamble_tip: |
-    > [!tip] Неделя во встречах
-    > Автообновление: [[{{calendar_dashboard}}|Встречи и фокус недели]] · данные [[{{data_subdir}}/{{calendar_json}}|{{calendar_json}}]].
+    > [!tip] Кокпит дня
+    > Фокус квартала и сигналы. Канбан-графики — в [[📊 Прогресс_2026|Прогрессе]].
   section_goals: "## 🎯 Цели"
-  section_progress: "## 📈 Прогресс"
+  section_progress: "## 🔗 Цели и категории"
   chart_activity_title: "### Дневная активность задач (по типам и приоритетам)"
   chart_activity_body: |
     Линейный график по дням, начиная с момента, когда в action-логах появился `task_id`.
@@ -72,6 +72,11 @@ strings:
   table_goal: "Цель"
   table_tasks: "Задачи"
   table_category: "Категория"
+  table_open: "Открыто"
+  table_done: "Закрыто"
+  table_done_30d: "Закрыто 30д"
+  table_done_all: "Закрыто всего"
+  table_wip_bar: "WIP"
   table_priority: "Приоритет"
   quarter_names:
     Q1: "Q1 {year} (Январь - Март)"
@@ -85,27 +90,23 @@ dashboards:
     blocks:
       - nav_callout
       - preamble
-      - calendar_tip
       - section_goals
       - goals_quarter_focus
       - goals_quarter_progress
+      - cockpit_signals
       - section_progress
-      - chart_daily_activity
-      - chart_completions
-      - chart_open_pipeline
-      - chart_deadlines
-      - chart_nutrition
-      - analytics_embed
       - goals_mapping
       - category_progress
-      - finance_embed
-      - footer
-
+      - cockpit_links
   progress_year:
     file_key: progress_year_dashboard_md
     blocks:
       - nav_callout
       - category_progress_year
+      - chart_daily_activity
+      - chart_completions
+      - chart_open_pipeline
+      - chart_deadlines
       - chart_kanban_flow_arrivals
       - chart_kanban_flow_cfd
       - chart_kanban_flow_lead_cycle
@@ -127,6 +128,12 @@ blocks:
   calendar_tip:
     template: calendar_tip.md.template
     modules: [planning]
+  cockpit_signals:
+    template: cockpit_signals.md.template
+    modules: [planning]
+  cockpit_links:
+    template: cockpit_links.md.template
+    modules: []
   section_goals:
     template: section_heading.md.template
     modules: [planning]

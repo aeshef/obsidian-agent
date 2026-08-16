@@ -6,6 +6,9 @@ const kanbanPages = ["{{kanban_page}}"]
   .concat("{{kanban_archive_page}}" ? ["{{kanban_archive_page}}"] : [])
   .filter(Boolean);
 const categories = {{categories_json}};
+const DAY_MS = 86400000;
+const cutoff = Date.now() - 30 * DAY_MS;
+const catEmoji = {{category_emojis_json}};
 
 const allTasks = [];
 for (const pagePath of kanbanPages) {
@@ -15,30 +18,71 @@ for (const pagePath of kanbanPages) {
   }
 }
 
+/** Completion time: never use file mtime (archive mtime makes done30≈doneAll). */
+function completionTs(task) {
+  if (task.completion) {
+    const t = task.completion.ts || Date.parse(task.completion)
+    if (t && !Number.isNaN(t)) return t
+  }
+  const text = task.text || ""
+  const mark = text.match(/✅\s*(\d{4}-\d{2}-\d{2})/)
+  if (mark) {
+    const t = Date.parse(mark[1])
+    if (t && !Number.isNaN(t)) return t
+  }
+  // Archive sections: "## ✅ Сделано · 2026-05"
+  const sec = task.section
+  const secStr = sec ? (sec.subpath || sec.path || String(sec)) : ""
+  const ym = String(secStr).match(/(\d{4})-(\d{2})/)
+  if (ym) {
+    const y = parseInt(ym[1], 10)
+    const m = parseInt(ym[2], 10)
+    // last day of month m
+    return Date.UTC(y, m, 0)
+  }
+  return null
+}
+
+function bar(n, max) {
+  const filled = max > 0 ? Math.min(10, Math.round((n / max) * 10)) : 0
+  return "🟧".repeat(filled) + "⬜".repeat(10 - filled)
+}
+
 if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0])) {
   dv.paragraph("{{kanban_not_found}}")
 } else {
   const categoryStats = {}
-  categories.forEach(cat => { categoryStats[cat] = { total: 0, completed: 0 } })
+  categories.forEach(cat => { categoryStats[cat] = { open: 0, done30: 0, doneAll: 0 } })
 
   allTasks.forEach(task => {
     const match = task.text?.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`))
     const category = match ? match[1] : null
-    if (category && categoryStats[category]) {
-      categoryStats[category].total++
-      if (task.completed) categoryStats[category].completed++
+    if (!category || !categoryStats[category]) return
+    if (task.completed) {
+      categoryStats[category].doneAll++
+      const ts = completionTs(task)
+      if (ts != null && ts >= cutoff) categoryStats[category].done30++
+    } else {
+      categoryStats[category].open++
     }
   })
 
+  const maxOpen = Math.max(1, ...categories.map(c => categoryStats[c].open), 1)
   const rows = categories.map(cat => {
-    const stats = categoryStats[cat]
-    const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
-    const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10))
-    return [cat, `${stats.completed}/${stats.total}`, `${bar} ${progress}%`]
-  }).filter(row => categoryStats[row[0]] && categoryStats[row[0]].total > 0)
+    const s = categoryStats[cat]
+    if ((s.open + s.doneAll) === 0) return null
+    const emoji = (catEmoji && catEmoji[cat]) ? catEmoji[cat] : "📌"
+    return [
+      `${emoji} ${cat}`,
+      `${bar(s.open, maxOpen)} ${s.open}`,
+      String(s.done30),
+      String(s.open),
+      String(s.doneAll),
+    ]
+  }).filter(Boolean)
 
   if (rows.length > 0) {
-    dv.table(["{{table_category}}", "{{table_tasks}}", "{{table_progress}}"], rows)
+    dv.table(["{{table_category}}", "{{table_wip_bar}}", "{{table_done_30d}}", "{{table_open}}", "{{table_done_all}}"], rows)
   } else {
     dv.paragraph("{{no_categorized_tasks}}")
   }
