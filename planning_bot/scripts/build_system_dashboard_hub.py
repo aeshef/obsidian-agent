@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write analytics hub markdown — structured sections, no duplicate embeds."""
+"""Write system hub markdown — agent cost + audits."""
 from __future__ import annotations
 
 import argparse
@@ -35,7 +35,7 @@ def _bootstrap_path() -> None:
 _bootstrap_path()
 
 from planning_bot.core.pdmsg import pdmsg
-from shared.analytics.hub_layout import render_analytics_hub
+from shared.analytics.system_hub_layout import render_system_hub
 from shared.vault_paths_config import folder, vault_file
 
 
@@ -58,8 +58,8 @@ def main() -> int:
     args = ap.parse_args()
     vault = Path(args.vault).resolve() if args.vault else _discover_vault(Path.cwd())
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
-    body = render_analytics_hub(vault, ts=ts, msg=pdmsg)
-    hub = vault / folder("dashboards") / vault_file("analytics_dashboard_md")
+    body = render_system_hub(vault, ts=ts, msg=pdmsg)
+    hub = vault / folder("dashboards") / vault_file("system_hub_md")
     hub.parent.mkdir(parents=True, exist_ok=True)
     hub.write_text(body, encoding="utf-8")
     print(f"OK: {hub}")

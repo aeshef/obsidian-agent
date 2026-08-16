@@ -60,16 +60,24 @@ def ghost_folder_segments(locale: str | None = None) -> list[str]:
 
 
 def cleanup_ghost_locale_folders(vault_root: Path, *, locale: str | None = None) -> list[str]:
-    """Remove empty wrong-locale top-level folders (idempotent)."""
+    """Remove wrong-locale top-level folders (empty or only known leftover state files)."""
     actions: list[str] = []
     root = Path(vault_root)
     if not root.is_dir():
         return actions
+    # Leftovers from a wrong-locale kanban/monitor run — safe to drop with the ghost folder.
+    leftover_names = {
+        "kanban_state.json",
+        ".kanban_monitor_state.json",
+        "kanban_archive_meta.json",
+        ".DS_Store",
+    }
     for name in ghost_folder_segments(locale):
         path = root / name
         if not path.is_dir():
             continue
-        if any(p.is_file() for p in path.rglob("*")):
+        files = [p for p in path.rglob("*") if p.is_file()]
+        if files and not all(p.name in leftover_names for p in files):
             continue
         try:
             shutil.rmtree(path)

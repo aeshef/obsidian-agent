@@ -123,13 +123,21 @@ for rel in lines:
         continue
     server_ids = ids_of(proc.stdout)
     missing_on_local = server_ids - local_ids
-    if missing_on_local:
+    # A few IDs missing locally ≈ intentional Obsidian deletes → allow push.
+    # Many missing ≈ stale Mac about to clobber a healthy server → block.
+    _intentional_delete_max = 5
+    if missing_on_local and len(missing_on_local) > _intentional_delete_max:
         removed += 1
         print(
             f"skip force_push {rel}: would drop {len(missing_on_local)} server task id(s)",
             file=sys.stderr,
         )
         continue
+    if missing_on_local:
+        print(
+            f"allow force_push {rel}: drop {len(missing_on_local)} id(s) as intentional delete(s)",
+            file=sys.stderr,
+        )
     keep.append(rel)
 
 list_file.write_text("\n".join(keep) + ("\n" if keep else ""), encoding="utf-8")

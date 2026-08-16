@@ -138,7 +138,9 @@ class TraceSummary:
 def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
     s = TraceSummary(days=days)
     if not rows:
-        s.insights.append("No agent runs in the selected window — enable AGENT_TRACE=1.")
+        s.insights.append(
+            "Нет прогонов агента в выбранном окне — включи AGENT_TRACE=1."
+        )
         return s
 
     latencies: list[float] = []
@@ -242,7 +244,7 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
 def _build_insights(s: TraceSummary) -> list[str]:
     out: list[str] = []
     if s.runs == 0:
-        return ["No data."]
+        return ["Нет данных."]
     cov = (
         100.0 * (1.0 - s.rounds_missing_usage / s.llm_rounds_total)
         if s.llm_rounds_total
@@ -250,30 +252,30 @@ def _build_insights(s: TraceSummary) -> list[str]:
     )
     if cov < 85:
         out.append(
-            f"Usage coverage {cov:.0f}% — streaming rounds may omit tokens; "
-            "dashboard estimates gaps from context size."
+            f"Покрытие usage {cov:.0f}% — в streaming-раундах токены могут не приходить; "
+            "дашборд оценивает пропуски по размеру контекста."
         )
     else:
-        out.append(f"Usage coverage {cov:.0f}% across {s.llm_rounds_total} LLM rounds.")
+        out.append(f"Покрытие usage {cov:.0f}% на {s.llm_rounds_total} LLM-раундах.")
     if s.avg_rounds > 3.5:
         out.append(
-            f"Avg {s.avg_rounds:.1f} LLM rounds/run — look for redundant tool loops "
-            "or tighten max_tool_calls."
+            f"В среднем {s.avg_rounds:.1f} LLM-раундов на прогон — стоит проверить "
+            "лишние циклы инструментов или ужесточить max_tool_calls."
         )
     if s.avg_selected_tools > 10:
         out.append(
-            f"Avg {s.avg_selected_tools:.1f} tools selected/run — tool-select budget "
-            "still wide; smaller sets cut prompt tokens."
+            f"В среднем {s.avg_selected_tools:.1f} инструментов выбирается на прогон — "
+            "бюджет выбора широкий; меньший набор режет токены промпта."
         )
     budget = int(s.end_reasons.get("tool_budget") or 0)
     if budget:
-        out.append(f"{budget} run(s) hit tool_budget — answers may be truncated.")
+        out.append(f"{budget} прогон(ов) упёрлись в tool_budget — ответы могли обрезаться.")
     if s.est_cost_usd > 0 and s.runs:
         out.append(
-            f"~${s.est_cost_usd:.4f} estimated over {s.days}d "
-            f"(${s.est_cost_usd / s.runs:.5f}/run)."
+            f"~${s.est_cost_usd:.4f} оценка за {s.days}д "
+            f"(${s.est_cost_usd / s.runs:.5f}/прогон)."
         )
     if s.top_tools:
         name, n = s.top_tools[0]
-        out.append(f"Hottest tool: {name} ×{n}.")
+        out.append(f"Самый частый инструмент: {name} ×{n}.")
     return out

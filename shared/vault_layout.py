@@ -1,8 +1,11 @@
 """Vault-relative paths from config/agent/platform.yaml or env (no personal defaults in code)."""
 from __future__ import annotations
 
+import logging
 import os
 import re
+
+log = logging.getLogger("vault_layout")
 
 
 def _strip_slashes(rel: str) -> str:
@@ -21,6 +24,43 @@ def knowledge_subdir() -> str:
             default="Knowledge",
         )
     )
+
+
+def knowledge_index_roots() -> list[str]:
+    """Vault-relative dirs to scan for the note index (read/search).
+
+    Always includes ``knowledge_subdir`` (write root). Extra roots come from
+    ``vault.knowledge_index_extra_folders`` as keys into ``vault_paths.folders``
+    (e.g. ``handwritten`` → ``600_Рукописное``). Writes stay on knowledge_subdir only.
+    """
+    from shared.agent.platform_config import platform_value
+    from shared.vault_paths_config import folder
+
+    roots: list[str] = []
+    primary = knowledge_subdir()
+    if primary:
+        roots.append(primary)
+
+    raw = platform_value("vault", "knowledge_index_extra_folders", default=None)
+    if isinstance(raw, str):
+        keys = [p.strip() for p in raw.split(",") if p.strip()]
+    elif isinstance(raw, (list, tuple)):
+        keys = [str(x).strip() for x in raw if str(x).strip()]
+    else:
+        keys = []
+
+    seen = set(roots)
+    for key in keys:
+        try:
+            rel = _strip_slashes(folder(key))
+        except Exception as e:
+            log.warning("knowledge_index_extra_folders: skip %r (%s)", key, e)
+            continue
+        if not rel or rel in seen:
+            continue
+        seen.add(rel)
+        roots.append(rel)
+    return roots
 
 
 def knowledge_attachments_subdir() -> str:

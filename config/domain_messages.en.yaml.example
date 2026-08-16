@@ -4735,10 +4735,9 @@ planning:
 
     **Panel «Activity by priorities»:** priority is taken from the tag `#priority/high`,
     `#priority/medium`, or `#priority/low` on the board `100_Tasks/📋 Task_Board.md`.
-    **«Deleted»** — events by `task_id` that were previously moved on the board (`task_moved`)
-    but are now missing from the current board (useful as an indicator of cleanups).
-    **«Unknown»** — other events without a defined priority: without `task_id`, not
-    found by name, or without a priority tag.
+    **«Deleted»** — only explicit `task_deleted` (bot/agent `apply_kanban delete`).
+    Manual Obsidian removal without the bot is not counted here.
+    **«Unknown»** — other events without a defined priority.
 
 
 
@@ -5077,9 +5076,16 @@ planning:
   analytics_hub_title: "🔬 Analytics"
   analytics_nav_callout: |
     > [!abstract] Dashboards
-    > [[🎯 Main_Dashboard|🎯 Main]] · [[📊 Progress_2026|📊 Progress]] · [[🏥 Health|🏥 Health]] · [[📅 Meetings_and_week_focus|📅 Meetings]] · [[📊 Finance_Dashboard|💰 Finance]]
+    > [[🎯 Main_Dashboard|🎯 Main]] · [[📊 Progress_2026|📊 Progress]] · [[🏥 Health|🏥 Health]] · [[📅 Meetings_and_week_focus|📅 Meetings]] · [[📊 Finance_Dashboard|💰 Finance]] · [[🛠 System|🛠 System]]
   analytics_hub_tip: |
-    > [!tip] D−1→D lags, sleep hypothesis engine, FDR. Updated: {updated}
+    > [!tip] D−1→D lags. **Analytics = life**. Agent → System. Updated: {updated}
+  analytics_overview_system_hint: |
+    > [!note] Insights & agent cost → [[{system}|🛠 System]]
+  analytics_life_os_legend: |
+    > [!abstract] Regimes
+    > **Flow** — capacity↑+output↑ · **Charge** — capacity↑ · **Overreach** — output with capacity↓ · **Recovery** — both↓
+  analytics_hub_footer: |
+    > [!info] Cross — on [[{health}|🏥 Health]]. Agent — [[🛠 System]].
   analytics_section_overview: "📊 Overview"
   analytics_section_body: "🏋️ Body"
   analytics_section_sleep: "😴 Sleep"
@@ -5107,6 +5113,43 @@ planning:
   analytics_title_sleep_trend: "Sleep: hours per day"
   analytics_title_sleep_stages: "Sleep stages (Deep / REM / Core / Awake)"
   analytics_title_sleep_weight: "Sleep D−1 vs Δ weight tomorrow"
+  analytics_title_sleep_debt: "Sleep debt (thermometer)"
+  analytics_sub_sleep_debt: "Accumulated shortfall (gaps do not heal debt)"
+  analytics_section_life_os: "🧬 Life OS — day regime"
+  analytics_sub_life_os_scores: "Capacity / Output / Drain (window percentile)"
+  analytics_sub_life_os_regimes: "Regimes by day"
+  analytics_title_life_os_scores: "Life OS: Capacity · Output · Drain"
+  analytics_title_life_os_regimes: "Life OS: day regimes"
+  analytics_label_capacity: "Capacity"
+  analytics_label_output: "Output"
+  analytics_label_drain: "Drain"
+  analytics_label_sleep_debt: "Sleep debt (h)"
+  analytics_label_sleep_hours_axis: "Sleep (h)"
+  analytics_label_sleep_target: "Sleep target"
+  analytics_label_percentile_axis: "Window percentile 0–100"
+  analytics_regime_flow: "Flow — capacity↑ + output↑"
+  analytics_regime_charge: "Charge — capacity↑, output↓"
+  analytics_regime_overreach: "Overreach — output with capacity↓"
+  analytics_regime_recovery: "Recovery — both↓"
+  system_hub_title: "🛠 System"
+  system_nav_callout: |
+    > [!abstract] Dashboards
+    > [[🎯 Main_Dashboard|🎯 Main]] · [[🔬 Analytics|🔬 Analytics]] · [[📊 Progress_2026|📊 Progress]] · [[📊 Finance_Dashboard|💰 Finance]]
+  system_hub_tip: |
+    > [!tip] Agent, insights, audits. Updated: {updated}
+  system_section_insights: "📋 Insights (text)"
+  system_section_agent: "🤖 Agent cost"
+  system_section_audits: "📝 Reports"
+  system_sub_agent_cost: "Cost by day"
+  system_sub_agent_tokens: "Tokens"
+  system_sub_agent_tools: "Tools"
+  system_link_system_audit: "System audit"
+  system_link_vault_audit: "Vault audit"
+  system_hub_footer: |
+    > [!info] Life charts — [[🔬 Analytics]].
+  kanban_flow_deadline_coverage: "with deadline {with_dl} / without {without}"
+  kanban_flow_deadline_panel_timed: "With deadline"
+  kanban_flow_deadline_panel_none: "No deadline"
   analytics_title_panel_corr: "Master panel correlations (Spearman)"
   analytics_title_tasks_sleep: "Tasks & sleep (lag1), z-score 7d MA"
   analytics_heading_coverage: "Data coverage"
@@ -5209,6 +5252,14 @@ planning:
   kanban_flow_chart_goal_mapping_title: "Completions by goals-mapping segment"
   kanban_flow_chart_goal_ratio_label: "Goals / daily (7d MA)"
   kanban_flow_chart_wip_segments_title: "Open WIP by goals-mapping segment"
+  kanban_flow_chart_cemetery_title: "Backlog cemetery: category × age"
+  kanban_flow_chart_deadline_blitz_title: "Deadline blitz: when tasks were closed"
+  kanban_flow_hub_section_cemetery: "How many tasks rot by category and age"
+  kanban_flow_hub_section_deadline_blitz: "Before / on day / after deadline / none"
+  kanban_flow_deadline_early: "Before deadline"
+  kanban_flow_deadline_on_day: "On deadline day"
+  kanban_flow_deadline_late: "After deadline"
+  kanban_flow_deadline_none: "No deadline"
   kanban_flow_label_arrivals: "Arrivals"
   kanban_flow_label_departures: "Departures"
   kanban_flow_label_flow_debt: "Flow debt"

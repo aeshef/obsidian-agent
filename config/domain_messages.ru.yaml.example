@@ -543,24 +543,24 @@ finance_summary:
 badge:
   default_category: "Еда/Бейдж"
   line_keyword_pattern: "бейдж"
-  line_over_limit: "Сверх лимита: {amount} RUB (удержат из ЗП)."
-  input_prompt_fallback: "🍽 Badge spend (account: {account}, category: {category}, limit: {limit} RUB/day)\n\n{prompt}"
-  post_save_header: "✅ {amount} RUB badge{desc}"
-  llm_after_spend_user: "Advice right after new spend."
-  today_alert_spent: "🍽 Badge: spent {spent} RUB of {limit} today."
-  today_alert_remaining: "Remaining {remaining} RUB — quota expires at midnight."
-  day_off: "Today is a day off — no daily badge quota."
-  day_spent_line: "📊 Today: {spent} / {limit} RUB"
-  day_remaining: "Remaining {remaining} RUB (expires today)"
-  day_over: "Over limit: {over} RUB"
-  month_spent_line: "📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned} RUB"
-  month_title: "🍽 Badge for {month:02d}.{year}"
-  month_working_days: "Working days: {working_days}, with spend: {days_with_spend}"
-  month_spent_total: "Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)"
-  month_burned: "Burned quota: {burned} RUB"
-  month_ndfl: "Estimated income tax on spend: ~{ndfl} RUB"
-  month_zero_days: "Days without spend (full burn): {days}"
-  month_over_limit: "Over daily limit: {over} RUB"
+  line_over_limit: "Сверх лимита: {amount} ₽ (удержат из ЗП)."
+  input_prompt_fallback: "🍽 Бейдж (счёт: {account}, категория: {category}, лимит: {limit} ₽/день)\n\n{prompt}"
+  post_save_header: "✅ {amount} ₽ бейдж{desc}"
+  llm_after_spend_user: "Короткий совет сразу после новой траты по бейджу."
+  today_alert_spent: "Сегодня потрачено {spent} ₽ из {limit}."
+  today_alert_remaining: "Осталось {remaining} ₽ — квота сгорает в полночь."
+  day_off: "Сегодня выходной — дневной квоты бейджа нет."
+  day_spent_line: "📊 Сегодня: {spent} / {limit} ₽"
+  day_remaining: "Осталось {remaining} ₽ (сгорает сегодня)"
+  day_over: "Сверх лимита: {over} ₽"
+  month_spent_line: "📅 Месяц: {spent} / {entitlement} ₽ ({pct:.0f}%), сгорело {burned} ₽"
+  month_title: "🍽 Бейдж за {month:02d}.{year}"
+  month_working_days: "Рабочих дней: {working_days}, с тратами: {days_with_spend}"
+  month_spent_total: "Потрачено: {spent} ₽ из {entitlement} ₽ ({pct:.0f}%)"
+  month_burned: "Сгорело квоты: {burned} ₽"
+  month_ndfl: "Оценка НДФЛ на траты: ~{ndfl} ₽"
+  month_zero_days: "Дней без трат (полный сжиг): {days}"
+  month_over_limit: "Сверх дневного лимита: {over} ₽"
   dash_none: "—"
 
 planning:
@@ -3655,7 +3655,7 @@ planning:
   auto_913449b759: "ActionLogger: логи действий в %s"
   auto_937e1c141e: "  (пусто)"
   auto_95291e7d4f: "move: укажи column (название колонки с доски)"
-  auto_95e2cc8d19: "300_Дашборды/Графики/Встречи_нагрузка_недели"
+  auto_95e2cc8d19: "300_Дашборды/Графики/Планирование/Встречи_нагрузка_недели"
   auto_95e4a8ee6e: "Chat ID не установлен, алерты по целям не отправлены"
   auto_96c8692fb9: "Ошибка при отправке алертов по целям: %s"
   auto_974c1b28ea: "Секции жизни (часы)"
@@ -3896,7 +3896,7 @@ planning:
   auto_f884ed9745: "## 📅 Дедлайны.*?(?=## |```|$)"
   auto_f895d3042c: "💭 Рефлексия"
   auto_f9a9071bae: "📋 Конфиг_Задач.md"
-  auto_fa4234819c: "300_Дашборды/Графики/Встречи_секции_жизни"
+  auto_fa4234819c: "300_Дашборды/Графики/Планирование/Встречи_секции_жизни"
   auto_fae9682263: "  топ приложений: "
   auto_fc906f665b: "📅 Рутины"
   auto_fc9b9f09f7: "✅ kanban_state.json синхронизирован: %s задач"
@@ -4880,9 +4880,16 @@ planning:
   analytics_hub_title: "🔬 Аналитика"
   analytics_nav_callout: |
     > [!abstract] Дашборды
-    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]]
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]] · [[🛠 Система|🛠 Система]]
   analytics_hub_tip: |
-    > [!tip] Лаги D−1→D, sleep hypothesis engine, FDR. Обновлено: {updated}
+    > [!tip] Лаги D−1→D. **Аналитика = жизнь**. Агент — в Система. Обновлено: {updated}
+  analytics_overview_system_hint: |
+    > [!note] Инсайты и агент → [[{system}|🛠 Система]]
+  analytics_life_os_legend: |
+    > [!abstract] Режимы
+    > **Flow** — ёмкость↑+выдача↑ · **Charge** — ёмкость↑ · **Overreach** — выдача при ёмкости↓ · **Recovery** — оба↓
+  analytics_hub_footer: |
+    > [!info] Кросс — на [[{health}|🏥 Здоровье]]. Агент — [[🛠 Система]].
   analytics_section_overview: "📊 Обзор"
   analytics_section_body: "🏋️ Тело"
   analytics_section_sleep: "😴 Сон"
@@ -4910,6 +4917,43 @@ planning:
   analytics_title_sleep_trend: "Сон: часы сна по дням"
   analytics_title_sleep_stages: "Сон: стадии (Deep / REM / Core / Awake)"
   analytics_title_sleep_weight: "Сон D−1 vs Δ вес завтра"
+  analytics_title_sleep_debt: "Долг сна (thermometer)"
+  analytics_sub_sleep_debt: "Накопленный недосып (дыры не лечат долг)"
+  analytics_section_life_os: "🧬 Life OS — режим дня"
+  analytics_sub_life_os_scores: "Capacity / Output / Drain (перцентиль окна)"
+  analytics_sub_life_os_regimes: "Режимы по дням"
+  analytics_title_life_os_scores: "Life OS: Capacity · Output · Drain"
+  analytics_title_life_os_regimes: "Life OS: режимы дня"
+  analytics_label_capacity: "Capacity (ёмкость)"
+  analytics_label_output: "Output (выдача)"
+  analytics_label_drain: "Drain (нагрузка)"
+  analytics_label_sleep_debt: "Долг сна (ч)"
+  analytics_label_sleep_hours_axis: "Сон (ч)"
+  analytics_label_sleep_target: "Цель сна"
+  analytics_label_percentile_axis: "Перцентиль окна 0–100"
+  analytics_regime_flow: "Flow — ёмкость↑ + выдача↑"
+  analytics_regime_charge: "Charge — ёмкость↑, выдача↓"
+  analytics_regime_overreach: "Overreach — выдача при ёмкости↓"
+  analytics_regime_recovery: "Recovery — оба↓"
+  system_hub_title: "🛠 Система"
+  system_nav_callout: |
+    > [!abstract] Дашборды
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[📊 Финансы_Дашборд|💰 Финансы]]
+  system_hub_tip: |
+    > [!tip] Агент, инсайты, аудиты. Обновлено: {updated}
+  system_section_insights: "📋 Инсайты (текст)"
+  system_section_agent: "🤖 Стоимость агента"
+  system_section_audits: "📝 Отчёты"
+  system_sub_agent_cost: "Стоимость по дням"
+  system_sub_agent_tokens: "Токены"
+  system_sub_agent_tools: "Инструменты"
+  system_link_system_audit: "Аудит системы"
+  system_link_vault_audit: "Аудит хранилища"
+  system_hub_footer: |
+    > [!info] Жизненные графики — [[🔬 Аналитика]].
+  kanban_flow_deadline_coverage: "с дедлайном {with_dl} / без {without}"
+  kanban_flow_deadline_panel_timed: "С дедлайном"
+  kanban_flow_deadline_panel_none: "Без дедлайна"
   analytics_title_panel_corr: "Корреляции master panel (Spearman)"
   analytics_title_tasks_sleep: "Задачи и сон (lag1), z-score 7d MA"
   analytics_heading_coverage: "Покрытие данных"
@@ -5012,6 +5056,14 @@ planning:
   kanban_flow_chart_goal_mapping_title: "Завершения по сегменту маппинга целей"
   kanban_flow_chart_goal_ratio_label: "Цели / быт (MA 7д)"
   kanban_flow_chart_wip_segments_title: "Открытый WIP по сегменту маппинга"
+  kanban_flow_chart_cemetery_title: "Кладбище бэклога: категория × возраст"
+  kanban_flow_chart_deadline_blitz_title: "Дедлайн-блиц: когда закрывали задачи"
+  kanban_flow_hub_section_cemetery: "Сколько задач «гниёт» по категориям и возрасту"
+  kanban_flow_hub_section_deadline_blitz: "До / в день / после дедлайна / без дедлайна"
+  kanban_flow_deadline_early: "До дедлайна"
+  kanban_flow_deadline_on_day: "В день дедлайна"
+  kanban_flow_deadline_late: "После дедлайна"
+  kanban_flow_deadline_none: "Без дедлайна"
   kanban_flow_label_arrivals: "Прибытия"
   kanban_flow_label_departures: "Завершения"
   kanban_flow_label_flow_debt: "Flow debt"

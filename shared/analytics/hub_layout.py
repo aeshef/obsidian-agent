@@ -1,4 +1,4 @@
-"""Analytics hub layout — sections, no duplicate chart embeds."""
+"""Analytics hub layout — life metrics only (agent → Система hub)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -24,29 +24,33 @@ def render_analytics_hub(
     ts: str,
     msg: Callable[[str], str],
 ) -> str:
-    """Build hub markdown: one chart per subsection, text-only overview embed."""
-    dash = folder("dashboards")
-    health = vault_file("health_dashboard_md")
-    nav = msg("analytics_nav_callout").strip()
+    """Build hub markdown: charts + insights note. No meta tips."""
     lines: list[str] = [
         f"# {msg('analytics_hub_title')}",
         "",
-        nav,
-        "",
-        msg("analytics_hub_tip").replace("{updated}", ts),
+        msg("analytics_nav_callout").strip(),
         "",
         "---",
         "",
     ]
 
+    # Sleep hypotheses text lives with life analytics, not System
+    try:
+        if chart_path(vault, "chart_analytics_insights_md").is_file():
+            lines.extend(
+                [
+                    f"## {msg('analytics_section_insights')}",
+                    "",
+                    _md_embed("chart_analytics_insights_md"),
+                    "",
+                    "---",
+                    "",
+                ]
+            )
+    except Exception:
+        pass
+
     sections: list[tuple[str, list[tuple[str | None, str | None, str | None]]]] = [
-        (
-            "analytics_section_overview",
-            [
-                (None, "md", "chart_analytics_insights_md"),
-                (None, "md", "agent_cost_dashboard_md"),
-            ],
-        ),
         (
             "analytics_section_body",
             [("analytics_sub_weight", "png", "chart_analytics_weight_trend_png")],
@@ -55,9 +59,17 @@ def render_analytics_hub(
             "analytics_section_sleep",
             [
                 ("analytics_sub_sleep_hours", "png", "chart_analytics_sleep_trend_png"),
+                ("analytics_sub_sleep_debt", "png", "chart_analytics_sleep_debt_png"),
                 ("analytics_sub_sleep_stages", "png", "chart_analytics_sleep_stages_png"),
                 ("analytics_sub_sleep_weight", "png", "chart_analytics_sleep_weight_png"),
                 ("analytics_sub_sleep_heatmap", "png", "chart_analytics_sleep_heatmap_png"),
+            ],
+        ),
+        (
+            "analytics_section_life_os",
+            [
+                ("analytics_sub_life_os_scores", "png", "chart_analytics_life_os_scores_png"),
+                ("analytics_sub_life_os_regimes", "png", "chart_analytics_life_os_regimes_png"),
             ],
         ),
         (
@@ -72,48 +84,18 @@ def render_analytics_hub(
     for heading_key, blocks in sections:
         rendered_blocks: list[str] = []
         for subtitle_key, kind, asset_key in blocks:
-            if kind == "md":
-                # Optional notes (e.g. agent cost) appear only after first build.
-                if asset_key == "agent_cost_dashboard_md":
-                    try:
-                        if not chart_path(vault, asset_key).is_file():
-                            continue
-                    except Exception:
-                        continue
-                rendered_blocks.append(_md_embed(asset_key))
-                rendered_blocks.append("")
-                continue
             if kind == "png" and asset_key and _png_exists(vault, asset_key):
-                block_lines: list[str] = []
                 if subtitle_key:
-                    block_lines.append(f"### {msg(subtitle_key)}")
-                    block_lines.append("")
-                block_lines.append(chart_wikilink_png(asset_key))
-                block_lines.append("")
-                rendered_blocks.extend(block_lines)
-
+                    rendered_blocks.append(f"### {msg(subtitle_key)}")
+                    rendered_blocks.append("")
+                rendered_blocks.append(chart_wikilink_png(asset_key))
+                rendered_blocks.append("")
         if not rendered_blocks:
             continue
-
         lines.append(f"## {msg(heading_key)}")
         lines.append("")
         lines.extend(rendered_blocks)
-        if rendered_blocks and rendered_blocks[-1].strip():
-            lines.append("")
         lines.append("---")
-        lines.append("")
-
-    lines.append(f"## {msg('analytics_section_cross')}")
-    lines.append("")
-    lines.append(msg("analytics_cross_health_link").replace("{health_dashboard}", f"{dash}/{health}"))
-    lines.append("")
-    lines.append("---")
-    lines.append("")
-    data_files = msg("analytics_data_files")
-    if data_files.strip():
-        lines.append(f"> [!note]- {msg('analytics_section_data')}")
-        for data_line in data_files.strip().splitlines():
-            lines.append(f"> {data_line}" if data_line.strip() else ">")
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
