@@ -120,6 +120,7 @@ Gmail IMAP (planning, Mac only): `GMAIL_IMAP_USER`, `GMAIL_IMAP_APP_PASSWORD`, `
 | Переменная | Назначение |
 |------------|------------|
 | `VAULT_REL_KNOWLEDGE` | Подкаталог базы знаний в vault (override `platform.yaml` → `vault.knowledge_subdir`) |
+| — | Доп. корни индекса (не env): `platform.yaml` → `vault.knowledge_index_extra_folders` (ключи `vault_paths.folders`, напр. `handwritten`) |
 | `AGENT_MAX_ITERS` | override `agent.max_iters` |
 | `KNOWLEDGE_*`, `PLANNING_CHAT_*` | override секций в `platform.yaml` |
 

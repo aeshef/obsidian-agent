@@ -6,9 +6,13 @@ vault:
   local_path: ""
   # iCloud mobile vault — leave empty and set MOBILE_VAULT in .env (preferred).
   mobile_path: ""
-  # Подкаталог базы знаний внутри VAULT_PATH (rel_path в индексе).
+  # Подкаталог базы знаний внутри VAULT_PATH (write root + primary index root).
   # Author vault uses 700_База_Данных; OSS/onboarding may use Knowledge.
   knowledge_subdir: 700_База_Данных
+  # Extra dirs to include in the note index (read/search). Keys from vault_paths.folders
+  # (e.g. handwritten → 600_Рукописное). Agent writes stay on knowledge_subdir only.
+  knowledge_index_extra_folders:
+    - handwritten
 
 server:
   # Remote runtime paths — prefer SERVER_BOTS / SERVER_VAULT env over committing absolutes.
@@ -48,7 +52,8 @@ llm_classify:
   dialogue_hint_per_domain: 2
 
 knowledge_query:
-  compact_catalog_max_chars: 220000
+  # Full author vault catalog ≈660k chars @ snippet=120; 800k leaves headroom.
+  compact_catalog_max_chars: 800000
   catalog_snippet_chars: 120
   preselect_max: 40
   select_candidates_max: 40
