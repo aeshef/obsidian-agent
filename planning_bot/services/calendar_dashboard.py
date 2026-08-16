@@ -127,28 +127,45 @@ def _update_companion_md(graphics_dir: Path, now_str: str) -> None:
     'Operation implementation.'
     from planning_bot.services.calendar_charts import png_life_filename
 
-    life_png = graphics_dir / png_life_filename()
-    for name in (pdmsg("auto_f077724de3"), pdmsg("auto_6799b4f864")):
-        p = graphics_dir / name
-        if p.exists():
-            text = p.read_text(encoding="utf-8")
-            updated = text.replace("{{updated}}", now_str)
-            if name == pdmsg("auto_6799b4f864") and not life_png.exists():
-                updated = re.sub(
-                    r"!\[[^\]]*\]\([^)]+\)\s*\n*",
-                    pdmsg("calendar_life_chart_missing_callout"),
-                    updated,
-                    count=1,
-                )
-            # (comment)
+    vault = graphics_dir.resolve().parent.parent
+    try:
+        from shared.chart_paths import chart_path
+
+        life_png = chart_path(vault, "chart_calendar_sections_png")
+        week_md = chart_path(vault, "chart_calendar_week_png").with_suffix(".md")
+        try:
+            life_md = chart_path(vault, "chart_calendar_sections_md")
+        except Exception:
+            life_md = life_png.with_suffix(".md")
+        companions = [week_md, life_md]
+    except Exception:
+        plan_dir = graphics_dir / "Планирование"
+        life_png = plan_dir / png_life_filename()
+        companions = [
+            plan_dir / pdmsg("auto_f077724de3"),
+            plan_dir / pdmsg("auto_6799b4f864"),
+        ]
+
+    for p in companions:
+        if not p.exists():
+            continue
+        text = p.read_text(encoding="utf-8")
+        updated = text.replace("{{updated}}", now_str)
+        if p.name == pdmsg("auto_6799b4f864") and not life_png.exists():
             updated = re.sub(
-                pdmsg("auto_49b159f4e7"),
-                pdmsg("calendar_companion_updated", now=now_str),
+                r"!\[[^\]]*\]\([^)]+\)\s*\n*",
+                pdmsg("calendar_life_chart_missing_callout"),
                 updated,
-                flags=re.MULTILINE,
+                count=1,
             )
-            if updated != text:
-                p.write_text(updated, encoding="utf-8")
+        updated = re.sub(
+            pdmsg("auto_49b159f4e7"),
+            pdmsg("calendar_companion_updated", now=now_str),
+            updated,
+            flags=re.MULTILINE,
+        )
+        if updated != text:
+            p.write_text(updated, encoding="utf-8")
 
 
 def write_meeting_focus_dashboard(
