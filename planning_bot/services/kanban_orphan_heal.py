@@ -4,8 +4,9 @@ Same stack as the rest of planning (Python + AGENT_LOCALE / domain_messages).
 Restores task_created entries from the last N days that are missing on the board
 and were never task_deleted / task_completed.
 
-task_removed (monitor observation) does NOT block heal — that signal is ambiguous
-with sync wipes. Intentional deletes must use apply_kanban delete → task_deleted.
+task_removed (mass monitor observation / sync wipe) does NOT block heal.
+Small Obsidian deletes are logged as task_deleted source=obsidian by the monitor
+(≤5 removals per tick) and therefore block restore — same as apply_kanban delete.
 """
 from __future__ import annotations
 

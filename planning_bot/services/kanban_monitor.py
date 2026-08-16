@@ -187,6 +187,12 @@ class KanbanMonitor:
                     "type": "removed",
                 })
         
+        # Small disappear batches are almost always intentional Obsidian deletes.
+        # Mass disappearances still look like sync wipes → task_removed (heal may restore).
+        _intentional_remove_max = 5
+        removed_n = sum(1 for c in changes if c.get("type") == "removed")
+        treat_removed_as_deleted = 0 < removed_n <= _intentional_remove_max
+
         for change in changes:
             tid = change.get("task_id")
             if change["type"] == "move":
@@ -202,12 +208,20 @@ class KanbanMonitor:
                         category=category,
                     )
             elif change["type"] == "removed":
-                self.logger.log_task_removed(
-                    change["title"],
-                    task_id=tid,
-                    from_column=change.get("from"),
-                    source="monitor",
-                )
+                if treat_removed_as_deleted:
+                    self.logger.log_task_deleted(
+                        change["title"],
+                        task_id=tid,
+                        from_column=change.get("from"),
+                        source="obsidian",
+                    )
+                else:
+                    self.logger.log_task_removed(
+                        change["title"],
+                        task_id=tid,
+                        from_column=change.get("from"),
+                        source="monitor",
+                    )
         
         # (comment)
         self.last_state = current_state.copy()

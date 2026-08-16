@@ -26,6 +26,7 @@ def test_collect_skips_task_deleted(tmp_path: Path):
     t_create = (now - timedelta(days=2)).strftime("%Y-%m-%d %H:%M:%S")
     t_del = (now - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
     t_orphan = (now - timedelta(days=1, hours=12)).strftime("%Y-%m-%d %H:%M:%S")
+    t_obsidian = (now - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
     log = tmp_path / "log.md"
     log.write_text(
         _log_entry(
@@ -57,6 +58,25 @@ def test_collect_skips_task_deleted(tmp_path: Path):
             t_orphan,
             "task_removed",
             {"title": "sync wipe victim", "task_id": "bbbb2222", "source": "monitor"},
+        )
+        + _log_entry(
+            t_create,
+            "task_created",
+            {
+                "title": "obsidian delete me",
+                "category": "семья",
+                "priority": "средний",
+                "task_id": "cccc3333",
+            },
+        )
+        + _log_entry(
+            t_obsidian,
+            "task_deleted",
+            {
+                "title": "obsidian delete me",
+                "task_id": "cccc3333",
+                "source": "obsidian",
+            },
         ),
         encoding="utf-8",
     )
@@ -64,6 +84,7 @@ def test_collect_skips_task_deleted(tmp_path: Path):
     orphans = heal.collect_created_orphans([log], since_dt=since)
     ids = {o["task_id"] for o in orphans}
     assert "aaaa1111" not in ids
+    assert "cccc3333" not in ids
     assert "bbbb2222" in ids
 
 
