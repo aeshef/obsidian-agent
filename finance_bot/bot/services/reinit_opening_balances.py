@@ -168,16 +168,27 @@ def count_transactions(conn: sqlite3.Connection) -> int:
 
 
 def default_targets_2026_08_09() -> list[AccountTarget]:
-    """Real-life balances provided by user (RUB)."""
-    return [
-        AccountTarget("Яндекс Банк", Decimal("213783")),
-        AccountTarget("Альфа-Банк", Decimal("53")),
-        AccountTarget("Т-Банк", Decimal("0.66")),
-        AccountTarget("Ozon Банк", Decimal("10")),
-        AccountTarget("Вайлдберис Банк", Decimal("-400")),
-        AccountTarget("Jusan Bank", Decimal("5749")),
-        AccountTarget("Кошелек", Decimal("6500")),
-    ]
+    """Optional snapshot targets from finance config YAML (personal file is gitignored).
+
+    Example: ``finance_bot/config/reinit_opening_balances.yaml`` with
+    ``targets: [{name: "...", amount: "123.45"}, ...]``.
+    """
+    from shared.yaml_config import load_merged_config
+
+    cfg_dir = Path(__file__).resolve().parent.parent.parent / "config"
+    raw = load_merged_config(str(cfg_dir), "reinit_opening_balances")
+    rows = raw.get("targets") if isinstance(raw, dict) else None
+    if not isinstance(rows, list):
+        return []
+    out: list[AccountTarget] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        out.append(AccountTarget(name, Decimal(str(row.get("amount") or "0"))))
+    return out
 
 
 def open_db(path: Path) -> sqlite3.Connection:

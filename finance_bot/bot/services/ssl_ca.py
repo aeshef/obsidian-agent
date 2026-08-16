@@ -1,4 +1,4 @@
-"""TLS CA bundle: Mozilla (certifi) + Russian Trusted Root/Sub (Минцифры).
+"""TLS CA bundle: Mozilla (certifi) + Russian Trusted Root/Sub (MinTsifry).
 
 T-Bank Invest API presents Russian Trusted chain; stock certifi alone fails verify.
 """

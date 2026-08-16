@@ -10,7 +10,7 @@ from planning_bot.core.pdmsg import pdmsg
 
 
 def _vault_from_graphics(graphics_dir: Path) -> Path:
-    """GRAPHICS_DIR is <vault>/300_…/Графики → vault is two parents up."""
+    """GRAPHICS_DIR is <vault>/300_…/Charts → vault is two parents up."""
     return graphics_dir.resolve().parent.parent
 
 
@@ -70,7 +70,7 @@ def png_life_filename() -> str:
 
 
 def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> Tuple[Optional[str], Optional[str]]:
-    """Write meeting charts into vault_paths subfolder (Планирование/), not Графики/ root."""
+    """Write meeting charts into vault_paths planning subfolder, not Charts root."""
     try:
         import matplotlib
 
@@ -101,7 +101,7 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
                 wd = d.get("weekday", "")
                 ds = (d.get("date") or "")[5:]
                 labels.append(f"{wd} {ds}")
-                vals.append(float(d.get("meeting_hours_rounded", 0)))
+                vals.append(float(d.get("invite_hours") or d.get("meeting_hours_rounded", 0)))
 
             fig, ax = plt.subplots(figsize=(7.2, 3.0), dpi=130)
             y = list(range(len(labels)))
@@ -109,7 +109,12 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
             ax.set_yticks(y)
             ax.set_yticklabels(labels, fontsize=9)
             ax.set_xlabel(pdmsg("auto_644f4feb02"), fontsize=9)
-            ax.set_title(pdmsg("auto_1cf2476692"), fontsize=11, fontweight="bold", pad=8)
+            ax.set_title(
+                pdmsg("calendar_chart_title_week_load"),
+                fontsize=11,
+                fontweight="bold",
+                pad=8,
+            )
             ax.grid(axis="x", alpha=0.35, linestyle="--")
             ax.set_axisbelow(True)
             fig.tight_layout()
@@ -118,19 +123,31 @@ def try_write_calendar_charts(analytics: Dict[str, Any], graphics_dir: Path) -> 
             plt.close(fig)
             week_wiki = _wikilink_week()
 
-        life = analytics.get("life_hours") or {}
+        life = analytics.get("activity_hours") or analytics.get("life_hours") or {}
+        typed_share = float(analytics.get("typed_share") or 0)
         items = sorted(life.items(), key=lambda kv: -kv[1])[:8]
-        if items:
+        # Avoid a single-bucket «default_type» chart when LLM labels are missing.
+        if items and typed_share >= 0.15:
             names = [(k[:24] if k else "—") for k, _ in items]
             hours = [v for _, v in items]
 
+            from planning_bot.services.calendar_analytics import chart_colors_for_activity
+
+            color_map = chart_colors_for_activity()
+            colors = [color_map.get(k, "#5a9a5e") for k, _ in items]
+
             fig, ax = plt.subplots(figsize=(5.8, 2.8), dpi=130)
             y = list(range(len(names)))
-            ax.barh(y, hours, color="#5a9a5e", height=0.62, edgecolor="white", linewidth=0.5)
+            ax.barh(y, hours, color=colors, height=0.62, edgecolor="white", linewidth=0.5)
             ax.set_yticks(y)
             ax.set_yticklabels(names, fontsize=9)
             ax.set_xlabel(pdmsg("auto_aa0b458eec"), fontsize=9)
-            ax.set_title(pdmsg("auto_5777c551af"), fontsize=11, fontweight="bold", pad=8)
+            ax.set_title(
+                pdmsg("calendar_chart_title_activity_types"),
+                fontsize=11,
+                fontweight="bold",
+                pad=8,
+            )
             ax.grid(axis="x", alpha=0.35, linestyle="--")
             ax.set_axisbelow(True)
             fig.tight_layout()

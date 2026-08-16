@@ -38,3 +38,4 @@ credentials*.json
 config/*.private.yaml
 config/*.private.md
 config/*.secrets.yaml
+config/reinit_opening_balances.yaml

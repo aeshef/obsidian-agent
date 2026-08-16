@@ -5,174 +5,338 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# (comment)
+from planning_bot.core.pdmsg import pdmsg
+
 _INSIGHT_HARD_MAX = 4500
 
 
-from planning_bot.core.pdmsg import pdmsg
-def _sparkline(hours: List[float]) -> str:
-    if not hours:
-        return ""
-    mx = max(hours) or 1.0
-    chars = "▁▂▃▄▅▆▇"
-    return "".join(
-        chars[min(len(chars) - 1, int((h / mx) * (len(chars) - 1) + 0.001))] for h in hours
-    )
+def _fmt_hours(h: float) -> str:
+    """Drop trailing .0 for hero/mix readability."""
+    try:
+        x = float(h)
+    except (TypeError, ValueError):
+        return str(h)
+    if abs(x - round(x)) < 1e-6:
+        return str(int(round(x)))
+    return f"{x:.1f}"
 
 
-def _clip_insights(text: str, max_chars: int = _INSIGHT_HARD_MAX) -> str:
-    'Operation implementation.'
-    t = (text or "").strip()
-    if len(t) <= max_chars:
-        return t
-    cut = t[:max_chars]
-    for sep in ("\n\n", "\n", "— ", ". "):
-        i = cut.rfind(sep)
-        if i > max_chars * 0.55:
-            cut = cut[:i].rstrip()
-            break
-    return cut + pdmsg("auto_9b7b66ce15")
+def _sep(key: str, fallback: str = "·") -> str:
+    """Join separator; dmsg strips edges, so pad a glyph for readable lists."""
+    core = (pdmsg(key) or "").strip() or fallback
+    return f" {core} "
 
 
-def _mermaid_pie(hours: Dict[str, float], pie_title: str, top: int = 6) -> str:
-    items = sorted(hours.items(), key=lambda kv: kv[1], reverse=True)[:top]
-    if not items or sum(v for _, v in items) <= 0:
-        return ""
-    lines = ["```mermaid", "pie showData", f'    title "{pie_title}"']
-    for k, v in items:
-        lines.append(f'    "{(k or "—")[:36]}" : {v}')
-    lines.append("```")
-    return "\n".join(lines)
+def _mix_bits(activity: Dict[str, float], *, limit: int = 5) -> str:
+    sep = _sep("calendar_dash_mix_join")
+    parts = []
+    for name, hrs in sorted(activity.items(), key=lambda kv: -float(kv[1] or 0))[:limit]:
+        parts.append(pdmsg("calendar_dash_mix_item", name=name, hours=_fmt_hours(hrs)))
+    return sep.join(parts)
+
+
+def _callout(kind: str, title: str, *body: str) -> List[str]:
+    lines = [f"> [!{kind}] {title}"]
+    for b in body:
+        lines.append(f"> {b}" if b else ">")
+    lines.append("")
+    return lines
 
 
 def render_meeting_focus_dashboard(
     generated_at: str,
     analytics: Dict[str, Any],
-    insights_md: str,
+    insights_md: str = "",
     *,
     week_wiki: Optional[str] = None,
     life_wiki: Optional[str] = None,
 ) -> str:
+    """Meetings dashboard: hero + next 48h + free windows + charts. No rhythm spam."""
+    _ = insights_md
+    _ = generated_at
     week_wiki = week_wiki or pdmsg("auto_95e2cc8d19")
     life_wiki = life_wiki or pdmsg("auto_fa4234819c")
     today = date.today()
     days_data: List[Dict] = analytics.get("days") or []
     tot: Dict = analytics.get("totals") or {}
-    hrs = [float(d.get("meeting_hours_rounded", 0)) for d in days_data]
-    spark = _sparkline(hrs)
+    invite = float(tot.get("invite_hours", tot.get("window_meeting_hours", 0)) or 0)
+
+    activity = analytics.get("activity_hours") or analytics.get("life_hours") or {}
+    peak = next((d for d in days_data if d.get("date") == tot.get("peak_day")), None)
+    pressure = analytics.get("top_pressure") or []
+    peak_title = (pressure[0].get("title") or "")[:40] if pressure else ""
+    typed_share = float(analytics.get("typed_share") or 0)
 
     nav = pdmsg("calendar_nav_callout")
     lines: List[str] = [
-        pdmsg("auto_c3a0060b1b", _p1=today.strftime('%d.%m.%Y')),
+        pdmsg("calendar_dash_title", date=today.strftime("%d.%m.%Y")),
         "",
         *(([nav, ""] if nav.strip() else [])),
-        pdmsg("auto_401a7ed2d6", _p1=generated_at, _p3=len(days_data), _p5=tot.get('window_meeting_hours', 0), _p7=tot.get('heavy_days_ge_5h', 0), _p9=spark),
-        "",
+        pdmsg("calendar_dash_hero_open"),
+        pdmsg("calendar_dash_hero_hours", hours=_fmt_hours(invite)),
     ]
-
+    mix = _mix_bits(activity) if typed_share >= 0.15 else ""
+    if mix:
+        lines.append(pdmsg("calendar_dash_hero_mix", mix=mix))
+    elif invite > 0 and typed_share < 0.15:
+        tip = pdmsg("calendar_dash_hero_untyped", default="")
+        if tip:
+            lines.append(tip)
+    if peak and float(peak.get("meeting_hours_rounded") or 0) > 0:
+        lines.append(
+            pdmsg(
+                "calendar_dash_hero_peak",
+                weekday=peak.get("weekday"),
+                date=str(peak.get("date") or "")[5:],
+                hours=_fmt_hours(peak.get("meeting_hours_rounded")),
+                title=peak_title,
+            )
+        )
     lines += [
-        "---",
-        "",
-        pdmsg("auto_9b872e78bd"),
+        pdmsg("calendar_dash_hero_updated", date=today.strftime("%d.%m.%Y")),
         "",
     ]
-    if week_wiki:
-        lines += [f"![[{week_wiki}]]", ""]
-    if life_wiki:
-        lines += [f"![[{life_wiki}]]", ""]
 
-    ins = _clip_insights(insights_md)
-    if ins:
-        lines += ["---", "", pdmsg("auto_b517d84574"), "", ins, ""]
-
-    # (comment)
-    detail_body: List[str] = [
-        pdmsg("auto_a962aee89e"),
-        "| :--- | --: | --: | --: | --: | --: |",
-    ]
-    for d in days_data:
-        frag = float(d.get("fragmentation_short_meetings_ratio", 0) or 0)
-        ds = ((d.get("date") or "")[5:]).replace("-", ".")
-        detail_body.append(
-            f"| {d.get('weekday', '')} {ds} "
-            f"| {d.get('meeting_hours_rounded', 0)} "
-            f"| {d.get('meeting_count', 0)} "
-            f"| {d.get('evening_starts_18plus', 0)} "
-            f"| {frag * 100:.0f}% "
-            f"| {d.get('max_contiguous_busy_minutes', 0)}m |"
+    upcoming = analytics.get("upcoming") or []
+    if upcoming:
+        up_body: List[str] = [
+            "### "
+            + pdmsg(
+                "calendar_dash_upcoming_head",
+                n=len(upcoming),
+                default=f"**{len(upcoming)}** slots",
+            ),
+            "",
+        ]
+        for u in upcoming[:12]:
+            when = pdmsg(
+                "calendar_dash_upcoming_when",
+                weekday=u.get("weekday"),
+                date=str(u.get("date") or "")[5:],
+                start=u.get("start"),
+                end=u.get("end"),
+                default=f"{u.get('weekday')} {str(u.get('date') or '')[5:]} {u.get('start')}–{u.get('end')}",
+            )
+            up_body.append(
+                pdmsg(
+                    "calendar_dash_upcoming_line",
+                    when=when,
+                    title=(u.get("title") or "")[:70],
+                    default=f"- **{when}** · {(u.get('title') or '')[:70]}",
+                )
+            )
+        lines.extend(
+            _callout(
+                "abstract",
+                pdmsg("calendar_dash_upcoming_title", default="Today / tomorrow"),
+                *up_body,
+            )
         )
-    detail_body.append("")
-    detail_body.append(pdmsg("auto_01182d875e"))
-    detail_body.append("")
-
-    life = analytics.get("life_hours") or {}
-    if life:
-        detail_body.extend(_mermaid_pie(life, pdmsg("auto_974c1b28ea")).splitlines())
-        detail_body.append("")
-
-    rhythms = analytics.get("rhythms") or []
-    if rhythms:
-        detail_body.append(
-            pdmsg("auto_4f3c0a9a48") + " · ".join(f"×{r['count']} {r['title_key'][:40]}" for r in rhythms[:5])
+    else:
+        lines.extend(
+            _callout(
+                "success",
+                pdmsg("calendar_dash_upcoming_title", default="Today / tomorrow"),
+                pdmsg("calendar_dash_upcoming_empty", default="No timed slots in the next 48h."),
+            )
         )
 
-    lines.append(pdmsg("auto_aa763f2047"))
-    for ln in detail_body:
-        lines.append("> " + ln if ln.strip() else ">")
-    lines.append("")
-    return "\n".join(lines)
+    free = analytics.get("free_windows") or []
+    if free:
+        free_body: List[str] = [
+            pdmsg(
+                "calendar_dash_free_note",
+                default="Weekday gaps ≥1.5h between 09:00–18:00 — deep-work candidates.",
+            ),
+            "",
+        ]
+        for w in free[:8]:
+            free_body.append(
+                pdmsg(
+                    "calendar_dash_free_line",
+                    weekday=w.get("weekday"),
+                    date=str(w.get("date") or "")[5:],
+                    start=w.get("start"),
+                    end=w.get("end"),
+                    hours=_fmt_hours(w.get("hours")),
+                    default=(
+                        f"- **{w.get('weekday')} {str(w.get('date') or '')[5:]}** "
+                        f"· {w.get('start')}–{w.get('end')} ({_fmt_hours(w.get('hours'))} h)"
+                    ),
+                )
+            )
+        lines.extend(
+            _callout(
+                "success",
+                pdmsg("calendar_dash_free_title", default="Free windows"),
+                *free_body,
+            )
+        )
+
+    markers = analytics.get("day_markers") or []
+    if markers:
+        mark_body: List[str] = [
+            pdmsg(
+                "calendar_dash_markers_note",
+                default="All-day / block labels — life context, not meeting load.",
+            ),
+            "",
+        ]
+        for m in markers[:8]:
+            mark_body.append(
+                pdmsg(
+                    "calendar_dash_markers_line",
+                    weekday=m.get("weekday"),
+                    date=str(m.get("date") or "")[5:],
+                    title=(m.get("title") or "")[:70],
+                    default=f"- **{m.get('weekday')} {str(m.get('date') or '')[5:]}** · {(m.get('title') or '')[:70]}",
+                )
+            )
+        lines.extend(
+            _callout(
+                "note",
+                pdmsg("calendar_dash_markers_title", default="Day markers"),
+                *mark_body,
+            )
+        )
+
+    heavy = analytics.get("heavy_days") or []
+    if heavy:
+        bits = _sep("calendar_dash_mix_join").join(
+            pdmsg(
+                "calendar_dash_heavy_item",
+                weekday=h.get("weekday"),
+                date=str(h.get("date") or "")[5:],
+                hours=_fmt_hours(h.get("hours")),
+                default=f"{h.get('weekday')} {str(h.get('date') or '')[5:]} {_fmt_hours(h.get('hours'))}h",
+            )
+            for h in heavy[:5]
+        )
+        lines.extend(
+            _callout(
+                "warning" if len(heavy) >= 3 else "abstract",
+                pdmsg("calendar_dash_heavy_title", default="Heavy days (≥3h)"),
+                bits,
+            )
+        )
+
+    show_types = typed_share >= 0.15 and bool(life_wiki)
+    if week_wiki or show_types:
+        lines += [pdmsg("calendar_dash_section_load"), ""]
+        if week_wiki:
+            lines += [f"![[{week_wiki}]]", ""]
+        if show_types:
+            lines += [f"![[{life_wiki}]]", ""]
+    if pressure:
+        lines.append(
+            "> [!note]- " + pdmsg("calendar_dash_section_pressure_fold", default="Large slots (week)")
+        )
+        for p in pressure:
+            lines.append(
+                "> "
+                + pdmsg(
+                    "calendar_dash_pressure_fold_line",
+                    weekday=p.get("weekday"),
+                    date=str(p.get("date") or "")[5:],
+                    hours=_fmt_hours(p.get("hours")),
+                    title=(p.get("title") or "")[:70],
+                    default=(
+                        f"- **{p.get('weekday')} {str(p.get('date') or '')[5:]}** "
+                        f"· {_fmt_hours(p.get('hours'))} h · {(p.get('title') or '')[:70]}"
+                    ),
+                )
+            )
+        lines.append("")
+
+    unclassified = analytics.get("unclassified_top") or []
+    if unclassified and typed_share >= 0.15:
+        lines.append(
+            "> [!note]- "
+            + pdmsg("calendar_dash_section_unclassified_fold", default="Still untyped")
+        )
+        for u in unclassified[:5]:
+            lines.append(
+                "> "
+                + pdmsg(
+                    "calendar_dash_unclassified_fold_line",
+                    hours=u.get("hours"),
+                    title=(u.get("title") or "")[:70],
+                    default=f"- {u.get('hours')} h · {(u.get('title') or '')[:70]}",
+                )
+            )
+        lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
 
 
-def _update_companion_md(graphics_dir: Path, now_str: str) -> None:
-    'Operation implementation.'
-    from planning_bot.services.calendar_charts import png_life_filename
-
+def _companion_targets(graphics_dir: Path) -> list[tuple[Path, str, str, Path]]:
     vault = graphics_dir.resolve().parent.parent
     try:
         from shared.chart_paths import chart_path
 
+        week_png = chart_path(vault, "chart_calendar_week_png")
         life_png = chart_path(vault, "chart_calendar_sections_png")
-        week_md = chart_path(vault, "chart_calendar_week_png").with_suffix(".md")
         try:
             life_md = chart_path(vault, "chart_calendar_sections_md")
         except Exception:
             life_md = life_png.with_suffix(".md")
-        companions = [week_md, life_md]
+        return [
+            (week_png.with_suffix(".md"), "calendar_companion_week_body", week_png.name, week_png),
+            (life_md, "calendar_companion_activity_body", life_png.name, life_png),
+        ]
     except Exception:
-        plan_dir = graphics_dir / "Планирование"
-        life_png = plan_dir / png_life_filename()
-        companions = [
-            plan_dir / pdmsg("auto_f077724de3"),
-            plan_dir / pdmsg("auto_6799b4f864"),
+        from planning_bot.services.calendar_charts import png_life_filename, png_week_filename
+
+        try:
+            from shared.vault_paths_config import planning_sub
+
+            plan_name = planning_sub("graphs_planning")
+        except Exception:
+            plan_name = "Planning"
+        plan_dir = graphics_dir / str(plan_name)
+        week_name = png_week_filename()
+        life_name = png_life_filename()
+        week_png = plan_dir / week_name
+        life_png = plan_dir / life_name
+        return [
+            (week_png.with_suffix(".md"), "calendar_companion_week_body", week_name, week_png),
+            (life_png.with_suffix(".md"), "calendar_companion_activity_body", life_name, life_png),
         ]
 
-    for p in companions:
-        if not p.exists():
-            continue
-        text = p.read_text(encoding="utf-8")
-        updated = text.replace("{{updated}}", now_str)
-        if p.name == pdmsg("auto_6799b4f864") and not life_png.exists():
+
+def _update_companion_md(graphics_dir: Path, now_str: str) -> None:
+    for md_path, body_key, png_name, png_path in _companion_targets(graphics_dir):
+        body = pdmsg(body_key, png_name=png_name, now=now_str).strip()
+        if not body:
+            if not md_path.exists():
+                continue
+            text = md_path.read_text(encoding="utf-8")
+            updated = text.replace("{{updated}}", now_str)
             updated = re.sub(
+                pdmsg("auto_49b159f4e7"),
+                pdmsg("calendar_companion_updated", now=now_str),
+                updated,
+                flags=re.MULTILINE,
+            )
+            if updated != text:
+                md_path.write_text(updated, encoding="utf-8")
+            continue
+        if body_key == "calendar_companion_activity_body" and not png_path.exists():
+            body = re.sub(
                 r"!\[[^\]]*\]\([^)]+\)\s*\n*",
                 pdmsg("calendar_life_chart_missing_callout"),
-                updated,
+                body,
                 count=1,
             )
-        updated = re.sub(
-            pdmsg("auto_49b159f4e7"),
-            pdmsg("calendar_companion_updated", now=now_str),
-            updated,
-            flags=re.MULTILINE,
-        )
-        if updated != text:
-            p.write_text(updated, encoding="utf-8")
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text(body.rstrip() + "\n", encoding="utf-8")
 
 
 def write_meeting_focus_dashboard(
     path: Path,
     generated_at: str,
     analytics: Dict[str, Any],
-    insights_md: str,
+    insights_md: str = "",
 ) -> None:
     from planning_bot.core.config import GRAPHICS_DIR
     from planning_bot.services.calendar_charts import try_write_calendar_charts

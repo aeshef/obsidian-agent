@@ -54,7 +54,7 @@ def _token_hit(haystack: str, token: str) -> bool:
         return False
     if token in haystack:
         return True
-    # Soft morphology: "стоимости" → "стоим" matches "…стоимость…"
+    # Soft morphology: stem prefix (len>=5) matches declined forms in chart titles.
     return len(token) >= 5 and token[:5] in haystack
 
 

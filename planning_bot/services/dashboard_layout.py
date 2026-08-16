@@ -9,7 +9,7 @@ from shared.vault_paths_config import folder, vault_file
 
 LEGACY_NUTRITION_DASHBOARD_KEY = "legacy_nutrition_dashboard_md"
 
-# Old Analytics/ paths for agent + insights (moved to Система/). Sync --delete needs local gone.
+# Old Analytics/ paths for agent + insights (moved to System/). Sync --delete needs local gone.
 _LEGACY_CHART_KEYS = (
     "legacy_agent_cost_dashboard_md",
     "legacy_chart_agent_tokens_daily_png",

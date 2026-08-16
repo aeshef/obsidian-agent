@@ -31,7 +31,7 @@ def knowledge_index_roots() -> list[str]:
 
     Always includes ``knowledge_subdir`` (write root). Extra roots come from
     ``vault.knowledge_index_extra_folders`` as keys into ``vault_paths.folders``
-    (e.g. ``handwritten`` → ``600_Рукописное``). Writes stay on knowledge_subdir only.
+    (e.g. ``handwritten`` → vault handwritten folder). Writes stay on knowledge_subdir only.
     """
     from shared.agent.platform_config import platform_value
     from shared.vault_paths_config import folder

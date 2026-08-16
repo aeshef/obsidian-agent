@@ -1,4 +1,4 @@
-"""Analytics hub layout — life metrics only (agent → Система hub)."""
+"""Analytics hub layout — life metrics only (agent → System hub)."""
 from __future__ import annotations
 
 from pathlib import Path

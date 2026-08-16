@@ -21,4 +21,5 @@ def test_hub_no_duplicate_png_in_overview(tmp_path: Path):
     )
     assert body.count("Вес_динамика.png") == 1
     assert "Корреляции_доменов" not in body
-    assert "analytics_cross_health_link" in body or "health_dashboard" in body
+    # Cross-domain charts live on the health hub, not analytics overview.
+    assert "analytics_section_body" in body

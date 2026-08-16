@@ -44,7 +44,8 @@ def parse_log_events(path: Path) -> list[dict]:
         start = m.end()
         nxt = _TS_RE.search(text, start)
         block = text[start : nxt.start() if nxt else len(text)]
-        type_m = re.search(r"\*\*Тип:\*\*\s*(\S+)", block)
+        type_label = (pdmsg("log_entry_type_label", default="**Type:**") or "**Type:**").strip()
+        type_m = re.search(re.escape(type_label) + r"\s*(\S+)", block)
         if not type_m:
             type_m = re.search(r"\*\*Type:\*\*\s*(\S+)", block)
         action = (type_m.group(1) if type_m else "").strip()
