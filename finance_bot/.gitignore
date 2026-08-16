@@ -24,6 +24,9 @@ logs/
 *.key
 *.p12
 *.pfx
+# Public MinTsifry Russian Trusted CAs (needed for T-Bank TLS + CI)
+!certs/russian_trusted_root_ca.pem
+!certs/russian_trusted_sub_ca.pem
 secrets*.json
 credentials*.json
 
