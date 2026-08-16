@@ -84,6 +84,7 @@ def main() -> None:
 
     db_mtime = datetime.fromtimestamp(db_path.stat().st_mtime)
     accounts, transactions, planned = load_data(db_path, args.user_id)
+    now = datetime.now()
     print(dtpl("logs", "loaded", accounts=len(accounts), transactions=len(transactions), planned=len(planned)))
 
     conn = sqlite3.connect(db_path)
@@ -184,6 +185,68 @@ def main() -> None:
             "",
         ])
 
+    # Month flexible plan (subscriptions + planned + buffer)
+    try:
+        from bot.services.month_plan import (
+            PlanLine,
+            build_month_plan,
+            inferred_from_config,
+            load_month_plan_config,
+            load_subscriptions,
+            month_expense_total,
+            month_plan_config_path,
+            planned_for_month,
+            subscriptions_yaml_path,
+        )
+
+        cfg_path = month_plan_config_path()
+        mp_cfg = load_month_plan_config(cfg_path)
+        ym = f"{now.year:04d}-{now.month:02d}"
+        income = float(mp_cfg.get("income_expected_rub") or 0)
+        buffer = float(mp_cfg.get("buffer_savings_rub") or 0)
+        inferred = inferred_from_config(mp_cfg)
+        subs = load_subscriptions(subscriptions_yaml_path())
+        specifics = planned_for_month(planned, ym)
+        month_spend = month_expense_total(transactions, ym)
+        recurring_sum = sum(x.amount for x in subs) + sum(x.amount for x in inferred)
+        flexible_spent = max(0.0, month_spend - recurring_sum)
+        snap = build_month_plan(
+            ym=ym,
+            today=now.date(),
+            income_expected=income,
+            subscriptions=subs,
+            specifics=specifics,
+            inferred=inferred,
+            buffer_savings=buffer,
+            flexible_spent=flexible_spent,
+        )
+        part_planned.extend([dtpl("sections", "month_plan", "heading"), ""])
+        if income <= 0:
+            part_planned.append(dtpl("sections", "month_plan", "skip_income_zero"))
+        else:
+            part_planned.extend([
+                dtpl("sections", "month_plan", "income", amount=fmt_num(snap.income_expected, decimals=0)),
+                dtpl("sections", "month_plan", "commitment", amount=fmt_num(snap.commitment, decimals=0)),
+                dtpl("sections", "month_plan", "flexible", amount=fmt_num(snap.flexible_pool, decimals=0)),
+                dtpl(
+                    "sections",
+                    "month_plan",
+                    "spent",
+                    amount=fmt_num(snap.flexible_spent, decimals=0),
+                    burn=fmt_num(snap.burn_pct, decimals=0),
+                ),
+                dtpl("sections", "month_plan", "fair_daily", amount=fmt_num(snap.daily_allowance, decimals=0)),
+                dtpl(
+                    "sections",
+                    "month_plan",
+                    "daily",
+                    amount=fmt_num(snap.daily_allowance_remaining, decimals=0),
+                ),
+            ])
+        part_planned.extend(["", dtpl("sections", "month_plan", "hint"), ""])
+    except Exception as e:
+        print(f"month_plan section skipped: {e}")
+
     # Balance structure (RUB)
     rub_accounts = [
         (acc_by_id[aid]["name"], float(b))
@@ -201,7 +264,6 @@ def main() -> None:
         )
 
     # Spending by category
-    now = datetime.now()
     # Dashboard start date for daily charts
     _start = finance_dashboard_start_date()
     try:

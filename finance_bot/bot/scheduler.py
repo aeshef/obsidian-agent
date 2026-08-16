@@ -211,6 +211,9 @@ async def send_weekly_analysis(bot) -> None:
 
 async def send_badge_evening_alert(bot) -> None:
     """Evening alert when badge daily spend is low."""
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push
+
     if not is_badge_enabled():
         return
     tracker = BadgeTracker(get_badge_config())
@@ -219,8 +222,9 @@ async def send_badge_evening_alert(bot) -> None:
             users = await _get_users_with_chat_id(session)
             for u in users:
                 try:
-                    text = await tracker.today_alert_text(session, u.id)
-                    if text:
+                    body = await tracker.today_alert_text(session, u.id)
+                    if body:
+                        text = format_push(msg("push", "finance_badge_title"), body)
                         await _send_user_push(bot, u.chat_id, text)
                 except Exception as e:
                     log.warning("send_badge_evening_alert: user_id=%s: %s", u.id, e)
@@ -230,6 +234,9 @@ async def send_badge_evening_alert(bot) -> None:
 
 async def send_badge_monthly_digest(bot) -> None:
     """1st of month: previous month badge summary."""
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push
+
     if not is_badge_enabled():
         return
     tracker = BadgeTracker(get_badge_config())
@@ -245,7 +252,7 @@ async def send_badge_monthly_digest(bot) -> None:
             for u in users:
                 try:
                     stats = await tracker.month_stats(session, u.id, y, m)
-                    text = tracker.format_month_summary(stats)
+                    body = tracker.format_month_summary(stats)
                     prompt_tpl = (cfg.get("llm") or {}).get("monthly_digest_prompt") or ""
                     if not prompt_tpl.strip():
                         prompt_tpl = load_text_config("badge_monthly_prompt.txt")
@@ -261,7 +268,8 @@ async def send_badge_monthly_digest(bot) -> None:
                             {"role": "user", "content": fmsg("scheduler_badge_llm_prompt")},
                         ])
                         if llm_text and llm_text.strip():
-                            text = text + "\n\n" + llm_text.strip()
+                            body = body + "\n\n" + llm_text.strip()
+                    text = format_push(msg("push", "finance_badge_title"), body)
                     await _send_user_push(bot, u.chat_id, text)
                 except Exception as e:
                     log.warning("send_badge_monthly_digest: user_id=%s: %s", u.id, e)

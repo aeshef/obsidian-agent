@@ -18,13 +18,34 @@ __all__ = ["MessageWithText", "dispatch_auto_free_text", "auto_handler_for"]
 
 
 def _looks_like_txn_candidate(text: str) -> bool:
-    """Cheap prefilter before finance-intent LLM (avoid tax on every question)."""
+    """Cheap prefilter before finance-intent LLM (avoid tax on every question).
+
+    Short money notes and multi-line dumps (confirm queue) both qualify.
+    Hard length was 160 and silently dropped bulk transfer lists into unified chat.
+    """
     import re
 
     t = (text or "").strip()
-    if not t or len(t) > 160 or "?" in t:
+    if not t or "?" in t:
         return False
-    return bool(re.search(r"\d", t))
+    if not re.search(r"\d", t):
+        return False
+    # Telegram message ceiling; NLU handles batch lists.
+    if len(t) > 4000:
+        return False
+    if len(t) <= 160:
+        return True
+    lines = [ln.strip() for ln in t.splitlines() if ln.strip()]
+    digit_lines = sum(1 for ln in lines if re.search(r"\d", ln))
+    if len(lines) >= 2 and digit_lines >= 2:
+        return True
+    # Single long line still ok if it looks money-like (voice ASR blobs, etc.)
+    return bool(
+        re.search(
+            r"(?i)(\d[\d\s]*([.,]\d+)?\s*(₽|руб\.?|р\b|kzt|\$|€)|перевод|потрат|пополни)",
+            t,
+        )
+    )
 
 
 async def _try_finance_transaction(

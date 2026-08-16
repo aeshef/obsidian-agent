@@ -16,6 +16,14 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from bot.vault_paths import VaultPaths, vault_root_optional  # noqa: E402
+from bot.services.ssl_ca import httpx_client_kwargs  # noqa: E402
+
+
+def _httpx_client(*, http2: bool = False, timeout: float = 25.0) -> httpx.Client:
+    kw = httpx_client_kwargs(timeout=timeout)
+    if http2:
+        kw["http2"] = True
+    return httpx.Client(**kw)
 
 
 def dbg(msg: str) -> None:
@@ -92,6 +100,10 @@ def fetch_tinkoff_summary(token: str) -> dict:
         from tg_alerting.integrations.tinkoff import TinkoffClient
         dbg("Imported TinkoffClient from tg_alerting.integrations.tinkoff")
         dbginfo["imported_client"] = True
+    except ModuleNotFoundError:
+        # Optional legacy package — Invest SDK / REST path below is the normal install.
+        TinkoffClient = None
+        dbginfo["imported_client"] = False
     except Exception as e:
         dbg(f"Import TinkoffClient failed: {e}")
         dbginfo["errors"].append(f"import_error: {e}")
@@ -151,10 +163,10 @@ def fetch_tinkoff_summary(token: str) -> dict:
             url_acc = base + "/tinkoff.public.invest.api.contract.v1.UsersService/GetAccounts"
             # prefer HTTP/2; fallback to HTTP/1.1 if not available
             try:
-                client_ctx = httpx.Client(http2=True, timeout=25.0, follow_redirects=True)
+                client_ctx = _httpx_client(http2=True, timeout=25.0)
             except Exception as e:
                 dbg(f"HTTP/2 unavailable ({e}); falling back to HTTP/1.1")
-                client_ctx = httpx.Client(timeout=25.0, follow_redirects=True)
+                client_ctx = _httpx_client(timeout=25.0)
             # fetch accounts
             with client_ctx as client:
                 r = client.post(url_acc, json={}, headers={
@@ -188,9 +200,9 @@ def fetch_tinkoff_summary(token: str) -> dict:
                 payload = {"account_id": str(acc_id)}
                 # use separate client context to avoid closed-client issues
                 try:
-                    c2 = httpx.Client(http2=True, timeout=25.0, follow_redirects=True)
+                    c2 = _httpx_client(http2=True, timeout=25.0)
                 except Exception:
-                    c2 = httpx.Client(timeout=25.0, follow_redirects=True)
+                    c2 = _httpx_client(timeout=25.0)
                 with c2 as client2:
                     r2 = client2.post(url_port, json=payload, headers={
                         "Authorization": f"Bearer {token}",
@@ -225,10 +237,10 @@ def fetch_tinkoff_summary(token: str) -> dict:
             base = "https://api-invest.tinkoff.ru/openapi"
             # accounts
             try:
-                client2_ctx = httpx.Client(http2=True, timeout=20.0, follow_redirects=True)
+                client2_ctx = _httpx_client(http2=True, timeout=20.0)
             except Exception as e:
                 dbg(f"HTTP/2 unavailable for legacy ({e}); falling back to HTTP/1.1")
-                client2_ctx = httpx.Client(timeout=20.0, follow_redirects=True)
+                client2_ctx = _httpx_client(timeout=20.0)
             with client2_ctx as client2:
                 r = client2.get(base + "/user/accounts", headers={
                     "Authorization": f"Bearer {token}",
@@ -281,8 +293,8 @@ def fetch_tinkoff_summary(token: str) -> dict:
         sector_md = "\n".join(sector_table)
 
     return {
-        "total_rub": int(round(total_rub)),
-        "day_change_rub": int(round(day_change_rub)),
+        "total_rub": round(float(total_rub), 2),
+        "day_change_rub": round(float(day_change_rub), 2),
         "sector_table": sector_md,
         "updated_at": datetime.now(timezone.utc).isoformat(),
         "_debug": dbginfo,
