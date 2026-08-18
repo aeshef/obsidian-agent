@@ -2,15 +2,15 @@
 """Known-item retrieval eval for the knowledge-base RAG pipeline.
 
 Methodology (fully automatic, no manual labeling):
-  1. Sample N notes from the *searchable window* of the live index (the notes that
-     fit the single-shot compact catalog; corpus coverage is reported separately).
+  1. Sample N notes from the live index.
   2. For each note, an LLM writes ONE natural question the note answers
      (without quoting rare verbatim strings, to avoid trivial lexical match).
-  3. Run the real production retrieval (`run_brain_query`): preselect -> select.
+  3. Run production retrieval (`run_brain_query`): dense preselect → LLM select
+     (catalog fallback if embeddings are not ready).
   4. Check whether the *source* note is recovered, and at which rank.
 
 Reported metrics:
-  - Preselect Recall  : source note survives stage-1 (compact catalog) funnel
+  - Preselect Recall  : source note survives stage-1 funnel
   - Select   Recall@1 : source note is the top selected note
   - Select   Recall@k : source note is anywhere in the selected set
   - MRR               : mean reciprocal rank over the selected set
@@ -90,6 +90,11 @@ def main() -> None:
                     help="skip notes with body shorter than this")
     ap.add_argument("--out", default="eval/results.json")
     ap.add_argument("--no-chart", action="store_true")
+    ap.add_argument(
+        "--retrieve-only",
+        action="store_true",
+        help="skip answer LLM; score preselect/select paths only",
+    )
     args = ap.parse_args()
 
     _load_dotenv_if_present()
@@ -145,28 +150,9 @@ def main() -> None:
     llm = LLMClient()
     config_path = get_config_path()
 
-    # --- Instrument the real pipeline to capture funnel stages -------------
-    captured = {"preselect": [], "final": []}
-    orig_parse_pre = brain_query._parse_preselect
-    orig_hit_stats = brain_query._update_hit_stats
-
-    def _spy_preselect(raw, short_to_full):
-        out = orig_parse_pre(raw, short_to_full)
-        captured["preselect"] = list(out)
-        return out
-
-    def _spy_hit_stats(paths):
-        captured["final"] = list(paths)
-        # skip writing real hit-stats during eval
-        return None
-
-    brain_query._parse_preselect = _spy_preselect
-    brain_query._update_hit_stats = _spy_hit_stats
-
     records = []
     t0 = time.time()
-    try:
-        for i, note in enumerate(sample, 1):
+    for i, note in enumerate(sample, 1):
             src = note["rel_path"]
             title = note.get("title") or Path(src).stem
             q = _gen_question(llm, title, note.get("summary", ""), note.get("preview", ""))
@@ -175,17 +161,27 @@ def main() -> None:
                 print(f"[{i}/{len(sample)}] SKIP (no question) {title}")
                 continue
 
-            captured["preselect"], captured["final"] = [], []
             uid = 900000 + i  # unique id -> no cross-query history bias
             try:
-                res = brain_query.run_brain_query(vault_path, config_path, llm, uid, q)
-                answered = bool(res.text and len(res.text) > 40)
+                res = brain_query.run_brain_query(
+                    vault_path,
+                    config_path,
+                    llm,
+                    uid,
+                    q,
+                    retrieve_only=args.retrieve_only,
+                    update_stats=False,
+                )
+                answered = bool(res.ok and res.text and len(res.text) > 40)
+                if args.retrieve_only:
+                    answered = bool(res.ok and res.selected_paths)
             except Exception as e:  # noqa: BLE001
                 print(f"[{i}] run_brain_query error: {e}", file=sys.stderr)
                 answered = False
+                res = None
 
-            pre = captured["preselect"]
-            final = captured["final"]
+            pre = list(res.preselect_paths) if res else []
+            final = list(res.selected_paths) if res else []
             rank = (final.index(src) + 1) if src in final else 0
             rec = {
                 "src": src,
@@ -195,13 +191,11 @@ def main() -> None:
                 "rank": rank,
                 "n_selected": len(final),
                 "answered": answered,
+                "ok": bool(res.ok) if res else False,
             }
             records.append(rec)
             flag = f"rank={rank}" if rank else ("pre-only" if rec["in_preselect"] else "MISS")
             print(f"[{i}/{len(sample)}] {flag:>9}  {title[:48]!r}")
-    finally:
-        brain_query._parse_preselect = orig_parse_pre
-        brain_query._update_hit_stats = orig_hit_stats
 
     scored = [r for r in records if not r.get("skipped")]
     n = len(scored) or 1
