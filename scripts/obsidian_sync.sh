@@ -199,22 +199,8 @@ _cleanup_remote_deleted_from_manifest() {
   [ -n "${SERVER:-}" ] || return 0
   local deleted_lines
   deleted_lines=$(
-    python3 - "$manifest" "$LOCAL_VAULT" 2>/dev/null <<'PY_CLEANUP_REMOTE'
-import json, sys, pathlib
-manifest_path, vault_str = sys.argv[1], sys.argv[2]
-vault = pathlib.Path(vault_str).resolve()
-data = json.load(open(manifest_path, encoding="utf-8"))
-for item in (data.get("deleted") or []):
-    p = item.get("path") if isinstance(item, dict) else item
-    if not p or ".." in str(p):
-        continue
-    try:
-        resolved = (vault / str(p)).resolve()
-        resolved.relative_to(vault)
-        print(str(p))
-    except (ValueError, Exception):
-        pass
-PY_CLEANUP_REMOTE
+    python3 "${AGENT_ROOT}/knowledge_bot/tools/print_deleted_manifest.py" \
+      "$manifest" "$LOCAL_VAULT" 2>/dev/null
   )
   [ -n "$deleted_lines" ] || return 0
   local maintenance_log="${AGENT_ROOT}/planning_bot/logs/vault_write_maintenance.log"
@@ -1080,22 +1066,8 @@ REMOTE_DUP
           _CLEANUP_MANIFEST="$SYNC_DIR/last_maintenance_deleted_paths.json"
           if [ -f "$_CLEANUP_MANIFEST" ] && [ -n "$KN_PYTHON" ]; then
             _deleted_lines=$(
-              "$KN_PYTHON" - "$_CLEANUP_MANIFEST" "$LOCAL_VAULT" 2>/dev/null <<'PY_CLEANUP'
-import json, sys, pathlib
-manifest_path, vault_str = sys.argv[1], sys.argv[2]
-vault = pathlib.Path(vault_str).resolve()
-data = json.load(open(manifest_path, encoding="utf-8"))
-for p in (data.get("deleted") or []):
-    if not p or ".." in p:
-        continue
-    try:
-        # Убеждаемся, что путь относительный и не выходит за пределы vault
-        resolved = (vault / p).resolve()
-        resolved.relative_to(vault)
-        print(p)
-    except (ValueError, Exception):
-        pass
-PY_CLEANUP
+              "$KN_PYTHON" "${AGENT_ROOT}/knowledge_bot/tools/print_deleted_manifest.py" \
+                "$_CLEANUP_MANIFEST" "$LOCAL_VAULT" 2>/dev/null
             )
             if [ -n "$_deleted_lines" ]; then
               echo "$(sh_msgf scripts.obsidian_sync.step_5b_2c '{"count":"'$(echo "$_deleted_lines" | wc -l | tr -d ' ')'","server":"'$SERVER'"}')" >&2

@@ -85,6 +85,68 @@ def test_extract_deleted_paths_apply_duplicates(monkeypatch):
     assert len(collect_deletions_from_steps(steps)) == 2
 
 
+def test_extract_reprocess_relocated_below_stdout_header():
+    """DELETED_ORIGINAL is never at index 0; Pattern.finditer(..., re.M) used to treat flags as pos."""
+    stdout = (
+        "Processing (limit=8): 1\n"
+        "--- 700_db/Video/src.md ---\n"
+        "  [attachments] files=[] links=0\n"
+        "DELETED_ORIGINAL: 700_db/Video/src.md\n"
+        "  saved: 700_db/Memes/dst_1.md\n"
+        "DELETED_NOTE: empty 700_db/Video/blank.md\n"
+        "DELETED_ORIGINAL_LIST: 700_db/Video/src.md\t700_db/Video/other.md\n"
+    )
+    from knowledge_bot.services.maintenance_metrics import (
+        collect_deletions_from_steps,
+        extract_deleted_paths_from_stdout,
+        extract_step_metrics,
+    )
+
+    paths = extract_deleted_paths_from_stdout("reprocess_notes", stdout)
+    by_path = {p["path"]: p["reason"] for p in paths}
+    assert by_path["700_db/Video/src.md"] == "reprocess_relocated"
+    assert by_path["700_db/Video/blank.md"] == "empty"
+    assert by_path["700_db/Video/other.md"] == "reprocess_relocated"
+
+    metrics = extract_step_metrics("reprocess_notes", stdout)
+    assert any(p["path"] == "700_db/Video/src.md" for p in metrics["deleted_paths"])
+
+    steps = [
+        {
+            "name": "reprocess_notes",
+            "metrics": {"reprocess_saved": 1},
+            "stdout_tail": stdout,
+        }
+    ]
+    merged = collect_deletions_from_steps(steps)
+    assert "700_db/Video/src.md" in {p["path"] for p in merged}
+
+
+def test_print_deleted_manifest_accepts_dicts(tmp_path: Path):
+    from knowledge_bot.tools.print_deleted_manifest import iter_manifest_relpaths, main
+
+    vault = tmp_path / "vault"
+    vault.mkdir()
+    manifest = tmp_path / "last_maintenance_deleted_paths.json"
+    manifest.write_text(
+        '{"deleted":[{"path":"700_db/Video/src.md","reason":"reprocess_relocated"},'
+        '"700_db/Memes/dst_1.md"]}',
+        encoding="utf-8",
+    )
+    rels = iter_manifest_relpaths(
+        {
+            "deleted": [
+                {"path": "700_db/Video/src.md", "reason": "reprocess_relocated"},
+                "700_db/Memes/dst_1.md",
+                {"path": "../outside.md"},
+            ]
+        }
+    )
+    assert rels == ["700_db/Video/src.md", "700_db/Memes/dst_1.md"]
+    rc = main([str(manifest), str(vault)])
+    assert rc == 0
+
+
 def test_render_maintenance_chart_path(tmp_path: Path, monkeypatch):
     monkeypatch.setenv("AGENT_LOCALE", "ru")
     from functools import lru_cache

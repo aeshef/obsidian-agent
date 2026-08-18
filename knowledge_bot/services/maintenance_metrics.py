@@ -10,8 +10,11 @@ from typing import Any
 
 import yaml
 
-_DELETED_NOTE_RE = re.compile(r"^DELETED_NOTE:\s*(\S+)\s+(.+)\s*$")
-_DELETED_ORIGINAL_RE = re.compile(r"^DELETED_ORIGINAL:\s*(.+)\s*$")
+# Line-anchored; scan via splitlines() — do not pass re.M into Pattern.finditer
+# (that argument is `pos`, so ^ never matches a marker below the stdout header).
+_DELETED_NOTE_RE = re.compile(r"^\s*DELETED_NOTE:\s*(\S+)\s+(.+?)\s*$")
+_DELETED_ORIGINAL_RE = re.compile(r"^\s*DELETED_ORIGINAL:\s*(.+?)\s*$")
+_DELETED_ORIGINAL_LIST_RE = re.compile(r"^\s*DELETED_ORIGINAL_LIST:\s*(.+?)\s*$")
 _EXPORT_SECTION_RE = re.compile(r"^---\s*.*Export")
 
 from knowledge_bot.core.config import load_config
@@ -224,10 +227,29 @@ def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[
     out: list[dict[str, str]] = []
     deleted_line_re = _deleted_line_re()
     if step_name == "reprocess_notes":
-        for m in _DELETED_NOTE_RE.finditer(stdout, re.MULTILINE):
-            out.append({"path": m.group(2).strip(), "reason": m.group(1).strip()})
-        for m in _DELETED_ORIGINAL_RE.finditer(stdout, re.MULTILINE):
-            out.append({"path": m.group(1).strip(), "reason": "reprocess_relocated"})
+        seen: set[str] = set()
+        for line in stdout.splitlines():
+            m_note = _DELETED_NOTE_RE.match(line)
+            if m_note:
+                path = m_note.group(2).strip()
+                if path and path not in seen:
+                    seen.add(path)
+                    out.append({"path": path, "reason": m_note.group(1).strip()})
+                continue
+            m_orig = _DELETED_ORIGINAL_RE.match(line)
+            if m_orig:
+                path = m_orig.group(1).strip()
+                if path and path not in seen:
+                    seen.add(path)
+                    out.append({"path": path, "reason": "reprocess_relocated"})
+                continue
+            m_list = _DELETED_ORIGINAL_LIST_RE.match(line)
+            if m_list:
+                for path in m_list.group(1).split("\t"):
+                    path = path.strip()
+                    if path and path not in seen:
+                        seen.add(path)
+                        out.append({"path": path, "reason": "reprocess_relocated"})
         return out
     if step_name == "export_orphans":
         for line in stdout.splitlines():
@@ -258,15 +280,22 @@ def extract_deleted_paths_from_stdout(step_name: str, stdout: str) -> list[dict[
 
 
 def collect_deletions_from_steps(steps: list[dict[str, Any]]) -> list[dict[str, str]]:
-    """Merge deleted path entries from all maintenance steps (unique by path)."""
+    """Merge deleted path entries from all maintenance steps (unique by path).
+
+    Falls back to stdout/stdout_tail so relocated originals still enter the
+    5b.2c manifest when step metrics omitted them.
+    """
     seen: set[str] = set()
     merged: list[dict[str, str]] = []
     for step in steps:
+        name = str(step.get("name") or "")
         metrics = step.get("metrics") if isinstance(step.get("metrics"), dict) else {}
         raw = metrics.get("deleted_paths") if isinstance(metrics, dict) else None
-        if not isinstance(raw, list):
-            continue
-        for item in raw:
+        items: list[Any] = list(raw) if isinstance(raw, list) else []
+        stdout = str(step.get("stdout_tail") or step.get("stdout") or "")
+        if stdout:
+            items.extend(extract_deleted_paths_from_stdout(name, stdout))
+        for item in items:
             if not isinstance(item, dict):
                 continue
             path = str(item.get("path") or "").strip()
