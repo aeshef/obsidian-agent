@@ -20,11 +20,94 @@ class BrainQueryResult:
     text: str
     # list of (vault_rel_path, note_title) for existing media files
     media_files: list[tuple[str, str]] = field(default_factory=list)
+    ok: bool = True
+    preselect_paths: list[str] = field(default_factory=list)
+    selected_paths: list[str] = field(default_factory=list)
 
 def _base_prefix() -> str:
     from shared.vault_layout import knowledge_index_prefix
 
     return knowledge_index_prefix()
+
+
+def _preselect_backend() -> str:
+    from shared.agent.platform_config import platform_str
+
+    return platform_str(
+        "knowledge_query",
+        "preselect_backend",
+        env="KNOWLEDGE_PRESELECT_BACKEND",
+        default="dense",
+    ).casefold()
+
+
+def _resolve_preselect(
+    llm: LLMClient,
+    agent_config_path: Path,
+    question: str,
+    hist_block: str,
+    entries: list[dict[str, Any]],
+) -> list[str]:
+    paths: list[str] = []
+    if _preselect_backend() == "dense":
+        paths = _dense_preselect(question, entries)
+    if not paths:
+        paths = _catalog_preselect(
+            llm, agent_config_path, question, hist_block, entries
+        )
+    return paths
+
+
+def _dense_preselect(question: str, entries: list[dict[str, Any]]) -> list[str]:
+    from knowledge_bot.services.query.dense_index import search_notes
+
+    hits = search_notes(question, entries, top_n=_preselect_max())
+    if hits:
+        log.info("dense preselect: %d hits", len(hits))
+    else:
+        log.warning("dense preselect empty, catalog fallback")
+    return hits
+
+
+def _catalog_preselect(
+    llm: LLMClient,
+    agent_config_path: Path,
+    question: str,
+    hist_block: str,
+    entries: list[dict[str, Any]],
+) -> list[str]:
+    from knowledge_bot.i18n.domain_text import brain
+
+    compact_catalog, short_to_full = _build_compact_catalog(entries)
+    preselect_sys = load_prompt(agent_config_path, "query_preselect")
+    preselect_user = (
+        brain("prompt_question", question=question)
+        + brain("prompt_history", history=hist_block or brain("history_none"))
+        + brain("prompt_all_notes", catalog=compact_catalog)
+    )
+    try:
+        pre_raw = llm.chat_json(
+            preselect_sys,
+            preselect_user,
+            timeout=_preselect_timeout(),
+            max_tokens=_preselect_max_tokens(),
+        ).content
+    except Exception:
+        log.exception("preselect step failed")
+        pre_raw = {}
+    if _llm_json_failed(pre_raw):
+        log.error("preselect: truncated/invalid JSON from LLM (see shared.llm finish_reason)")
+        pre_raw = {}
+    elif isinstance(pre_raw, dict) and pre_raw.get("_salvaged"):
+        log.warning("preselect: salvaged response from truncated JSON")
+
+    llm_paths = _parse_preselect(pre_raw if isinstance(pre_raw, dict) else {}, short_to_full)
+    if not llm_paths and isinstance(pre_raw, dict) and pre_raw:
+        log.warning(
+            "preselect LLM returned 0 parsed paths; keys=%s",
+            sorted(pre_raw.keys()),
+        )
+    return llm_paths
 
 
 def _compact_catalog_max_chars() -> int:
@@ -377,10 +460,9 @@ def _extract_media_from_notes(
         if not isinstance(fm, dict):
             continue
         title = str(fm.get("title") or rel)
-        att = fm.get("attachments") or {}
-        files = att.get("files") or [] if isinstance(att, dict) else []
-        if not isinstance(files, list):
-            continue
+        from knowledge_bot.services.frontmatter_attachments import attachment_files
+
+        files = attachment_files(fm)
         for f in files:
             if not isinstance(f, str) or f in seen:
                 continue
@@ -422,10 +504,21 @@ def run_brain_query(
     llm: LLMClient,
     user_id: int,
     question: str,
+    *,
+    retrieve_only: bool = False,
+    update_stats: bool = True,
 ) -> BrainQueryResult:
     """Module helper (user strings in YAML)."""
+    preselect_acc: list[str] = []
+    selected_acc: list[str] = []
+
     def _err(msg: str) -> BrainQueryResult:
-        return BrainQueryResult(text=msg)
+        return BrainQueryResult(
+            text=msg,
+            ok=False,
+            preselect_paths=list(preselect_acc),
+            selected_paths=list(selected_acc),
+        )
 
     from knowledge_bot.i18n.domain_text import brain
 
@@ -446,36 +539,10 @@ def run_brain_query(
     hist = load_history(user_id, max_turns=8)
     hist_block = format_history_for_prompt(hist)
 
-    compact_catalog, short_to_full = _build_compact_catalog(entries)
-    preselect_sys = load_prompt(agent_config_path, "query_preselect")
-    preselect_user = (
-        brain("prompt_question", question=question)
-        + brain("prompt_history", history=hist_block or brain("history_none"))
-        + brain("prompt_all_notes", catalog=compact_catalog)
+    candidate_paths = _resolve_preselect(
+        llm, agent_config_path, question, hist_block, entries
     )
-    try:
-        pre_raw = llm.chat_json(
-            preselect_sys,
-            preselect_user,
-            timeout=_preselect_timeout(),
-            max_tokens=_preselect_max_tokens(),
-        ).content
-    except Exception:
-        log.exception("preselect step failed")
-        pre_raw = {}
-    if _llm_json_failed(pre_raw):
-        log.error("preselect: truncated/invalid JSON from LLM (see shared.llm finish_reason)")
-        pre_raw = {}
-    elif isinstance(pre_raw, dict) and pre_raw.get("_salvaged"):
-        log.warning("preselect: salvaged response from truncated JSON")
-
-    llm_paths = _parse_preselect(pre_raw if isinstance(pre_raw, dict) else {}, short_to_full)
-    if not llm_paths and isinstance(pre_raw, dict) and pre_raw:
-        log.warning(
-            "preselect LLM returned 0 parsed paths; keys=%s",
-            sorted(pre_raw.keys()),
-        )
-    candidate_paths = llm_paths
+    preselect_acc = list(candidate_paths)
     if not candidate_paths:
         return _err(brain("preselect_none", count=len(entries)))
 
@@ -488,6 +555,7 @@ def run_brain_query(
             cap,
         )
         candidates = candidates[:cap]
+    preselect_acc = [e["rel_path"] for e in candidates]
     log.info("preselect: %d candidates → select step", len(candidates))
 
     summary_catalog = _build_summary_catalog(candidates)
@@ -529,6 +597,17 @@ def run_brain_query(
             return _err(
                 brain("no_matching_notes", reason_suffix=(f" {reason}" if reason else ""))
             )
+
+    selected_acc = list(final_paths)
+    if retrieve_only:
+        if update_stats:
+            _update_hit_stats(final_paths)
+        return BrainQueryResult(
+            text="",
+            ok=True,
+            preselect_paths=list(preselect_acc),
+            selected_paths=list(final_paths),
+        )
 
     raw_note_texts: dict[str, str] = {}  # rel_path -> raw text (for media extraction)
     full_notes: list[str] = []
@@ -575,13 +654,19 @@ def run_brain_query(
     if not text:
         return _err(brain("empty_model_answer"))
 
-    _update_hit_stats(final_paths)
+    if update_stats:
+        _update_hit_stats(final_paths)
     try:
         append_turn(user_id, question, text)
     except Exception:
         log.warning("failed to save history", exc_info=True)
 
-    return BrainQueryResult(text=text, media_files=media_files)
+    return BrainQueryResult(
+        text=text,
+        media_files=media_files,
+        preselect_paths=list(preselect_acc),
+        selected_paths=list(final_paths),
+    )
 
 
 from shared.telegram_utils import split_message as split_telegram_chunks

@@ -11,6 +11,19 @@ import yaml
 
 log = logging.getLogger("kb.query.index")
 
+_DEFAULT_INDEX_FIELDS = ["city", "category", "address"]
+
+
+def index_extra_fields() -> list[str]:
+    from shared.agent.platform_config import platform_str_list
+
+    return platform_str_list(
+        "knowledge_query",
+        "index_extra_fields",
+        env="KNOWLEDGE_INDEX_EXTRA_FIELDS",
+        default=_DEFAULT_INDEX_FIELDS,
+    )
+
 
 def _package_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
@@ -96,6 +109,11 @@ def _entry_from_path(
     if not isinstance(summary, str):
         summary = ""
     preview, truncated = _preview_body(body, preview_cap)
+    extra: dict[str, Any] = {}
+    for key in index_extra_fields():
+        val = fm.get(key)
+        if isinstance(val, str) and val.strip():
+            extra[key] = val.strip()
     return {
         "rel_path": rel,
         "type": ntype.strip(),
@@ -105,6 +123,7 @@ def _entry_from_path(
         "preview": preview,
         "preview_truncated": truncated,
         "mtime": path.stat().st_mtime,
+        **extra,
     }
 
 
@@ -134,13 +153,21 @@ def build_index(vault_path: Path) -> dict[str, Any]:
         "generated_at": time.time(),
         "vault": str(vault_path.resolve()),
         "index_roots": list(roots),
+        "index_fields": list(index_extra_fields()),
         "count": len(entries),
         "entries": entries,
     }
 
 
 def index_max_age() -> float:
-    return float(os.environ.get("KNOWLEDGE_INDEX_MAX_AGE_SEC", "3600"))
+    from shared.agent.platform_config import platform_float
+
+    return platform_float(
+        "knowledge_query",
+        "index_max_age_sec",
+        env="KNOWLEDGE_INDEX_MAX_AGE_SEC",
+        default=3600.0,
+    )
 
 
 def index_needs_refresh(vault_path: Path) -> bool:
@@ -159,6 +186,11 @@ def index_needs_refresh(vault_path: Path) -> bool:
         current_roots = knowledge_index_roots()
         if stored_roots != current_roots:
             log.info("index roots changed (%s -> %s), rebuilding", stored_roots, current_roots)
+            return True
+        stored_fields = raw.get("index_fields") or []
+        current_fields = index_extra_fields()
+        if list(stored_fields) != list(current_fields):
+            log.info("index fields changed (%s -> %s), rebuilding", stored_fields, current_fields)
             return True
     except Exception:
         return True
@@ -181,6 +213,12 @@ def build_or_refresh_index(vault_path: Path, *, force: bool = False) -> dict[str
     tmp.write_text(json.dumps(data, ensure_ascii=False, indent=0), encoding="utf-8")
     tmp.replace(outp)
     log.info("knowledge index written: %d notes -> %s", data["count"], outp)
+    try:
+        from knowledge_bot.services.query.dense_index import sync_from_index
+
+        sync_from_index(data, blocking=True if force else None)
+    except Exception:
+        log.exception("dense index sync skipped")
     return data
 
 

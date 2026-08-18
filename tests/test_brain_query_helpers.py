@@ -4,8 +4,51 @@ from knowledge_bot.services.query.brain_query import (
     _build_compact_catalog,
     _parse_preselect,
 )
-
 from tests.conftest import knowledge_rel
+
+def test_dense_preselect_skips_catalog(monkeypatch):
+    from knowledge_bot.services.query import brain_query as bq
+
+    monkeypatch.setattr(bq, "_preselect_backend", lambda: "dense")
+    monkeypatch.setattr(bq, "_dense_preselect", lambda q, entries: ["a.md"])
+    called = {"catalog": False}
+
+    def _catalog(*_a, **_k):
+        called["catalog"] = True
+        return ["b.md"]
+
+    monkeypatch.setattr(bq, "_catalog_preselect", _catalog)
+    assert bq._resolve_preselect(None, None, "q", "", []) == ["a.md"]
+    assert called["catalog"] is False
+
+
+def test_catalog_preselect_used_when_dense_empty(monkeypatch):
+    from knowledge_bot.services.query import brain_query as bq
+
+    monkeypatch.setattr(bq, "_preselect_backend", lambda: "dense")
+    monkeypatch.setattr(bq, "_dense_preselect", lambda q, entries: [])
+    monkeypatch.setattr(
+        bq,
+        "_catalog_preselect",
+        lambda *_a, **_k: ["via-catalog.md"],
+    )
+    assert bq._resolve_preselect(None, None, "q", "", []) == ["via-catalog.md"]
+
+
+def test_catalog_backend_skips_dense(monkeypatch):
+    from knowledge_bot.services.query import brain_query as bq
+
+    monkeypatch.setattr(bq, "_preselect_backend", lambda: "catalog")
+    called = {"dense": False}
+
+    def _dense(*_a, **_k):
+        called["dense"] = True
+        return ["dense.md"]
+
+    monkeypatch.setattr(bq, "_dense_preselect", _dense)
+    monkeypatch.setattr(bq, "_catalog_preselect", lambda *_a, **_k: ["catalog.md"])
+    assert bq._resolve_preselect(None, None, "q", "", []) == ["catalog.md"]
+    assert called["dense"] is False
 
 
 def test_parse_preselect_object_candidates():
