@@ -93,6 +93,35 @@ def platform_bool(
     return default
 
 
+def platform_str(
+    section: str,
+    key: str,
+    *,
+    env: str | None = None,
+    default: str = "",
+) -> str:
+    raw = platform_value(section, key, env=env, default=default)
+    if raw is None:
+        return default
+    return str(raw).strip()
+
+
+def platform_str_list(
+    section: str,
+    key: str,
+    *,
+    env: str | None = None,
+    default: list[str] | None = None,
+) -> list[str]:
+    fallback = list(default or [])
+    raw = platform_value(section, key, env=env, default=None)
+    if isinstance(raw, list):
+        return [str(x).strip() for x in raw if str(x).strip()]
+    if isinstance(raw, str) and raw.strip():
+        return [p.strip() for p in raw.split(",") if p.strip()]
+    return fallback
+
+
 def platform_section(section: str) -> dict:
     block = load_platform_config().get(section) or {}
     return block if isinstance(block, dict) else {}

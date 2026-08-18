@@ -7,6 +7,7 @@ from datetime import datetime
 DEFAULT_TIMEZONE = "UTC"
 DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1"
 DEFAULT_DEEPSEEK_MODEL = "deepseek-chat"
+DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 UI_MODE_AUTO = "auto"
 DOMAIN_FINANCE = "finance"
@@ -43,6 +44,11 @@ def deepseek_chat_completions_url(*, override: str | None = None) -> str:
 
 def deepseek_model(*, override: str | None = None) -> str:
     return (override or os.environ.get("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL).strip()
+
+
+def openrouter_base_url(*, override: str | None = None) -> str:
+    raw = (override or os.environ.get("OPENROUTER_BASE_URL") or DEFAULT_OPENROUTER_BASE_URL).strip()
+    return raw.rstrip("/")
 
 
 def goals_year(*, override: str | None = None) -> int:
