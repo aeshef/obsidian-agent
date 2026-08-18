@@ -31,7 +31,13 @@ def load_models_config() -> dict:
         if isinstance(val, dict) and val.get("model"):
             defaults[key] = str(val["model"])
     defaults_block = cfg.get("defaults") if isinstance(cfg.get("defaults"), dict) else {}
-    return {"roles": roles, "model_map": defaults, "defaults": defaults_block}
+    cascade = cfg.get("cascade") if isinstance(cfg.get("cascade"), dict) else {}
+    return {
+        "roles": roles,
+        "model_map": defaults,
+        "defaults": defaults_block,
+        "cascade": cascade,
+    }
 
 
 @lru_cache(maxsize=1)

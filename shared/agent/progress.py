@@ -52,6 +52,9 @@ class NullAgentProgress:
     async def on_tool_iteration(self, step: int, tool_names: list[str]) -> None:
         return
 
+    async def on_loop_model(self, model: str, role: str) -> None:
+        return
+
     async def on_answer_delta(self, text: str) -> None:
         return
 

@@ -11,7 +11,10 @@ agent:
   no_answer: Failed to get a response.
   progress_empty_tools: …
   progress_line: 'Step {step}: {tools}{tail}'
+  progress_line_model: 'Step {step} ({model}): {tools}{tail}'
   tool_error: 'Tool {name} error: {error}'
+  ungrounded_amounts: 'I do not see these amounts in the tool data: {amounts}. What the tools returned:\n{facts}'
+  verify_retry_hint: 'Your previous draft used amounts that are not in the tool results: {amounts}. Reply using only figures from the tools. Tool excerpts:\n{facts}'
   tool_not_allowed: 'Tool {name} is not in the list for this request. Available: {allowed}{ellipsis}'
 common:
   account_currency_mismatch: Account currency {account_currency} does not match debt

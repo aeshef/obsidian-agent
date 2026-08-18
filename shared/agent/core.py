@@ -5,13 +5,14 @@ import asyncio
 import json
 import logging
 import os
-import re
 from typing import Any
 
 from shared.agent.router import ModelRouter
 from shared.agent.tools import ToolRegistry, select_tools
 from shared.agent.progress import AgentProgress, NullAgentProgress, answer_stream_enabled
 from shared.agent.types import AgentContext, AgentMessage, ModelRole, ToolCall, ToolResult
+from shared.agent.cascade import cascade_enabled, initial_role, should_escalate_skipped_tools
+from shared.agent.verify import format_amount_list, tools_excerpt, ungrounded_amounts
 from shared.llm import LLMResponse
 
 log = logging.getLogger("shared.agent.core")
@@ -59,25 +60,52 @@ def agent_messages_to_api(messages: list[AgentMessage]) -> list[dict[str, Any]]:
     return out
 
 
-_CURRENCY_IN_TEXT = re.compile(
-    r"(?:\d[\d\s]*(?:[.,]\d+)?)\s*(?:₽|rub\.?|RUB)",
-    re.IGNORECASE,
-)
-
-
 def _warn_ungrounded_currency(answer: str, tool_bodies: list[str]) -> None:
-    """Log when answer contains amounts not present in tool outputs (does not block answer)."""
-    if not answer or not _CURRENCY_IN_TEXT.search(answer):
+    """Log leftover; callers should prefer ungrounded_amounts + escalate/refuse."""
+    bad = ungrounded_amounts(answer, tool_bodies)
+    if not bad:
         return
-    blob = "\n".join(tool_bodies)
-    for m in _CURRENCY_IN_TEXT.finditer(answer):
-        frag = m.group(0).replace(" ", "")[:24]
-        if frag and frag not in blob.replace(" ", ""):
-            log.warning(
-                "agent answer may contain ungrounded amount %r (not in tool outputs)",
-                m.group(0).strip(),
-            )
-            return
+    log.warning(
+        "agent answer has ungrounded amounts %s (not in tool outputs)",
+        bad,
+    )
+
+
+async def _emit_loop_model(progress: AgentProgress, router: ModelRouter, role: ModelRole) -> None:
+    model = ""
+    getter = getattr(router, "model_for", None)
+    if callable(getter):
+        try:
+            model = str(getter(role) or "")
+        except Exception:
+            model = ""
+    fn = getattr(progress, "on_loop_model", None)
+    if callable(fn):
+        await fn(model, role.value)
+
+
+def _verify_refusal(amounts: list[int], tool_bodies: list[str]) -> str:
+    from shared.i18n import msgf
+
+    facts = tools_excerpt(tool_bodies) or "—"
+    return msgf(
+        "agent",
+        "ungrounded_amounts",
+        amounts=format_amount_list(amounts),
+        facts=facts,
+    )
+
+
+def _verify_retry_hint(amounts: list[int], tool_bodies: list[str]) -> str:
+    from shared.i18n import msgf
+
+    facts = tools_excerpt(tool_bodies) or "—"
+    return msgf(
+        "agent",
+        "verify_retry_hint",
+        amounts=format_amount_list(amounts),
+        facts=facts,
+    )
 
 
 def parse_tool_calls(raw: list[dict[str, Any]]) -> list[ToolCall]:
@@ -179,17 +207,23 @@ async def run_agent(
 
     from shared.llm_defaults import role_temperature
 
-    loop_temp = role_temperature("analyze")
+    loop_role = role
+    if cascade_enabled():
+        loop_role = initial_role(ctx.domain, ctx.question)
+        if role == ModelRole.CHAT:
+            loop_role = ModelRole.CHAT
 
     last_text: str | None = None
     tool_bodies: list[str] = []
     tool_calls_used = 0
+    escalated = loop_role == ModelRole.CHAT
     from shared.agent.platform_config import platform_int
 
     max_tool_calls = platform_int("agent", "max_tool_calls", default=0)
     for iteration in range(limit):
         from shared.agent.config import tools_first_iter_domains
 
+        loop_temp = role_temperature(loop_role.value)
         tool_choice = (
             "required"
             if iteration == 0 and ctx.domain in tools_first_iter_domains() and schemas
@@ -219,11 +253,12 @@ async def run_agent(
                 messages_chars=context_chars, tools_schema_chars=tools_schema_chars
             )
 
+        await _emit_loop_model(progress, router, loop_role)
         _t0 = _time.perf_counter()
         resp: LLMResponse = await router.chat_with_tools(
             api_messages,
             schemas,
-            role=role,
+            role=loop_role,
             temperature=loop_temp,
             tool_choice=tool_choice,
             on_text_delta=on_delta,
@@ -247,7 +282,35 @@ async def run_agent(
         if not resp.tool_calls:
             if resp.text:
                 final = resp.text.strip()
-                _warn_ungrounded_currency(final, tool_bodies)
+                bad = ungrounded_amounts(final, tool_bodies)
+                can_retry = iteration < limit - 1
+                if bad and not escalated and can_retry:
+                    escalated = True
+                    loop_role = ModelRole.CHAT
+                    log.info("cascade escalate -> chat reason=verify amounts=%s", bad)
+                    api_messages.append(
+                        {"role": "user", "content": _verify_retry_hint(bad, tool_bodies)}
+                    )
+                    continue
+                if bad:
+                    _warn_ungrounded_currency(final, tool_bodies)
+                    out = _verify_refusal(bad, tool_bodies)
+                    if trace is not None:
+                        trace.finish(reason="verify_block", answer=out)
+                    return out
+                if (
+                    not escalated
+                    and can_retry
+                    and should_escalate_skipped_tools(
+                        domain=ctx.domain,
+                        had_schemas=bool(schemas),
+                        tool_bodies=tool_bodies,
+                    )
+                ):
+                    escalated = True
+                    loop_role = ModelRole.CHAT
+                    log.info("cascade escalate -> chat reason=skipped_tools")
+                    continue
                 if trace is not None:
                     trace.finish(reason="answer", answer=final)
                 return final
@@ -255,7 +318,12 @@ async def run_agent(
 
             out = last_text or msg("agent", "no_answer")
             if last_text:
-                _warn_ungrounded_currency(out, tool_bodies)
+                bad = ungrounded_amounts(out, tool_bodies)
+                if bad:
+                    out = _verify_refusal(bad, tool_bodies)
+                    if trace is not None:
+                        trace.finish(reason="verify_block", answer=out)
+                    return out
             if trace is not None:
                 trace.finish(reason="no_answer", answer=out)
             return out
@@ -266,7 +334,12 @@ async def run_agent(
             if keep <= 0:
                 if resp.text:
                     final = resp.text.strip()
-                    _warn_ungrounded_currency(final, tool_bodies)
+                    bad = ungrounded_amounts(final, tool_bodies)
+                    if bad:
+                        out = _verify_refusal(bad, tool_bodies)
+                        if trace is not None:
+                            trace.finish(reason="verify_block", answer=out)
+                        return out
                     if trace is not None:
                         trace.finish(reason="tool_budget", answer=final)
                     return final
@@ -324,7 +397,12 @@ async def run_agent(
 
     out = last_text or msg("agent", "max_iters_reached")
     if last_text:
-        _warn_ungrounded_currency(out, tool_bodies)
+        bad = ungrounded_amounts(out, tool_bodies)
+        if bad:
+            out = _verify_refusal(bad, tool_bodies)
+            if trace is not None:
+                trace.finish(reason="verify_block", answer=out)
+            return out
     if trace is not None:
         trace.finish(reason="max_iters", answer=out)
     return out

@@ -38,7 +38,7 @@ def _draft_stream_enabled() -> bool:
     return platform_int("agent_progress", "draft_stream", default=0) != 0
 
 
-def format_progress_line(step: int, tool_names: list[str]) -> str:
+def format_progress_line(step: int, tool_names: list[str], model: str = "") -> str:
     from shared.agent.platform_config import platform_int
     from shared.i18n import msg, msgf
 
@@ -47,6 +47,16 @@ def format_progress_line(step: int, tool_names: list[str]) -> str:
     extra = len(tool_names) - len(names)
     tail = f" (+{extra})" if extra > 0 else ""
     joined = ", ".join(names) if names else msg("agent", "progress_empty_tools")
+    label = (model or "").strip()
+    if label:
+        return msgf(
+            "agent",
+            "progress_line_model",
+            step=step,
+            model=label,
+            tools=joined,
+            tail=tail,
+        )
     return msgf("agent", "progress_line", step=step, tools=joined, tail=tail)
 
 
@@ -66,6 +76,7 @@ class TelegramAgentProgress:
         self._pending_answer_text = ""
         self._last_pushed_answer_text = ""
         self._answer_lock = asyncio.Lock()
+        self._loop_model = ""
 
     async def on_tools_selected(self, tool_names: list[str]) -> None:
         try:
@@ -73,8 +84,12 @@ class TelegramAgentProgress:
         except Exception as e:
             log.debug("chat_action typing: %s", e)
 
+    async def on_loop_model(self, model: str, role: str) -> None:
+        self._loop_model = (model or "").strip()
+        log.debug("agent loop model=%s role=%s", self._loop_model, role)
+
     async def on_tool_iteration(self, step: int, tool_names: list[str]) -> None:
-        line = format_progress_line(step, tool_names)
+        line = format_progress_line(step, tool_names, model=self._loop_model)
         if _draft_stream_enabled():
             try:
                 await send_message_draft(

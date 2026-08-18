@@ -1,15 +1,22 @@
 # Role -> model (swap provider via YAML + .env only).
+# analyze/parse = cheap default; chat = strong. Loop may escalate analyze → chat.
 defaults:
   timeout_sec: 120
   tool_choice: auto
 
+cascade:
+  enabled: true
+  long_question_chars: 280
+  start_strong_domains:
+    - unified
+
 roles:
   parse:
-    model: deepseek-chat
+    model: deepseek-v4-flash
     temperature: 0.1
     timeout_sec: 90
   analyze:
-    model: deepseek-chat
+    model: deepseek-v4-flash
     temperature: 0.2
     timeout_sec: 120
     tool_choice: auto
