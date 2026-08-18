@@ -239,3 +239,5 @@ knowledge_bot/config/vault_maintenance.yaml
 eval/results.json
 eval/results.png
 eval/__pycache__/
+eval/runs/
+eval/data/

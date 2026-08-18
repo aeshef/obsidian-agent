@@ -52,6 +52,27 @@ llm_classify:
   dialogue_hint_per_domain: 2
 
 knowledge_query:
+  # dense = OpenRouter embeddings (fast). catalog = LLM over one-shot note list (fallback).
+  preselect_backend: dense
+  embed_model: openai/text-embedding-3-large
+  embed_preview_chars: 1800
+  embed_batch_size: 32
+  # New/changed notes embedded inline on a query; more than this → background thread.
+  embed_sync_max_notes: 48
+  embed_query_cache_size: 64
+  embed_noise_lines:
+    - субтитры
+    - редактор субтитров
+    - редактор_субтитров
+    - без названия
+    - ocr текст
+    - ocr_текст
+  index_extra_fields:
+    - city
+    - category
+    - address
+  # Rebuild notes_index.json when older than this (dense then reuses unchanged vectors).
+  index_max_age_sec: 3600
   # Full author vault catalog ≈660k chars @ snippet=120; 800k leaves headroom.
   compact_catalog_max_chars: 800000
   catalog_snippet_chars: 120

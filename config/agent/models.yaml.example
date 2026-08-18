@@ -24,3 +24,7 @@ roles:
     model: deepseek-chat
     temperature: 0.7
     timeout_sec: 90
+  embed:
+    # OpenRouter embeddings for knowledge preselect (not a chat model).
+    model: openai/text-embedding-3-large
+    timeout_sec: 30
