@@ -29,11 +29,17 @@ agent:
   max_charts_per_send: 4
   # Mark catalog entries older than this many hours as stale (0 = disable).
   chart_stale_hours: 48
+  # Truncate tool text copied into the LLM messages (full body kept for verify/join).
+  tool_result_max_chars: 4000
+  # Prior-turn tool facts injected into the next system prompt (0 = no cap).
+  tool_facts_max_chars: 2500
+  # User+assistant pairs kept in the LLM messages array (env AGENT_SESSION_MAX_TURNS wins).
+  session_max_turns: 12
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:
   enabled: 1
-  status_message: 1
+  status_message: 0
   status_max_chars: 380
   max_tools_in_status: 6
   # sendMessageDraft для статуса tools (шаг N: tool_a, …)
@@ -46,10 +52,25 @@ agent_progress:
   answer_draft_interval_ms: 1000
   answer_stream_edit_ms: 900
 
+# Incomplete answers / leaked tool-call prose (patterns in YAML, not scenario code).
+answer_guard:
+  promised_fetch_max_chars: 520
+  tool_narration_patterns:
+    - '(?i)\binvoking tool\b'
+    - '(?i)\b(?:tool|function)\s+call\s*:'
+    - '(?i)\bget_[a-z][a-z0-9_]*\s*\('
+    - '(?i)\b[a-z][a-z0-9_]*\s*\(\s*\{'
+  promised_fetch_patterns:
+    - '(?i)\b(?:проверю|посмотрю|гляну|возьму|считаю|смотрю данные|собрал ленту)\b'
+    - '(?i)\b(?:i(?:''ll| will) (?:check|look|fetch|compute)|let me (?:check|look))\b'
+
 llm_classify:
   timeout_sec: 25
   temperature: 0.0
   dialogue_hint_per_domain: 2
+  # Calendar activity types (batch classify on sync; no keyword fallback)
+  calendar_activity_batch: 40
+  calendar_activity_timeout_sec: 60
 
 knowledge_query:
   # dense = OpenRouter embeddings (fast). catalog = LLM over one-shot note list (fallback).
@@ -97,9 +118,21 @@ planning:
   # 1 = архив закрытых задач (месячная уборка на VPS maintenance); 0 = одна доска как раньше
   kanban_archive_enabled: 1
 
+snapshot_logs:
+  # Trailing-day cap for any snapshot dir. Window = days from requested start, not span length.
+  load_max_days: 400
+
+series_tools:
+  skip_as_tally_source:
+    - align_day_series
+    - tally_event_shares
+
 planning_mac:
   snapshots_limit_default: 120
   snapshots_limit_max: 500
+  snapshots_load_max_days: 400
+  share_top_n: 8
+  share_daily_top: 5
 
 planning_calendar:
   tool_max_chars: 4000
@@ -110,6 +143,8 @@ planning_calendar:
   sync_horizon_days: 8
   meta_stale_hours: 6
   insights_payload_max_chars: 12000
+  # 1 = LLM-classify missing activity_type on calendar sync (writes into Календарь.json)
+  classify_on_sync: 1
 
 obsidian_sync:
   launchagent_interval_sec: 300
@@ -167,6 +202,10 @@ push_policy:
     minute: 0
   # Off by default — was a major feed-spam source (MWF + jitter).
   finance_daily_insight:
+    enabled: 0
+  finance_dashboard_insight:
+    enabled: 1
+  finance_daily_insight_PLACEHOLDER:
     enabled: 0
     days: mon,wed,fri
     hour: 9
@@ -308,4 +347,4 @@ chart_refresh:
       args: ["--vault", "{vault}"]
     agent_cost:
       script: scripts/build_agent_cost_dashboard.py
-      args: ["--vault", "{vault}", "--days", "14"]
+      args: ["--vault", "{vault}", "--days", "30"]
