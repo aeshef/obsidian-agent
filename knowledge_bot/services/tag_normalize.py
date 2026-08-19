@@ -165,4 +165,6 @@ def normalize_tags(
                 filtered.append(tag)
         else:
             filtered.append(tag)
-    return sorted(dict.fromkeys(filtered))
+    from knowledge_bot.services.tag_remap import canonicalize_tags
+
+    return canonicalize_tags(sorted(dict.fromkeys(filtered)))

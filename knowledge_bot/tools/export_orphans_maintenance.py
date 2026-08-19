@@ -21,6 +21,10 @@ from knowledge_bot.services.export_refs import (
     normalize_export_ref,
 )
 from knowledge_bot.services.extract import extract_from_path
+from knowledge_bot.services.frontmatter_attachments import (
+    attachment_files,
+    flatten_attachment_fields,
+)
 from knowledge_bot.services.persist import write_note
 from knowledge_bot.services.render import render_note
 from knowledge_bot.services.routing import route_and_fill
@@ -177,11 +181,8 @@ def _cleanup_broken_attachment_refs(vault: Path) -> int:
             continue
         if not isinstance(fm, dict):
             continue
-        att = fm.get("attachments")
-        if not isinstance(att, dict):
-            continue
-        files = att.get("files")
-        if not isinstance(files, list) or not files:
+        files = attachment_files(fm)
+        if not files:
             continue
         keep: list[str] = []
         changed = False
@@ -209,8 +210,9 @@ def _cleanup_broken_attachment_refs(vault: Path) -> int:
             keep.append(raw)
         if not changed:
             continue
-        att["files"] = keep
-        fm["attachments"] = att
+        fm["files"] = keep
+        fm.pop("attachments", None)
+        fm = flatten_attachment_fields(fm)
         fm_yaml = yaml.safe_dump(fm, allow_unicode=True, sort_keys=False).strip()
         note.write_text(f"---\n{fm_yaml}\n---\n{body.lstrip()}", encoding="utf-8")
         touched += 1

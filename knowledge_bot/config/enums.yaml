@@ -30,13 +30,15 @@ per_type:
     - salad
   место:
     category:
-    - культура
-    - еда
-    - природа
+    - culture
+    - food
+    - nature
   вишлист:
     category:
-    - техника
-    - одежда
+    - gadgets
+    - clothing
+    - beauty
+    - other
   учебник: {}
   курс: {}
   мем:
@@ -61,6 +63,19 @@ per_type:
     - другое
 
 synonyms:
+  category:
+    культура: culture
+    culture: culture
+    еда: food
+    food: food
+    природа: nature
+    nature: nature
+    техника: gadgets
+    gadgets: gadgets
+    одежда: clothing
+    clothing: clothing
+    beauty: beauty
+    other: other
   cuisine:
     итальянская: italian
     italyanskaya: italian

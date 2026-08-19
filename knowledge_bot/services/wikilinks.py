@@ -12,6 +12,15 @@ from knowledge_bot.services.tags_inventory import load_tags_inventory
 
 WIKILINKS_THRESHOLD = 10
 WIKILINKS_NOISE = wikilink_noise_tokens()
+_FRONTMATTER_SPLIT = re.compile(r"^(---\s*\n.*?\n---\s*\n)(.*)$", re.DOTALL)
+
+
+def split_frontmatter(content: str) -> tuple[str, str]:
+    """Keep YAML (including tags) out of wikilink replacement."""
+    m = _FRONTMATTER_SPLIT.match(content or "")
+    if m:
+        return m.group(1), m.group(2)
+    return "", content or ""
 
 
 def _extract_body(note_path: Path) -> str:
@@ -47,9 +56,11 @@ def get_candidates(vault_path: Path, agent_config_path: Path, threshold: int = W
             continue
         body_freq.update(_tokenize(_extract_body(np)))
 
+    from knowledge_bot.services.tag_normalize import is_malformed_tag
+
     result = {}
     for tag, info in tags_dict.items():
-        if "/" not in tag:
+        if is_malformed_tag(tag) or "/" not in tag:
             continue
         ns, value = tag.split("/", 1)
         if ns not in ("topic", "domain"):
@@ -75,7 +86,7 @@ def _candidates_from_tags_only(tags_dict: dict) -> dict[str, str]:
     """Helper."""
     result = {}
     for tag, info in tags_dict.items():
-        if "/" not in tag or info.get("count", 0) < 2:
+        if "/" not in tag or is_malformed_tag(tag) or info.get("count", 0) < 2:
             continue
         ns, value = tag.split("/", 1)
         if ns not in ("topic", "domain") or value.strip().lower() in WIKILINKS_NOISE:
@@ -88,8 +99,10 @@ def _candidates_from_tags_only(tags_dict: dict) -> dict[str, str]:
 
 
 def _apply_wikilinks(content: str, keyword_to_link: dict[str, str], only_keywords: set[str] | None = None) -> str:
-    """Helper."""
-    if not content or not keyword_to_link:
+    """Replace keywords in the note body only — never in YAML frontmatter/tags."""
+    prefix, body = split_frontmatter(content)
+    work = body if prefix else content
+    if not work or not keyword_to_link:
         return content
     if only_keywords is not None:
         keyword_to_link = {k: v for k, v in keyword_to_link.items() if k in only_keywords}
@@ -103,14 +116,14 @@ def _apply_wikilinks(content: str, keyword_to_link: dict[str, str], only_keyword
             text = re.sub(pat, f"[[{link}]]", text)
         return text
 
-    parts = re.split(r"(\[\[[^\]]*\]\]|```[\s\S]*?```)", content)
+    parts = re.split(r"(\[\[[^\]]*\]\]|```[\s\S]*?```)", work)
     result = []
     for part in parts:
         if part.startswith("[[") and part.endswith("]]") or part.startswith("```"):
             result.append(part)
         else:
             result.append(replace_in_text(part))
-    return "".join(result)
+    return prefix + "".join(result)
 
 
 def body_has_any_candidate(body: str, candidates: dict[str, str]) -> bool:
@@ -140,15 +153,18 @@ def inject_wikilinks(
     """Inject wikilinks (LLM picks keywords when client provided)."""
     vault = vault_path or agent_config_path.parent.parent
     candidates = get_candidates(vault, agent_config_path, threshold=WIKILINKS_THRESHOLD)
+    prefix, body = split_frontmatter(content)
+    work = body if prefix else content
     if not candidates:
         return content
-    if len(content.strip()) < 50:
+    if len(work.strip()) < 50:
         return content
     if llm_client:
-        if not body_has_any_candidate(content, candidates):
+        if not body_has_any_candidate(work, candidates):
             return content
-        return inject_wikilinks_llm(content, candidates, llm_client, agent_config_path)
-    return _apply_wikilinks(content, candidates, only_keywords=None)
+        new_body = inject_wikilinks_llm(work, candidates, llm_client, agent_config_path)
+        return prefix + new_body
+    return prefix + _apply_wikilinks(work, candidates, only_keywords=None)
 
 
 def inject_wikilinks_llm(

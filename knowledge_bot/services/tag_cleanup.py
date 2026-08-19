@@ -7,6 +7,7 @@ from typing import Any
 import yaml
 
 from knowledge_bot.core.settings import load_enums_config
+from knowledge_bot.services.frontmatter_attachments import flatten_attachment_fields
 from knowledge_bot.services.tag_normalize import (
     clean_existing_tags,
     fallback_tags_for_type,
@@ -35,7 +36,12 @@ def _split_frontmatter(text: str) -> tuple[dict[str, Any], str] | None:
 def _dump_frontmatter(fm: dict[str, Any], body: str) -> str:
     return (
         "---\n"
-        + yaml.dump(fm, allow_unicode=True, default_flow_style=False, sort_keys=False)
+        + yaml.dump(
+            flatten_attachment_fields(fm),
+            allow_unicode=True,
+            default_flow_style=False,
+            sort_keys=False,
+        )
         + "---"
         + body
     )

@@ -416,6 +416,12 @@ knowledge_vault_audit:
   tags_domain_single_row: '  domain/{domain}: {count}'
   tags_other_ns_header: 'Other namespaces (excluding legacy priority/language/vibe):'
   tags_other_ns_row: '  {namespace}/: {count} tags, top: {top}'
+  dups_parse_total: Total notes
+  dups_parse_suffix: suffix _N
+  dups_parse_groups: duplicate groups
+  dups_parse_generic: generic series
+  dups_parse_content: content duplicates
+  dups_none_token: '(none)'
   status_ok: ok
   status_fail: failed
   maint_run_skipped_marker: ' (day marker written, steps skipped)'

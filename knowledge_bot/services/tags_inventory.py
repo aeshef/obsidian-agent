@@ -8,6 +8,7 @@ from typing import Dict, List, Set, Any
 import yaml
 
 from knowledge_bot.core.config import load_config
+from knowledge_bot.services.tag_normalize import is_malformed_tag
 
 
 def extract_tags_from_note(note_path: Path) -> Set[str]:
@@ -21,7 +22,7 @@ def extract_tags_from_note(note_path: Path) -> Set[str]:
         data = yaml.safe_load(frontmatter) or {}
         tags = data.get("tags", [])
         if isinstance(tags, list):
-            return {str(tag).strip() for tag in tags if tag}
+            return {str(tag).strip() for tag in tags if tag and not is_malformed_tag(tag)}
         return set()
     except Exception:
         return set()
@@ -128,7 +129,7 @@ def update_inventory_with_new_tags(agent_config_path: Path, new_tags: List[str])
     
     for tag in new_tags:
         tag_str = str(tag).strip()
-        if not tag_str:
+        if not tag_str or is_malformed_tag(tag_str):
             continue
         if tag_str not in tags_dict:
             tags_dict[tag_str] = {"count": 0, "examples": []}
@@ -163,6 +164,8 @@ def _format_tags_prompt_block(
     lines = [header_line, "", existing_line]
     by_namespace: Dict[str, List[tuple[str, int]]] = defaultdict(list)
     for tag, info in tags_dict.items():
+        if is_malformed_tag(tag):
+            continue
         count = int(info.get("count") or 0)
         if "/" in tag:
             namespace, value = tag.split("/", 1)

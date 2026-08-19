@@ -83,12 +83,20 @@ def _reserialize_frontmatter_safe(content: str) -> str:
         return content
     if fm.get("tags") is None:
         fm["tags"] = []
-    att = fm.get("attachments")
-    if isinstance(att, dict):
-        if att.get("files") is None:
-            att["files"] = []
-        if att.get("links") is None:
-            att["links"] = []
+    from knowledge_bot.services.frontmatter_attachments import flatten_attachment_fields
+    from knowledge_bot.services.tag_remap import (
+        TAXONOMY_ASCII_MAP,
+        canonicalize_tags,
+        flatten_mapping,
+        remap_category_field,
+    )
+
+    fm = flatten_attachment_fields(fm)
+    final_map = flatten_mapping(TAXONOMY_ASCII_MAP)
+    remap_category_field(fm, final_map)
+    raw_tags = fm.get("tags")
+    if isinstance(raw_tags, list) and raw_tags:
+        fm["tags"] = canonicalize_tags([str(t) for t in raw_tags if t])
     try:
         fm_str = yaml.dump(
             fm,

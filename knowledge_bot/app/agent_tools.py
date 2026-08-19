@@ -108,7 +108,7 @@ async def read_note_content(
     return text, queued or media
 
 
-@tool(category="notes", always=True)
+@tool(category="notes")
 async def read_knowledge_note(ctx: AgentContext, note_title: str) -> str:
     """Read one vault note by title or path fragment."""
     from knowledge_bot.core.config import load_config
@@ -130,7 +130,7 @@ async def read_knowledge_note(ctx: AgentContext, note_title: str) -> str:
     return text
 
 
-@tool(category="notes", always=True)
+@tool(category="notes")
 async def search_knowledge_base(
     ctx: AgentContext,
     query: str,

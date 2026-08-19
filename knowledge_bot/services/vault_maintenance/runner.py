@@ -182,6 +182,50 @@ def run_daily_maintenance(
         )
         return rc
 
+    def _run_sanitize_malformed() -> None:
+        tcfg = mcfg.get("sanitize_malformed_tags") or {}
+        if not tcfg.get("enabled", True):
+            return
+        t0 = time.monotonic()
+        tag_cleanup_rows = sanitize_malformed_tags(
+            vault, cfg.agent_config_path, apply=bool(tcfg.get("apply", False))
+        )
+        tag_cleanup_stdout = "\n".join(
+            f"{rel}: removed={removed} tags={tags}"
+            for rel, removed, tags in tag_cleanup_rows[:30]
+        )
+        if len(tag_cleanup_rows) > 30:
+            tag_cleanup_stdout += f"\n... {len(tag_cleanup_rows) - 30} more"
+        if not tag_cleanup_stdout:
+            tag_cleanup_stdout = "Malformed tags: 0"
+        out["steps"].append(
+            {
+                "name": "sanitize_malformed_tags",
+                "returncode": 0,
+                "seconds": round(time.monotonic() - t0, 1),
+                "stdout_tail": tag_cleanup_stdout[-4000:],
+                "stderr_tail": "",
+                "metrics": {"malformed_tags_cleaned_notes": len(tag_cleanup_rows)},
+            }
+        )
+        if tag_cleanup_rows:
+            try:
+                from knowledge_bot.services.tags_inventory import rebuild_inventory
+
+                rebuild_inventory()
+            except Exception:
+                pass
+        try:
+            from knowledge_bot.services.frontmatter_attachments import flatten_attachments_in_vault
+
+            flat_rows = flatten_attachments_in_vault(
+                vault, apply=bool(tcfg.get("apply", False))
+            )
+            if flat_rows:
+                out["steps"][-1]["metrics"]["attachments_flattened_notes"] = len(flat_rows)
+        except Exception:
+            pass
+
     hcfg = mcfg.get("sync_hubs") or {}
     if hcfg.get("enabled", True):
         args = ["tools/sync_hubs.py", "--vault", str(vault)]
@@ -189,6 +233,9 @@ def run_daily_maintenance(
             args.append("--apply")
         if _step_failed(_run("sync_hubs", args)):
             out["ok"] = False
+
+    # Before retag/inventory: ingest used to write domain/[[note]] into YAML.
+    _run_sanitize_malformed()
 
     wcfg = mcfg.get("apply_wikilinks") or {}
     if wcfg.get("enabled", True):
@@ -266,31 +313,6 @@ def run_daily_maintenance(
             rargs.append("--apply")
         if _step_failed(_run("reprocess_notes", rargs)):
             out["ok"] = False
-
-    tcfg = mcfg.get("sanitize_malformed_tags") or {}
-    if tcfg.get("enabled", True):
-        t0 = time.monotonic()
-        tag_cleanup_rows = sanitize_malformed_tags(
-            vault, cfg.agent_config_path, apply=bool(tcfg.get("apply", False))
-        )
-        tag_cleanup_stdout = "\n".join(
-            f"{rel}: removed={removed} tags={tags}"
-            for rel, removed, tags in tag_cleanup_rows[:30]
-        )
-        if len(tag_cleanup_rows) > 30:
-            tag_cleanup_stdout += f"\n... {len(tag_cleanup_rows) - 30} more"
-        if not tag_cleanup_stdout:
-            tag_cleanup_stdout = "Malformed tags: 0"
-        out["steps"].append(
-            {
-                "name": "sanitize_malformed_tags",
-                "returncode": 0,
-                "seconds": round(time.monotonic() - t0, 1),
-                "stdout_tail": tag_cleanup_stdout[-4000:],
-                "stderr_tail": "",
-                "metrics": {"malformed_tags_cleaned_notes": len(tag_cleanup_rows)},
-            }
-        )
 
     ecfg = mcfg.get("export_orphans") or {}
     if ecfg.get("enabled", True):

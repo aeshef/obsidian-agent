@@ -7,6 +7,7 @@ from pathlib import Path
 
 import yaml
 
+from knowledge_bot.services.frontmatter_attachments import attachment_files
 from shared.vault_layout import knowledge_subdir
 
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
@@ -103,7 +104,7 @@ def collect_export_inventory(vault: Path) -> ExportInventory:
     for note in _iter_db_notes(vault):
         fm, body = _parse_frontmatter_and_body(note)
         note_rel = note.relative_to(vault).as_posix()
-        files = ((fm.get("attachments") or {}).get("files") or []) if isinstance(fm, dict) else []
+        files = attachment_files(fm) if isinstance(fm, dict) else []
         for path_like in files:
             ref = normalize_export_ref(str(path_like))
             if not ref:

@@ -40,6 +40,7 @@ reprocess_notes:
 sanitize_malformed_tags:
   enabled: true
   apply: false
+  # Daily runner runs this before retag so domain/[[note]] never seeds inventory.
 
 export_orphans:
   enabled: true

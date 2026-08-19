@@ -92,3 +92,19 @@ def test_sanitize_malformed_tags_in_vault(tmp_path):
     text = note.read_text(encoding="utf-8")
     fm = yaml.safe_load(text.split("---", 2)[1])
     assert fm["tags"] == ["domain/entertainment"]
+
+
+def test_extract_tags_skips_wikilink_tags(tmp_path):
+    from knowledge_bot.services.tags_inventory import extract_tags_from_note
+
+    note = tmp_path / "n.md"
+    note.write_text(
+        "---\n"
+        "tags:\n"
+        "  - domain/life\n"
+        "  - topic/[[700_База_Данных/Цитаты/Цель_пустяки]]\n"
+        "---\n"
+        "body\n",
+        encoding="utf-8",
+    )
+    assert extract_tags_from_note(note) == {"domain/life"}

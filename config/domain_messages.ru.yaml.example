@@ -174,6 +174,12 @@ knowledge_vault_audit:
   tags_domain_single_row: '  domain/{domain}: {count}'
   tags_other_ns_header: 'Другие неймспейсы (без legacy priority/language/vibe):'
   tags_other_ns_row: '  {namespace}/: {count} тегов, топ: {top}'
+  dups_parse_total: Всего заметок
+  dups_parse_suffix: суффиксом _N
+  dups_parse_groups: Групп дублей
+  dups_parse_generic: серии (generic)
+  dups_parse_content: дубли контента
+  dups_none_token: '(нет)'
   status_ok: ok
   status_fail: сбой
   maint_run_skipped_marker: ' (маркер дня записан, шаги пропущены)'

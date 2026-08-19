@@ -13,7 +13,7 @@ import yaml
 from knowledge_bot.i18n.domain_text import vault_audit as va
 from knowledge_bot.services.maintenance_metrics import build_dynamics_markdown_section
 from knowledge_bot.services.reprocess_candidates import discover_candidate_paths, load_reprocess_yaml
-from knowledge_bot.services.vault_audit.tags import render_tags_report
+from knowledge_bot.services.vault_audit.tags import render_tags_markdown
 from shared.vault_layout import knowledge_subdir
 from shared.vault_paths_config import folder, vault_file, vault_rel_path
 
@@ -94,7 +94,7 @@ def _parse_last_maintenance_run(log_path: Path) -> dict | None:
 def _format_maintenance_run(run: dict) -> list[str]:
     lines: list[str] = []
     if run.get("skipped"):
-        reason = run.get("reason", "?")
+        reason = run.get("skip_reason") or run.get("reason") or "?"
         extra = va("maint_run_skipped_marker") if run.get("wrote_marker") else ""
         lines.append(va("maint_run_skipped", reason=reason, extra=extra))
         lines.append("")
@@ -102,8 +102,26 @@ def _format_maintenance_run(run: dict) -> list[str]:
 
     ok = run.get("ok", True)
     steps = run.get("steps") or []
-    lines.append(va("maint_run_header", status=va("status_ok" if ok else "status_fail"), count=len(steps)))
-    lines.append("")
+    fail_n = sum(1 for s in steps if s.get("returncode", 0) != 0)
+    ok_n = len(steps) - fail_n
+    deleted = run.get("deleted") if isinstance(run.get("deleted"), list) else []
+    callout = "failure" if fail_n else "success"
+    title = va("hero_title_fail" if fail_n else "hero_title_ok")
+    lines.extend(
+        [
+            va("hero_open"),
+            title,
+            va("hero_meta", ok=ok_n, fail=fail_n, deleted=len(deleted)),
+            "",
+            va(
+                "maint_run_header",
+                callout=callout,
+                status=va("status_ok" if ok and not fail_n else "status_fail"),
+                count=len(steps),
+            ),
+            "",
+        ]
+    )
     step_keys = {
         "sync_hubs": "step_sync_hubs",
         "apply_wikilinks_batch": "step_apply_wikilinks",
@@ -120,18 +138,24 @@ def _format_maintenance_run(run: dict) -> list[str]:
     if not ok and any(s.get("name") == "llm_preflight" for s in steps):
         lines.append(va("maint_llm_dns_note"))
         lines.append("")
+
+    fold_kind = "failure" if fail_n else "success"
+    lines.append(
+        f"> [!{fold_kind}]- " + va("maint_steps_fold", count=len(steps))
+    )
     for s in steps:
         name = s.get("name", "?")
         rc = s.get("returncode", "?")
-        sec = s.get("seconds", 0)
+        sec = float(s.get("seconds", 0) or 0)
         label = va(step_keys.get(name, "step_unknown"), step=name)
-        status = va("step_ok" if rc == 0 else "step_fail")
-        lines.append(va("maint_step_line", status=status, label=label, seconds=sec))
+        key = "maint_step_ok_line" if rc == 0 else "maint_step_fail_line"
+        lines.append("> " + va(key, label=label, seconds=f"{sec:.1f}"))
         stdout = (s.get("stdout_tail") or "").strip()
         if stdout:
-            tail = [ln for ln in stdout.splitlines() if ln.strip()][-3:]
-            for ln in tail:
-                lines.append(va("maint_stdout_line", line=ln))
+            tail = [ln for ln in stdout.splitlines() if ln.strip()][-2:]
+            if tail:
+                snippet = tail[-1][:120].strip()
+                lines.append("> " + va("maint_step_detail", snippet=snippet))
         stderr = (s.get("stderr_tail") or "").strip()
         if stderr:
             err_lines = [
@@ -141,9 +165,66 @@ def _format_maintenance_run(run: dict) -> list[str]:
                 and "NOT available" not in ln
                 and not _is_noisy_stderr_line(ln.strip())
             ]
-            for ln in err_lines[-2:]:
-                lines.append(va("maint_stderr_line", line=ln))
+            for ln in err_lines[-1:]:
+                snippet = ln[:120].strip()
+                lines.append("> " + va("maint_step_warn_detail", snippet=snippet))
+    lines.append("")
     return lines
+
+
+def _format_duplicates_section(raw: str) -> str:
+    """Structured callouts only — no ASCII fences (Dataview treats ==== as fields)."""
+    import re
+
+    text = raw or ""
+
+    def _int(pat: str, default: int = 0) -> int:
+        m = re.search(pat, text, re.I | re.M)
+        return int(m.group(1)) if m else default
+
+    # Anchor on ": <n>" so we never grab the "2" inside "(≥2 notes)" or "700_" folder names.
+    total = _int(rf"(?:Total notes|{re.escape(va('dups_parse_total'))})[^:\n]*:\s*(\d+)")
+    suffix = _int(rf"(?:suffix _N|{re.escape(va('dups_parse_suffix'))})[^:\n]*:\s*(\d+)")
+    groups = _int(rf"(?:duplicate groups|{re.escape(va('dups_parse_groups'))})[^:\n]*:\s*(\d+)")
+    generic = _int(rf"(?:generic series|{re.escape(va('dups_parse_generic'))})[^:\n]*:\s*(\d+)")
+    content = _int(rf"(?:content duplicates|{re.escape(va('dups_parse_content'))})[^:\n]*:\s*(\d+)")
+
+    lines: list[str] = [
+        va("dups_abstract_open"),
+        va("dups_abstract_head", groups=groups),
+        va(
+            "dups_abstract_meta",
+            total=total or "—",
+            suffix=suffix,
+            generic=generic,
+            content=content,
+        ),
+        "",
+    ]
+    if groups == 0:
+        extra = va("dups_clean_suffix_note", suffix=suffix) if suffix else ""
+        if extra and not extra.startswith(" "):
+            extra = " " + extra
+        lines.extend(
+            [
+                va("dups_clean_open"),
+                va("dups_clean_body", extra=extra),
+                "",
+            ]
+        )
+    else:
+        lines.extend(
+            [
+                va("dups_warn_open"),
+                va("dups_warn_body", generic=generic, content=content),
+                "",
+            ]
+        )
+    none_token = (va("dups_none_token") or "").strip().lower()
+    if "(none)" in text.lower() or (none_token and none_token in text.lower()):
+        lines.extend([va("dups_trash_ok_open"), va("dups_trash_ok_body"), ""])
+    return "\n".join(lines)
+
 
 
 def build_maintenance_section(vault: Path) -> str:
@@ -154,38 +235,42 @@ def build_maintenance_section(vault: Path) -> str:
     hubs_dir = vault / kd / hubs_rel
     if hubs_dir.exists():
         hubs = sorted(hubs_dir.glob("*.md"))
-        lines.append(va("maint_hubs_header", knowledge_dir=kd, hubs_rel=hubs_rel, count=len(hubs)))
+        lines.append(va("maint_hubs_ok_open", path=f"{kd}/{hubs_rel}"))
+        lines.append(va("maint_hubs_ok_head", count=len(hubs)))
         for h in hubs:
             mtime = datetime.datetime.fromtimestamp(h.stat().st_mtime).strftime("%Y-%m-%d")
             try:
-                text = h.read_text(encoding="utf-8", errors="ignore")
-                link_count = text.count("[[")
-                lines.append(va("maint_hub_row", name=h.name, links=link_count, mtime=mtime))
+                htext = h.read_text(encoding="utf-8", errors="ignore")
+                link_count = htext.count("[[")
+                lines.append(va("maint_hub_callout_row", name=h.name, links=link_count, mtime=mtime))
             except OSError:
-                lines.append(va("maint_hub_row_short", name=h.name, mtime=mtime))
+                lines.append(va("maint_hub_callout_row_short", name=h.name, mtime=mtime))
+        lines.append("")
     else:
-        lines.append(va("maint_hubs_missing", hubs_rel=hubs_rel))
+        lines.extend([va("maint_hubs_warn_open"), va("maint_hubs_warn_body", hubs_rel=hubs_rel), ""])
 
-    lines.append("")
     tag_cfg_path = _KB_ROOT / "config" / "tag_ontology.yaml"
     if tag_cfg_path.exists():
         try:
             tcfg = yaml.safe_load(tag_cfg_path.read_text(encoding="utf-8")) or {}
             mappings = tcfg.get("mappings", {}) or {}
-            lines.append(va("maint_ontology", count=len(mappings)))
+            if len(mappings) == 0:
+                lines.append(va("maint_ontology_zero").rstrip())
+            else:
+                lines.append(va("maint_ontology_ok", count=len(mappings)).rstrip())
         except OSError:
-            lines.append(va("maint_ontology_error"))
+            lines.append(va("maint_ontology_error").rstrip())
     else:
-        lines.append(va("maint_ontology_missing"))
+        lines.append(va("maint_ontology_missing").rstrip())
 
     lines.append("")
     sync_dir = vault / ".sync"
     marker = sync_dir / "daily_vault_write_maintenance_date.txt"
     if marker.exists():
         last_run = marker.read_text(encoding="utf-8").strip()
-        lines.append(va("maint_marker", date=last_run))
+        lines.append(va("maint_marker", date=last_run).rstrip())
     else:
-        lines.append(va("maint_marker_missing"))
+        lines.append(va("maint_marker_missing").rstrip())
 
     lines.append("")
     last_run_data: dict | None = None
@@ -219,16 +304,20 @@ def build_maintenance_section(vault: Path) -> str:
 
             ts = str(last_run_data.get("ts_end") or last_run_data.get("ts") or "—")
             lines.append("")
-            lines.append(mm("report_last_deletions_header", ts=ts))
+            lines.append(va("maint_deletions_ok").rstrip())
+            lines.append("")
+            lines.append(va("maint_deleted_paths_open", ts=ts))
             for item in deleted[:12]:
                 if not isinstance(item, dict):
                     continue
                 path = str(item.get("path") or "").strip()
                 reason = str(item.get("reason") or "?").strip()
                 if path:
-                    lines.append(f"- `{path}` — {reason}")
+                    tag = "duplicate" if "dup" in reason.lower() else reason
+                    lines.append(f"> - 🟡 `{path}` — {tag}")
             if len(deleted) > 12:
-                lines.append(mm("report_last_deletions_more", count=len(deleted) - 12))
+                lines.append(va("maint_deleted_paths_more", count=len(deleted) - 12))
+            lines.append("")
     else:
         lines.append(va("maint_run_details_missing"))
 
@@ -239,62 +328,77 @@ def build_maintenance_section(vault: Path) -> str:
     eligible = discover_candidate_paths(vault, rpcfg, skip_if_flag=True)
     skipped_ct = len(all_generic) - len(eligible)
     if all_generic:
-        lines.append(
-            va(
-                "maint_reprocess_header",
-                total=len(all_generic),
-                eligible=len(eligible),
-                skipped_suffix=va("maint_reprocess_skipped", count=skipped_ct) if skipped_ct else "",
-            )
+        kind = "warning" if eligible else "success"
+        lines.extend(
+            [
+                va(
+                    "maint_reprocess_queue_open",
+                    kind=kind,
+                ),
+                va(
+                    "maint_reprocess_queue_body",
+                    total=len(all_generic),
+                    eligible=len(eligible),
+                    skip=f" · skip {skipped_ct}" if skipped_ct else "",
+                ),
+                # Keep callout continuous: a bare "" ends the block in Obsidian.
+                ">",
+            ]
         )
         for p in eligible[:8]:
-            lines.append(f"  - `{p.relative_to(vault)}`")
+            lines.append(va("maint_reprocess_row", path=p.relative_to(vault).as_posix()))
         if len(eligible) > 8:
-            lines.append(va("maint_reprocess_more", count=len(eligible) - 8))
+            lines.append(va("maint_reprocess_more_callout", count=len(eligible) - 8))
         if skipped_ct and not eligible:
             lines.append(va("maint_reprocess_all_skipped"))
+        lines.append("")
     else:
-        lines.append(va("maint_reprocess_empty"))
+        lines.extend(
+            [
+                va("maint_reprocess_empty_open"),
+                va("maint_reprocess_empty_body"),
+                "",
+            ]
+        )
 
-    lines.append("")
     return "\n".join(lines)
 
 
 def build_vault_audit_report(vault: Path) -> str:
     kd = knowledge_subdir()
-    tags_text = render_tags_report(vault)
-    dups_text = _run_maintainer_script("analyze_vault_duplicates.py", vault)
+    tags_md = render_tags_markdown(vault)
+    dups_raw = _run_maintainer_script("analyze_vault_duplicates.py", vault)
+    dups_md = _format_duplicates_section(dups_raw)
     maintenance_section = build_maintenance_section(vault)
-    dynamics_section = build_dynamics_markdown_section(vault)
+    dynamics_section = build_dynamics_markdown_section(vault, include_deletions=False)
 
     return "\n".join(
         [
             va("report_title", knowledge_dir=kd),
             "",
-            va("report_updated", timestamp=datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
+            va("report_updated_callout"),
+            va("report_updated_body", timestamp=datetime.datetime.now().strftime("%Y-%m-%d %H:%M")),
             "",
             "---",
             "",
             va("section_tags"),
             "",
-            "```",
-            tags_text,
-            "```",
+            tags_md.rstrip(),
             "",
             "---",
             "",
             va("section_duplicates"),
             "",
-            "```",
-            dups_text,
-            "```",
+            dups_md.rstrip(),
             "",
             "---",
             "",
-            maintenance_section,
+            maintenance_section.rstrip(),
+            "",
             "---",
             "",
-            dynamics_section,
+            dynamics_section.rstrip(),
+            "",
         ]
     )
 

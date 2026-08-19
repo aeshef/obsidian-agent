@@ -633,8 +633,10 @@ def render_maintenance_charts(vault: Path) -> list[Path]:
     return [out_path]
 
 
-def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str:
-    """Markdown table + chart embed for audit report."""
+def build_dynamics_markdown_section(
+    vault: Path, *, table_days: int = 14, include_deletions: bool = True
+) -> str:
+    """Callout history + chart embed for audit report (no pipe tables)."""
     from knowledge_bot.i18n.domain_text import maintenance as mm
 
     paths = render_maintenance_charts(vault)
@@ -643,7 +645,8 @@ def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str
     lines: list[str] = [
         mm("report_section"),
         "",
-        mm("report_intro", history_path=hist).strip(),
+        mm("report_dynamics_open"),
+        mm("report_dynamics_hist", history_path=hist),
         "",
     ]
     if paths:
@@ -659,11 +662,9 @@ def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str
         lines.append("")
         return "\n".join(lines)
 
-    lines.append(mm("report_table_days", days=min(table_days, len(rows))))
-    lines.append("")
-    lines.append(mm("report_table_header"))
-    lines.append("|---|:---:|---:|---:|---:|---:|---:|---:|---:|")
-    for r in rows[-table_days:]:
+    shown = rows[-table_days:]
+    lines.append(mm("report_days_fold", days=len(shown)))
+    for r in shown:
         run = r.get("run") or {}
         delta = int(r.get("delta_notes_md_db700", 0))
         dup_notes = int(run.get("duplicates_notes_deleted", 0) or 0)
@@ -676,14 +677,25 @@ def build_dynamics_markdown_section(vault: Path, *, table_days: int = 14) -> str
         repr_empty = int(run.get("reprocess_deleted_empty", 0) or 0)
         retag = int(run.get("retag_touched", 0) or 0)
         repr_ok = int(run.get("reprocess_saved", 0) or 0)
-        dup_mb = float(run.get("duplicates_mb_freed", 0) or 0)
         ok = "✓" if r.get("ok") else "✗"
         delta_s = f"{delta:+d}" if delta else "0"
         lines.append(
-            f"| {r.get('date','')} | {int(r.get('runs_count') or 1)} | {delta_s} | "
-            f"{dup_notes} | {repr_empty} | {retag} | {repr_ok} | {dup_mb:.1f} | {ok} |"
+            mm(
+                "report_day_line",
+                date=r.get("date", ""),
+                runs=int(r.get("runs_count") or 1),
+                delta=delta_s,
+                dup=dup_notes,
+                empty=repr_empty,
+                retag=retag,
+                repr_ok=repr_ok,
+                ok=ok,
+            )
         )
     lines.append("")
+    if not include_deletions:
+        return "\n".join(lines)
+
     latest_history_date = str(rows[-1].get("date") or "").strip()
     manifest = vault / ".sync" / "last_maintenance_deleted_paths.json"
     if manifest.is_file():

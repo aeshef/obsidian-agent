@@ -61,3 +61,23 @@ attachments:
     (vault / rel).write_text(raw, encoding="utf-8")
     found = media_from_note_text(raw, rel, vault)
     assert found == [(export_rel, "Test")]
+
+
+def test_media_from_note_flat_files_property(tmp_path: Path):
+    rel = knowledge_rel("Курсы/y.md")
+    vault = tmp_path
+    export_rel = knowledge_rel("Export/w.mp4")
+    media_path = vault / export_rel
+    media_path.parent.mkdir(parents=True)
+    media_path.write_bytes(b"\x00")
+    raw = f"""---
+title: Flat
+files:
+  - {export_rel}
+---
+# Flat
+"""
+    (vault / rel).parent.mkdir(parents=True, exist_ok=True)
+    (vault / rel).write_text(raw, encoding="utf-8")
+    found = media_from_note_text(raw, rel, vault)
+    assert found == [(export_rel, "Flat")]
