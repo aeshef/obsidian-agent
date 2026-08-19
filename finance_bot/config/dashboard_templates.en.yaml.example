@@ -4,7 +4,7 @@ title: "# 📊 Finance"
 
 nav_callout: |
   > [!abstract] Dashboards
-  > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[🔬 Аналитика|🔬 Analytics]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]]
+  > [[🎯 Главный_Дашборд|🎯 Main]] · [[📊 Прогресс_2026|📊 Progress]] · [[🏥 Здоровье|🏥 Health]] · [[🔬 Аналитика|🔬 Analytics]] · [[📅 Встречи_и_фокус_недели|📅 Meetings]] · [[🛠 Система|🛠 System]]
 
 callouts:
   badge: "🍽 Food badge"
@@ -39,17 +39,53 @@ misc:
 sections:
   summary:
     heading: "## 💰 Summary"
-    db_updated: "- **finance.db updated:** {mtime}"
+    db_updated: "_Data · {mtime}_"
     stale_data: |
-      - ⚠️ **Stale data** (DB from {mtime}). Run `./scripts/sync_finance_db.sh` then rebuild the dashboard.
-    total_rub: "- **Total balance (RUB):** {amount}"
-    total_usd: "- **Total balance (USD):** {amount}"
-    runway_months: "- **Financial runway:** {months} months (avg spend over last 3 months)"
+      > [!warning] Stale data (DB from {mtime}). Run `./scripts/sync_finance_db.sh` then rebuild.
+    total_rub: "**{amount}** ₽"
+    total_usd: "**${amount}**"
+    runway_months: "Runway **{months}** mo"
+    hero_open: >
+      > [!abstract] Now
+    hero_rub: "> ### {amount} ₽"
+    hero_meta: "> {meta}"
+    hero_updated: "> _{mtime}_"
+    card_total_label: Total
+    card_total_hint: cash + broker
+    card_cushion_label: Cushion
+    card_cushion_value: "{months} mo"
+    card_cushion_hint: cash / essentials
 
   planned:
     heading: "### 📋 Planned expenses"
     line: "- **{name}**: {amount} {currency} (due {due})"
     hint: "_Add plans in the bot: 📋 Plan → ➕ Add plan_"
+
+  month_plan:
+    heading: "### 📅 Month plan"
+    income: "- Expected income: **{amount}** ₽"
+    commitment: "- Commitments (recurring + plans + buffer): **{amount}** ₽"
+    flexible: "- Flexible pool: **{amount}** ₽"
+    spent: "- Already spent from flexible: **{amount}** ₽ ({burn}%)"
+    daily: "- Today ≈ **{amount}** ₽/day (remaining / days left)"
+    fair_daily: "- Fair daily share: **{amount}** ₽"
+    specifics_heading: "**This month (one-off plans):**"
+    specifics_line: "- {name}: {amount} {currency}"
+    upcoming_heading: "**Later:**"
+    upcoming_line: "- {name}: {amount} {currency} (due {due})"
+    hint: "_One place: bot 📋 Plan (one-offs) + `month_plan.yaml` (income/buffer). Past-month plans auto-expire._"
+    skip_income_zero: "_Set `income_expected_rub` in month_plan.yaml to unlock daily allowance._"
+    card_spent_label: Spent
+    card_spent_hint: "gross {gross} − reimbursed {reimb}"
+    card_free_label: Free
+    card_free_hint: "pool {pool} · {burn}% spent"
+    card_daily_label: RUB/day
+    card_daily_hint: "from salary · {days} d"
+    card_buffer_label: Savings
+    card_buffer_hint: "{rate}% salary · {status}"
+    card_cushion_label: Cushion
+    card_cushion_value: "{months} mo"
+    card_cushion_hint: "cash {cash} · broker {broker}"
 
   structure:
     heading: "### Balance structure (RUB)"
@@ -107,11 +143,17 @@ sections:
   by_account:
     heading: "### Spending by account"
     pie_title: "Where we spend (all time)"
+    month_list_heading: "**Spend by account (month):**"
 
   balances_table:
     heading: "### Balances by account"
     header: "| Account | Balance | Currency |"
     sep: "|---------|---------|----------|"
+    list_heading: "**Balances:**"
+    receivable_kind: owed to me
+    liability_kind: I owe
+    debts_line: "- Debts/owed: {bits}"
+    hidden_zero: "_{n} zero-balance accounts hidden_"
 
   top_expenses:
     heading: "### Top expenses (30 days)"
@@ -190,6 +232,7 @@ category_order:
   - "Other"
 
 badge:
+  idle_month: "_Badge unused this month — quota burned._"
   no_account: "_Badge account not created — log first meal in the bot (🍽 Badge)._"
   working_days: "- **Working days:** {days}"
   spent: "- **Spent:** {spent} ₽ of {entitlement} ₽ ({pct:.0f}%)"

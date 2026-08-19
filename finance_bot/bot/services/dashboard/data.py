@@ -68,8 +68,14 @@ def external_rub_non_portfolio_total(
 
 def load_data(db_path: Path, user_id: int = 1):
     """Load accounts, transactions, and planned_expenses from DB."""
+    from datetime import date as _date
+
+    from bot.services.month_plan import lapse_past_planned_sqlite
+
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
+    # Past-month plans leave active → expired so dashboard/bot share one lifecycle.
+    lapse_past_planned_sqlite(conn, today=_date.today(), user_id=user_id)
     cur = conn.cursor()
 
     cur.execute(

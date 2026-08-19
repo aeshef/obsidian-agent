@@ -5,7 +5,7 @@ title: "# 📊 Финансы"
 
 nav_callout: |
   > [!abstract] Дашборды
-  > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]]
+  > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[🛠 Система|🛠 Система]]
 
 callouts:
   badge: "🍽 Бейдж питания"
@@ -40,17 +40,64 @@ misc:
 sections:
   summary:
     heading: "## 💰 Сводка"
-    db_updated: "- **Данные:** {mtime}"
+    db_updated: "_Данные · {mtime}_"
     stale_data: |
-      - ⚠️ **Данные устарели** (БД от {mtime}). Новые транзакции не попали в дашборд. Обнови копию: из папки finance_bot выполни `./scripts/sync_finance_db.sh`, затем заново собери дашборд.
-    total_rub: "- **Суммарный баланс (RUB):** {amount}"
-    total_usd: "- **Суммарный баланс (USD):** {amount}"
-    runway_months: "- **Runway:** {months} мес. запаса"
-
+      > [!warning] Данные устарели (БД от {mtime}). Обнови: `./scripts/sync_finance_db.sh`, затем пересобери дашборд.
+    total_rub: "**{amount}** ₽"
+    total_usd: "**${amount}**"
+    runway_months: "Runway **{months}** мес"
+    hero_open: >
+      > [!abstract] Сейчас
+    hero_rub: "> ### {amount} ₽"
+    hero_meta: "> {meta}"
+    hero_updated: "> _{mtime}_"
+    card_total_label: Всего
+    card_total_hint: кэш + брокер
+    card_cushion_label: Подушка
+    card_cushion_value: "{months} мес"
+    card_cushion_hint: кэш / essentials
   planned:
     heading: "### 📋 Запланированные расходы"
     line: "- **{name}**: {amount} {currency} (к {due})"
     hint: "_Добавляй планы в боте: 📋 План → ➕ Добавить план_"
+
+  month_plan:
+    heading: "### 📅 План месяца"
+    gauges_note: "> ₽/день — только от зарплаты. Кэш = подушка/runway · брокер = капитал."
+    free_open: "> [!{kind}] Свободно на жизнь (от зарплаты)"
+    free_title: "> ### {amount} ₽"
+    free_meta: "> Пул **{pool}** · уже из пула **{spent}** ({burn}%) · ≈ **{daily}** ₽/день · {days} дн."
+    buffer_open: "> [!{kind}] Накопления (pay yourself first)"
+    buffer_title: "> ### {progress} / {goal} ₽"
+    buffer_meta: "> **{rate}%** зарплаты = **{goal}** · в брокер **{invest}** · **{status}**"
+    safety_open: "> [!{kind}] Подушка (кэш, не брокер)"
+    safety_title: "> ### {runway} мес runway"
+    safety_meta: "> Кэш **{cash}** · брокер **{broker}** · essentials **{essentials}**/мес · после разовых **{after}** · цель **{target}** мес → gap **{gap}**"
+    income_callout_open: "> [!success] Flexible pool (от зарплаты)"
+    income_callout_title: "> ### {amount} ₽ на месяц"
+    income: "- Ожидаемый доход: **{amount}** ₽"
+    commitment: "- Обязательства (фикс + планы + накопления %): **{amount}** ₽"
+    flexible: "- Flexible pool: **{amount}** ₽"
+    spent: "- Уже потрачено из flexible: **{amount}** ₽ ({burn}%)"
+    daily: "- Сегодня можно ≈ **{amount}** ₽/день (от зарплаты)"
+    fair_daily: "- Справедливая норма на день: **{amount}** ₽"
+    specifics_heading: "**В этом месяце (разовые планы):**"
+    specifics_line: "- {name}: {amount} {currency}"
+    upcoming_heading: "**Позже:**"
+    upcoming_line: "- {name}: {amount} {currency} (к {due})"
+    hint: "_План: бот 📋 План + `month_plan.yaml` (зарплата / savings_rate_pct). Кэш ≠ дневной бюджет._"
+    skip_income_zero: "> [!note] Дневной лимит от дохода\n> Заполни `income_expected_rub` — появятся flexible pool и ₽/день. Подушка ниже — runway кэша, не разрешение тратить баланс."
+    card_spent_label: Потратил
+    card_spent_hint: "гросс {gross} − компенс. {reimb}"
+    card_free_label: Свободно
+    card_free_hint: "пул {pool} · {burn}% израсх."
+    card_daily_label: ₽/день
+    card_daily_hint: "от зарплаты · {days} дн."
+    card_buffer_label: Накопления
+    card_buffer_hint: "{rate}% зарплаты · {status}"
+    card_cushion_label: Подушка
+    card_cushion_value: "{months} мес"
+    card_cushion_hint: "кэш {cash} · брокер {broker}"
 
   structure:
     heading: ""
@@ -107,11 +154,17 @@ sections:
   by_account:
     heading: "### Откуда тратим"
     pie_title: "Траты по счетам (всего)"
+    month_list_heading: "**Траты по счетам (месяц):**"
 
   balances_table:
     heading: "### По счетам"
     header: "| Счёт | Баланс | Валюта |"
     sep: "|------|--------|--------|"
+    list_heading: "**Балансы:**"
+    receivable_kind: мне
+    liability_kind: я должен
+    debts_line: "- Долги/должны: {bits}"
+    hidden_zero: "_{n} счетов с нулём скрыто_"
 
   top_expenses:
     heading: "### Топ трат за 30 дней"
@@ -189,6 +242,7 @@ category_order:
   - "Прочее"
 
 badge:
+  idle_month: "_Бейдж в этом месяце не использовался — квота сгорела._"
   no_account: "_Счёт бейджа ещё не создан — запиши первую трату в боте (🍽 Бейдж)._"
   working_days: "- **Рабочих дней:** {days}"
   spent: "- **Потрачено:** {spent} ₽ из {entitlement} ₽ ({pct:.0f}%)"

@@ -83,6 +83,24 @@ def main() -> None:
         return
 
     db_mtime = datetime.fromtimestamp(db_path.stat().st_mtime)
+    # Lapse past-month plans on canonical and dashboard DB separately (no full mirror —
+    # replica may diverge on balances; we only need planned_expenses.status in sync).
+    try:
+        from bot.finance_db_paths import resolve_canonical_write_db
+        from bot.services.month_plan import lapse_past_planned_sqlite
+
+        today = datetime.now().date()
+        for path in {db_path.resolve(), resolve_canonical_write_db().resolve()}:
+            if not path.is_file():
+                continue
+            cconn = sqlite3.connect(path)
+            n = lapse_past_planned_sqlite(cconn, today=today, user_id=args.user_id)
+            cconn.close()
+            if n:
+                print(f"lapsed {n} past planned_expenses in {path.name}")
+    except Exception as e:
+        print(f"planned lapse skipped: {e}")
+
     accounts, transactions, planned = load_data(db_path, args.user_id)
     now = datetime.now()
     print(dtpl("logs", "loaded", accounts=len(accounts), transactions=len(transactions), planned=len(planned)))
@@ -152,50 +170,49 @@ def main() -> None:
     part_total_balance = []
     part_badge = []
 
-    # Summary
+    cushion_runway_str = ""  # cash / essentials — filled in month-plan block
+    # Summary hero — balances + runway filled later when spend avg is known.
+    _summary_mtime = db_mtime.strftime("%Y-%m-%d %H:%M")
     part_summary.extend([
         dtpl("sections", "summary", "heading"),
         "",
-        dtpl("sections", "summary", "db_updated", mtime=db_mtime.strftime("%Y-%m-%d %H:%M")),
     ])
     db_age_days = (datetime.now() - db_mtime).total_seconds() / 86400
     if db_age_days > 1:
         part_summary.append(
-            dtpl("sections", "summary", "stale_data", mtime=db_mtime.strftime("%Y-%m-%d %H:%M"))
+            dtpl("sections", "summary", "stale_data", mtime=_summary_mtime)
         )
-    part_summary.extend([
-        dtpl("sections", "summary", "total_rub", amount=fmt_num(total_rub, decimals=2)),
-    ])
-    if total_usd != 0:
-        part_summary.append(dtpl("sections", "summary", "total_usd", amount=fmt_num(total_usd, decimals=2)))
-    part_summary.append("")
+    _hero_open = dtpl("sections", "summary", "hero_open")
+    if _hero_open.strip():
+        # Numbers as metric cards — filled after month-plan cushion is known
+        part_summary.append("__FINANCE_HERO_META__")
+        part_summary.append(f"_{_summary_mtime}_")
+        part_summary.append("")
+    else:
+        part_summary.append(dtpl("sections", "summary", "db_updated", mtime=_summary_mtime))
+        part_summary.append(
+            dtpl("sections", "summary", "total_rub", amount=fmt_num(total_rub, decimals=2))
+        )
+        if total_usd != 0:
+            part_summary.append(dtpl("sections", "summary", "total_usd", amount=fmt_num(total_usd, decimals=2)))
+        part_summary.append("")
 
-    # Planned expenses
-    if planned:
-        part_planned.extend([
-            dtpl("sections", "planned", "heading"),
-            "",
-        ])
-        for p in planned:
-            due = p["due_date"][:10] if p.get("due_date") else dtpl("misc", "no_due_date")
-            part_planned.append(dtpl("sections", "planned", "line", name=p["name"], amount=fmt_num(float(p["amount"]), decimals=0), currency=p["currency"], due=due))
-        part_planned.extend([
-            "",
-            dtpl("sections", "planned", "hint"),
-            "",
-        ])
-
-    # Month flexible plan (subscriptions + planned + buffer)
+    # Planned expenses live inside month plan (one place). Past-month rows are
+    # lapsed to status=expired in load_data — no separate dump section.
     try:
         from bot.services.month_plan import (
-            PlanLine,
             build_month_plan,
+            compute_balance_safety,
+            compute_economic_month,
             inferred_from_config,
             load_month_plan_config,
             load_subscriptions,
-            month_expense_total,
             month_plan_config_path,
             planned_for_month,
+            planned_upcoming,
+            resolve_savings_buffer,
+            soft_cap_overages,
+            soft_caps_from_config,
             subscriptions_yaml_path,
         )
 
@@ -203,13 +220,19 @@ def main() -> None:
         mp_cfg = load_month_plan_config(cfg_path)
         ym = f"{now.year:04d}-{now.month:02d}"
         income = float(mp_cfg.get("income_expected_rub") or 0)
-        buffer = float(mp_cfg.get("buffer_savings_rub") or 0)
+        buffer, savings_rate = resolve_savings_buffer(mp_cfg, income)
+        try:
+            emergency_months = float(mp_cfg.get("emergency_months_target") or 3)
+        except (TypeError, ValueError):
+            emergency_months = 3.0
         inferred = inferred_from_config(mp_cfg)
         subs = load_subscriptions(subscriptions_yaml_path())
         specifics = planned_for_month(planned, ym)
-        month_spend = month_expense_total(transactions, ym)
+        upcoming = planned_upcoming(planned, ym)
+        econ = compute_economic_month(transactions, ym)
         recurring_sum = sum(x.amount for x in subs) + sum(x.amount for x in inferred)
-        flexible_spent = max(0.0, month_spend - recurring_sum)
+        # Flexible burn = economic net spend minus budgeted recurring (already in commitment).
+        flexible_spent = max(0.0, float(econ.economic_spend) - float(recurring_sum))
         snap = build_month_plan(
             ym=ym,
             today=now.date(),
@@ -218,32 +241,241 @@ def main() -> None:
             specifics=specifics,
             inferred=inferred,
             buffer_savings=buffer,
+            savings_rate_pct=savings_rate,
             flexible_spent=flexible_spent,
         )
+        flexible_left = max(0.0, float(snap.flexible_pool) - float(snap.flexible_spent))
+        soft_caps = soft_caps_from_config(mp_cfg)
+        overages = soft_cap_overages(econ.by_category, soft_caps)
+
+        broker_ids = {
+            a["id"]
+            for a in accounts
+            if a.get("currency") in ("RUB", "RUR")
+            and is_broker_portfolio_account(a.get("type"), bool(a.get("is_external_balance")))
+        }
+        broker_rub = sum(float(balances_now.get(aid, 0) or 0) for aid in broker_ids)
+        spendable_rub = float(total_rub) - broker_rub
+        safety = compute_balance_safety(
+            cash_rub=spendable_rub,
+            broker_rub=broker_rub,
+            planned=specifics,
+            recurring=list(subs) + list(inferred),
+            emergency_target_months=emergency_months,
+            month_spent=float(econ.economic_spend),
+        )
+        cushion_runway_str = f"{safety.runway_months:.1f}"
+
         part_planned.extend([dtpl("sections", "month_plan", "heading"), ""])
+        note = dtpl("sections", "month_plan", "gauges_note")
+        if note:
+            part_planned.extend([note, ""])
+
+        from shared.obsidian_metric_cards import MetricCard, metric_cards_lines
+
+        inv = float(econ.investments)
+        buffer_status = ""
+        if buffer > 0:
+            if inv >= buffer * 0.9:
+                b_accent, b_status_key = "#43a047", "buffer_status_ahead"
+            elif inv >= buffer * 0.4:
+                b_accent, b_status_key = "#1e88e5", "buffer_status_ok"
+            else:
+                b_accent, b_status_key = "#ffa726", "buffer_status_low"
+            buffer_status = dtpl("sections", "month_plan", b_status_key) or b_status_key
+        else:
+            b_accent = "#90a4ae"
+
+        free_accent = (
+            "#e53935"
+            if income > 0 and (flexible_left <= 0 or snap.burn_pct >= 100)
+            else "#43a047"
+        )
+        cushion_accent = (
+            "#e53935"
+            if safety.runway_months < safety.emergency_target_months
+            else "#7e57c2"
+        )
+
+        cards: list[MetricCard] = [
+            MetricCard(
+                label=dtpl("sections", "month_plan", "card_spent_label") or "Spent",
+                value=f"{fmt_num(econ.economic_spend, decimals=0)} RUB",
+                accent="#e53935",
+                hint=dtpl(
+                    "sections",
+                    "month_plan",
+                    "card_spent_hint",
+                    gross=fmt_num(econ.consumption_gross, decimals=0),
+                    reimb=fmt_num(econ.reimbursements, decimals=0),
+                ),
+            ),
+        ]
+        if income > 0:
+            cards.append(
+                MetricCard(
+                    label=dtpl("sections", "month_plan", "card_free_label") or "Free",
+                    value=f"{fmt_num(flexible_left, decimals=0)} RUB",
+                    accent=free_accent,
+                    hint=dtpl(
+                        "sections",
+                        "month_plan",
+                        "card_free_hint",
+                        pool=fmt_num(snap.flexible_pool, decimals=0),
+                        burn=fmt_num(snap.burn_pct, decimals=0),
+                    ),
+                )
+            )
+            cards.append(
+                MetricCard(
+                    label=dtpl("sections", "month_plan", "card_daily_label") or "RUB/day",
+                    value=f"{fmt_num(snap.daily_allowance_remaining, decimals=0)} RUB",
+                    accent="#1e88e5",
+                    hint=dtpl(
+                        "sections",
+                        "month_plan",
+                        "card_daily_hint",
+                        days=snap.days_left,
+                    ),
+                )
+            )
+        if buffer > 0:
+            cards.append(
+                MetricCard(
+                    label=dtpl("sections", "month_plan", "card_buffer_label") or "Savings",
+                    value=f"{fmt_num(inv, decimals=0)} / {fmt_num(buffer, decimals=0)}",
+                    accent=b_accent,
+                    hint=dtpl(
+                        "sections",
+                        "month_plan",
+                        "card_buffer_hint",
+                        rate=fmt_num(savings_rate, decimals=0),
+                        status=buffer_status,
+                    ),
+                )
+            )
+        cards.append(
+            MetricCard(
+                label=dtpl("sections", "month_plan", "card_cushion_label") or "Cushion",
+                value=dtpl(
+                    "sections",
+                    "month_plan",
+                    "card_cushion_value",
+                    months=fmt_num(safety.runway_months, decimals=1),
+                ) or f"{fmt_num(safety.runway_months, decimals=1)} mo",
+                accent=cushion_accent,
+                hint=dtpl(
+                    "sections",
+                    "month_plan",
+                    "card_cushion_hint",
+                    cash=fmt_num(safety.cash_rub, decimals=0),
+                    broker=fmt_num(safety.broker_rub, decimals=0),
+                ),
+            )
+        )
+        part_planned.extend(metric_cards_lines(cards))
+
         if income <= 0:
             part_planned.append(dtpl("sections", "month_plan", "skip_income_zero"))
+            part_planned.append("")
+
+        # Soft caps (text tip — not a number row)
+        part_planned.append(dtpl("sections", "month_plan", "soft_open") or "> [!tip] Soft cuts")
+        if overages:
+            for row in overages[:4]:
+                part_planned.append(
+                    dtpl(
+                        "sections",
+                        "month_plan",
+                        "soft_line",
+                        category=row["category"],
+                        spent=fmt_num(row["spent"], decimals=0),
+                        cap=fmt_num(row["cap"], decimals=0),
+                        over=fmt_num(row["over"], decimals=0),
+                    )
+                )
         else:
-            part_planned.extend([
-                dtpl("sections", "month_plan", "income", amount=fmt_num(snap.income_expected, decimals=0)),
-                dtpl("sections", "month_plan", "commitment", amount=fmt_num(snap.commitment, decimals=0)),
-                dtpl("sections", "month_plan", "flexible", amount=fmt_num(snap.flexible_pool, decimals=0)),
-                dtpl(
-                    "sections",
-                    "month_plan",
-                    "spent",
-                    amount=fmt_num(snap.flexible_spent, decimals=0),
-                    burn=fmt_num(snap.burn_pct, decimals=0),
-                ),
-                dtpl("sections", "month_plan", "fair_daily", amount=fmt_num(snap.daily_allowance, decimals=0)),
-                dtpl(
-                    "sections",
-                    "month_plan",
-                    "daily",
-                    amount=fmt_num(snap.daily_allowance_remaining, decimals=0),
-                ),
-            ])
+            part_planned.append(
+                dtpl("sections", "month_plan", "soft_empty") or "> - Within soft caps."
+            )
+        part_planned.append("")
+
+        if specifics:
+            part_planned.extend(["", dtpl("sections", "month_plan", "specifics_heading")])
+            for sp in specifics:
+                part_planned.append(
+                    dtpl(
+                        "sections",
+                        "month_plan",
+                        "specifics_line",
+                        name=sp.name,
+                        amount=fmt_num(sp.amount, decimals=0),
+                        currency=sp.currency,
+                    )
+                )
+        if upcoming:
+            part_planned.extend(["", dtpl("sections", "month_plan", "upcoming_heading")])
+            for sp, due in upcoming:
+                part_planned.append(
+                    dtpl(
+                        "sections",
+                        "month_plan",
+                        "upcoming_line",
+                        name=sp.name,
+                        amount=fmt_num(sp.amount, decimals=0),
+                        currency=sp.currency,
+                        due=due.isoformat(),
+                    )
+                )
         part_planned.extend(["", dtpl("sections", "month_plan", "hint"), ""])
+
+        # Optional LLM narrative (cached; never blocks dashboard on failure)
+        try:
+            from bot.services.dashboard_insight import generate_dashboard_month_insight
+
+            top_cats = sorted(
+                econ.by_category.items(), key=lambda kv: -kv[1]
+            )[:6]
+            protect = {
+                str(x).strip()
+                for x in (mp_cfg.get("insight_protect_names") or [])
+                if str(x).strip()
+            }
+            do_not_cut = [x.name for x in inferred if x.name in protect]
+            facts = {
+                "ym": ym,
+                "notes": (
+                    "Transfers and broker top-ups are not consumption. "
+                    "Non-salary income offsets group pays (reimbursements)."
+                ),
+                "economic": econ.to_dict(),
+                "plan": {
+                    "income_expected": income,
+                    "savings_rate_pct": savings_rate,
+                    "buffer_goal": buffer,
+                    "buffer_deposited": round(inv, 2),
+                    "buffer_status": buffer_status or "n/a",
+                    "flexible_pool": snap.flexible_pool,
+                    "flexible_spent": snap.flexible_spent,
+                    "flexible_left": round(flexible_left, 2),
+                    "burn_pct": snap.burn_pct,
+                    "daily_left": snap.daily_allowance_remaining,
+                    "days_left": snap.days_left,
+                    "recurring_budget": recurring_sum,
+                },
+                "soft_overages": overages,
+                "safety": safety.to_dict(),
+                "top_categories": [
+                    {"category": c, "amount": round(a, 0)} for c, a in top_cats
+                ],
+                "do_not_cut": do_not_cut,
+                "salary_received": econ.salary_income,
+            }
+            tip_md = generate_dashboard_month_insight(vault, facts)
+            if tip_md:
+                part_planned.extend([tip_md.rstrip(), ""])
+        except Exception as e:
+            print(f"dashboard month insight skipped: {e}")
     except Exception as e:
         print(f"month_plan section skipped: {e}")
 
@@ -382,27 +614,19 @@ def main() -> None:
 
         if moves_out_month_total or moves_in_month_total:
             cats_list = ", ".join(sorted(exclude_spending_categories))
-            part_moves.extend([
-                dtpl("sections", "moves", "heading"),
-                "",
-                dtpl("sections", "moves", "excluded_cats", cats=cats_list),
-                "",
-                dtpl("sections", "moves", "out_month", amount=fmt_num(float(moves_out_month_total), decimals=0)),
-                dtpl("sections", "moves", "in_month", amount=fmt_num(float(moves_in_month_total), decimals=0)),
-            ])
             net = moves_in_month_total - moves_out_month_total
             part_moves.extend([
-                dtpl("sections", "moves", "net", amount=fmt_num(float(net), decimals=0)),
+                dtpl("sections", "moves", "excluded_cats", cats=cats_list),
+                dtpl(
+                    "sections",
+                    "moves",
+                    "summary_line",
+                    out=fmt_num(float(moves_out_month_total), decimals=0),
+                    inn=fmt_num(float(moves_in_month_total), decimals=0),
+                    net=fmt_num(float(net), decimals=0),
+                ),
                 "",
-                dtpl("sections", "moves", "recent_header"),
-                "",
-                dtpl("sections", "moves", "table_header"),
-                dtpl("sections", "moves", "table_sep"),
             ])
-            moves_recent.sort(key=lambda x: x[4], reverse=True)
-            for direction, acc, cat, amt, dt, desc in moves_recent[:12]:
-                part_moves.append(f"| {direction} | {acc} | {cat or _dash()} | {fmt_num(float(amt), decimals=0)} | {dt} | {safe_comment(desc)} |")
-            part_moves.append("")
 
     # Daily spending: regular vs one-off
     # One-off = expense >= threshold
@@ -873,33 +1097,75 @@ def main() -> None:
         part_total_balance.append(dtpl("sections", "balance", "no_data"))
     part_total_balance.extend(["", ""])
 
-    # Spending by account
+    # Spending by account — current month only (list, not lifetime dump pie)
     exp_by_account = defaultdict(Decimal)
     for t in transactions:
-        if t["type"] == "expense" and not _is_excluded_category(t) and not _is_badge_expense(t):
-            exp_by_account[t.get("account_name") or dtpl("misc", "unknown_account")] += Decimal(str(t["amount"]))
+        if t["type"] != "expense" or _is_excluded_category(t) or _is_badge_expense(t):
+            continue
+        occ = parse_datetime(t["occurred_at"])
+        if not occ or occ < month_start:
+            continue
+        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+            continue
+        exp_by_account[t.get("account_name") or dtpl("misc", "unknown_account")] += Decimal(
+            str(t["amount"])
+        )
     if exp_by_account:
-        by_acc_data = [(k, float(v)) for k, v in sorted(exp_by_account.items(), key=lambda x: -x[1])[:8]]
-        part_exp_by_account.extend([
-            dtpl("sections", "by_account", "heading"),
-            "",
-            "```mermaid",
-            mermaid_pie(by_acc_data, dtpl("sections", "by_account", "pie_title")),
-            "```",
-            "",
-        ])
+        part_exp_by_account.append(
+            dtpl("sections", "by_account", "month_list_heading") or "**Spend by account (month):**"
+        )
+        for name, val in sorted(exp_by_account.items(), key=lambda x: -x[1])[:8]:
+            part_exp_by_account.append(
+                f"- **{name}**: {fmt_num(float(val), decimals=0)} ₽"
+            )
+        part_exp_by_account.append("")
 
-    # Balances table
-    part_balances.extend([
-        dtpl("sections", "balances_table", "heading"),
-        "",
-        dtpl("sections", "balances_table", "header"),
-        dtpl("sections", "balances_table", "sep"),
-    ])
-    for a in sorted(accounts, key=lambda x: (-float(balances_now.get(x["id"], 0)), x["name"])):
-        bal = balances_now.get(a["id"], 0)
-        part_balances.append(f"| {a['name']} | {fmt_num(float(bal), decimals=2)} | {a['currency']} |")
-    part_balances.append("")
+    # Balances — skip zeros / noise; cash + broker first
+    def _bal_sort_key(a: dict) -> tuple:
+        bal = float(balances_now.get(a["id"], 0) or 0)
+        name = str(a.get("name") or "")
+        is_noise = name.startswith(("receivable:", "liability_")) or abs(bal) < 0.01
+        return (is_noise, -abs(bal), name)
+
+    visible_accounts = [
+        a
+        for a in accounts
+        if abs(float(balances_now.get(a["id"], 0) or 0)) >= 1.0
+        or str(a.get("name") or "").startswith("Yandex Badge")
+    ]
+    visible_accounts = sorted(visible_accounts, key=_bal_sort_key)
+    hidden_n = len(accounts) - len(visible_accounts)
+    part_balances.append(dtpl("sections", "balances_table", "list_heading") or "**Balances:**")
+    for a in visible_accounts:
+        if str(a.get("name") or "").startswith(("receivable:", "liability_")):
+            continue
+        bal = float(balances_now.get(a["id"], 0) or 0)
+        cur = a.get("currency") or "RUB"
+        part_balances.append(
+            f"- **{a['name']}**: {fmt_num(bal, decimals=2 if abs(bal) < 100 else 0)} {cur}"
+        )
+    # Debts / receivables — one compact line if any
+    debt_bits = []
+    for a in visible_accounts:
+        name = str(a.get("name") or "")
+        if not name.startswith(("receivable:", "liability_")):
+            continue
+        bal = float(balances_now.get(a["id"], 0) or 0)
+        if abs(bal) < 0.01:
+            continue
+        short = name.split(":", 1)[-1]
+        kind = dtpl(
+            "sections",
+            "balances_table",
+            "receivable_kind" if name.startswith("receivable:") else "liability_kind",
+        )
+        debt_bits.append(f"{short} {fmt_num(bal, decimals=0)} {a.get('currency') or ''} ({kind})")
+    if debt_bits:
+        part_balances.append(
+            dtpl("sections", "balances_table", "debts_line", bits="; ".join(debt_bits[:6]))
+        )
+    if hidden_n > 0:
+        part_balances.append(dtpl("sections", "balances_table", "hidden_zero", n=hidden_n))
     part_balances.append("")
 
     # Top expenses last 30 days
@@ -921,16 +1187,15 @@ def main() -> None:
         recent_exp.append((t.get("account_name") or dtpl("misc", "unknown_account"), t.get("category"), float(t["amount"]), date_str, t.get("description") or ""))
     recent_exp.sort(key=lambda x: -x[2])
     if recent_exp[:15]:
-        part_top_exp.extend([
-            dtpl("sections", "top_expenses", "heading"),
-            "",
-            dtpl("sections", "top_expenses", "header"),
-            dtpl("sections", "top_expenses", "sep"),
-        ])
+        part_top_exp.append(dtpl("sections", "top_expenses", "list_intro") or "")
         for acc, cat, amt, occ, desc in recent_exp[:15]:
             dt = occ[:10] if isinstance(occ, str) else str(occ)[:10]
-            part_top_exp.append(f"| {acc} | {cat or dtpl('misc', 'dash')} | {fmt_num(float(amt), decimals=2)} | {dt} | {safe_comment(desc)} |")
-        part_top_exp.extend(["", ""])
+            comment = safe_comment(desc)
+            tail = f" — {comment}" if comment and comment != "—" else ""
+            part_top_exp.append(
+                f"- **{fmt_num(float(amt), decimals=0)} ₽** · {cat or dtpl('misc', 'dash')} · {acc} · {dt}{tail}"
+            )
+        part_top_exp.append("")
 
     # Monthly income vs expense
     monthly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
@@ -948,17 +1213,38 @@ def main() -> None:
         amt = Decimal(str(t["amount"]))
         monthly[key][t["type"]] += amt
 
-    # Finance runway: avg regular monthly spend over last 3 full months vs. total RUB balance
-    _now_key = datetime.now().strftime("%Y-%m")
-    _past_months = sorted(k for k in monthly if k < _now_key)[-3:]
-    if len(_past_months) >= 2 and total_rub > 0:
-        _avg_spend = float(sum(monthly[m]["expense"] for m in _past_months)) / len(_past_months)
-        if _avg_spend > 0:
-            _runway = total_rub / _avg_spend
-            _runway_tpl = dtpl("sections", "summary", "runway_months")
-            if _runway_tpl:
-                part_summary.append(dtpl("sections", "summary", "runway_months", months=f"{_runway:.1f}"))
-                part_summary.append("")
+    # Hero: metric cards (same visual language as cockpit signals)
+    if "__FINANCE_HERO_META__" in part_summary:
+        from shared.obsidian_metric_cards import MetricCard, metric_cards_lines
+
+        hero_cards = [
+            MetricCard(
+                label=dtpl("sections", "summary", "card_total_label") or "Total",
+                value=f"{fmt_num(total_rub, decimals=0)} RUB",
+                accent="#1e88e5",
+                hint=dtpl("sections", "summary", "card_total_hint") or "cash + broker",
+            ),
+        ]
+        if total_usd != 0:
+            hero_cards.append(
+                MetricCard(
+                    label="USD",
+                    value=f"${fmt_num(total_usd, decimals=0)}",
+                    accent="#43a047",
+                )
+            )
+        if cushion_runway_str:
+            hero_cards.append(
+                MetricCard(
+                    label=dtpl("sections", "summary", "card_cushion_label") or "Cushion",
+                    value=dtpl("sections", "summary", "card_cushion_value", months=cushion_runway_str)
+                    or f"{cushion_runway_str} mo",
+                    accent="#7e57c2",
+                    hint=dtpl("sections", "summary", "card_cushion_hint") or "cash / essentials",
+                )
+            )
+        _idx = part_summary.index("__FINANCE_HERO_META__")
+        part_summary[_idx:_idx + 1] = metric_cards_lines(hero_cards)
 
     # Quarterly dynamics
     quarterly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
@@ -1000,20 +1286,19 @@ def main() -> None:
             part_quarterly.append(dtpl("sections", "quarterly", "no_data"))
         part_quarterly.extend(["", ""])
 
-    # One-off list
+    # One-off list (bullets — tables break inside Obsidian <details>)
     if "oneoff_txns" in locals() and oneoff_txns:
         oneoff_txns.sort(key=lambda x: -x[2])
-        part_oneoff_list.extend([
-            dtpl("sections", "oneoff_list", "heading"),
-            "",
-            dtpl("sections", "oneoff_list", "hint", threshold=oneoff_threshold_rub),
-            "",
-            dtpl("sections", "top_expenses", "header"),
-            dtpl("sections", "top_expenses", "sep"),
-        ])
+        hint = dtpl("sections", "oneoff_list", "hint", threshold=oneoff_threshold_rub)
+        if hint:
+            part_oneoff_list.append(hint)
         for acc, cat, amt, dt, desc in oneoff_txns[:10]:
-            part_oneoff_list.append(f"| {acc} | {cat or dtpl('misc', 'dash')} | {fmt_num(float(amt), decimals=0)} | {dt} | {safe_comment(desc)} |")
-        part_oneoff_list.extend(["", ""])
+            comment = safe_comment(desc)
+            tail = f" — {comment}" if comment and comment != "—" else ""
+            part_oneoff_list.append(
+                f"- **{fmt_num(float(amt), decimals=0)} ₽** · {cat or dtpl('misc', 'dash')} · {acc} · {dt}{tail}"
+            )
+        part_oneoff_list.append("")
 
     if monthly:
         months = sorted(monthly.keys())[-6:]
@@ -1057,18 +1342,10 @@ def main() -> None:
         return ["---", ""]
 
     def _wrap_callout(title: str, *content_parts: list) -> list:
-        """Wrap content parts in a collapsed [!note]- callout.
-        Handles multi-line strings (e.g. mermaid blocks) by splitting on newlines."""
-        inner: list[str] = []
-        for part in content_parts:
-            for item in part:
-                for line in str(item).splitlines():
-                    stripped = line.rstrip()
-                    inner.append(f"> {stripped}" if stripped else ">")
-        # strip trailing empty callout lines
-        while inner and inner[-1] == ">":
-            inner.pop()
-        return [f"> [!note]- {title}", ">"] + inner + ["", ""]
+        """Foldable section; tables/embeds use <details> (callouts break them)."""
+        from shared.obsidian_fold import fold_section
+
+        return fold_section(title, *content_parts, collapsed=True)
 
     # Assemble dashboard sections
     footer = [

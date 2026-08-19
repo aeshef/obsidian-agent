@@ -1,16 +1,25 @@
 # Месячный план flexible spend.
 # cp month_plan.yaml.example month_plan.yaml и заполни.
 #
-# Логика:
-#   commitment = subscriptions + inferred_recurring + planned_expenses(месяц) + buffer_savings
-#   flexible_pool = income_expected_rub − commitment
-#   daily_allowance ≈ flexible_pool / дней_в_месяце
-#   remaining_today ≈ (flexible_pool − spent) / дней_осталось
+# Cash-flow (pay yourself first):
+#   buffer = income × savings_rate_pct / 100  (или абсолют buffer_savings_rub)
+#   commitment = subscriptions + inferred + planned + buffer
+#   flexible_pool = income − commitment
+#   ₽/день = только flexible / дни  ← НЕ кэш-баланс, НЕ брокер
+#   кэш = runway (месяцы essentials); брокер = капитал
 
 income_expected_rub: 0
-buffer_savings_rub: 0
+
+# Prefer % of salary. Absolute buffer_savings_rub is fallback if rate unset.
+savings_rate_pct: 0
+# buffer_savings_rub: 0
+
+emergency_months_target: 3
 
 # Тихие регулярки (ЖКХ, транспорт…) — можно заполнить вручную или из медиан.
+# Names the insight prompt must not suggest cutting (fill locally).
+insight_protect_names: []
+
 inferred_recurring: []
 #  - name: ЖКХ
 #    amount: 4500

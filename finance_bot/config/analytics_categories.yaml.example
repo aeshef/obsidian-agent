@@ -4,6 +4,11 @@
 exclude_spending: "Перевод,Переводы,Пополнение брокера"
 exclude_income: "Перевод,Переводы,Вывод с брокера"
 
+# Real earned income for plans/gauges (everything else non-excluded is not salary).
+salary_income: "Зарплата"
+# Non-salary income that offsets group pays («скинулись»), not gifts/windfalls.
+reimbursement_income: "Прочее,Долги"
+
 investment_expense:
   - Пополнение брокера
   - Инвестиции

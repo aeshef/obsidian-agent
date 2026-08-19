@@ -115,3 +115,23 @@ def test_planned_for_month_filters():
     got = planned_for_month(rows, "2026-08")
     names = {g.name for g in got}
     assert names == {"A", "C"}
+
+
+def test_should_lapse_past_month_only():
+    from finance_bot.bot.services.month_plan import (
+        planned_upcoming,
+        should_lapse_planned,
+    )
+
+    today = date(2026, 8, 16)
+    assert should_lapse_planned(date(2026, 7, 1), today=today) is True
+    assert should_lapse_planned(date(2026, 8, 1), today=today) is False
+    assert should_lapse_planned(None, today=today) is False
+    up = planned_upcoming(
+        [
+            {"name": "Soon", "amount": 10, "due_date": "2026-09-15", "currency": "RUB"},
+            {"name": "Now", "amount": 5, "due_date": "2026-08-20", "currency": "RUB"},
+        ],
+        "2026-08",
+    )
+    assert [x[0].name for x in up] == ["Soon"]

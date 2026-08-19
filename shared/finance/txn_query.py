@@ -8,6 +8,7 @@ from typing import Any
 
 from sqlalchemy import select
 
+from shared.agent.budget import format_int_amount
 from shared.domain_messages import dmsg
 from shared.finance.category_match import category_matches
 from shared.finance_classification import is_consumption_expense, misc_category_label
@@ -73,7 +74,7 @@ def format_spending_by_category(
         return f"{label}\n{dmsg('finance_txn_query', 'no_expenses_in_period')}"
 
     total = sum(float(r["amount"]) for r in filtered)
-    lines = [label, dmsg("finance_txn_query", "expenses_total", total=total)]
+    lines = [label, dmsg("finance_txn_query", "expenses_total", total=format_int_amount(total))]
     if category and str(category).strip():
         lines.append(dmsg("finance_txn_query", "category_filter", category=str(category).strip()))
 
@@ -88,7 +89,7 @@ def format_spending_by_category(
         lines.append(dmsg("finance_txn_query", "by_day_header"))
         for day in sorted(by_day_total):
             parts = [
-                f"{cat}={amt:,.0f}"
+                f"{cat}={format_int_amount(amt)}"
                 for cat, amt in sorted(by_day_cat[day].items(), key=lambda x: -x[1])
             ]
             detail = "; ".join(parts)
@@ -97,7 +98,7 @@ def format_spending_by_category(
                     "finance_txn_query",
                     "by_day_line",
                     day=day,
-                    total=by_day_total[day],
+                    total=format_int_amount(by_day_total[day]),
                     detail=detail,
                 )
             )
@@ -108,7 +109,7 @@ def format_spending_by_category(
         by_cat[r["category"]] += float(r["amount"])
     for cat, amt in sorted(by_cat.items(), key=lambda x: -x[1]):
         pct = (amt / total * 100) if total else 0
-        lines.append(f"  {cat}: {amt:,.0f} ({pct:.0f}%)")
+        lines.append(f"  {cat}: {format_int_amount(amt)} ({pct:.0f}%)")
     return "\n".join(lines)
 
 
@@ -145,11 +146,14 @@ def format_period_compare(
     else:
         pct_s = "n/a"
     cat = (category or "").strip() or "all"
+    delta_s = format_int_amount(delta)
+    if delta > 0:
+        delta_s = f"+{delta_s}"
     lines = [
         f"Compare spend ({cat})",
-        f"  A {label_a}: {total_a:,.0f}",
-        f"  B {label_b}: {total_b:,.0f}",
-        f"  Δ A−B: {delta:+,.0f} ({pct_s})",
+        f"  A {label_a}: {format_int_amount(total_a)}",
+        f"  B {label_b}: {format_int_amount(total_b)}",
+        f"  Δ A−B: {delta_s} ({pct_s})",
     ]
     return "\n".join(lines)
 

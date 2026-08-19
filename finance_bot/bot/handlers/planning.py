@@ -95,6 +95,10 @@ async def cmd_month_plan(callback: types.CallbackQuery) -> None:
 @router.callback_query(F.data == "action:plan_list")
 async def list_plans(callback: types.CallbackQuery) -> None:
     """List planned expenses."""
+    from datetime import date as _date
+
+    from bot.services.month_plan import lapse_past_planned_orm
+
     async with AsyncSessionLocal() as session:
         user = (
             await session.execute(select(User).where(User.telegram_id == callback.from_user.id))
@@ -102,6 +106,8 @@ async def list_plans(callback: types.CallbackQuery) -> None:
         if not user:
             await callback.answer(common("error_generic"))
             return
+
+        await lapse_past_planned_orm(session, today=_date.today(), user_id=user.id)
 
         plans = (
             await session.execute(

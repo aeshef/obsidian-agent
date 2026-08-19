@@ -16,6 +16,7 @@ cd "$ROOT"
 
 # shellcheck source=../../scripts/lib/common.sh
 source "$MONOREPO/scripts/lib/common.sh"
+common_load_env "$MONOREPO" || true
 # shellcheck source=../../scripts/lib/vault_paths_defaults.sh
 source "$MONOREPO/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "$MONOREPO" || true
@@ -28,7 +29,14 @@ if [[ -z "${VAULT_PATH:-}" ]]; then
   exit 1
 fi
 
-DB_PATH="${FINANCE_DB_PATH:-$VAULT_PATH/${VAULT_FOLDER_DASHBOARDS:-300_Dashboards}/${VAULT_DASH_DATA:-Data}/finance.db}"
+# Defaults follow vault_paths.yaml (ru: 300_Дашборды/Данные) — never English ghosts.
+_DB_DASH="${VAULT_FOLDER_DASHBOARDS:-}"
+_DB_DATA="${VAULT_DASH_DATA:-}"
+if [[ -z "$_DB_DASH" || -z "$_DB_DATA" ]]; then
+  echo "run_finance_dashboard: vault dashboards/data paths unset after vault_paths_load" >&2
+  exit 1
+fi
+DB_PATH="${FINANCE_DB_PATH:-$VAULT_PATH/$_DB_DASH/$_DB_DATA/finance.db}"
 USER_ID="${FINANCE_DASHBOARD_USER_ID:-1}"
 
 export MPLCONFIGDIR="${MPLCONFIGDIR:-$ROOT/.cache/matplotlib}"

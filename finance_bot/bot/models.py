@@ -89,7 +89,7 @@ class PlannedExpense(Base):
     currency: Mapped[str] = mapped_column(String(8), default="RUB")
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
-    status: Mapped[str] = mapped_column(String(24), default="active")  # active | done | cancelled
+    status: Mapped[str] = mapped_column(String(24), default="active")  # active | done | cancelled | expired
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user: Mapped[User] = relationship(back_populates="planned_expenses")

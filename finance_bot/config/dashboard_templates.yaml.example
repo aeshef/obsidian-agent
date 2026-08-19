@@ -5,7 +5,7 @@ title: "# 📊 Финансы"
 
 nav_callout: |
   > [!abstract] Дашборды
-  > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]]
+  > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[🛠 Система|🛠 Система]]
 
 callouts:
   badge: "🍽 Бейдж питания"
@@ -40,17 +40,49 @@ misc:
 sections:
   summary:
     heading: "## 💰 Сводка"
-    db_updated: "- **finance.db обновлена:** {mtime}"
+    db_updated: "_Данные · {mtime}_"
     stale_data: |
-      - ⚠️ **Данные устарели** (БД от {mtime}). Новые транзакции не попали в дашборд. Обнови копию: из папки finance_bot выполни `./scripts/sync_finance_db.sh`, затем заново собери дашборд.
-    total_rub: "- **Суммарный баланс (RUB):** {amount}"
-    total_usd: "- **Суммарный баланс (USD):** {amount}"
-    runway_months: "- **Финансовый runway:** {months} мес. (при среднем расходе за последние 3 мес.)"
+      > [!warning] Данные устарели (БД от {mtime}). Обнови: `./scripts/sync_finance_db.sh`, затем пересобери дашборд.
+    total_rub: "**{amount}** ₽"
+    total_usd: "**${amount}**"
+    runway_months: "Runway **{months}** мес"
+    hero_open: >
+      > [!abstract] Сейчас
+    hero_rub: "> ### {amount} ₽"
+    hero_meta: "> {meta}"
+    hero_updated: "> _{mtime}_"
 
   planned:
     heading: "### 📋 Запланированные расходы"
     line: "- **{name}**: {amount} {currency} (к {due})"
     hint: "_Добавляй планы в боте: 📋 План → ➕ Добавить план_"
+
+  month_plan:
+    heading: "### 📅 План месяца"
+    gauges_note: "> ₽/день — только от зарплаты (income − фикс − накопления %). Кэш = подушка/runway · брокер = капитал."
+    free_open: "> [!{kind}] Свободно на жизнь (от зарплаты)"
+    free_title: "> ### {amount} ₽"
+    free_meta: "> Пул **{pool}** · уже из пула **{spent}** ({burn}%) · ≈ **{daily}** ₽/день · {days} дн."
+    buffer_open: "> [!{kind}] Накопления (pay yourself first)"
+    buffer_title: "> ### {progress} / {goal} ₽"
+    buffer_meta: "> **{rate}%** зарплаты = **{goal}** · в брокер **{invest}** · **{status}**"
+    safety_open: "> [!{kind}] Подушка (кэш, не брокер)"
+    safety_title: "> ### {runway} мес runway"
+    safety_meta: "> Кэш **{cash}** · брокер **{broker}** · essentials **{essentials}**/мес · после разовых **{after}** · цель **{target}** мес → gap **{gap}**"
+    income_callout_open: "> [!success] Flexible pool (от зарплаты)"
+    income_callout_title: "> ### {amount} ₽ на месяц"
+    income: "- Ожидаемый доход: **{amount}** ₽"
+    commitment: "- Обязательства (фикс + планы + накопления %): **{amount}** ₽"
+    flexible: "- Flexible pool: **{amount}** ₽"
+    spent: "- Уже потрачено из flexible: **{amount}** ₽ ({burn}%)"
+    daily: "- Сегодня можно ≈ **{amount}** ₽/день (от зарплаты)"
+    fair_daily: "- Справедливая норма на день: **{amount}** ₽"
+    specifics_heading: "**В этом месяце (разовые планы):**"
+    specifics_line: "- {name}: {amount} {currency}"
+    upcoming_heading: "**Позже:**"
+    upcoming_line: "- {name}: {amount} {currency} (к {due})"
+    hint: "_План: бот 📋 План + `month_plan.yaml` (зарплата / savings_rate_pct). Кэш ≠ дневной бюджет._"
+    skip_income_zero: "> [!note] Дневной лимит от дохода\n> Заполни `income_expected_rub` — появятся flexible pool и ₽/день. Подушка ниже — runway кэша, не разрешение тратить баланс."
 
   structure:
     heading: ""

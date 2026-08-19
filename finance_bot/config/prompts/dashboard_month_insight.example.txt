@@ -1,0 +1,4 @@
+# Copy to dashboard_month_insight.txt.
+# System prompt for month-dashboard insight callouts.
+# Input JSON: economic, plan, soft_overages, safety, top_categories, do_not_cut, notes.
+# Output: 2–3 Obsidian callouts grounded in that JSON (no invented amounts).

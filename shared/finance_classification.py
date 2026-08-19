@@ -50,6 +50,16 @@ def exclude_income_categories() -> frozenset[str]:
     return _csv_set("exclude_income", "FIN_EXCLUDE_FROM_INCOME_CATEGORIES")
 
 
+def salary_income_categories() -> frozenset[str]:
+    """Categories that count as earned income (default: salary only)."""
+    return _csv_set("salary_income", "FIN_SALARY_INCOME_CATEGORIES")
+
+
+def reimbursement_income_categories() -> frozenset[str]:
+    """Income that offsets a group pay (friends sent pieces back)."""
+    return _csv_set("reimbursement_income", "FIN_REIMBURSEMENT_INCOME_CATEGORIES")
+
+
 def investment_expense_categories() -> frozenset[str]:
     env_raw = os.environ.get("FIN_INVESTMENT_EXPENSE_CATEGORIES")
     if env_raw and str(env_raw).strip():
@@ -97,6 +107,33 @@ def is_real_income(txn: Mapping) -> bool:
     if txn.get("type") != "income":
         return False
     return txn_category(txn) not in exclude_income_categories()
+
+
+def is_salary_income(txn: Mapping) -> bool:
+    """Earned income only (salary). Used for month-plan gauges."""
+    if txn.get("type") != "income":
+        return False
+    salary = salary_income_categories()
+    if not salary:
+        return is_real_income(txn)
+    return txn_category(txn) in salary
+
+
+def is_reimbursement_offset(txn: Mapping) -> bool:
+    """Income that offsets a group pay — not earned income / not a gift windfall.
+
+    Paid for everyone → friends sent pieces back (misc / debts categories).
+    """
+    if txn.get("type") != "income":
+        return False
+    if is_internal_move_income(txn):
+        return False
+    if is_salary_income(txn):
+        return False
+    allowed = reimbursement_income_categories()
+    if allowed:
+        return txn_category(txn) in allowed
+    return False
 
 
 def split_month_flows(

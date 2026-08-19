@@ -62,8 +62,9 @@ def build_badge_section(
         lines.append(dtpl("badge", "over_limit", amount=fmt_num(float(m.total_over_limit), decimals=0)))
     lines.append("")
 
+    # Skip empty utilization chart (all burned / zero spend) — looks broken in UI
     wdays = [d for d in m.days if d.is_working_day]
-    if wdays:
+    if wdays and float(m.total_spent) > 0:
         x_labels = [d.date.strftime("%d.%m") for d in wdays]
         spent_vals = [float(d.spent) for d in wdays]
         burned_vals = [float(d.burned) for d in wdays]
@@ -85,7 +86,11 @@ def build_badge_section(
         elif badge_png.exists():
             badge_png.unlink()
         lines.append("")
-    elif badge_png.exists():
-        badge_png.unlink()
+    else:
+        if float(m.total_spent) <= 0 and float(m.total_burned) > 0:
+            lines.append(dtpl("badge", "idle_month"))
+            lines.append("")
+        if badge_png.exists():
+            badge_png.unlink()
 
     return lines

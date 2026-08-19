@@ -29,6 +29,10 @@ async def get_planning_data(telegram_id: int) -> str:
         if not user:
             return dmsg("planning_forecast", "user_not_found")
 
+        from bot.services.month_plan import lapse_past_planned_orm
+
+        await lapse_past_planned_orm(session, today=datetime.now().date(), user_id=user.id)
+
         accounts = (
             await session.execute(select(Account).where(Account.user_id == user.id))
         ).scalars().all()
@@ -187,6 +191,7 @@ async def generate_month_plan_summary(telegram_id: int) -> str:
         load_subscriptions,
         month_plan_config_path,
         planned_for_month,
+        resolve_savings_buffer,
         subscriptions_yaml_path,
     )
 
@@ -198,6 +203,10 @@ async def generate_month_plan_summary(telegram_id: int) -> str:
         ).scalar_one_or_none()
         if not user:
             return fmsg("plan_month_need_user")
+
+        from bot.services.month_plan import lapse_past_planned_orm
+
+        await lapse_past_planned_orm(session, today=now.date(), user_id=user.id)
 
         plans = (
             await session.execute(
@@ -236,7 +245,7 @@ async def generate_month_plan_summary(telegram_id: int) -> str:
     if income <= 0:
         return fmsg("plan_month_need_income", path=str(month_plan_config_path().name))
 
-    buffer = float(mp_cfg.get("buffer_savings_rub") or 0)
+    buffer, savings_rate = resolve_savings_buffer(mp_cfg, income)
     inferred = inferred_from_config(mp_cfg)
     subs = load_subscriptions(subscriptions_yaml_path())
     specifics = planned_for_month(planned_rows, ym)
@@ -250,6 +259,7 @@ async def generate_month_plan_summary(telegram_id: int) -> str:
         specifics=specifics,
         inferred=inferred,
         buffer_savings=buffer,
+        savings_rate_pct=savings_rate,
         flexible_spent=flexible_spent,
     )
     lines = [
