@@ -107,7 +107,7 @@ class ToolRegistry:
         return list(self._tools.keys())
 
     def schemas(self, names: list[str] | None = None) -> list[dict[str, Any]]:
-        selected = names or self.names()
+        selected = self.names() if names is None else names
         out: list[dict[str, Any]] = []
         for n in selected:
             t = self._tools[n]
@@ -129,8 +129,9 @@ async def select_tools(
     registry: ToolRegistry,
     *,
     domain: str = "general",
-) -> list[str]:
+    history: list | None = None,
+):
     """LLM selects tool subset; @tool(always=True) added automatically."""
     from shared.agent.llm_classify import select_tools_llm
 
-    return await select_tools_llm(query, registry, domain=domain)
+    return await select_tools_llm(query, registry, domain=domain, history=history)

@@ -1,9 +1,38 @@
-# domain_hints — одна строка контекста для LLM tool-select (без привязки к фразам/сценариям).
+# domain_hints — one-line context for LLM tool-select (not phrase templates).
 
-# Статичные подсказки — fallback. В runtime tool-select использует shared/capabilities/hints.py
-# (только включённые модули и коннекторы).
+# Runtime tool-select uses shared/capabilities/hints.py (enabled modules/connectors).
+# These strings are fallback if hints.py is unavailable.
 domain_hints:
   finance: "money ops/summaries; dashboard charts list/send/refresh_vault_charts"
   planning: "tasks/goals/calendar; optional health/mac; dashboard charts list/send/refresh_vault_charts"
   knowledge: "named note read_knowledge_note; topic overview search_knowledge_base"
   unified: "enabled modules; kanban apply_kanban_task; date ranges; dashboard charts via list/send/refresh_vault_charts only (not search_knowledge_base); pin_working_set"
+
+# Schemas always offered to the loop (not auto-invoked). Fat dumps stay opt-in via tool-select.
+schema_pin:
+  default:
+    - align_day_series
+    - tally_event_shares
+    - list_vault_charts
+    - send_vault_charts
+    - list_working_set
+    - pin_working_set
+  finance:
+    - get_spending_by_category
+    - get_balance
+    - compare_spend_periods
+  planning:
+    - get_activity_events
+    - get_kanban_flow
+    - get_mac_snapshots
+  knowledge:
+    - search_knowledge_base
+  unified:
+    - get_spending_by_category
+    - get_activity_events
+    - get_balance
+    - compare_spend_periods
+    - get_kanban_flow
+    - search_knowledge_base
+    - get_mac_snapshots
+

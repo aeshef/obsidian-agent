@@ -7,7 +7,7 @@ import logging
 from functools import lru_cache
 from typing import Any
 
-from shared.agent.config import agent_config_dir, load_routing_config, load_tools_config
+from shared.agent.config import agent_config_dir, load_routing_config
 from shared.agent.platform_config import platform_float, platform_int
 from shared.llm import LLMClient
 from shared.prompts import load_prompt
@@ -99,6 +99,20 @@ def dialogue_hint(
             ts = m.ts or "time_unknown"
             lines.append(f"[{dom}][{ts}] {m.role}: {(m.content or '')[:160]}")
     return "\n".join(lines[-12:])
+
+
+def _tool_select_history_hint(history: list | None, *, n: int = 6) -> str:
+    if not history:
+        return ""
+    lines: list[str] = []
+    for m in history[-n:]:
+        role = str(getattr(m, "role", "") or "")
+        if role not in ("user", "assistant"):
+            continue
+        text = str(getattr(m, "content", "") or "")[:160]
+        if text:
+            lines.append(f"{role}: {text}")
+    return "\n".join(lines)
 
 
 async def classify_host_domain_llm(
@@ -206,9 +220,15 @@ async def select_tools_llm(
     registry: Any,
     *,
     domain: str,
-) -> list[str]:
-    """Select tool names for agent loop. No keyword fallback."""
+    history: list | None = None,
+):
+    """Select tool names for agent loop. No keyword fallback.
+
+    Returns ToolSelection: offered (schemas/allowlist) vs picked (LLM+always).
+    schema_pin stays offered when anything is picked; it is not a must-call list.
+    """
     from shared.agent.tools import ToolRegistry
+    from shared.agent.types import ToolSelection
 
     if not isinstance(registry, ToolRegistry):
         raise TypeError("registry must be ToolRegistry")
@@ -218,6 +238,9 @@ async def select_tools_llm(
         raise LLMClassificationError("select_tools: empty registry")
 
     always = {n for n in all_names if registry.get(n).always}
+    from shared.agent.config import schema_pin_names
+
+    pin = {n for n in schema_pin_names(domain) if n in registry._tools}
     catalog = [
         {
             "name": n,
@@ -238,65 +261,167 @@ async def select_tools_llm(
             "domain": domain,
             "domain_hint": hints,
             "message": query,
+            "dialogue_context": _tool_select_history_hint(history),
             "catalog": catalog,
         },
         label="tool_select",
     )
-    picked = raw.get("tools")
-    if not isinstance(picked, list):
+    picked_raw = raw.get("tools")
+    if not isinstance(picked_raw, list):
         raise LLMClassificationError(
             f"tool_select: missing or invalid 'tools' list in {raw!r}"
         )
 
-    selected: set[str] = set(always)
     unknown: list[str] = []
     optional: list[str] = []
-    for item in picked:
+    seen_optional: set[str] = set()
+    for item in picked_raw:
         name = str(item).strip()
         if not name:
             continue
-        if name in registry._tools:
-            if name not in always:
-                optional.append(name)
-            selected.add(name)
-        else:
+        if name not in registry._tools:
             unknown.append(name)
+            continue
+        if name not in always and name not in seen_optional:
+            optional.append(name)
+            seen_optional.add(name)
     if unknown:
         raise LLMClassificationError(
             f"tool_select: unknown tools {unknown}, available={all_names}"
         )
-    if not picked and not selected:
-        log.info("tool select: chat-only (no tools) domain=%s text=%.50s", domain, query)
-        return []
-    if not picked and selected:
-        log.info(
-            "tool select: LLM picked none, using always=%s domain=%s",
-            sorted(selected),
-            domain,
-        )
 
     # Soft budget: always-on tools are never dropped. max_tools_selected caps
-    # optional LLM picks only (unified host has many always tools).
+    # LLM picks only (pin names the model listed count; unlisted pin does not).
     max_optional = platform_int("agent", "max_tools_selected", default=0)
     if max_optional and max_optional > 0 and len(optional) > max_optional:
-        kept = optional[:max_optional]
         dropped = optional[max_optional:]
-        selected = set(always) | set(kept)
+        optional = optional[:max_optional]
         log.info(
-            "tool select budget: kept=%s dropped=%s max_optional=%s always=%s domain=%s",
-            kept,
+            "tool select budget: kept=%s dropped=%s max_optional=%s always=%s pin=%s domain=%s",
+            optional,
             dropped,
             max_optional,
             len(always),
+            sorted(pin),
             domain,
         )
 
-    out = sorted(selected)
-    log.info(
-        "tool select LLM: %s (always=%s) domain=%s text=%.50s",
-        out,
-        sorted(always),
-        domain,
-        query,
+    picked_set = set(always) | set(optional)
+    offered_set = set(picked_set)
+    if picked_set:
+        offered_set |= pin
+    offered = sorted(offered_set)
+    picked = sorted(picked_set)
+    if not picked:
+        log.info("tool select: chat-only (no tools) domain=%s text=%.50s", domain, query)
+    else:
+        log.info(
+            "tool select LLM: offered=%s picked=%s always=%s pin=%s domain=%s text=%.50s",
+            offered,
+            picked,
+            sorted(always),
+            sorted(pin),
+            domain,
+            query,
+        )
+    return ToolSelection(offered=offered, picked=picked)
+
+
+async def classify_calendar_activities_llm(
+    events: list[dict[str, Any]],
+    *,
+    taxonomy: dict[str, str],
+    allowed: set[str],
+) -> dict[str, str]:
+    """Map event id → activity type. No keyword fallback."""
+    if not events:
+        return {}
+    if not allowed:
+        raise LLMClassificationError("calendar_activity: empty allowed type set")
+    if not taxonomy:
+        taxonomy = {t: t for t in sorted(allowed)}
+
+    system = _load_prompt_file("calendar_activity_router.txt")
+    payload_events = [
+        {
+            "id": str(ev.get("id") or "").strip(),
+            "title": (ev.get("title") or "").strip(),
+            "tag": (ev.get("tag") or None),
+            "start": ev.get("start"),
+            "end": ev.get("end"),
+            "is_allday": bool(ev.get("is_allday")),
+        }
+        for ev in events
+        if str(ev.get("id") or "").strip()
+    ]
+    if not payload_events:
+        raise LLMClassificationError("calendar_activity: events missing ids")
+
+    timeout = platform_float(
+        "llm_classify", "calendar_activity_timeout_sec", default=60.0
     )
+    raw = await asyncio.to_thread(
+        _llm().chat_json_messages,
+        [
+            {"role": "system", "content": system},
+            {
+                "role": "user",
+                "content": json.dumps(
+                    {"taxonomy": taxonomy, "events": payload_events},
+                    ensure_ascii=False,
+                ),
+            },
+        ],
+        temperature=platform_float("llm_classify", "temperature", default=0.0),
+        timeout=timeout,
+        raise_on_error=True,
+    )
+    if not isinstance(raw, dict) or not raw:
+        raise LLMClassificationError("calendar_activity: empty LLM JSON response")
+    items = raw.get("items")
+    if not isinstance(items, list):
+        raise LLMClassificationError(
+            f"calendar_activity: missing or invalid 'items' in {raw!r}"
+        )
+
+    wanted = {e["id"] for e in payload_events}
+    out: dict[str, str] = {}
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        eid = str(item.get("id") or "").strip()
+        typ = str(item.get("type") or "").strip()
+        if not eid or eid not in wanted:
+            continue
+        if typ not in allowed:
+            raise LLMClassificationError(
+                f"calendar_activity: invalid type={typ!r} for id={eid}, "
+                f"expected one of {sorted(allowed)}"
+            )
+        out[eid] = typ
+
+    missing = wanted - set(out)
+    if missing:
+        raise LLMClassificationError(
+            f"calendar_activity: LLM omitted event ids {sorted(missing)[:12]}"
+        )
+    log.info("calendar activity LLM: classified %s event(s)", len(out))
     return out
+
+
+async def verify_grounding_llm(answer: str, tools: str) -> dict[str, Any]:
+    """JSON: ok bool, optional rewrite. No keyword/regex grounding."""
+    system = _load_prompt_file("verify_grounding.txt")
+    raw = await _chat_json_classify(
+        system,
+        {"answer": answer, "tools": tools},
+        label="verify_grounding",
+    )
+    ok_raw = raw.get("ok")
+    if isinstance(ok_raw, bool):
+        ok = ok_raw
+    else:
+        ok = str(ok_raw or "").strip().lower() in ("1", "true", "yes", "ok")
+    rewrite = str(raw.get("rewrite") or "").strip()
+    log.info("verify grounding LLM: ok=%s rewrite=%s", ok, bool(rewrite))
+    return {"ok": ok, "rewrite": rewrite}

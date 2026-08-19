@@ -20,7 +20,9 @@ def agent_config_dir() -> Path:
 
 @lru_cache(maxsize=1)
 def load_models_config() -> dict:
-    cfg = load_yaml(agent_config_dir() / "models.yaml")
+    from shared.yaml_config import load_runtime_config
+
+    cfg = load_runtime_config(str(agent_config_dir()), "models")
     roles = cfg.get("roles") or {}
     defaults = {
         "parse": os.environ.get("DEEPSEEK_MODEL", "deepseek-chat"),
@@ -32,20 +34,43 @@ def load_models_config() -> dict:
             defaults[key] = str(val["model"])
     defaults_block = cfg.get("defaults") if isinstance(cfg.get("defaults"), dict) else {}
     cascade = cfg.get("cascade") if isinstance(cfg.get("cascade"), dict) else {}
+    verify = cfg.get("verify") if isinstance(cfg.get("verify"), dict) else {}
     return {
         "roles": roles,
         "model_map": defaults,
         "defaults": defaults_block,
         "cascade": cascade,
+        "verify": verify,
     }
 
 
 @lru_cache(maxsize=1)
 def load_tools_config() -> dict:
-    return load_yaml(
-        agent_config_dir() / "tools.yaml",
-        default={"categories": {}, "fallback_threshold": 4},
-    )
+    from shared.yaml_config import load_runtime_config
+
+    return load_runtime_config(
+        str(agent_config_dir()),
+        "tools",
+    ) or {"categories": {}, "fallback_threshold": 4}
+
+
+def schema_pin_names(domain: str) -> list[str]:
+    """Tool schemas always offered (not auto-called). YAML tools.schema_pin.<domain>."""
+    pin = load_tools_config().get("schema_pin") or {}
+    if not isinstance(pin, dict):
+        return []
+    names: list[str] = []
+    for key in ("default", (domain or "").strip()):
+        raw = pin.get(key)
+        if isinstance(raw, list):
+            names.extend(str(x).strip() for x in raw if str(x).strip())
+    out: list[str] = []
+    seen: set[str] = set()
+    for n in names:
+        if n not in seen:
+            seen.add(n)
+            out.append(n)
+    return out
 
 
 @lru_cache(maxsize=1)
