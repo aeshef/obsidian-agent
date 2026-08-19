@@ -1,14 +1,36 @@
 # Role -> model (swap provider via YAML + .env only).
-# analyze/parse = cheap default; chat = strong. Loop may escalate analyze → chat.
+# Cascade: cheap role first, escalate to strong inside the agent loop (any domain).
+# Verify: one LLM call (prompt verify_grounding). Fail open if that call errors.
 defaults:
   timeout_sec: 120
   tool_choice: auto
 
 cascade:
   enabled: true
-  long_question_chars: 280
-  start_strong_domains:
-    - unified
+  cheap_role: analyze
+  strong_role: chat
+  start_strong:
+    min_question_chars: 280
+    domains: []
+    # routing.yaml host.cross_domain_escalation (finance AND planning patterns)
+    cross_domain: true
+  escalate:
+    # true = routing.yaml agent.tools_first_iter_domains; or a domain list
+    skipped_tools: true
+    ungrounded_claims: true
+
+verify:
+  enabled: true
+  tools_excerpt_max_chars: 4000
+  # Drop verifier rewrites that narrate the check instead of answering.
+  rewrite_meta_markers:
+    - "данных инструментов"
+    - "что вернули инструменты"
+    - "нет этих сумм"
+    - "not in the tool"
+    - "tools returned"
+    - "tools do not"
+
 
 roles:
   parse:
