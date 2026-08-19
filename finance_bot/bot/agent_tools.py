@@ -95,7 +95,7 @@ async def _fetch_rows(ctx: AgentContext, **kwargs) -> tuple[Optional[int], list]
     return uid, rows
 
 
-@tool(category="transactions", always=True)
+@tool(category="transactions")
 async def get_transactions(
     ctx: AgentContext,
     from_date: str = "",
@@ -105,11 +105,12 @@ async def get_transactions(
     query: str = "",
     txn_type: str = "",
 ) -> str:
-    """Transactions in interval with categories AND comments/descriptions.
+    """Raw transaction list for a period or substring query.
 
+    Totals/overview: get_spending_by_category and get_balance.
     from/to YYYY-MM-DD or days. category matches parent+children.
-    query = case-insensitive substring on description or category (e.g. employer name).
-    txn_type = income|expense to narrow. Income lines always include comments when present.
+    query = case-insensitive substring on description or category.
+    txn_type = income|expense.
     """
     analyst = _analyst(ctx)
     tt = (txn_type or "").strip().lower()
@@ -132,14 +133,19 @@ async def get_transactions(
     dr = resolve_date_range(
         from_date=from_date, to_date=to_date, days=days, default_days=30, anchor=analyst._now().date()
     )
+    from shared.query.ts import day_bounds
+
+    req_start, req_end = day_bounds(dr.start, dr.end)
     label = dmsg(*_FA, "transactions_label", range=_range_label(dr, days=days))
     if q:
-        return format_txn_matches(rows, label=label, query=q)
-    monthly = analyst._monthly_summary_text(rows) if rows else ""
-    body = format_txn_summary(rows, label=label)
-    if monthly:
-        body += dmsg(*_FA, "monthly_header") + monthly
-    return body
+        return format_txn_matches(
+            rows,
+            label=label,
+            query=q,
+            requested_start=req_start,
+            requested_end=req_end,
+        )
+    return format_txn_summary(rows, label=label)
 
 
 @tool(category="transactions")
@@ -147,11 +153,15 @@ async def get_spending_by_category(
     ctx: AgentContext,
     from_date: str = "",
     to_date: str = "",
+    start_date: str = "",
+    end_date: str = "",
     days: int = 0,
     category: str = "",
     group_by: str = "",
 ) -> str:
-    """Spending by category (consumption). category=parent matches children (Food → Food/*). Optional group_by=day|month for date-grain totals."""
+    """Spending by category (consumption). Interval: from_date/to_date (YYYY-MM-DD) or days. category=parent matches children. Optional group_by=day|month."""
+    from_date = (from_date or start_date or "").strip()
+    to_date = (to_date or end_date or "").strip()
     uid, rows = await _fetch_rows(
         ctx,
         from_date=from_date,

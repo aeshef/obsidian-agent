@@ -19,14 +19,21 @@ from planning_bot.services.snapshot_query import (
     filter_by_calendar_range,
     format_snapshot_provenance,
     latest_per_calendar_day,
+    load_days_for_start,
     parse_date_param,
     parse_range_params,
     resolve_snapshot_for_day,
 )
+from shared.query.log_dump import (
+    assemble_log_dump,
+    coverage_of,
+    format_event_shares,
+)
 
 
-def _load_mac_snaps(*, max_days: int = 14):
-    return get_snapshots(CONTEXT_MAC_DIR, days=max_days, logging_window_only=False)
+def _load_mac_snaps(*, max_days: int = 14, start=None):
+    days = load_days_for_start(start, floor=max(1, int(max_days or 14)))
+    return get_snapshots(CONTEXT_MAC_DIR, days=days, logging_window_only=False)
 
 
 def _parse_mac_ts(value: str, *, end_of_day: bool = False) -> Optional[datetime]:
@@ -107,6 +114,17 @@ def clamp_mac_snapshots_limit(limit: int) -> int:
     return max(1, min(int(limit or default_lim), max_lim))
 
 
+def _mac_events(matched: List[dict]) -> list[tuple[datetime, str]]:
+    events = []
+    for s in matched:
+        dt = _snap_dt(s)
+        app = (s.get("app") or "").strip()
+        if dt is None or not app:
+            continue
+        events.append((dt, app))
+    return events
+
+
 def format_mac_snapshots(
     from_ts: str = "",
     to_ts: str = "",
@@ -115,14 +133,14 @@ def format_mac_snapshots(
     on_app_change_only: bool = False,
     as_of: Optional[date] = None,
 ) -> str:
-    """Snapshots in [from_ts, to_ts] (~5 min cadence). limit=0 → all in range (cap safety)."""
+    """Snapshots in [from_ts, to_ts] (~5 min cadence). Shares cover ALL matches; raw rows may be a tail."""
     start, end = resolve_mac_interval(from_ts, to_ts)
     if start is None or end is None:
         return pdmsg("agent_mac_snapshots_need_range")
 
     ref = as_of or reference_today()
     span_days = max(3, (ref - start.date()).days + 3, (end.date() - start.date()).days + 3)
-    snaps = _load_mac_snaps(max_days=min(120, span_days + 7))
+    snaps = _load_mac_snaps(max_days=span_days + 7, start=start)
     matched = filter_mac_snapshots(
         snaps, start=start, end=end, on_app_change_only=on_app_change_only
     )
@@ -135,28 +153,28 @@ def format_mac_snapshots(
         shown = matched
         truncated = False
 
-    if not shown:
+    if not shown and not matched:
         return pdmsg(
             "agent_mac_snapshots_empty",
             start=start.isoformat(timespec="minutes"),
             end=end.isoformat(timespec="minutes"),
         )
 
-    lines = [
-        pdmsg(
-            "agent_mac_snapshots_header",
-            start=start.isoformat(timespec="minutes"),
-            end=end.isoformat(timespec="minutes"),
-            shown=len(shown),
-            total=n_total,
-        ),
-        pdmsg("agent_mac_snapshots_columns"),
-    ]
-    if truncated:
-        lines.append(pdmsg("agent_mac_snapshots_truncated", shown=len(shown), total=n_total))
+    from shared.agent.platform_config import platform_int
+
+    top_n = max(3, platform_int("planning_mac", "share_top_n", default=8))
+    daily_k = max(2, platform_int("planning_mac", "share_daily_top", default=5))
+    cov = coverage_of(
+        requested_start=start,
+        requested_end=end,
+        matched_ts=[_snap_dt(s) for s in matched],
+        shown_ts=[_snap_dt(s) for s in shown],
+        slice_kind="tail" if truncated else "all",
+    )
+    rows = []
     for s in shown:
         safari = (s.get("safari") or "")[:48]
-        lines.append(
+        rows.append(
             pdmsg(
                 "agent_mac_snapshots_row",
                 ts=s.get("ts", ""),
@@ -166,7 +184,25 @@ def format_mac_snapshots(
                 safari=safari,
             )
         )
-    return "\n".join(lines)
+    return assemble_log_dump(
+        title=pdmsg(
+            "agent_mac_snapshots_header",
+            start=start.isoformat(timespec="minutes"),
+            end=end.isoformat(timespec="minutes"),
+            shown=len(shown),
+            total=n_total,
+        ),
+        coverage=cov,
+        shares=format_event_shares(
+            _mac_events(matched),
+            column="app",
+            by_day=True,
+            top_n=top_n,
+            top_daily=daily_k,
+        ),
+        columns=pdmsg("agent_mac_snapshots_columns"),
+        rows=rows,
+    )
 
 
 def format_mac_snapshot(day: str = "", *, as_of: Optional[date] = None) -> str:
@@ -181,7 +217,10 @@ def format_mac_snapshot(day: str = "", *, as_of: Optional[date] = None) -> str:
         if snap:
             health_day = snap_local_date(snap) or ref
     if not snap:
-        snaps = _load_mac_snaps(max_days=max(30, abs((ref - target).days) + 7))
+        snaps = _load_mac_snaps(
+            max_days=max(30, abs((ref - target).days) + 7),
+            start=datetime.combine(target, datetime.min.time()),
+        )
         snap, health_day = resolve_snapshot_for_day(snaps, target, **mac_kw)
 
     if not snap:
@@ -202,7 +241,10 @@ def format_mac_snapshot(day: str = "", *, as_of: Optional[date] = None) -> str:
 
 def format_mac_series(from_date: str = "", to_date: str = "") -> str:
     start, end = parse_range_params(from_date, to_date, default_days=30)
-    snaps = _load_mac_snaps(max_days=max(30, (end - start).days + 14))
+    snaps = _load_mac_snaps(
+        max_days=max(30, (end - start).days + 14),
+        start=datetime.combine(start, datetime.min.time()),
+    )
     daily = latest_per_calendar_day(
         filter_by_calendar_range(snaps, start, end),
         is_valid=is_valid_mac_snapshot,
@@ -211,14 +253,25 @@ def format_mac_series(from_date: str = "", to_date: str = "") -> str:
     if not daily:
         return pdmsg("auto_40a629d2ad", _p1=start.isoformat(), _p3=end.isoformat())
 
-    lines = [
-        pdmsg("agent_mac_series_hint"),
-        pdmsg("auto_89cfc4dd5c", _p1=start.isoformat(), _p3=end.isoformat()),
-        "date\tapp\tfocus\tbattery_pct",
+    from shared.query.ts import day_bounds, parse_iso_dt
+
+    days_sorted = sorted(daily.keys())
+    req_start, req_end = day_bounds(start, end)
+    cov = coverage_of(
+        requested_start=req_start,
+        requested_end=req_end,
+        matched_ts=[parse_iso_dt(d.isoformat()) for d in days_sorted],
+        shown_ts=[parse_iso_dt(d.isoformat()) for d in days_sorted],
+        slice_kind="all",
+    )
+    rows = [
+        f"{d.isoformat()}\t{daily[d].get('app') or ''}\t{daily[d].get('focus') or ''}\t{daily[d].get('battery_pct') or ''}"
+        for d in days_sorted
     ]
-    for d in sorted(daily.keys()):
-        s = daily[d]
-        lines.append(
-            f"{d.isoformat()}\t{s.get('app') or ''}\t{s.get('focus') or ''}\t{s.get('battery_pct') or ''}"
-        )
-    return "\n".join(lines)
+    return assemble_log_dump(
+        title=pdmsg("auto_89cfc4dd5c", _p1=start.isoformat(), _p3=end.isoformat()),
+        coverage=cov,
+        extras=[pdmsg("agent_mac_series_hint")],
+        columns="date\tapp\tfocus\tbattery_pct",
+        rows=rows,
+    )

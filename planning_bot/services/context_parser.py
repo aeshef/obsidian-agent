@@ -125,11 +125,16 @@ def parse_context_file(path: Path) -> List[Dict]:
     return snaps
 
 
+def _cutoff_now(days: int) -> datetime:
+    now = datetime.now()
+    return now - timedelta(days=max(0, int(days)))
+
+
 def get_snapshots(mac_dir: Path, days: int = 7, logging_window_only: bool = False) -> List[Dict]:
     """Return all valid snapshots from the last `days` days, sorted by ts."""
     if not mac_dir.exists():
         return []
-    cutoff = datetime.now() - timedelta(days=days)
+    cutoff = _cutoff_now(days)
     snaps: List[Dict] = []
     paths = sorted(
         p
@@ -146,15 +151,17 @@ def get_snapshots(mac_dir: Path, days: int = 7, logging_window_only: bool = Fals
         if rp not in seen:
             seen.add(rp)
             uniq_paths.append(p)
+    from shared.query.ts import dt_ge, parse_iso_dt
+
     for path in uniq_paths:
         if "{" in path.name or "}" in path.name:
             continue  # broken shortcut output — skip
         for s in parse_context_file(path):
-            try:
-                if datetime.fromisoformat(s["ts"]) >= cutoff:
-                    snaps.append(s)
-            except (KeyError, ValueError):
-                pass
+            dt = parse_iso_dt(s.get("ts", ""))
+            if dt is None:
+                continue
+            if dt_ge(dt, cutoff):
+                snaps.append(s)
     snaps.sort(key=lambda x: x.get("ts", ""))
     if logging_window_only:
         snaps = filter_logging_window(snaps)

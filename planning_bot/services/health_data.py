@@ -21,6 +21,7 @@ from planning_bot.services.snapshot_query import (
     filter_by_calendar_range,
     format_snapshot_provenance,
     latest_per_calendar_day,
+    load_days_for_start,
     parse_date_param,
     parse_range_params,
     resolve_snapshot_for_day,
@@ -62,7 +63,7 @@ def format_health_snapshot(
     'Operation implementation.'
     ref = as_of or reference_today()
     target = parse_date_param(day, ref=ref)
-    snaps = load_health_snapshots(max_days=400)
+    snaps = load_health_snapshots(max_days=load_days_for_start(target or ref, floor=30))
     snap, health_day = resolve_snapshot_for_day(snaps, target)
     if not snap:
         if target:
@@ -90,32 +91,46 @@ def format_health_series(
     default_days: int = 14,
 ) -> str:
     start, end = parse_range_params(from_date, to_date, default_days=default_days)
-    snaps = load_health_snapshots(max_days=max(400, (end - start).days + 30))
+    snaps = load_health_snapshots(max_days=load_days_for_start(start))
     daily = latest_per_calendar_day(filter_by_calendar_range(snaps, start, end))
     if not daily:
         return pdmsg("auto_a909b8ae11", _p1=start.isoformat(), _p3=end.isoformat())
 
     field_list, note = _select_series_fields(daily, fields)
 
-    lines = [
-        pdmsg("auto_643e1025d1", _p1=start.isoformat(), _p3=end.isoformat(), _p5=len(daily)),
-    ]
+    from shared.query.log_dump import assemble_log_dump, coverage_of
+    from shared.query.ts import day_bounds, parse_iso_dt
+
+    days_sorted = sorted(daily.keys())
+    table_lines: list[str] = []
     if note:
-        lines.append(note)
-    lines.append("date\t" + "\t".join(field_list))
-    for d in sorted(daily.keys()):
+        table_lines.append(note)
+    table_lines.append("date\t" + "\t".join(field_list))
+    for d in days_sorted:
         snap = daily[d]
         vals = []
         for f in field_list:
             v = snap.get(f)
             vals.append("" if v is None else str(v))
-        lines.append(f"{d.isoformat()}\t" + "\t".join(vals))
+        table_lines.append(f"{d.isoformat()}\t" + "\t".join(vals))
     text_block = _format_text_fields_table(daily)
     if text_block:
-        lines.append("")
-        lines.append(pdmsg("auto_c4e8b1a293"))
-        lines.append(text_block)
-    return "\n".join(lines)
+        table_lines.append("")
+        table_lines.append(pdmsg("auto_c4e8b1a293"))
+        table_lines.append(text_block)
+    req_start, req_end = day_bounds(start, end)
+    cov = coverage_of(
+        requested_start=req_start,
+        requested_end=req_end,
+        matched_ts=[parse_iso_dt(d.isoformat()) for d in days_sorted],
+        shown_ts=[parse_iso_dt(d.isoformat()) for d in days_sorted],
+        slice_kind="all",
+    )
+    return assemble_log_dump(
+        title=pdmsg("auto_643e1025d1", _p1=start.isoformat(), _p3=end.isoformat(), _p5=len(daily)),
+        coverage=cov,
+        extras=table_lines,
+    )
 
 
 def _truncate_field_value(value: Any, *, max_len: int = 200) -> str:
@@ -146,7 +161,7 @@ def format_health_summary(
     to_date: str = "",
 ) -> str:
     start, end = parse_range_params(from_date, to_date, default_days=7)
-    snaps = load_health_snapshots(max_days=max(400, (end - start).days + 30))
+    snaps = load_health_snapshots(max_days=load_days_for_start(start))
     daily = latest_per_calendar_day(filter_by_calendar_range(snaps, start, end))
     window = list(daily.values())
     if not window:
@@ -253,7 +268,7 @@ def format_health_correlations(
     top_k: int = 12,
 ) -> str:
     start, end = parse_range_params(from_date, to_date, default_days=30)
-    snaps = load_health_snapshots(max_days=max(400, (end - start).days + 30))
+    snaps = load_health_snapshots(max_days=load_days_for_start(start))
     daily = latest_per_calendar_day(filter_by_calendar_range(snaps, start, end))
     if len(daily) < 5:
         return pdmsg("auto_4d06a83211", _p1=len(daily))

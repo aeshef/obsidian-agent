@@ -43,3 +43,4 @@ def test_format_task_timeline_includes_board_and_log(tmp_path):
     assert "c40b41a6" in text
     assert "2026-06-01" in text
     assert "task_moved" in text
+    assert "n=1" in text

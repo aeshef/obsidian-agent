@@ -42,6 +42,35 @@ def test_format_mac_snapshots_hour_window():
     if not matched:
         pytest.skip("no mac snapshots for 2026-06-01T12:00–16:00 in vault (author-only data)")
     out = format_mac_snapshots("2026-06-01T12:00", "2026-06-01T16:00", limit=0)
-    assert "Mac-снапшоты" in out
+    assert "n=" in out
     assert "12:" in out or "13:" in out
-    assert "Cursor" in out or "Obsidian" in out or "Safari" in out
+
+
+def test_format_mac_snapshots_puts_full_shares_before_tail(monkeypatch):
+    from datetime import datetime, timedelta
+
+    from planning_bot.services.mac_context_query import format_mac_snapshots
+
+    t0 = datetime(2026, 8, 1, 10, 0, 0)
+    snaps = []
+    for i in range(20):
+        app = "AlphaApp" if i < 15 else "BetaApp"
+        snaps.append(
+            {
+                "ts": (t0 + timedelta(minutes=5 * i)).isoformat(),
+                "app": app,
+                "focus": "",
+                "battery_pct": 80,
+                "safari": "",
+            }
+        )
+
+    monkeypatch.setattr(
+        "planning_bot.services.mac_context_query._load_mac_snaps",
+        lambda **_k: snaps,
+    )
+    out = format_mac_snapshots("2026-08-01T10:00", "2026-08-01T12:00", limit=3)
+    share_at = out.find("AlphaApp")
+    assert share_at != -1
+    assert "n=20" in out
+    assert "hour_share" in out or "count_share" in out

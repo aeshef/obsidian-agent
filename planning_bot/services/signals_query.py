@@ -81,8 +81,24 @@ def format_daily_signals(
     lim = max(1, min(int(limit or 14), 60))
     if not chunks:
         return f"(no signals in {start_s}..{end_s})"
-    lines = [f"Daily signals {start_s}..{end_s} (showing {min(len(chunks), lim)}/{len(chunks)}):"]
-    for day, body in chunks[:lim]:
-        one = " ".join(body.split())
-        lines.append(f"- {day}: {one[:300]}")
-    return "\n".join(lines)
+    shown = chunks[:lim]
+    from datetime import datetime as _dt
+
+    from shared.query.log_dump import assemble_log_dump, coverage_of
+    from shared.query.ts import parse_iso_dt
+
+    chrono = sorted(chunks, key=lambda x: x[0])
+    chrono_shown = sorted(shown, key=lambda x: x[0])
+    cov = coverage_of(
+        requested_start=_dt.combine(start, _dt.min.time()),
+        requested_end=_dt.combine(end, _dt.max.time()).replace(microsecond=0),
+        matched_ts=[parse_iso_dt(d) for d, _ in chrono],
+        shown_ts=[parse_iso_dt(d) for d, _ in chrono_shown],
+        slice_kind="tail" if len(shown) < len(chunks) else "all",
+    )
+    rows = [f"- {day}: {' '.join(body.split())[:300]}" for day, body in shown]
+    return assemble_log_dump(
+        title=f"Daily signals {start_s}..{end_s} (showing {len(shown)}/{len(chunks)}):",
+        coverage=cov,
+        rows=rows,
+    )

@@ -5,10 +5,25 @@ from datetime import date, datetime, timedelta
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from planning_bot.services.iphone_health_fields import health_snapshot_score, is_valid_health_snapshot
+from planning_bot.services.reference_date import reference_today
 
 SnapshotPredicate = Callable[[Mapping[str, Any]], bool]
 SnapshotScoreFn = Callable[[Mapping[str, Any]], int]
-from planning_bot.services.reference_date import reference_today
+
+
+def snapshots_load_max_days() -> int:
+    """Shared trailing-day cap for any snapshot directory (Mac, Health, …)."""
+    from shared.agent.platform_config import platform_int
+
+    generic = platform_int("snapshot_logs", "load_max_days", default=0)
+    legacy = platform_int("planning_mac", "snapshots_load_max_days", default=400)
+    return max(30, generic or legacy)
+
+
+def load_days_for_start(start, *, floor: int = 14) -> int:
+    from shared.query.ts import snapshot_load_days
+
+    return snapshot_load_days(start, floor=floor, cap=snapshots_load_max_days())
 
 
 def snap_calendar_day(snap: Dict[str, Any]) -> Optional[date]:

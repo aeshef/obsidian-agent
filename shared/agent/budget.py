@@ -7,6 +7,13 @@ from shared.domain_messages import dmsg
 from shared.finance_classification import is_consumption_expense, is_real_income, uncategorized_label
 
 
+def format_int_amount(value: float | int) -> str:
+    """Grouping with spaces so verify and LLM see the same integer as tools."""
+    n = int(round(float(value)))
+    sign = "-" if n < 0 else ""
+    return f"{sign}{abs(n):,}".replace(",", " ")
+
+
 def compact_lines(header: str, lines: Iterable[str], *, max_lines: int = 40) -> str:
     items = list(lines)
     if not items:
@@ -42,7 +49,7 @@ def _format_line(r: dict[str, Any]) -> str:
     desc = (r.get("description") or "").strip()
     desc_part = f" | {desc}" if desc else ""
     return (
-        f"{r.get('date')} | {ttype} | {sign}{float(r.get('amount', 0)):,.0f}₽"
+        f"{r.get('date')} | {ttype} | {sign}{format_int_amount(r.get('amount', 0))}₽"
         f" | {r.get('category', '')}{desc_part}"
     )
 
@@ -51,9 +58,8 @@ def format_txn_summary(
     rows: list[dict[str, Any]],
     *,
     label: str,
-    detail_limit: int = 40,
 ) -> str:
-    """Aggregates + categories + income/expense lines with comments (capped)."""
+    """Aggregates and category totals. Line dumps: format_txn_matches / format_txn_recent."""
     if not rows:
         return f"{label}\n{dmsg('budget', 'no_transactions')}"
 
@@ -74,14 +80,14 @@ def format_txn_summary(
             "summary",
             label=label,
             count=len(rows),
-            exp_sum=f"{exp_sum:,.0f}",
-            inc_sum=f"{inc_sum:,.0f}",
+            exp_sum=format_int_amount(exp_sum),
+            inc_sum=format_int_amount(inc_sum),
         ),
         dmsg("budget", "top_categories"),
     ]
     for cat, amt in top:
         pct = amt / exp_sum * 100 if exp_sum else 0
-        lines.append(f"  - {cat}: {amt:,.0f}₽ ({pct:.0f}%)")
+        lines.append(f"  - {cat}: {format_int_amount(amt)}₽ ({pct:.0f}%)")
 
     by_inc: dict[str, float] = {}
     for r in income:
@@ -91,17 +97,7 @@ def format_txn_summary(
         lines.append(dmsg("budget", "income_categories"))
         for cat, amt in sorted(by_inc.items(), key=lambda x: -x[1]):
             pct = amt / inc_sum * 100 if inc_sum else 0
-            lines.append(f"  - {cat}: {amt:,.0f}₽ ({pct:.0f}%)")
-
-    if income:
-        lines.append(dmsg("budget", "income_lines"))
-        shown_inc = sorted(
-            income, key=lambda x: (x.get("date") or "", x.get("description") or ""), reverse=True
-        )
-        for r in shown_inc[: max(1, detail_limit)]:
-            lines.append(f"  {_format_line(r)}")
-        if len(shown_inc) > detail_limit:
-            lines.append(dmsg("budget", "truncated", count=len(shown_inc) - detail_limit))
+            lines.append(f"  - {cat}: {format_int_amount(amt)}₽ ({pct:.0f}%)")
 
     if expenses:
         threshold = max(float(r.get("amount", 0)) for r in expenses) * 0.5
@@ -131,6 +127,8 @@ def format_txn_matches(
     label: str,
     query: str,
     limit: int = 80,
+    requested_start: Any = None,
+    requested_end: Any = None,
 ) -> str:
     """Line listing for query matches (always includes comments when present)."""
     if not rows:
@@ -143,9 +141,28 @@ def format_txn_matches(
         label=label,
         query=query,
         count=len(rows),
-        inc_sum=f"{total:,.0f}",
-        exp_sum=f"{exp:,.0f}",
+        inc_sum=format_int_amount(total),
+        exp_sum=format_int_amount(exp),
     )
     shown = sorted(rows, key=lambda x: x.get("date") or "", reverse=True)
-    lines = [_format_line(r) for r in shown[: max(1, limit)]]
-    return compact_lines(header, lines, max_lines=limit)
+    display = shown[: max(1, limit)]
+    from shared.query.log_dump import assemble_log_dump, coverage_of, events_from_pairs, format_event_shares
+    from shared.query.ts import parse_iso_dt
+
+    chrono = sorted(rows, key=lambda x: x.get("date") or "")
+    chrono_shown = sorted(display, key=lambda x: x.get("date") or "")
+    cov = coverage_of(
+        requested_start=parse_iso_dt(requested_start) if requested_start is not None else None,
+        requested_end=parse_iso_dt(requested_end) if requested_end is not None else None,
+        matched_ts=[parse_iso_dt(r.get("date")) for r in chrono],
+        shown_ts=[parse_iso_dt(r.get("date")) for r in chrono_shown],
+        slice_kind="tail" if len(display) < len(rows) else "all",
+    )
+    pairs = [(r.get("date"), r.get("category") or r.get("type") or "?") for r in rows]
+    lines = [_format_line(r) for r in display]
+    return assemble_log_dump(
+        title=header,
+        coverage=cov,
+        shares=format_event_shares(events_from_pairs(pairs), column="category"),
+        rows=lines,
+    )

@@ -27,7 +27,7 @@ def _bot(ctx: AgentContext) -> "PlanningBot":
     return bot
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def get_kanban(ctx: AgentContext, column: Optional[str] = None) -> str:
     """Kanban board snapshot (all columns or one)."""
     from planning_bot.core.config import KANBAN_COLUMNS, DONE_COLUMN
@@ -208,7 +208,7 @@ async def export_health_dataset(ctx: AgentContext, max_days: int = 0) -> str:
 
 @tool(category="context")
 async def get_mac_context(ctx: AgentContext, day: str = "") -> str:
-    """Mac: one snapshot (latest or day=YYYY-MM-DD). For a time range use get_mac_snapshots."""
+    """One computer-focus snapshot (latest or day=YYYY-MM-DD). Not a duration share over an interval."""
     from planning_bot.services.mac_context_query import format_mac_snapshot
 
     return format_mac_snapshot(day)
@@ -216,7 +216,7 @@ async def get_mac_context(ctx: AgentContext, day: str = "") -> str:
 
 @tool(category="context")
 async def get_mac_series(ctx: AgentContext, from_date: str = "", to_date: str = "") -> str:
-    """Mac: one row per calendar day (last snap that day). Timeline → get_mac_snapshots(from_ts, to_ts)."""
+    """Last foreground app per calendar day. Not duration-weighted time share."""
     from planning_bot.services.mac_context_query import format_mac_series
 
     return format_mac_series(from_date, to_date)
@@ -230,7 +230,7 @@ async def get_mac_snapshots(
     limit: int = 120,
     on_app_change_only: bool = False,
 ) -> str:
-    """Mac snapshots in interval: from_ts/to_ts ISO (date or YYYY-MM-DDTHH:MM). ~5 min cadence; limit≤500, 0=all."""
+    """Dense foreground log for an interval (from_ts/to_ts ISO). Duration-weighted category shares over ALL matches first; raw rows may be a tail (limit from config, 0=all)."""
     from planning_bot.services.mac_context_query import format_mac_snapshots
 
     return format_mac_snapshots(
@@ -241,7 +241,7 @@ async def get_mac_snapshots(
     )
 
 
-@tool(category="tasks", always=True)
+@tool(category="tasks")
 async def search_tasks(
     ctx: AgentContext,
     query: str = "",
@@ -301,7 +301,7 @@ async def get_task_timeline(
     )
 
 
-@tool(category="tasks", always=True, serial=True)
+@tool(category="tasks", serial=True)
 async def apply_kanban_task(
     ctx: AgentContext,
     action: str,

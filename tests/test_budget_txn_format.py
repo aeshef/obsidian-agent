@@ -18,7 +18,7 @@ def _income(date: str, amount: float, category: str, description: str) -> dict:
     }
 
 
-def test_summary_includes_income_comments():
+def test_summary_has_income_category_totals():
     rows = [
         _income("2026-07-10", 50000, "Зарплата", "ИТМО июль"),
         _income("2026-07-15", 20000, "Прочее", "фриланс"),
@@ -31,9 +31,9 @@ def test_summary_includes_income_comments():
         },
     ]
     out = format_txn_summary(rows, label="Jul")
-    assert "ИТМО июль" in out
-    assert "Доходы" in out or "income" in out.lower() or "комментарий" in out.lower()
     assert "Зарплата" in out
+    assert "50 000" in out
+    assert "ИТМО июль" not in out
 
 
 def test_query_filter_matches_description():
@@ -46,9 +46,36 @@ def test_query_filter_matches_description():
     assert matched[0]["description"] == "ИТМО июль"
     out = format_txn_matches(matched, label="Jul", query="итмо")
     assert "ИТМО июль" in out
-    assert "50,000" in out or "50000" in out
+    assert "50 000" in out or "50000" in out
 
 
 def test_query_no_match():
     rows = [_income("2026-07-10", 100, "Прочее", "foo")]
     assert filter_rows_by_query(rows, "итмо") == []
+
+
+def test_query_matches_uses_requested_range_not_first_row():
+    from datetime import datetime
+
+    from shared.domain_messages import dmsg
+    from shared.query.tally_shares import iso_compact
+
+    rows = [_income("2026-07-20", 100, "Прочее", "foo")]
+    requested_start = datetime(2026, 7, 1)
+    requested_end = datetime(2026, 7, 31, 23, 59)
+    out = format_txn_matches(
+        rows,
+        label="Jul",
+        query="foo",
+        requested_start=requested_start,
+        requested_end=requested_end,
+    )
+    assert "2026-07-01" in out
+    expected = dmsg(
+        "log_dump",
+        "incomplete_start",
+        first=iso_compact(datetime(2026, 7, 20)),
+        requested_start=iso_compact(requested_start),
+    )
+    assert expected in out
+    assert "2026-07-20" in out

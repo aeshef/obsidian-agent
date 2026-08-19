@@ -345,28 +345,50 @@ def get_events_in_range_text(
         )
     window.sort(key=_event_sort_key)
     total = len(window)
+    matched = list(window)
     truncated = False
+    slice_kind = "all"
     if cap > 0 and total > cap:
         window = window[:cap]
         truncated = True
+        slice_kind = "head"
     if single_day:
-        lines = [pdmsg("calendar_day_header", day=start.isoformat())]
+        title = pdmsg("calendar_day_header", day=start.isoformat())
     else:
-        lines = [
-            pdmsg(
-                "calendar_range_header",
-                start=start.isoformat(),
-                end=end.isoformat(),
-                shown=len(window),
-                total=total,
-            )
-        ]
-    if truncated:
-        lines.append(
-            pdmsg("calendar_range_truncated", max=cap, total=total)
+        title = pdmsg(
+            "calendar_range_header",
+            start=start.isoformat(),
+            end=end.isoformat(),
+            shown=len(window),
+            total=total,
         )
-    lines.extend(_format_slot_lines(window))
-    return with_calendar_attendance_note("\n".join(lines))
+    extras: List[str] = []
+    if truncated:
+        extras.append(pdmsg("calendar_range_truncated", max=cap, total=total))
+    from shared.query.log_dump import assemble_log_dump, coverage_of, events_from_pairs, format_event_shares
+    from shared.query.ts import parse_iso_dt
+
+    def _cal_ts(ev: Dict):
+        day = ev.get("date") or ""
+        hhmm = ev.get("start") or "00:00"
+        return parse_iso_dt(f"{day}T{hhmm}")
+
+    cov = coverage_of(
+        requested_start=datetime.combine(start, datetime.min.time()),
+        requested_end=datetime.combine(end, datetime.max.time()).replace(microsecond=0),
+        matched_ts=[_cal_ts(e) for e in matched],
+        shown_ts=[_cal_ts(e) for e in window],
+        slice_kind=slice_kind,
+    )
+    pairs = [(_cal_ts(e), e.get("tag") or e.get("title") or "event") for e in matched]
+    body = assemble_log_dump(
+        title=title,
+        coverage=cov,
+        extras=extras,
+        shares=format_event_shares(events_from_pairs(pairs), column="tag"),
+        rows=_format_slot_lines(window),
+    )
+    return with_calendar_attendance_note(body)
 
 
 def _calendar_meta_footer(json_path: Path) -> str:

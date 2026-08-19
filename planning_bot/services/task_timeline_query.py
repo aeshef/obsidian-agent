@@ -81,22 +81,13 @@ def format_task_timeline(
         lines.append(pdmsg("agent_task_timeline_no_log"))
         return "\n".join(lines)
 
-    lines.append(pdmsg("agent_task_timeline_events_header", count=len(history)))
-    for entry in history:
-        ts = entry.get("timestamp") or "?"
-        event_type = entry.get("type") or "?"
-        data = entry.get("data") or {}
-        title = (data.get("title") or "?").replace("\n", " ")
-        if event_type == "task_moved":
-            lines.append(
-                f"{ts} | {event_type} | \"{title}\" | {data.get('from', '')} → {data.get('to', '')}"
-            )
-        elif event_type == "task_completed":
-            lines.append(f"{ts} | {event_type} | \"{title}\"")
-        elif event_type == "task_created":
-            lines.append(
-                f"{ts} | {event_type} | \"{title}\" | {data.get('category', '')} / {data.get('priority', '')}"
-            )
-        else:
-            lines.append(f"{ts} | {event_type} | \"{title}\"")
+    from planning_bot.services.activity_log_query import format_task_event_dump
+
+    dump = format_task_event_dump(
+        history,
+        history,
+        title=pdmsg("agent_task_timeline_events_header", count=len(history)),
+        slice_kind="all",
+    )
+    lines.append(dump)
     return "\n".join(lines)

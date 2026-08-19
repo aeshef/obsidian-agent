@@ -62,11 +62,15 @@ def get_snapshots(
         if snap is None or not is_valid_health_snapshot(snap):
             continue
         try:
-            if cutoff is not None and datetime.fromisoformat(snap["ts"]) < cutoff:
+            dt = datetime.fromisoformat(str(snap.get("ts", "")))
+        except (KeyError, ValueError, TypeError):
+            continue
+        if cutoff is not None:
+            from shared.query.ts import dt_ge
+
+            if not dt_ge(dt, cutoff):
                 continue
-            snaps.append(snap)
-        except (KeyError, ValueError):
-            pass
+        snaps.append(snap)
     snaps.sort(key=lambda x: x.get("ts", ""))
     return snaps
 

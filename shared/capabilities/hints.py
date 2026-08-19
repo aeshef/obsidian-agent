@@ -56,7 +56,9 @@ def _hint_planning(prof) -> str:
     if prof.connector(CONNECTOR_GMAIL_HEALTH):
         parts.append("Gmail → health snapshots")
     if prof.connector(CONNECTOR_MAC_CONTEXT):
-        parts.append("Mac focus snapshots")
+        parts.append(
+            "foreground snapshot log: duration shares from the interval dump, not last-value-per-day"
+        )
     parts.append("task action log")
     return "; ".join(parts)
 

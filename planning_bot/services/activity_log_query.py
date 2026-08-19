@@ -6,6 +6,13 @@ from typing import Dict, List, Optional, Set
 
 from planning_bot.core.config import DONE_COLUMN
 from planning_bot.core.pdmsg import pdmsg
+from shared.query.log_dump import (
+    assemble_log_dump,
+    coverage_of,
+    events_from_pairs,
+    format_event_shares,
+)
+from shared.query.ts import parse_iso_dt
 
 
 def activity_events_limits() -> tuple[int, int]:
@@ -110,6 +117,55 @@ def format_completion_hour_histogram(all_entries: List[Dict]) -> str:
     return "\n".join(lines)
 
 
+def format_task_event_line(e: Dict) -> str:
+    ts = e.get("timestamp") or "?"
+    t = e.get("type") or "?"
+    d = e.get("data") or {}
+    title = (d.get("title") or "?").replace("\n", " ")
+    if t == "task_moved":
+        return f"{ts} | {t} | \"{title}\" | {d.get('from', '')} → {d.get('to', '')}"
+    if t == "task_completed":
+        return f"{ts} | {t} | \"{title}\""
+    if t == "task_created":
+        return f"{ts} | {t} | \"{title}\" | {d.get('category', '')} / {d.get('priority', '')}"
+    return f"{ts} | {t} | \"{title}\""
+
+
+def _entry_ts(e: Dict):
+    return parse_iso_dt(e.get("timestamp") or "")
+
+
+def format_task_event_dump(
+    display: List[Dict],
+    matched: List[Dict],
+    *,
+    requested_start=None,
+    requested_end=None,
+    title: str = "",
+    extras: Optional[List[str]] = None,
+    slice_kind: str = "tail",
+    share_column: str = "type",
+    n_matched: Optional[int] = None,
+) -> str:
+    """Coverage + type shares over ALL matched events, then a raw slice."""
+    cov = coverage_of(
+        requested_start=requested_start,
+        requested_end=requested_end,
+        matched_ts=[_entry_ts(e) for e in matched],
+        shown_ts=[_entry_ts(e) for e in display],
+        slice_kind=slice_kind,
+        n_matched=n_matched,
+    )
+    pairs = [(e.get("timestamp"), e.get("type") or "?") for e in matched]
+    return assemble_log_dump(
+        title=title,
+        coverage=cov,
+        extras=extras or (),
+        shares=format_event_shares(events_from_pairs(pairs), column=share_column),
+        rows=[format_task_event_line(e) for e in display],
+    )
+
+
 def format_activity_events_block(
     entries: List[Dict],
     all_entries: List[Dict],
@@ -120,31 +176,23 @@ def format_activity_events_block(
     period_start: Optional[date] = None,
     period_end: Optional[date] = None,
 ) -> str:
-    lines: List[str] = []
-    if period_start and period_end:
-        lines.append(
-            pdmsg(
-                "agent_action_log_period",
-                start=period_start.isoformat(),
-                end=period_end.isoformat(),
-            )
-        )
+    extras: List[str] = []
     unique = unique_completions(all_entries)
     if unique:
         titles = "; ".join(
             ((e.get("data") or {}).get("title") or "?").replace("\n", " ") for e in unique
         )
-        lines.append(
+        extras.append(
             pdmsg(
                 "agent_action_log_unique_completions",
                 count=len(unique),
                 titles=titles,
             )
         )
-        lines.append(pdmsg("agent_action_log_completion_note"))
+        extras.append(pdmsg("agent_action_log_completion_note"))
 
     if filtered_type:
-        lines.append(
+        extras.append(
             pdmsg(
                 "agent_action_log_summary_filtered",
                 shown=len(entries),
@@ -154,9 +202,9 @@ def format_activity_events_block(
         )
         hist = format_completion_hour_histogram(all_entries)
         if hist:
-            lines.append(hist)
+            extras.append(hist)
     else:
-        lines.append(
+        extras.append(
             pdmsg(
                 "agent_action_log_summary",
                 shown=len(entries),
@@ -167,27 +215,23 @@ def format_activity_events_block(
                 unique_completed=len(unique),
             )
         )
-    if len(entries) < n_raw:
-        lines.append(
-            pdmsg(
-                "agent_action_log_tail_truncated",
-                shown=len(entries),
-                total=n_raw,
-            )
+    from shared.query.ts import day_bounds
+
+    req_start, req_end = day_bounds(period_start, period_end)
+    title = ""
+    if period_start and period_end:
+        title = pdmsg(
+            "agent_action_log_period",
+            start=period_start.isoformat(),
+            end=period_end.isoformat(),
         )
-    for e in entries:
-        ts = e.get("timestamp") or "?"
-        t = e.get("type") or "?"
-        d = e.get("data") or {}
-        title = (d.get("title") or "?").replace("\n", " ")
-        if t == "task_moved":
-            lines.append(f"{ts} | {t} | \"{title}\" | {d.get('from', '')} → {d.get('to', '')}")
-        elif t == "task_completed":
-            lines.append(f"{ts} | {t} | \"{title}\"")
-        elif t == "task_created":
-            lines.append(
-                f"{ts} | {t} | \"{title}\" | {d.get('category', '')} / {d.get('priority', '')}"
-            )
-        else:
-            lines.append(f"{ts} | {t} | \"{title}\"")
-    return "\n".join(lines)
+    return format_task_event_dump(
+        entries,
+        all_entries,
+        requested_start=req_start,
+        requested_end=req_end,
+        title=title,
+        extras=extras,
+        slice_kind="tail" if len(entries) < n_raw else "all",
+        n_matched=n_raw,
+    )
