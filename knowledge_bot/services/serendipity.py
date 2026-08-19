@@ -251,33 +251,22 @@ def _parse_frontmatter_and_body(raw: str) -> tuple[dict[str, Any], str]:
 
 
 def _extract_media_rel_paths(frontmatter: dict[str, Any]) -> list[str]:
-    attachments = frontmatter.get("attachments") if isinstance(frontmatter, dict) else None
-    files = attachments.get("files") if isinstance(attachments, dict) else []
-    if not isinstance(files, list):
-        return []
-    out: list[str] = []
-    seen: set[str] = set()
-    for item in files:
-        if not isinstance(item, str):
-            continue
-        rel = item.strip()
-        if rel and rel not in seen:
-            out.append(rel)
-            seen.add(rel)
-    return out
+    from knowledge_bot.services.frontmatter_attachments import attachment_files
+
+    return attachment_files(frontmatter if isinstance(frontmatter, dict) else {})
 
 
 
 async def _send_serendipity_text(bot, uid: int, body: str) -> bool:
     from shared.i18n import msg as i18n_msg
-    from shared.telegram.push_format import format_push
+    from shared.telegram.push_format import format_push, send_push
     from shared.telegram import push_policy as pp
 
     if pp.in_quiet_hours(datetime.now(_tz())):
         log.info("serendipity: skip send — quiet hours")
         return False
     text = format_push(i18n_msg("push", "serendipity_title"), body)
-    await bot.send_message(uid, text, disable_web_page_preview=True)
+    await send_push(bot, uid, text, disable_web_page_preview=True)
     return True
 
 
@@ -303,21 +292,34 @@ async def _send_serendipity_note_contents(bot, uid: int, cfg: AppConfig, rel: st
         return False
 
     media_files = _extract_media_rel_paths(fm)
-    for media_rel in media_files:
-        fp = _safe_note_path(cfg.vault_path, media_rel)
-        if not fp:
-            continue
-        ext = fp.suffix.lower()
-        try:
-            media = FSInputFile(str(fp))
-            if ext in (".mp4", ".mov", ".avi", ".mkv", ".webm"):
-                await bot.send_video(uid, media)
-            elif ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
-                await bot.send_photo(uid, media)
-            else:
-                await bot.send_document(uid, media)
-        except Exception:
-            log.warning("serendipity media send failed: %s", media_rel, exc_info=True)
+    if not media_files:
+        return True
+    try:
+        from shared.telegram.kb_media import send_vault_media_files
+
+        await send_vault_media_files(
+            bot,
+            uid,
+            cfg.vault_path,
+            [(m, "") for m in media_files],
+        )
+    except Exception:
+        log.warning("serendipity album send failed", exc_info=True)
+        for media_rel in media_files:
+            fp = _safe_note_path(cfg.vault_path, media_rel)
+            if not fp:
+                continue
+            ext = fp.suffix.lower()
+            try:
+                media = FSInputFile(str(fp))
+                if ext in (".mp4", ".mov", ".avi", ".mkv", ".webm"):
+                    await bot.send_video(uid, media)
+                elif ext in (".jpg", ".jpeg", ".png", ".gif", ".webp"):
+                    await bot.send_photo(uid, media)
+                else:
+                    await bot.send_document(uid, media)
+            except Exception:
+                log.warning("serendipity media send failed: %s", media_rel, exc_info=True)
     return True
 
 

@@ -5,6 +5,6 @@ Input JSON fields: message, optional dialogue_context.
 Respond with one JSON object only:
 {"intent":"finance_query"|"add_transaction"|"chitchat"}
 
-- add_transaction: user states an expense, income, transfer, or wants to record money movement.
+- add_transaction: user states an expense, income, transfer, or wants to record money movement. Also multi-line day/account dumps with amounts (confirm queue) — never finance_query.
 - finance_query: questions about balances, history, plans, investments, or analytics.
 - chitchat: greetings or off-topic text without a finance action or question.

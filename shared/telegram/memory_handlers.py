@@ -31,7 +31,9 @@ memory_router = Router(name="agent_memory")
 
 async def send_memory_panel(message: Message, domain: str | None = None) -> None:
     text, markup = build_memory_panel(message.chat.id, domain)
-    await send_long_message(message.bot, message.chat.id, text, reply_markup=markup)
+    await send_long_message(
+        message.bot, message.chat.id, text, reply_markup=markup, rich=False
+    )
 
 
 async def _edit_memory_panel(callback: CallbackQuery, *, text: str, markup) -> None:
@@ -51,6 +53,7 @@ async def cb_open_memory(callback: CallbackQuery) -> None:
         callback.message.chat.id,
         text,
         reply_markup=markup,
+        rich=False,
     )
 
 

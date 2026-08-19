@@ -207,6 +207,11 @@ def include_host_voice(dp: Dispatcher) -> None:
 
             # Same path as typed free text: txn/save gates → unified agent.
             await dispatch_auto_free_text(message, state, agent_app, text)
+            # Don't leave ASR preview in history — agent answer is the one bubble.
+            try:
+                await status.delete()
+            except Exception:
+                pass
         except LLMClassificationError as e:
             log.error("host voice LLM routing failed: %s", e, exc_info=True)
             err = msgf("wire", "voice_llm_failed", error=e)

@@ -20,7 +20,7 @@ host:
   mode_knowledge: "📚 База знаний"
   memory_menu: "🧠 Память"
   start_welcome: |
-    ✦ Assistant
+    Assistant
 
     Пиши как угодно — один мозг со всеми инструментами.
     Кнопки внизу — быстрые сценарии (финансы / план / знания).
@@ -49,8 +49,8 @@ host:
   placeholder_knowledge: "Вопрос, ссылка или медиа"
   placeholder_auto: "Спроси что угодно — отвечу со всеми инструментами"
 push:
-  divider: "────────"
-  morning_brief_title: "✦ Утренний бриф"
+  divider: ""
+  morning_brief_title: "Утро"
   morning_brief_footer: "Ответь текстом — разберу с полным доступом к инструментам."
   section_routines: "Рутины"
   section_evening_routines: "Вечерние рутины"
@@ -59,13 +59,16 @@ push:
   section_goals: "Цели"
   deadline_overdue_item: "• ⚠ {title} · просрок"
   deadline_upcoming_item: "• {title} · {deadline}"
-  finance_txn_title: "✦ Финансы · вечер"
-  finance_badge_title: "✦ Финансы · бейдж"
-  finance_insight_title: "✦ Финансы · инсайт"
-  finance_subs_title: "✦ Финансы · подписки"
-  finance_weekly_title: "✦ Финансы · неделя"
-  finance_monthly_title: "✦ Финансы · месяц"
-  serendipity_title: "✦ Из vault"
+  finance_txn_title: "Финансы · вечер"
+  finance_badge_title: "Финансы · бейдж"
+  finance_insight_title: "Финансы · инсайт"
+  finance_subs_title: "Финансы · подписки"
+  finance_weekly_title: "Финансы · неделя"
+  finance_monthly_title: "Финансы · месяц"
+  checkin_title: "Рутины · вечер"
+  weekly_review_title: "Неделя"
+  memory_synth_title: "Память"
+  serendipity_title: "Из vault"
 
 wire:
   voice_transcribing: "🎤 Распознаю речь..."
@@ -82,11 +85,11 @@ agent:
   progress_line: "Шаг {step}: {tools}{tail}"
   progress_line_model: "Шаг {step} ({model}): {tools}{tail}"
   progress_empty_tools: "…"
-  ungrounded_amounts: "В данных инструментов нет этих сумм: {amounts}. Что вернули инструменты:\n{facts}"
-  verify_retry_hint: "В прошлом черновике были суммы, которых нет в результатах инструментов: {amounts}. Ответь только цифрами из инструментов. Выдержки:\n{facts}"
+  verify_retry_hint: "Черновик не опирался на результаты инструментов. Ответь заново только по ним. Не пиши вызовы инструментов в ответе.\n{facts}"
+  tool_facts_header: "Факты из инструментов прошлого хода:\n{facts}"
   date_hint: "Сегодня: {date}."
   host_followup_hint: |
-    Текущее сообщение — задача. Уточнение прошлого ответа держит ту же тему. Пинг после вопроса без ответа продолжает тот вопрос, а не старый тред.
+    Текущее сообщение — задача. Уточнение прошлого ответа («в смысле…», «нет, про…», «а вчера») — держи ту же тему. Новый вопрос или пинг («ало», «на связи») после неотвеченного вопроса — отвечай на этот вопрос, не подхватывай старый хвост и не предлагай посторонние заметки.
   incomplete_fetch_hint: "Не описывай, что соберёшь данные — вызови инструменты и ответь по их выводу. Если период уже назван, не спрашивай какие дни. Не пиши Invoking tool / имя_тула(...) в ответе."
 
 memory:
@@ -158,7 +161,7 @@ memory_context:
   recent_dialogue: "Недавний диалог:\n{lines}"
 
 knowledge:
-  query_prompt: "✦ Просто напиши вопрос — отвечу полным ассистентом (база + план + финансы)."
+  query_prompt: "Просто напиши вопрос — отвечу полным ассистентом (база + план + финансы)."
   buttons:
     bulk_on: "📥 Прогрузка ВКЛ"
     bulk_off: "📤 Прогрузка ВЫКЛ"
@@ -369,10 +372,7 @@ planning:
     routines_stats_error: "❌ Ошибка при загрузке статистики рутин."
     checkin_phrase_close_day: "закрой день"
     checkin_phrase_close_day_alt: "закрыть день"
-    checkin_offer: |
-      🌙 Закрыть день {date}?
-
-      Быстрый чек-ин рутин и пара субъективных сигналов для аналитики.
+    checkin_offer: "Быстрый чек-ин рутин и пара субъективных сигналов для аналитики."
     checkin_btn_start: "▶️ Начать"
     checkin_btn_start_date: "▶️ {date}"
     checkin_btn_start_calendar: "📅 {date}"

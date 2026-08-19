@@ -8,14 +8,24 @@ from shared.telegram_utils import split_message, strip_telegram_markdown
 
 
 async def send_long_message(
-    bot, chat_id: int, text: str, reply_markup=None, max_len: int | None = None
+    bot,
+    chat_id: int,
+    text: str,
+    reply_markup=None,
+    max_len: int | None = None,
+    *,
+    rich: bool | None = None,
 ):
-    """Send long text; prefer Rich Messages when enabled, else plain chunks."""
+    """Send long text; prefer Rich Messages when enabled, else plain chunks.
+
+    Pass rich=False for control panels (lists with #id and [tags] must stay literal).
+    """
     body = (text or "").strip()
     if not body:
         return
 
-    if rich_messages_enabled() and len(body) <= rich_max_chars():
+    use_rich = rich_messages_enabled() if rich is None else bool(rich)
+    if use_rich and len(body) <= rich_max_chars():
         msg = await send_rich_message(
             bot, chat_id, body, reply_markup=reply_markup
         )

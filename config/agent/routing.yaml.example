@@ -61,7 +61,7 @@ host:
     note_path_pattern: '([\w./-]+\.md)\b'
 
 agent:
-  # First agent loop iteration: tool_choice=required for these domains (when tools exist).
+  # First agent loop iteration: tool_choice=required when tool-select actually picked tools.
   tools_first_iter_domains:
     - finance
     - planning

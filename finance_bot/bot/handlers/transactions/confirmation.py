@@ -327,6 +327,8 @@ async def show_transaction_confirmation(
             log.warning("Failed to edit message %s: %s, sending new", msg_id, e)
 
     log.debug("Send new message to chat_id=%s", chat_id)
+    # Plain HTML only — Rich Messages + edit_message_text leave a stale rich
+    # snapshot above the edited body (Telegram client bug).
     m = await bot.send_message(chat_id=chat_id, text=text, reply_markup=kb, parse_mode="HTML")
     await state.update_data(wizard_message_id=m.message_id)
     log.debug("New message %s saved in state", m.message_id)

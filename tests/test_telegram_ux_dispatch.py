@@ -8,6 +8,7 @@ import pytest
 
 from shared.telegram.host.domain_dispatch import try_dispatch_domain_text
 from shared.telegram.host.auto_dispatch import (
+    _looks_like_txn_batch,
     _looks_like_txn_candidate,
     dispatch_auto_free_text,
 )
@@ -41,7 +42,67 @@ def test_txn_candidate_prefilter():
     )
     assert len(bulk) > 160
     assert _looks_like_txn_candidate(bulk) is True
+    assert _looks_like_txn_batch(bulk) is True
     assert _looks_like_txn_candidate("x" * 200) is False
+
+
+def test_txn_batch_skips_intent_llm(monkeypatch):
+    """Multi-line money dump must hit NLU confirm queue, not finance_query agent."""
+    import sys
+    import types
+
+    called = {"nlu": 0, "llm": 0}
+
+    async def _nlu(text, message, state):
+        called["nlu"] += 1
+
+    async def _llm(*a, **k):
+        called["llm"] += 1
+        return "finance_query"
+
+    # Stub finance handlers so this test does not need finance_bot/.venv.
+    bot_mod = types.ModuleType("bot")
+    handlers_mod = types.ModuleType("bot.handlers")
+    tx_mod = types.ModuleType("bot.handlers.transactions")
+    tx_mod._process_transactions = _nlu
+    monkeypatch.setitem(sys.modules, "bot", bot_mod)
+    monkeypatch.setitem(sys.modules, "bot.handlers", handlers_mod)
+    monkeypatch.setitem(sys.modules, "bot.handlers.transactions", tx_mod)
+    monkeypatch.setattr(
+        "shared.agent.llm_classify.classify_finance_intent_llm",
+        _llm,
+    )
+    monkeypatch.setattr(
+        "shared.telegram.host.auto_dispatch.deliver_agent_answer",
+        AsyncMock(),
+    )
+    monkeypatch.setattr(
+        "shared.telegram.host.auto_dispatch._try_knowledge_save",
+        AsyncMock(return_value=False),
+    )
+    monkeypatch.setattr(
+        "shared.telegram.host.auto_dispatch.keyboard_for_mode",
+        lambda *a, **k: None,
+    )
+
+    dump = (
+        "11 августа (Яндекс Банк)\n"
+        "−83р · Проезд метро\n"
+        "−289р · Сигареты\n"
+        "12 августа (Яндекс Банк)\n"
+        "−600р · Аренда сервера\n"
+        "−614р · Такси"
+    )
+    msg = MagicMock()
+    msg.chat.id = 1
+    msg.from_user.id = 1
+    msg.bot = MagicMock()
+    state = AsyncMock()
+    state.get_data = AsyncMock(return_value={"ui_mode": "auto"})
+
+    asyncio.run(dispatch_auto_free_text(msg, state, _App(), dump))
+    assert called["nlu"] == 1
+    assert called["llm"] == 0
 
 
 def test_domain_dispatch_ignores_pinned_free_text(monkeypatch):
@@ -145,9 +206,10 @@ def test_free_text_goes_unified(monkeypatch):
 
 def test_push_format_envelope():
     out = format_push("Title", "Body line")
-    assert out.startswith("Title")
+    assert out.startswith("# Title")
     assert "Body line" in out
-    assert "────────" in out or "─" in out
+    assert "────────" not in out
+    assert "✦" not in out
 
 
 def test_push_format_sections_skips_empty():
@@ -155,9 +217,9 @@ def test_push_format_sections_skips_empty():
         "Brief",
         [("A", "one"), ("B", ""), ("C", "two")],
     )
-    assert "A" in out and "one" in out
-    assert "C" in out and "two" in out
-    assert "\nB\n" not in out
+    assert "## A" in out and "one" in out
+    assert "## C" in out and "two" in out
+    assert "## B" not in out
 
 
 def test_push_policy_defaults(monkeypatch, tmp_path):

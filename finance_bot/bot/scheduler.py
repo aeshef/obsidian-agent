@@ -39,13 +39,14 @@ def _local_now():
 async def _send_user_push(bot, chat_id: int, text: str, **kwargs) -> None:
     """Send a user-facing finance push; skip during quiet hours."""
     from shared.telegram import push_policy as pp
+    from shared.telegram.push_format import send_push
 
     if not (text or "").strip():
         return
     if pp.in_quiet_hours(_local_now()):
         log.info("skip finance push chat_id=%s: quiet hours", chat_id)
         return
-    await bot.send_message(chat_id=chat_id, text=text, **kwargs)
+    await send_push(bot, chat_id, text, **kwargs)
 
 
 async def send_subscriptions_digest(bot) -> None:

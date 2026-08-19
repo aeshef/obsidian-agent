@@ -36,8 +36,11 @@ async def send_vault_media_files(
     chat_id: int,
     vault_path: Path,
     media_files: list[tuple[str, str]],
-) -> None:
-    """media_files: (rel_path in vault, caption). Photos may be sent as Telegram albums."""
+) -> int:
+    """media_files: (rel_path in vault, caption). Photos may be sent as Telegram albums.
+
+    Returns how many files were actually delivered.
+    """
     vault_res = vault_path.resolve()
     photos: list[tuple[Path, str, str]] = []
     singles: list[tuple[Path, str, str]] = []
@@ -59,6 +62,7 @@ async def send_vault_media_files(
         else:
             singles.append((file_path, cap, file_rel))
 
+    sent = 0
     if _album_enabled() and len(photos) >= 2:
         max_n = _album_max()
         for i in range(0, len(photos), max_n):
@@ -74,25 +78,29 @@ async def send_vault_media_files(
             try:
                 await bot.send_media_group(chat_id, media=media)
                 log.info("sent vault media album: %s files", len(chunk))
+                sent += len(chunk)
             except Exception as e:
                 log.warning("album send failed, falling back to singles: %s", e)
                 for path, cap, rel in chunk:
-                    await _send_one(bot, chat_id, path, cap, rel, photo=True)
+                    sent += int(await _send_one(bot, chat_id, path, cap, rel, photo=True))
     else:
         for path, cap, rel in photos:
-            await _send_one(bot, chat_id, path, cap, rel, photo=True)
+            sent += int(await _send_one(bot, chat_id, path, cap, rel, photo=True))
 
     for path, cap, rel in singles:
         ext = path.suffix.lower()
-        await _send_one(
-            bot,
-            chat_id,
-            path,
-            cap,
-            rel,
-            photo=False,
-            video=ext in _VIDEO_EXT,
+        sent += int(
+            await _send_one(
+                bot,
+                chat_id,
+                path,
+                cap,
+                rel,
+                photo=False,
+                video=ext in _VIDEO_EXT,
+            )
         )
+    return sent
 
 
 async def _send_one(
@@ -104,15 +112,21 @@ async def _send_one(
     *,
     photo: bool,
     video: bool = False,
-) -> None:
+) -> bool:
     try:
         f = FSInputFile(str(file_path))
         if video:
             await bot.send_video(chat_id, f, caption=caption or None)
         elif photo:
-            await bot.send_photo(chat_id, f, caption=caption or None)
+            try:
+                await bot.send_photo(chat_id, f, caption=caption or None)
+            except Exception as photo_err:
+                log.warning("send_photo failed %s (%s); trying document", file_rel, photo_err)
+                await bot.send_document(chat_id, FSInputFile(str(file_path)), caption=caption or None)
         else:
             await bot.send_document(chat_id, f, caption=caption or None)
         log.info("sent vault media: %s", file_rel)
+        return True
     except Exception as e:
         log.warning("failed to send media %s: %s", file_rel, e)
+        return False
