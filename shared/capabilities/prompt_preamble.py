@@ -64,7 +64,12 @@ _HOST_DOMAIN_LINES: tuple[tuple[str, str], ...] = (
     ),
 )
 
-_CONTEXT_LINES: tuple[tuple[str, str], ...] = (("mac", "Mac focus snapshots inform planning context."),)
+_CONTEXT_LINES: tuple[tuple[str, str], ...] = (
+    (
+        "mac",
+        "Mac interval log: time-in-app from duration-weighted shares over all matches; last-app-of-day is not time spent.",
+    ),
+)
 
 _KNOWLEDGE_TOOLS_LINES: tuple[tuple[str, str], ...] = (
     ("knowledge", "Use knowledge tools; cite note titles from tool output only."),

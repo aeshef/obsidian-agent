@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from shared.agent.trace import start_run
-from shared.agent.trace_analytics import load_trace_rows, summarize_traces
+from shared.agent.trace_analytics import dense_daily_series, load_trace_rows, summarize_traces
 from shared.agent.trace_cost import estimate_cost_usd
 
 
@@ -97,3 +97,57 @@ def test_summarize_traces_daily(tmp_path: Path):
     assert len(s.daily) == 2
     assert s.tool_calls_executed == 2
     assert s.as_dict()["usage_coverage_pct"] == 100.0
+
+
+def test_summarize_traces_buckets_local_calendar_day(monkeypatch):
+    monkeypatch.setenv("TIMEZONE", "Europe/Moscow")
+    from shared.tz import get_tz
+
+    get_tz.cache_clear()
+    try:
+        rows = [
+            {
+                "ts": "2026-08-01T22:30:00+00:00",
+                "domain": "unified",
+                "prompt_tokens": 100,
+                "completion_tokens": 10,
+                "total_tokens": 110,
+                "est_cost_usd": 0.001,
+                "total_latency_ms": 100,
+                "end_reason": "answer",
+                "selected_tools": [],
+                "tool_iters": [],
+                "llm_rounds": [{"prompt_tokens": 100, "completion_tokens": 10}],
+                "llm_rounds_count": 1,
+                "rounds_missing_usage": 0,
+            }
+        ]
+        s = summarize_traces(rows, days=30)
+        assert s.daily[0]["date"] == "2026-08-02"
+    finally:
+        get_tz.cache_clear()
+
+
+def test_dense_daily_series_fills_gaps_through_today(monkeypatch):
+    from datetime import date
+
+    monkeypatch.setattr(
+        "shared.agent.trace_analytics.today_in_tz",
+        lambda name=None: date(2026, 8, 18),
+    )
+    out = dense_daily_series(
+        [
+            {
+                "date": "2026-08-16",
+                "runs": 2,
+                "tokens": 10,
+                "est_cost_usd": 0.1,
+                "tool_calls": 1,
+            }
+        ],
+        days=3,
+    )
+    assert [r["date"] for r in out] == ["2026-08-16", "2026-08-17", "2026-08-18"]
+    assert out[0]["runs"] == 2
+    assert out[1]["runs"] == 0
+    assert out[2]["tokens"] == 0

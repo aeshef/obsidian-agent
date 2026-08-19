@@ -36,6 +36,16 @@ _JSON_MODE_HINT = (
 )
 
 
+def _requests_session() -> requests.Session:
+    """Session that ignores HTTP(S)_PROXY from the environment.
+
+    Cursor/sandbox tunnels often 403 DeepSeek; direct egress works.
+    """
+    session = requests.Session()
+    session.trust_env = False
+    return session
+
+
 def _ensure_json_in_prompt(text: str) -> str:
     """DeepSeek requires the word 'json' when response_format=json_object."""
     if not text:
@@ -197,7 +207,8 @@ class LLMClient:
                 raise ValueError("DEEPSEEK API key missing")
             return ""
         last_exc: Exception | None = None
-        for attempt in range(1, max_retries + 1):
+        attempts = max(1, int(max_retries or 1))
+        for attempt in range(1, attempts + 1):
             payload: dict[str, Any] = {
                 "model": model,
                 "messages": messages,
@@ -210,7 +221,7 @@ class LLMClient:
                 return str(data["choices"][0]["message"]["content"])
             except Exception as e:
                 last_exc = e
-                if attempt < max_retries:
+                if attempt < attempts:
                     sleep(retry_backoff * attempt)
                     continue
                 if raise_on_error:
@@ -289,10 +300,11 @@ class LLMClient:
         payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
-            "tools": tools,
-            "tool_choice": tool_choice,
             "temperature": temperature,
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice
         try:
             data = self._post(payload, timeout)
             choice = (data.get("choices") or [{}])[0]
@@ -340,13 +352,14 @@ class LLMClient:
         payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
-            "tools": tools,
-            "tool_choice": tool_choice,
             "temperature": temperature,
             "stream": True,
             # OpenAI-compatible: final SSE chunk carries usage when set.
             "stream_options": {"include_usage": True},
         }
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice
         try:
             text, tool_calls, meta = self._stream_chat_completion(
                 payload, timeout, on_text_delta=on_text_delta
@@ -380,7 +393,7 @@ class LLMClient:
             "Content-Type": "application/json",
         }
         log.info("LLM stream: url=%s model=%s", url, payload.get("model"))
-        resp = requests.post(
+        resp = _requests_session().post(
             url,
             headers=headers,
             data=json.dumps(payload),
@@ -482,7 +495,12 @@ class LLMClient:
             "Content-Type": "application/json",
         }
         log.info("LLM request: url=%s model=%s", url, payload.get("model"))
-        resp = requests.post(url, headers=headers, data=json.dumps(payload), timeout=timeout)
+        resp = _requests_session().post(
+            url,
+            headers=headers,
+            data=json.dumps(payload),
+            timeout=timeout,
+        )
         if not resp.ok:
             if self._http_error_hook is not None:
                 try:

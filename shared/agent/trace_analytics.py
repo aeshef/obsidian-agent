@@ -11,6 +11,7 @@ from typing import Any
 
 from shared.agent.trace_cost import estimate_cost_usd, primary_model
 from shared.domain_messages import dmsg
+from shared.tz import get_tz, now_in_tz, today_in_tz
 
 
 def parse_ts(raw: Any) -> datetime | None:
@@ -21,6 +22,44 @@ def parse_ts(raw: Any) -> datetime | None:
         return dt
     except ValueError:
         return None
+
+
+def _local_day(ts: datetime | None) -> str:
+    if ts is None:
+        return "unknown"
+    return ts.astimezone(get_tz()).date().isoformat()
+
+
+def dense_daily_series(
+    daily: list[dict[str, Any]],
+    *,
+    days: int,
+) -> list[dict[str, Any]]:
+    """Calendar-complete rows from today-(days-1) through today in local TZ.
+
+    Sparse trace days become zeros so line charts keep a real time axis
+    instead of jumping 08-04 → 08-08.
+    """
+    window = max(int(days or 1), 1)
+    end = today_in_tz()
+    start = end - timedelta(days=window - 1)
+    by = {str(row.get("date")): row for row in daily}
+    out: list[dict[str, Any]] = []
+    cur = start
+    while cur <= end:
+        key = cur.isoformat()
+        src = by.get(key) or {}
+        out.append(
+            {
+                "date": key,
+                "runs": int(src.get("runs") or 0),
+                "tokens": int(src.get("tokens") or 0),
+                "est_cost_usd": float(src.get("est_cost_usd") or 0),
+                "tool_calls": int(src.get("tool_calls") or 0),
+            }
+        )
+        cur += timedelta(days=1)
+    return out
 
 
 def _pct(values: list[float], q: float) -> float:
@@ -36,7 +75,7 @@ def load_trace_rows(path: Path, *, days: int | None = None) -> list[dict[str, An
         return []
     cutoff = None
     if days is not None and days > 0:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = now_in_tz() - timedelta(days=days)
     rows: list[dict[str, Any]] = []
     with path.open(encoding="utf-8") as f:
         for line in f:
@@ -204,7 +243,7 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
                 tools[str(name)] += 1
 
         ts = parse_ts(row.get("ts"))
-        day = ts.date().isoformat() if ts else "unknown"
+        day = _local_day(ts)
         daily_tokens[day] += int(row.get("total_tokens") or (pt + ct))
         daily_cost[day] += cost
         daily_runs[day] += 1
