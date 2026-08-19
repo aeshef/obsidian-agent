@@ -11,7 +11,7 @@ from shared.memory.layers import format_insights_text, read_profile_text
 from shared.memory.session import get_history
 
 
-@tool(category="memory", always=True)
+@tool(category="memory")
 async def get_user_profile(ctx: AgentContext) -> str:
     """Global and domain markdown user profile."""
     return read_profile_text(ctx.domain)
@@ -64,15 +64,14 @@ async def capture_observation(
 ) -> str:
     """Remember a short observation for later (pending insight). kind=durable|periodic. domain defaults to current."""
     from shared.memory.insights import get_store
+    from shared.memory.scope import resolve_insight_domain
 
     body = (text or "").strip()
     if not body:
         return dmsg("memory_tools", "capture_empty")
     if len(body) > 500:
         body = body[:500]
-    dom = (domain or ctx.domain or "finance").strip().lower()
-    if dom not in AGENT_DOMAINS and dom != GLOBAL_DOMAIN:
-        dom = ctx.domain
+    dom = resolve_insight_domain(domain or ctx.domain, fallback=GLOBAL_DOMAIN)
     k = (kind or "durable").strip().lower()
     if k not in ("durable", "periodic"):
         k = "durable"

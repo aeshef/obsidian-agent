@@ -8,13 +8,12 @@ from typing import Iterable
 from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from shared.i18n import msg, msgf
+from shared.i18n import msg
 from shared.llm import LLMClient
 from shared.memory.context_collectors import COLLECTORS
 from shared.memory.insights import get_store
 from shared.memory.synth import synthesize, synth_enabled
 from shared.telegram.memory_ui import memory_open_callback
-from shared.telegram_utils import split_message
 
 log = logging.getLogger("shared.memory.synth_job")
 
@@ -48,10 +47,18 @@ def _notify_keyboard(pending_id: int) -> InlineKeyboardMarkup:
 
 
 async def notify_pushable(bot: Bot, chat_id: int, pushable: Iterable[tuple[int, str]], domain: str) -> None:
+    from shared.telegram.push_format import format_push, send_push
+    from shared.telegram import push_policy as pp
+
+    if pp.in_quiet_hours():
+        log.info("synth: skip notify — quiet hours")
+        return
+    title = msg("push", "memory_synth_title") or "Memory"
+    confirm = (msg("memory", "confirm_hint") or "Confirm?").strip()
     for pid, pattern in pushable:
-        header = msgf("synth", "pattern_ready", domain=domain, pattern=pattern)
-        for chunk in split_message(header):
-            await bot.send_message(chat_id, chunk, reply_markup=_notify_keyboard(pid))
+        body = f"[{domain}]\n\n{(pattern or '').strip()}\n\n{confirm}"
+        text = format_push(title, body)
+        await send_push(bot, chat_id, text, reply_markup=_notify_keyboard(pid))
 
 
 async def run_weekly_synth_for_chat(

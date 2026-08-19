@@ -41,6 +41,10 @@ def test_main_panel_is_read_first_with_clear_submenu(tmp_path, monkeypatch):
     text, markup = build_memory_panel(1)
     assert "Сводка" in text or "Summary" in text
     assert "/memory" not in text
+    assert "\n•" in text
+    lines = [ln for ln in text.splitlines() if ln.startswith("• [")]
+    assert len(lines) >= 1
+    assert "#1:" in text or "#1 " in text
     callbacks = [
         btn.callback_data
         for row in markup.inline_keyboard

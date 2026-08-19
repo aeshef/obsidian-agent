@@ -13,6 +13,17 @@ insights:
   periodic_ttl_days: 45
   profile_excerpt_max: 400
 
+# Compact priors injected on unified every turn (confirmed only).
+core:
+  max_lines: 8
+
+# Live HUD: calendar today + kanban in-work. Cached; fail open.
+situation:
+  cache_sec: 60
+  max_chars: 1200
+  calendar_max_lines: 8
+  wip_max_tasks: 8
+
 # Agent-proposed appends to user_profile.md (confirm required; never auto-write).
 profile_append:
   section_header: "## Agent notes"

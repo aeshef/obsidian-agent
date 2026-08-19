@@ -33,11 +33,22 @@ def _db_path() -> Path:
 
 
 def _max_messages() -> int:
-    try:
-        turns = int(os.environ.get("AGENT_SESSION_MAX_TURNS", "4"))
-        return max(2, turns * 2)
-    except ValueError:
-        return 8
+    raw = os.environ.get("AGENT_SESSION_MAX_TURNS", "").strip()
+    if raw:
+        try:
+            turns = int(raw)
+        except ValueError:
+            turns = 0
+    else:
+        try:
+            from shared.agent.platform_config import platform_int
+
+            turns = platform_int("agent", "session_max_turns", default=4)
+        except Exception:
+            turns = 4
+    if turns < 1:
+        turns = 4
+    return max(2, turns * 2)
 
 
 def _ensure_sqlite() -> None:

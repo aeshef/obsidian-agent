@@ -9,10 +9,13 @@ from shared.memory.insights import GlobalInsightsMemory, InsightsMemory
 from shared.memory.profile import ProfileMemory
 
 
-def build_memory_layers(domain: str) -> list:
-    """Layer 0 (global + domain profile) + layer 5 (global + domain insights).
+def build_memory_layers(domain: str, *, insights: bool = True) -> list:
+    """Layer 0 (global + domain profile) + optional layer 5 insights.
 
     Layer 1 (session) and layer 2 (episodic) wired in AgentApp and memory-tools.
+    Unified host passes insights=False so per-domain dumps stay out of the
+    prompt; CorePriorsMemory + SituationMemory still attach for that domain.
+    get_user_insights remains the on-demand full list.
     """
     layers: list = []
 
@@ -24,8 +27,15 @@ def build_memory_layers(domain: str) -> list:
     if dp is not None and dp.exists():
         layers.append(ProfileMemory(dp, header=profile_header(domain)))
 
-    layers.append(GlobalInsightsMemory())
-    layers.append(InsightsMemory(domain))
+    if insights:
+        layers.append(GlobalInsightsMemory())
+        layers.append(InsightsMemory(domain))
+    if (domain or "").strip().lower() == "unified":
+        from shared.memory.core_priors import CorePriorsMemory
+        from shared.memory.situation import SituationMemory
+
+        layers.append(CorePriorsMemory())
+        layers.append(SituationMemory())
     from shared.memory.working_set import working_set_layer
 
     layers.append(working_set_layer())
@@ -63,10 +73,11 @@ def format_insights_text(
     from shared.memory.config import insight_limits
     from shared.memory.constants import AGENT_DOMAINS
     from shared.memory.insights import get_store
+    from shared.memory.scope import insights_scope_for_host
 
     g_lim, d_lim = insight_limits()
     store = get_store()
-    scope = (scope or "current").strip().lower()
+    scope = insights_scope_for_host(scope, current_domain)
 
     def _block(title: str, items: list[str]) -> str:
         if not items:

@@ -18,6 +18,7 @@ from shared.agent.types import AgentAnswer, AgentContext, KB_MEDIA_EXTRAS_KEY, M
 from shared.llm import LLMClient
 from shared.memory.base import MemoryLayer, build_system_prompt
 from shared.memory.session import append_turn, history_as_api
+from shared.memory.tool_facts import ToolFactsMemory
 
 log = logging.getLogger("shared.agent.app")
 
@@ -104,6 +105,9 @@ class AgentApp:
         extras.setdefault(KB_MEDIA_EXTRAS_KEY, [])
         if agent_progress is not None:
             extras["agent_progress"] = agent_progress
+            bot = getattr(agent_progress, "_bot", None)
+            if bot is not None:
+                extras["telegram_bot"] = bot
 
         ctx = AgentContext(
             user_id=user_id,
@@ -114,7 +118,7 @@ class AgentApp:
             extras=extras,
         )
         ctx.system_prompt = await build_system_prompt(
-            await adapter.base_prompt(ctx), ctx, adapter.memory_layers(ctx)
+            await adapter.base_prompt(ctx), ctx, [*adapter.memory_layers(ctx), ToolFactsMemory()]
         )
 
         fast = await adapter.try_fast_answer(ctx)
@@ -156,8 +160,12 @@ class AgentApp:
             if adapter:
                 extras.update(await adapter.prepare_extras(user_id))
         extras.setdefault(KB_MEDIA_EXTRAS_KEY, [])
+        extras.setdefault("telegram_id", user_id)
         if agent_progress is not None:
             extras["agent_progress"] = agent_progress
+            bot = getattr(agent_progress, "_bot", None)
+            if bot is not None:
+                extras["telegram_bot"] = bot
 
         ctx = AgentContext(
             user_id=user_id,
@@ -191,13 +199,16 @@ class AgentApp:
         from shared.prompts import load_prompt
         from shared.tz import now_in_tz
 
+        from shared.memory.layers import build_memory_layers
+
         base = load_prompt(agent_config_dir(), "host_query", subdir="prompts", required=True)
         now = now_in_tz()
         date_hint = msgf("agent", "date_hint", date=now.strftime("%Y-%m-%d (%A)"))
         followup = msgf("agent", "host_followup_hint")
-        layers: list[MemoryLayer] = []
-        for adapter in self._adapters.values():
-            layers.extend(adapter.memory_layers(ctx))
+        layers: list[MemoryLayer] = [
+            *build_memory_layers("unified", insights=False),
+            ToolFactsMemory(),
+        ]
         return await build_system_prompt(
             f"{base}\n\n{date_hint}\n\n{followup}", ctx, layers
         )
