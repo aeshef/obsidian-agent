@@ -31,3 +31,17 @@ def now_in_tz(name: Optional[str] = None) -> datetime:
 
 def today_in_tz(name: Optional[str] = None) -> date:
     return now_in_tz(name).date()
+
+
+def format_local_ts(iso: str, *, name: Optional[str] = None) -> str:
+    """Stored UTC (or any ISO) timestamp as local wall clock for prompts. Empty if unparseable."""
+    raw = (iso or "").strip()
+    if not raw:
+        return ""
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return ""
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(get_tz(name)).strftime("%Y-%m-%d %H:%M")

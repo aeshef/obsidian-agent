@@ -28,6 +28,7 @@ def test_tool_schema_required_param():
     schema = reg.schemas(["sample_txn"])[0]["function"]["parameters"]
     assert "days" in schema["properties"]
     assert "days" not in schema["required"]
+    assert reg.schemas([]) == []
 
 
 def test_select_tools_llm_merges_always(monkeypatch, tmp_path):
@@ -54,7 +55,8 @@ def test_select_tools_llm_merges_always(monkeypatch, tmp_path):
         _fake,
     )
     selected = asyncio.run(select_tools_llm("баланс", reg, domain="finance"))
-    assert selected == ["sample_balance", "sample_txn"]
+    assert selected.offered == ["sample_balance", "sample_txn"]
+    assert "sample_txn" in selected.picked
 
 
 def test_select_tools_llm_rejects_unknown(monkeypatch, tmp_path):
@@ -317,15 +319,34 @@ def test_clear_all_history_includes_unified(tmp_path, monkeypatch):
     assert sess.get_history(42, "planning") == []
 
 
-def test_agent_history_api_includes_timestamp():
+def test_agent_history_api_stamps_user_in_local_tz(monkeypatch):
     from shared.agent.core import agent_messages_to_api
     from shared.agent.types import AgentMessage
+    from shared.tz import get_tz
 
+    monkeypatch.setenv("TIMEZONE", "Europe/Moscow")
+    get_tz.cache_clear()
     out = agent_messages_to_api([
-        AgentMessage(role="user", content="старый вопрос", ts="2026-06-01T10:00:00+00:00")
+        AgentMessage(role="user", content="старый вопрос", ts="2026-08-18T12:00:13+00:00"),
+        AgentMessage(role="assistant", content="ответ", ts="2026-08-18T12:00:20+00:00"),
     ])
+    assert out[0] == {"role": "user", "content": "[asked 2026-08-18 15:00] старый вопрос"}
+    assert out[1] == {"role": "assistant", "content": "ответ"}
+    get_tz.cache_clear()
 
-    assert out == [{"role": "user", "content": "[at 2026-06-01T10:00:00+00:00] старый вопрос"}]
+
+def test_strip_injected_history_clock():
+    from shared.agent.core import strip_injected_history_clock
+
+    assert (
+        strip_injected_history_clock("[at 2026-08-18T12:00:13+00:00] Сравнил траты")
+        == "Сравнил траты"
+    )
+    assert (
+        strip_injected_history_clock("[asked 2026-08-18 15:00] Вот сводка")
+        == "Вот сводка"
+    )
+    assert strip_injected_history_clock("[at home] keep") == "[at home] keep"
 
 
 def test_get_kanban_reads_archive():
