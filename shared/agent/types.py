@@ -72,6 +72,19 @@ class AgentAnswer:
 KB_MEDIA_EXTRAS_KEY = "kb_media_files"
 # Dashboard chart PNGs queued by send_vault_charts — kept separate from KB note media.
 CHART_MEDIA_EXTRAS_KEY = "chart_media_files"
+# Full tool bodies this loop (verify + join). LLM may see a truncated copy.
+LOOP_TOOL_RESULTS_KEY = "loop_tool_results"
+
+
+@dataclass
+class ToolSelection:
+    """offered = schemas/allowlist (pin ∪ picks). picked = LLM+always; drives required."""
+
+    offered: list[str] = field(default_factory=list)
+    picked: list[str] = field(default_factory=list)
+
+    def __contains__(self, item: object) -> bool:
+        return item in self.offered
 
 
 @dataclass
