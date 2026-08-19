@@ -475,10 +475,26 @@ knowledge_vault_audit:
   maint_reprocess_empty_open: "> [!success] Reprocess queue"
   maint_reprocess_empty_body: "> No matches for `reprocess.yaml`"
   maint_ontology: '**Tag ontology**: {count} mappings in `config/tag_ontology.yaml`'
+  maint_ontology_zero: |
+    > [!success] Tag ontology — ok
+    > `0` mappings in `tag_ontology.yaml` is **not a failure**. Stub file: tag aliases are not configured;
+    > the vault uses domain/topic from ingest. Fix only if you maintain an ontology on purpose.
+  maint_ontology_ok: |
+    > [!success] Tag ontology
+    > **{count}** mappings in `config/tag_ontology.yaml`
   maint_ontology_error: '**Tag ontology**: config read error'
   maint_ontology_missing: '**Tag ontology**: config not found'
   maint_marker: '**Last maintenance date marker**: `{date}`'
   maint_marker_missing: '**Last maintenance date marker**: not set'
+  maint_deletions_ok: |
+    > [!success] Deletions this run
+    > Expected maintenance actions (duplicates / orphan export), not an outage.
+  maint_deletions_header: '**Deleted paths** ({ts}):'
+  hero_open: '> [!abstract] 700_ maintenance'
+  hero_title_ok: '> ### All green'
+  hero_title_warn: '> ### Warnings'
+  hero_title_fail: '> ### Failures'
+  hero_meta: '> Steps ok **{ok}** · fail **{fail}** · deleted **{deleted}**'
   maint_run_details_missing: '**Run details**: no `.sync/last_vault_maintenance_run.json` and no parseable JSON in `planning_bot/logs/vault_write_maintenance.log`.'
   maint_reprocess_header: '**Reprocess queue** (`bad_stem_pattern` in `config/reprocess.yaml`): **{total}** total, **{eligible}** without `reprocess_skip`{skipped_suffix}'
   maint_reprocess_skipped: ' ({count} skipped)'

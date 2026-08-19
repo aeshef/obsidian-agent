@@ -12,6 +12,7 @@ generic_en:
   - config/agent/prompts/planning_intent_router.example.txt
   - config/agent/prompts/tool_select_router.example.txt
   - config/agent/prompts/context_tools.example.txt
+  - config/agent/prompts/verify_grounding.example.txt
   - config/agent/prompts/health_tools.example.txt
   - config/agent/prompts/knowledge_unified_tools.example.txt
   - config/agent/prompts/memory_synth.example.txt
