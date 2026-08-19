@@ -28,6 +28,7 @@ def test_invoking_tool_is_narration_and_parses():
 
 
 def test_promised_fetch_short_is_incomplete():
+    assert looks_like_incomplete_fetch("I'll check the log and compute shares.")
     assert looks_like_incomplete_fetch(
         "Возьму данные за период и посчитаю доли."
     )

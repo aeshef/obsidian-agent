@@ -12,7 +12,6 @@ _DEFAULT_NARRATION = (
     r"(?i)\b[a-z][a-z0-9_]*\s*\(\s*\{",
 )
 _DEFAULT_FETCH = (
-    r"(?i)\b(?:проверю|посмотрю|гляну|возьму|считаю|смотрю данные|собрал ленту)\b",
     r"(?i)\b(?:i(?:'ll| will) (?:check|look|fetch|compute)|let me (?:check|look))\b",
 )
 
