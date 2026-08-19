@@ -108,6 +108,10 @@ class TelegramAgentProgress:
     async def on_answer_delta(self, text: str) -> None:
         if not answer_stream_enabled():
             return
+        from shared.agent.answer_guard import looks_like_tool_narration
+
+        if looks_like_tool_narration(text or ""):
+            return
         min_chars = platform_int("agent_progress", "answer_stream_min_chars", default=40)
         interval_ms = platform_int(
             "agent_progress",

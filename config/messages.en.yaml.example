@@ -5,7 +5,8 @@
 agent:
   date_hint: 'Today: {date}.'
   host_followup_hint: |
-    If the user clarifies the previous reply ("I mean…", "no, about…", "yesterday night"), keep the same topic and domain (tasks/finance/knowledge) until they explicitly switch.
+    The current message is the task. Clarifications of the last reply ("I mean…", "no, about…") keep that topic. A ping after an unanswered question continues that question — do not resume an older leftover thread.
+  incomplete_fetch_hint: "Do not announce a fetch — call the tools and answer from their output. If the user already named a period, do not ask which days. Do not write Invoking tool or tool_name(...) in the reply."
   max_iters_reached: Failed to complete the analysis within the allotted number of
     steps.
   no_answer: Failed to get a response.

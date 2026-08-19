@@ -10,9 +10,22 @@ from typing import Any
 from shared.agent.router import ModelRouter
 from shared.agent.tools import ToolRegistry, select_tools
 from shared.agent.progress import AgentProgress, NullAgentProgress, answer_stream_enabled
-from shared.agent.types import AgentContext, AgentMessage, ModelRole, ToolCall, ToolResult
-from shared.agent.cascade import cascade_enabled, initial_role, should_escalate_skipped_tools
-from shared.agent.verify import format_amount_list, tools_excerpt, ungrounded_amounts
+from shared.agent.types import (
+    AgentContext,
+    AgentMessage,
+    ModelRole,
+    ToolCall,
+    ToolResult,
+    ToolSelection,
+)
+from shared.agent.cascade import (
+    cascade_enabled,
+    escalate_ungrounded_claims,
+    initial_role,
+    should_escalate_skipped_tools,
+    strong_role,
+)
+from shared.agent.verify import tools_excerpt, verify_draft
 from shared.llm import LLMResponse
 
 log = logging.getLogger("shared.agent.core")
@@ -30,11 +43,18 @@ def _max_iters() -> int:
 
 
 def agent_messages_to_api(messages: list[AgentMessage]) -> list[dict[str, Any]]:
+    """History for the LLM. Clock only on user turns (local TZ) so the model
+    does not imitate `[at …]` on its own replies. Never persist this prefix.
+    """
+    from shared.tz import format_local_ts
+
     out: list[dict[str, Any]] = []
     for m in messages:
         content = m.content or ""
-        if m.ts and m.role in ("user", "assistant"):
-            content = f"[at {m.ts}] {content}"
+        if m.ts and m.role == "user":
+            local = format_local_ts(m.ts)
+            if local:
+                content = f"[asked {local}] {content}"
         if m.role == "assistant" and m.tool_calls:
             out.append(
                 {
@@ -60,15 +80,47 @@ def agent_messages_to_api(messages: list[AgentMessage]) -> list[dict[str, Any]]:
     return out
 
 
-def _warn_ungrounded_currency(answer: str, tool_bodies: list[str]) -> None:
-    """Log leftover; callers should prefer ungrounded_amounts + escalate/refuse."""
-    bad = ungrounded_amounts(answer, tool_bodies)
-    if not bad:
-        return
-    log.warning(
-        "agent answer has ungrounded amounts %s (not in tool outputs)",
-        bad,
-    )
+def strip_injected_history_clock(text: str) -> str:
+    """Drop harness clock prefixes the model copied into a user-visible reply."""
+    out = (text or "").strip()
+    while True:
+        if out.startswith("[at "):
+            marker = "[at "
+        elif out.startswith("[asked "):
+            marker = "[asked "
+        else:
+            break
+        end = out.find("]")
+        if end < 0:
+            break
+        inner = out[len(marker) : end].strip()
+        if not _looks_like_clock(inner):
+            break
+        out = out[end + 1 :].lstrip()
+    return out
+
+
+def _looks_like_clock(inner: str) -> bool:
+    # YYYY-MM-DD … — harness stamps only, not prose like "[at home]".
+    return len(inner) >= 10 and inner[4:5] == "-" and inner[7:8] == "-" and inner[:4].isdigit()
+
+
+def _verify_retry_hint(tool_bodies: list[str]) -> str:
+    from shared.i18n import msgf
+
+    facts = tools_excerpt(tool_bodies) or "—"
+    return msgf("agent", "verify_retry_hint", facts=facts)
+
+
+async def _verified_answer(text: str, tool_bodies: list[str]) -> tuple[str, bool]:
+    """Ground draft via LLM. Returns (text, needs_retry). Never a user-facing refuse."""
+    verdict = await verify_draft(text, tool_bodies)
+    if verdict.ok:
+        return strip_injected_history_clock(text), False
+    if verdict.rewrite:
+        log.info("verify llm rewrite (%d chars)", len(verdict.rewrite))
+        return strip_injected_history_clock(verdict.rewrite), False
+    return strip_injected_history_clock(text), True
 
 
 async def _emit_loop_model(progress: AgentProgress, router: ModelRouter, role: ModelRole) -> None:
@@ -84,28 +136,13 @@ async def _emit_loop_model(progress: AgentProgress, router: ModelRouter, role: M
         await fn(model, role.value)
 
 
-def _verify_refusal(amounts: list[int], tool_bodies: list[str]) -> str:
-    from shared.i18n import msgf
-
-    facts = tools_excerpt(tool_bodies) or "—"
-    return msgf(
-        "agent",
-        "ungrounded_amounts",
-        amounts=format_amount_list(amounts),
-        facts=facts,
-    )
-
-
-def _verify_retry_hint(amounts: list[int], tool_bodies: list[str]) -> str:
-    from shared.i18n import msgf
-
-    facts = tools_excerpt(tool_bodies) or "—"
-    return msgf(
-        "agent",
-        "verify_retry_hint",
-        amounts=format_amount_list(amounts),
-        facts=facts,
-    )
+def _coerce_selection(raw: Any) -> ToolSelection:
+    if isinstance(raw, ToolSelection):
+        return raw
+    if isinstance(raw, (list, tuple)):
+        names = [str(n) for n in raw if str(n)]
+        return ToolSelection(offered=names, picked=list(names))
+    return ToolSelection()
 
 
 def parse_tool_calls(raw: list[dict[str, Any]]) -> list[ToolCall]:
@@ -160,6 +197,12 @@ async def execute_tool(
             observe_tool_output(ctx.user_id, ctx.domain, tc.name, content)
         except Exception:
             log.debug("working_set observe_tool_output skipped", exc_info=True)
+        try:
+            from shared.agent.loop_context import record_tool_result
+
+            record_tool_result(ctx, tc.name, content)
+        except Exception:
+            log.debug("loop_tool_results skip", exc_info=True)
         return ToolResult(id=tc.id, name=tc.name, content=content)
     except Exception as e:
         log.exception("tool %s failed", tc.name)
@@ -187,10 +230,21 @@ async def run_agent(
         raw = ctx.extras.get("agent_progress")
         progress = raw if isinstance(raw, AgentProgress) else NullAgentProgress()
 
-    selected = await select_tools(ctx.question, registry, domain=ctx.domain)
+    selection = _coerce_selection(
+        await select_tools(
+            ctx.question, registry, domain=ctx.domain, history=ctx.history
+        )
+    )
+    # Pin stays in the catalog; schemas/allowlist only when this turn picked tools.
+    selected = selection.offered if selection.picked else []
     schemas = registry.schemas(selected)
-    log.info("agent tools selected: %s", selected)
-    await progress.on_tools_selected(selected)
+    log.info(
+        "agent tools offered=%s picked=%s schemas=%d",
+        selection.offered,
+        selection.picked,
+        len(schemas),
+    )
+    await progress.on_tools_selected(selection.picked)
 
     from shared.agent.trace import start_run
     import time as _time
@@ -210,13 +264,14 @@ async def run_agent(
     loop_role = role
     if cascade_enabled():
         loop_role = initial_role(ctx.domain, ctx.question)
-        if role == ModelRole.CHAT:
-            loop_role = ModelRole.CHAT
+        if role == strong_role():
+            loop_role = strong_role()
 
     last_text: str | None = None
     tool_bodies: list[str] = []
     tool_calls_used = 0
-    escalated = loop_role == ModelRole.CHAT
+    escalated = loop_role == strong_role()
+    force_tools = False
     from shared.agent.platform_config import platform_int
 
     max_tool_calls = platform_int("agent", "max_tool_calls", default=0)
@@ -226,9 +281,18 @@ async def run_agent(
         loop_temp = role_temperature(loop_role.value)
         tool_choice = (
             "required"
-            if iteration == 0 and ctx.domain in tools_first_iter_domains() and schemas
+            if (
+                force_tools
+                or (
+                    iteration == 0
+                    and ctx.domain in tools_first_iter_domains()
+                    and selection.picked
+                    and schemas
+                )
+            )
             else "auto"
         )
+        force_tools = False
         if max_tool_calls and tool_calls_used >= max_tool_calls:
             tool_choice = "none"
         on_delta = None
@@ -236,6 +300,10 @@ async def run_agent(
             loop = asyncio.get_running_loop()
 
             def on_delta(text: str) -> None:
+                from shared.agent.answer_guard import looks_like_tool_narration
+
+                if looks_like_tool_narration(text or ""):
+                    return
                 loop.call_soon_threadsafe(
                     lambda t=text: asyncio.create_task(progress.on_answer_delta(t))
                 )
@@ -280,50 +348,100 @@ async def run_agent(
             last_text = resp.text
 
         if not resp.tool_calls:
+            from shared.agent.answer_guard import coerce_text_tool_calls
+
+            coerced = coerce_text_tool_calls(resp.text or "")
+            if coerced:
+                log.info("agent parsed %s tool call(s) from text narration", len(coerced))
+                resp = LLMResponse(text="", tool_calls=coerced, raw=resp.raw or {})
+
+        if not resp.tool_calls:
             if resp.text:
-                final = resp.text.strip()
-                bad = ungrounded_amounts(final, tool_bodies)
+                from shared.agent.answer_guard import (
+                    looks_like_incomplete_fetch,
+                    looks_like_tool_narration,
+                    strip_tool_narration,
+                )
+                from shared.i18n import msg
+
                 can_retry = iteration < limit - 1
-                if bad and not escalated and can_retry:
-                    escalated = True
-                    loop_role = ModelRole.CHAT
-                    log.info("cascade escalate -> chat reason=verify amounts=%s", bad)
+                if (
+                    can_retry
+                    and schemas
+                    and (
+                        looks_like_incomplete_fetch(resp.text)
+                        or looks_like_tool_narration(resp.text)
+                    )
+                ):
+                    log.info(
+                        "agent retry incomplete/narration iter=%s chars=%s",
+                        iteration,
+                        len(resp.text or ""),
+                    )
+                    api_messages.append({"role": "assistant", "content": resp.text})
                     api_messages.append(
-                        {"role": "user", "content": _verify_retry_hint(bad, tool_bodies)}
+                        {"role": "user", "content": msg("agent", "incomplete_fetch_hint")}
+                    )
+                    force_tools = bool(schemas)
+                    continue
+                final = strip_tool_narration(resp.text).strip()
+                if not final:
+                    if not escalated and can_retry:
+                        escalated = True
+                        loop_role = strong_role()
+                        log.warning(
+                            "cascade escalate -> %s reason=stripped_narration iter=%s",
+                            loop_role.value,
+                            iteration,
+                        )
+                        continue
+                    from shared.i18n import msg
+
+                    out = msg("agent", "no_answer")
+                    if trace is not None:
+                        trace.finish(reason="no_answer", answer=out)
+                    return out
+                can_retry = iteration < limit - 1
+                final, needs_retry = await _verified_answer(final, tool_bodies)
+                if needs_retry and not escalated and can_retry and escalate_ungrounded_claims():
+                    escalated = True
+                    loop_role = strong_role()
+                    log.info("cascade escalate -> %s reason=verify", loop_role.value)
+                    api_messages.append(
+                        {"role": "user", "content": _verify_retry_hint(tool_bodies)}
                     )
                     continue
-                if bad:
-                    _warn_ungrounded_currency(final, tool_bodies)
-                    out = _verify_refusal(bad, tool_bodies)
-                    if trace is not None:
-                        trace.finish(reason="verify_block", answer=out)
-                    return out
                 if (
-                    not escalated
+                    not needs_retry
+                    and not escalated
                     and can_retry
                     and should_escalate_skipped_tools(
                         domain=ctx.domain,
-                        had_schemas=bool(schemas),
+                        had_schemas=bool(selection.picked),
                         tool_bodies=tool_bodies,
                     )
                 ):
                     escalated = True
-                    loop_role = ModelRole.CHAT
-                    log.info("cascade escalate -> chat reason=skipped_tools")
+                    loop_role = strong_role()
+                    log.info("cascade escalate -> %s reason=skipped_tools", loop_role.value)
                     continue
                 if trace is not None:
                     trace.finish(reason="answer", answer=final)
                 return final
+            if not escalated and iteration < limit - 1:
+                escalated = True
+                loop_role = strong_role()
+                log.warning(
+                    "cascade escalate -> %s reason=empty_response iter=%s",
+                    loop_role.value,
+                    iteration,
+                )
+                continue
             from shared.i18n import msg
 
             out = last_text or msg("agent", "no_answer")
             if last_text:
-                bad = ungrounded_amounts(out, tool_bodies)
-                if bad:
-                    out = _verify_refusal(bad, tool_bodies)
-                    if trace is not None:
-                        trace.finish(reason="verify_block", answer=out)
-                    return out
+                out, _needs = await _verified_answer(out, tool_bodies)
             if trace is not None:
                 trace.finish(reason="no_answer", answer=out)
             return out
@@ -333,13 +451,7 @@ async def run_agent(
             keep = max(0, max_tool_calls - tool_calls_used)
             if keep <= 0:
                 if resp.text:
-                    final = resp.text.strip()
-                    bad = ungrounded_amounts(final, tool_bodies)
-                    if bad:
-                        out = _verify_refusal(bad, tool_bodies)
-                        if trace is not None:
-                            trace.finish(reason="verify_block", answer=out)
-                        return out
+                    final, _needs = await _verified_answer(resp.text.strip(), tool_bodies)
                     if trace is not None:
                         trace.finish(reason="tool_budget", answer=final)
                     return final
@@ -382,11 +494,37 @@ async def run_agent(
                 )
         await _flush_parallel()
         tool_calls_used += len(calls)
+        from shared.agent.loop_context import llm_tool_content, refresh_system_working_set
+
         for tr in results:
             tool_bodies.append(tr.content or "")
             api_messages.append(
-                {"role": "tool", "tool_call_id": tr.id, "content": tr.content}
+                {
+                    "role": "tool",
+                    "tool_call_id": tr.id,
+                    "content": llm_tool_content(tr.content or ""),
+                }
             )
+        refresh_system_working_set(
+            api_messages, user_id=ctx.user_id, domain=ctx.domain
+        )
+        try:
+            from shared.agent.types import LOOP_TOOL_RESULTS_KEY
+            from shared.memory.tool_facts import remember_loop_facts
+
+            rows = ctx.extras.get(LOOP_TOOL_RESULTS_KEY) or []
+            if isinstance(rows, list) and rows:
+                remember_loop_facts(
+                    ctx.user_id,
+                    ctx.domain,
+                    [
+                        (str(r.get("name") or ""), str(r.get("content") or ""))
+                        for r in rows
+                        if isinstance(r, dict)
+                    ],
+                )
+        except Exception:
+            log.debug("tool_facts persist skipped", exc_info=True)
         names = [c.name for c in calls]
         log.info("agent iter %s: tools=%s", iteration + 1, names)
         await progress.on_tool_iteration(iteration + 1, names)
@@ -397,12 +535,7 @@ async def run_agent(
 
     out = last_text or msg("agent", "max_iters_reached")
     if last_text:
-        bad = ungrounded_amounts(out, tool_bodies)
-        if bad:
-            out = _verify_refusal(bad, tool_bodies)
-            if trace is not None:
-                trace.finish(reason="verify_block", answer=out)
-            return out
+        out, _needs = await _verified_answer(out, tool_bodies)
     if trace is not None:
         trace.finish(reason="max_iters", answer=out)
     return out
