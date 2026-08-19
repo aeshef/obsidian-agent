@@ -31,6 +31,13 @@ _MODULE_ALIASES = {
 }
 
 
+def _vault_file_or(key: str, default: str) -> str:
+    try:
+        return vault_file(key)
+    except KeyError:
+        return default
+
+
 def _locale() -> str:
     loc = (os.environ.get("AGENT_LOCALE") or agent_locale() or "en").strip().lower()
     return "ru" if loc.startswith("ru") else "en"
@@ -145,6 +152,7 @@ def build_scaffold_context(
         "kanban_archive_page": kanban_archive_page,
         "mapping_path": mapping_path,
         "charts_subdir": charts_sub,
+        "dashboards_folder": dash_folder,
         "data_subdir": data_sub,
         "calendar_dashboard": f"{dash_folder}/{calendar_dash}",
         "calendar_json": calendar_json,
@@ -193,7 +201,14 @@ def build_scaffold_context(
         "table_done": str(strings.get("table_done") or "Done"),
         "table_done_30d": str(strings.get("table_done_30d") or "Done 30d"),
         "table_done_all": str(strings.get("table_done_all") or "Done all"),
-        "table_wip_bar": str(strings.get("table_wip_bar") or "WIP"),
+        "table_wip_bar": str(strings.get("table_wip_bar") or "WIP share"),
+        "label_wip_total_open": str(strings.get("label_wip_total_open") or "Open total"),
+        "label_wip_total_done30": str(strings.get("label_wip_total_done30") or "Done in 30d"),
+        "label_wip_categories": str(strings.get("label_wip_categories") or "Categories"),
+        "category_wip_legend": str(
+            strings.get("category_wip_legend")
+            or "WIP share — open tasks in this category as % of all open WIP. Sorted by open."
+        ),
         "category_progress_year_heading": str(strings.get("category_progress_year_heading") or ""),
         "goals_priorities_heading": str(strings.get("goals_priorities_heading") or ""),
         "no_goals_priorities": str(strings.get("no_goals_priorities") or ""),
@@ -204,6 +219,25 @@ def build_scaffold_context(
         "preamble_tip": str(strings.get("preamble_tip") or ""),
         "chart_deadline_md": vault_file("chart_deadline_horizon_md"),
         "chart_analytics_insights_md": vault_file("chart_analytics_insights_md").removesuffix(".md"),
+        "life_os_daily_json": (
+            f"{dash_folder}/{data_sub}/{_vault_file_or('life_os_daily_json', 'life_os_daily.json')}"
+        ),
+        "goals_mapping_legend": str(
+            strings.get("goals_mapping_legend")
+            or "Progress — share of closed mapped tasks (step coverage, not goal success). Sorted by open."
+        ),
+        "cockpit_signals_empty": str(
+            strings.get("cockpit_signals_empty") or "No Life OS data yet."
+        ),
+        "cockpit_signals_links": str(
+            strings.get("cockpit_signals_links")
+            or "→ Analytics · Finance"
+        ),
+        "cockpit_label_sleep_debt": str(strings.get("cockpit_label_sleep_debt") or "Sleep debt"),
+        "analytics_regime_flow": str(strings.get("analytics_regime_flow") or "Flow"),
+        "analytics_regime_charge": str(strings.get("analytics_regime_charge") or "Charge"),
+        "analytics_regime_overreach": str(strings.get("analytics_regime_overreach") or "Overreach"),
+        "analytics_regime_recovery": str(strings.get("analytics_regime_recovery") or "Recovery"),
     }
 
     for key, val in strings.items():
@@ -237,7 +271,7 @@ def _render_block(block_id: str, spec: dict, ctx: dict[str, str]) -> str:
     if chart_md_key:
         md_name = vault_file(str(chart_md_key))
         stem = re.sub(r"\.md$", "", md_name, flags=re.I)
-        extra["chart_embed"] = f"![[{ctx['charts_subdir']}/{stem}]]"
+        extra["chart_embed"] = f"![[{ctx['dashboards_folder']}/{ctx['charts_subdir']}/{stem}]]"
     cat_heading_key = spec.get("category_heading_key")
     if cat_heading_key:
         extra["category_progress_heading"] = ctx.get(str(cat_heading_key), "")

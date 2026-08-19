@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
 
 
@@ -56,8 +55,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--vault", type=str)
     args = ap.parse_args()
+    from shared.tz import now_in_tz
+
     vault = Path(args.vault).resolve() if args.vault else _discover_vault(Path.cwd())
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M")
+    ts = now_in_tz().strftime("%Y-%m-%d %H:%M")
     body = render_system_hub(vault, ts=ts, msg=pdmsg)
     hub = vault / folder("dashboards") / vault_file("system_hub_md")
     hub.parent.mkdir(parents=True, exist_ok=True)

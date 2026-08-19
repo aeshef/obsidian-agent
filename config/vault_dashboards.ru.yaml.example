@@ -20,7 +20,7 @@ strings:
     Столбчатый график: незавершённые задачи вне «{{done_column}}», снимок на день.
   chart_kanban_flow_title: "### Поток канбана (метрики + маппинг целей)"
   chart_kanban_flow_body: |
-    CFD, lead/cycle time, aging WIP, завершения по сегментам (к целям / быт / без цели). Хаб: [[{{charts_subdir}}/{{chart_kanban_flow_hub_md}}|метрики потока]].
+    CFD, lead/cycle time, aging WIP, завершения по сегментам (к целям / быт / без цели). Хаб: [[{{dashboards_folder}}/{{charts_subdir}}/{{chart_kanban_flow_hub_md}}|метрики потока]].
   chart_kanban_flow_arrivals_title: "### Поток: прибытия / завершения"
   chart_kanban_flow_arrivals_body: "Динамика arrivals, departures и flow debt."
   chart_kanban_flow_cfd_title: "### Поток: CFD по колонкам"
@@ -37,7 +37,7 @@ strings:
   chart_kanban_flow_wip_segments_body: "Открытый WIP по сегментам целей."
   chart_deadlines_title: "### Дедлайны по календарю (горизонт)"
   chart_deadlines_body: |
-    Stacked bar по дням: задачи с `#{{tag_deadline}}/YYYY-MM-DD`. Подробности в [[{{charts_subdir}}/{{chart_deadline_md}}|заметке графика]].
+    Stacked bar по дням: задачи с `#{{tag_deadline}}/YYYY-MM-DD`. Подробности в [[{{dashboards_folder}}/{{charts_subdir}}/{{chart_deadline_md}}|заметке графика]].
   chart_nutrition_title: "### Питание: КБЖУ (ккал на день)"
   chart_nutrition_body: "Данные — снимок из iPhone-контекста. Подробно: [[{{nutrition_dashboard}}]]."
   finance_embed_title: "## 💰 Финансы"
@@ -58,6 +58,7 @@ strings:
   mapping_error: "⚠️ Ошибка при чтении маппинга"
   no_mapped_tasks: "📭 Нет задач, связанных с целями."
   goals_mapping_heading: "### Прогресс по целям (маппинг задач)"
+  goals_mapping_legend: "Прогресс — доля закрытых смапленных задач (coverage шагов, не success цели). Сортировка по открытым."
   category_progress_heading: "### Прогресс по категориям"
   category_progress_year_heading: "## 📈 Прогресс по категориям за год"
   goals_priorities_heading: "## 📊 Цели и их приоритеты"
@@ -76,8 +77,19 @@ strings:
   table_done: "Закрыто"
   table_done_30d: "Закрыто 30д"
   table_done_all: "Закрыто всего"
-  table_wip_bar: "WIP"
+  table_wip_bar: "Доля WIP"
   table_priority: "Приоритет"
+  label_wip_total_open: "Открыто всего"
+  label_wip_total_done30: "Закрыто за 30д"
+  label_wip_categories: "Категорий"
+  category_wip_legend: "Доля WIP — процент открытых задач категории от всего открытого WIP (портфельный срез). Сортировка по открытым. Красное число — много открытых при слабом закрытии за 30д."
+  cockpit_signals_empty: "Пока нет Life OS данных — появятся после sync analytics."
+  cockpit_signals_links: "→ [[{{analytics_dashboard}}|Аналитика]] · [[{{finance_dashboard}}|Финансы / лимит]]"
+  cockpit_label_sleep_debt: "Долг сна"
+  analytics_regime_flow: "Flow — ёмкость↑ + выдача↑"
+  analytics_regime_charge: "Charge — ёмкость↑, выдача↓"
+  analytics_regime_overreach: "Overreach — выдача при ёмкости↓"
+  analytics_regime_recovery: "Recovery — оба↓"
   quarter_names:
     Q1: "Q1 {year} (Январь - Март)"
     Q2: "Q2 {year} (Апрель - Июнь)"
@@ -90,10 +102,10 @@ dashboards:
     blocks:
       - nav_callout
       - preamble
+      - cockpit_signals
       - section_goals
       - goals_quarter_focus
       - goals_quarter_progress
-      - cockpit_signals
       - section_progress
       - goals_mapping
       - category_progress

@@ -17,3 +17,10 @@ def test_chart_wikilink_png_has_extension():
     link = chart_wikilink_png("chart_health_trends_png")
     assert link.endswith(".png]]")
     assert "Тренды_метрик.png" in link or "Trends" in link
+    # Vault-absolute: dashboards folder + charts subdir
+    assert link.startswith("![[")
+    assert "Графики/" in link or "Charts/" in link
+    # Must include dashboards root so embeds resolve from any note
+    from shared.vault_paths_config import folder
+
+    assert f"{folder('dashboards')}/" in link

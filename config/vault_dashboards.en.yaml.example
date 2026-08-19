@@ -19,7 +19,7 @@ strings:
     Bar chart: open tasks outside «{{done_column}}», one snapshot per day.
   chart_kanban_flow_title: "### Kanban flow (metrics + goals mapping)"
   chart_kanban_flow_body: |
-    CFD, lead/cycle time, aging WIP, completions by segment (goal-linked / daily / unmapped). Hub: [[{{charts_subdir}}/{{chart_kanban_flow_hub_md}}|flow metrics]].
+    CFD, lead/cycle time, aging WIP, completions by segment (goal-linked / daily / unmapped). Hub: [[{{dashboards_folder}}/{{charts_subdir}}/{{chart_kanban_flow_hub_md}}|flow metrics]].
   chart_kanban_flow_arrivals_title: "### Flow: arrivals / departures"
   chart_kanban_flow_arrivals_body: "Daily arrivals, departures, and flow debt."
   chart_kanban_flow_cfd_title: "### Flow: CFD by columns"
@@ -36,7 +36,7 @@ strings:
   chart_kanban_flow_wip_segments_body: "Open WIP split by goal segments."
   chart_deadlines_title: "### Deadlines horizon"
   chart_deadlines_body: |
-    Stacked bar by due date (`#{{tag_deadline}}/YYYY-MM-DD`). Details: [[{{charts_subdir}}/{{chart_deadline_md}}|chart note]].
+    Stacked bar by due date (`#{{tag_deadline}}/YYYY-MM-DD`). Details: [[{{dashboards_folder}}/{{charts_subdir}}/{{chart_deadline_md}}|chart note]].
   chart_nutrition_title: "### Nutrition: macros (kcal per day)"
   chart_nutrition_body: "iPhone context snapshot. Details: [[{{nutrition_dashboard}}]]."
   finance_embed_title: "## 💰 Finance"
@@ -57,6 +57,7 @@ strings:
   mapping_error: "⚠️ Error reading mapping"
   no_mapped_tasks: "📭 No tasks linked to goals."
   goals_mapping_heading: "### Goal progress (task mapping)"
+  goals_mapping_legend: "Progress — share of closed mapped tasks (step coverage, not goal success). Sorted by open."
   category_progress_heading: "### Progress by category"
   category_progress_year_heading: "## 📈 Progress by category (year)"
   goals_priorities_heading: "## 📊 Goals by priority"
@@ -71,7 +72,23 @@ strings:
   table_goal: "Goal"
   table_tasks: "Tasks"
   table_category: "Category"
+  table_open: "Open"
+  table_done: "Done"
+  table_done_30d: "Done 30d"
+  table_done_all: "Done all"
+  table_wip_bar: "WIP share"
   table_priority: "Priority"
+  label_wip_total_open: "Open total"
+  label_wip_total_done30: "Done in 30d"
+  label_wip_categories: "Categories"
+  category_wip_legend: "WIP share — open tasks in this category as % of all open WIP (portfolio mix). Sorted by open. Red open count — high stock with weak 30d throughput."
+  cockpit_signals_empty: "No Life OS data yet — appears after analytics sync."
+  cockpit_signals_links: "→ [[{{analytics_dashboard}}|Analytics]] · [[{{finance_dashboard}}|Finance / daily limit]]"
+  cockpit_label_sleep_debt: "Sleep debt"
+  analytics_regime_flow: "Flow — capacity↑ + output↑"
+  analytics_regime_charge: "Charge — capacity↑, output↓"
+  analytics_regime_overreach: "Overreach — output with capacity↓"
+  analytics_regime_recovery: "Recovery — both↓"
   quarter_names:
     Q1: "Q1 {year} (January - March)"
     Q2: "Q2 {year} (April - June)"

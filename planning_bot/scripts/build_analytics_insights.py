@@ -44,14 +44,208 @@ def _discover_vault(start: Path) -> Path:
     return start.parents[3]
 
 
+_FEAT_LABEL_KEYS = {
+    "sleep_hours": "analytics_feat_sleep_hours",
+    "sleep_awake_min": "analytics_feat_sleep_awake_min",
+    "sleep_deep_min": "analytics_feat_sleep_deep_min",
+    "sleep_core_min": "analytics_feat_sleep_core_min",
+    "sleep_rem_min": "analytics_feat_sleep_rem_min",
+    "sleep_deep_ratio": "analytics_feat_sleep_deep_ratio",
+    "sleep_core_ratio": "analytics_feat_sleep_core_ratio",
+    "sleep_rem_ratio": "analytics_feat_sleep_rem_ratio",
+    "hrv_ms": "analytics_feat_hrv_ms",
+    "resting_hr_bpm": "analytics_feat_resting_hr",
+}
+
+
+def _feat_label(feat: str) -> str:
+    key = _FEAT_LABEL_KEYS.get(str(feat))
+    if key:
+        labeled = pdmsg(key, default="")
+        if labeled:
+            return labeled
+    return str(feat).replace("_", " ")
+
+
+def _direction(rho: float) -> str:
+    return "↑" if float(rho) > 0 else "↓"
+
+
+def _coverage_bar(cnt: int, total: int) -> str:
+    if total <= 0:
+        return "—"
+    pct = 100.0 * cnt / total
+    if pct >= 85:
+        return f"**{cnt}**/{total}"
+    if pct >= 55:
+        tag = pdmsg("analytics_cov_tag_thin", default="thin")
+        return f"**{cnt}**/{total} · {tag}"
+    tag = pdmsg("analytics_cov_tag_gaps", default="gaps")
+    return f"**{cnt}**/{total} · {tag}"
+
+
 def _format_insight_line(row: dict) -> str:
-    direction = "↑" if row["spearman_rho"] > 0 else "↓"
+    """Collapsed raw table row (power users)."""
+    direction = _direction(row["spearman_rho"])
     fdr = row.get("p_fdr")
-    p_part = f"FDR p={fdr:.4f}" if fdr is not None else f"p={row['p_value']:.4f}"
+    p_part = f"FDR={fdr:.3f}" if fdr is not None else f"p={row['p_value']:.3f}"
     return (
-        f"| {row['sleep_feature']} | {row['outcome_label']} | {direction} | "
-        f"{row['spearman_rho']:.3f} | {p_part} | {row['n']} |"
+        f"| {_feat_label(row['sleep_feature'])} | {row['outcome_label']} | {direction} | "
+        f"{row['spearman_rho']:.2f} | {p_part} | {row['n']} |"
     )
+
+
+def _signal_bullet(row: dict, *, rho_key: str = "spearman_rho") -> str:
+    rho = float(row[rho_key])
+    outcome = row.get("outcome_label") or pdmsg(
+        "analytics_outcome_weight_delta_next", default="Δweight tomorrow"
+    )
+    return (
+        f"- **{_feat_label(row['sleep_feature'])}** → {outcome} "
+        f"{_direction(rho)} · ρ `{rho:.2f}` · n={row['n']}"
+    )
+
+
+def render_insights_summary_md(
+    *,
+    ts: str,
+    window_days: int,
+    panel_days: int,
+    coverage: list[tuple[str, int, int]],
+    hypotheses: list[dict],
+    partial: list[dict],
+    fdr_alpha: float = 0.05,
+    top_n: int = 8,
+) -> str:
+    """Callout-first insights summary — no scary dense FDR tables in the open."""
+    n_fdr = sum(1 for h in hypotheses if h.get("significant_fdr"))
+    n_raw = sum(1 for h in hypotheses if h.get("significant_05"))
+    sleep_label = pdmsg("analytics_cov_sleep", default="Sleep").lower()
+    sleep_cov = next(
+        (c for c in coverage if sleep_label in c[0].lower() or "sleep" in c[0].lower()),
+        None,
+    )
+    sleep_frac = (sleep_cov[1] / sleep_cov[2]) if sleep_cov and sleep_cov[2] else 1.0
+
+    lines: list[str] = [
+        "> [!info] " + pdmsg("analytics_insights_updated_title", default="Updated"),
+        f"> _{ts}_ · " + pdmsg(
+            "analytics_insights_window_line",
+            window_days=window_days,
+            days=panel_days,
+            default=f"window **{window_days}**d · panel **{panel_days}**",
+        ),
+        "",
+    ]
+
+    if n_fdr:
+        lines.extend(
+            [
+                "> [!success] " + pdmsg("analytics_insights_verdict_title", default="Verdict"),
+                "> ### "
+                + pdmsg(
+                    "analytics_insights_verdict_ok",
+                    n=n_fdr,
+                    alpha=fdr_alpha,
+                    default=f"**{n_fdr}** FDR<{fdr_alpha}",
+                ),
+                "",
+            ]
+        )
+    else:
+        body = pdmsg(
+            "analytics_insights_verdict_none",
+            raw=n_raw,
+            alpha=fdr_alpha,
+            default=f"No FDR<{fdr_alpha}. Raw p<0.05: **{n_raw}**.",
+        )
+        if sleep_frac < 0.6:
+            body += "\n> " + pdmsg(
+                "analytics_insights_verdict_sleep_gap",
+                days=sleep_cov[1] if sleep_cov else 0,
+                total=sleep_cov[2] if sleep_cov else panel_days,
+                default="Sleep coverage is thin — treat directions as hints only.",
+            )
+        kind = "warning" if sleep_frac < 0.6 else "abstract"
+        lines.extend(
+            [
+                f"> [!{kind}] " + pdmsg("analytics_insights_verdict_title", default="Verdict"),
+                "> ### " + pdmsg("analytics_insights_verdict_none_head", default="Nothing confirmed"),
+                f"> {body}",
+                "",
+            ]
+        )
+
+    if coverage:
+        lines.append("> [!abstract] " + pdmsg("analytics_heading_coverage", default="Coverage"))
+        bits = [f"{label} {_coverage_bar(cnt, total)}" for label, cnt, total in coverage]
+        lines.append("> " + " · ".join(bits))
+        lines.append("")
+
+    top = hypotheses[: min(top_n, len(hypotheses))]
+    sig = [h for h in hypotheses if h.get("significant_fdr")][:top_n]
+    show = sig or top
+    if show:
+        head = (
+            pdmsg("analytics_heading_top_hypotheses", default="Top hypotheses")
+            if sig
+            else pdmsg("analytics_heading_weak_signals", default="Weak signals (top |ρ|)")
+        )
+        note = (
+            ""
+            if sig
+            else "\n> " + pdmsg(
+                "analytics_insights_weak_note",
+                default="Not FDR-significant — direction only, not a fact.",
+            )
+        )
+        lines.extend([f"> [!note] {head}{note}", ""])
+        for h in show:
+            lines.append(_signal_bullet(h))
+        lines.append("")
+
+    if partial:
+        lines.extend(
+            [
+                "> [!note]- " + pdmsg("analytics_heading_partial_weight", default="Partial weight"),
+                "> "
+                + pdmsg(
+                    "analytics_insights_partial_note",
+                    default="Control: yesterday weight. Same caveat — not FDR-confirmed.",
+                ),
+            ]
+        )
+        for r in partial[:6]:
+            rho = float(r["partial_rho"])
+            lines.append(
+                f"> - **{_feat_label(r['sleep_feature'])}** {_direction(rho)} "
+                f"· ρ `{rho:.2f}` · n={r['n']}"
+            )
+        lines.append("")
+
+    if top:
+        from shared.obsidian_fold import fold_section
+
+        header = pdmsg(
+            "analytics_table_sleep_header",
+            default="| Sleep (D−1) | Outcome | | ρ | p | n |",
+        )
+        table_lines = [
+            header,
+            "| --- | --- | --- | --- | --- | --- |",
+        ]
+        for h in hypotheses[:20]:
+            table_lines.append(_format_insight_line(h))
+        lines.extend(
+            fold_section(
+                pdmsg("analytics_heading_hypothesis_table", default="Raw table"),
+                table_lines,
+                collapsed=True,
+            )
+        )
+
+    lines.append("_" + pdmsg("analytics_summary_charts_hint", default="Charts below.") + "_")
+    return "\n".join(lines) + "\n"
 
 
 def _write_chart_note(vault: Path, md_key: str, png_key: str, title: str, ts: str, *, extra: str = "") -> None:
@@ -263,6 +457,30 @@ def main() -> int:
     except (OSError, json.JSONDecodeError, TypeError, ValueError):
         pass
 
+    # Calendar attention hours → Life OS Drain (not raw invite load)
+    try:
+        from datetime import date as _date
+        from datetime import timedelta as _td
+
+        from planning_bot.core.config import CALENDAR_JSON_FILE
+        from planning_bot.services.calendar_analytics import daily_meeting_hours_series
+
+        if CALENDAR_JSON_FILE.is_file():
+            cal = json.loads(CALENDAR_JSON_FILE.read_text(encoding="utf-8"))
+            events = cal.get("events") or []
+            end_d = _date.today()
+            start_d = end_d - _td(days=max(window_days, 120))
+            meet_by_day = daily_meeting_hours_series(events, start=start_d, end=end_d)
+            for r in rows:
+                d = str(r.get("date") or "")[:10]
+                m = meet_by_day.get(d)
+                if not m:
+                    continue
+                r["meeting_invite_hours"] = m.get("invite_hours")
+                r["meeting_hours"] = m.get("attention_hours")  # Drain uses attention
+    except (OSError, json.JSONDecodeError, TypeError, ValueError, ImportError):
+        pass
+
     life_cfg = cfg.get("life_os") or {}
     life_series = compute_life_os_daily(
         rows,
@@ -284,6 +502,7 @@ def main() -> int:
         label_debt=pdmsg("analytics_label_sleep_debt"),
         label_sleep=pdmsg("analytics_label_sleep_hours_axis"),
         label_target=pdmsg("analytics_label_sleep_target"),
+        label_gap=pdmsg("analytics_label_sleep_gap") or "no data (debt frozen)",
     ):
         generated.append("sleep_debt")
         _write_chart_note(
@@ -292,6 +511,7 @@ def main() -> int:
             "chart_analytics_sleep_debt_png",
             pdmsg("analytics_title_sleep_debt"),
             ts,
+            extra=pdmsg("analytics_sleep_debt_how").strip(),
         )
 
     scores_png = chart_path(vault, "chart_analytics_life_os_scores_png")
@@ -304,6 +524,8 @@ def main() -> int:
         label_drain=pdmsg("analytics_label_drain"),
         label_axis=pdmsg("analytics_label_percentile_axis"),
     ):
+        from planning_bot.services.calendar_analytics import work_attention_weight
+
         generated.append("life_os_scores")
         _write_chart_note(
             vault,
@@ -311,7 +533,14 @@ def main() -> int:
             "chart_analytics_life_os_scores_png",
             pdmsg("analytics_title_life_os_scores"),
             ts,
-            extra=pdmsg("analytics_life_os_scores_how").strip(),
+            extra=(
+                pdmsg("analytics_life_os_scores_how").strip()
+                + "\n\n"
+                + pdmsg(
+                    "analytics_life_os_calendar_attention_note",
+                    work_weight=work_attention_weight(),
+                )
+            ),
         )
 
     regimes_png = chart_path(vault, "chart_analytics_life_os_regimes_png")
@@ -350,40 +579,19 @@ def main() -> int:
                           pdmsg("analytics_title_sleep_heatmap"), ts)
 
     summary_md = chart_path(vault, "chart_analytics_insights_md")
-    top_table = hypotheses[: min(20, len(hypotheses))]
-
-    lines = [
-        pdmsg("chart_updated_window_panel", ts=ts, window_days=window_days, days=len(rows)),
-        "",
-    ]
-
-    if coverage:
-        lines.append(f"## {pdmsg('analytics_heading_coverage')}")
-        lines.append(pdmsg("analytics_table_coverage_header"))
-        lines.append("| --- | --- |")
-        for label, cnt, total in coverage:
-            lines.append(f"| {label} | {cnt} / {total} |")
-        lines.append("")
-
-    if top_table:
-        lines.append(f"## {pdmsg('analytics_heading_hypothesis_table')}")
-        lines.append(pdmsg("analytics_table_sleep_header"))
-        lines.append("| --- | --- | --- | --- | --- | --- |")
-        lines.extend(_format_insight_line(h) for h in top_table)
-        lines.append("")
-
-    if partial:
-        lines.append(f"## {pdmsg('analytics_heading_partial_weight')}")
-        for r in partial[:8]:
-            direction = "↑" if r["partial_rho"] > 0 else "↓"
-            lines.append(
-                f"- **{r['sleep_feature']}** {direction} Δweight tomorrow "
-                f"(partial ρ={r['partial_rho']:.3f}, FDR p={r.get('p_fdr', r['p_value']):.4f}, n={r['n']})"
-            )
-        lines.append("")
-
-    lines.append(f"_{pdmsg('analytics_summary_charts_hint')}_")
-    summary_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    summary_md.write_text(
+        render_insights_summary_md(
+            ts=ts,
+            window_days=window_days,
+            panel_days=len(rows),
+            coverage=coverage,
+            hypotheses=hypotheses,
+            partial=partial,
+            fdr_alpha=fdr_alpha,
+            top_n=int(hyp_cfg.get("top_significant") or 8),
+        ),
+        encoding="utf-8",
+    )
 
     print(f"OK: {insights_path}, {panel_csv}, charts={','.join(generated) or 'none'}")
     return 0

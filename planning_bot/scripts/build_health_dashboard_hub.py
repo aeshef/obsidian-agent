@@ -35,6 +35,7 @@ def _bootstrap_path() -> None:
 _bootstrap_path()
 
 from planning_bot.core.pdmsg import pdmsg
+from shared.analytics.hub_hero import render_health_hero
 from shared.vault_paths_config import folder, vault_file
 
 
@@ -64,6 +65,15 @@ def main() -> int:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     if "{updated}" in body:
         body = body.replace("{updated}", ts)
+    hero = render_health_hero(vault, pdmsg).rstrip()
+    if hero:
+        # Insert hero after nav callout (first ---) or right after title block.
+        marker = "\n---\n"
+        if marker in body:
+            head, rest = body.split(marker, 1)
+            body = head + marker + "\n" + hero + "\n" + marker + rest
+        else:
+            body = hero + "\n\n" + body
     hub.parent.mkdir(parents=True, exist_ok=True)
     hub.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
     print(f"OK: {hub}")

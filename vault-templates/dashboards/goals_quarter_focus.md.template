@@ -21,11 +21,18 @@ if (month >= 4 && month <= 6) quarter = "Q2"
 else if (month >= 7 && month <= 9) quarter = "Q3"
 else if (month >= 10) quarter = "Q4"
 
-dv.paragraph(`**${quarterNames[quarter] || quarter}**`)
-dv.paragraph("")
+function node(tag, style, text) {
+  const el = document.createElement(tag)
+  if (style) el.style.cssText = style
+  if (text != null) el.textContent = text
+  return el
+}
 
 const goalsFile = dv.page("{{goals_page}}")
 const focusRe = new RegExp(`#${TAG_FOCUS}/${quarter}\\b`)
+
+const title = node("div", "margin:0 0 12px;font-weight:700;font-size:1.05em", quarterNames[quarter] || quarter)
+dv.container.appendChild(title)
 
 if (!goalsFile) {
   dv.paragraph("{{goals_not_found}}")
@@ -39,11 +46,14 @@ if (!goalsFile) {
     if (task.completed || !focusRe.test(taskText)) return
     const categoryMatch = taskText.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`))
     const priorityMatch = taskText.match(new RegExp(`#${TAG_PRIORITY}/(${priAlt})`))
-    const taskName = taskText
+    // Dataview includes indented mapping callouts in task.text — keep first line only.
+    const firstLine = taskText.split(/\n/)[0] || ""
+    const taskName = firstLine
       .replace(new RegExp(`#${TAG_GOAL}/[^\\s#]+`, 'g'), '')
       .replace(new RegExp(`#${TAG_PRIORITY}/[^\\s#]+`, 'g'), '')
       .replace(new RegExp(`#${TAG_FOCUS}/[^\\s#]+`, 'g'), '')
       .replace(new RegExp(`#${TAG_DEADLINE}/[^\\s#]+`, 'g'), '')
+      .replace(/\s*>\s*\[!.*/, '')
       .trim()
     if (taskName) {
       tasks.push({
@@ -56,7 +66,6 @@ if (!goalsFile) {
 
   if (tasks.length === 0) {
     dv.paragraph("{{no_focus_tasks}} #" + TAG_FOCUS + "/" + quarter)
-    dv.paragraph("")
     dv.paragraph("{{add_focus_hint}}" + quarter)
   } else {
     const byCategory = {}
@@ -66,16 +75,32 @@ if (!goalsFile) {
     })
     const sortedCategories = categoryOrder.filter(cat => byCategory[cat])
       .concat(Object.keys(byCategory).filter(cat => !categoryOrder.includes(cat)))
+
     sortedCategories.forEach(category => {
       const categoryTasks = byCategory[category]
       categoryTasks.sort((a, b) => (priorityOrder[a.priority] || 99) - (priorityOrder[b.priority] || 99))
       const emoji = categoryEmoji[category] || "📌"
-      dv.header(4, `${emoji} ${category}`)
+      const block = node("div", "margin:0 0 14px")
+      block.appendChild(node(
+        "div",
+        "display:flex;align-items:center;gap:0.4em;font-weight:700;margin-bottom:6px;white-space:nowrap",
+        null
+      ))
+      const head = block.firstChild
+      head.appendChild(node("span", "", emoji))
+      head.appendChild(node("span", "", category))
+      const ul = node("ul", "margin:0;padding-left:1.25em")
       categoryTasks.forEach(task => {
         const pEmoji = priorityEmoji[task.priority] || ""
-        dv.paragraph(`&nbsp;&nbsp;&nbsp;&nbsp;${pEmoji} ${task.name}`)
+        const li = node("li", "margin:4px 0;line-height:1.35")
+        if (pEmoji) {
+          li.appendChild(node("span", "margin-right:0.35em", pEmoji))
+        }
+        li.appendChild(node("span", "", task.name))
+        ul.appendChild(li)
       })
-      dv.paragraph("")
+      block.appendChild(ul)
+      dv.container.appendChild(block)
     })
     dv.paragraph("{{open_goals}}")
   }

@@ -1,6 +1,7 @@
 """Agent tools: list, refresh, and send dashboard chart PNGs from the vault."""
 from __future__ import annotations
 
+import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,6 +19,7 @@ from shared.charts_catalog import ChartEntry, catalog_charts, format_catalog
 from shared.domain_messages import dmsg
 from shared.paths import vault_root_optional
 
+log = logging.getLogger("shared.agent.chart_tools")
 _NS = ("chart_tools",)
 
 
@@ -43,6 +45,60 @@ def _age_hours(mtime_iso: str) -> float | None:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     return max(0.0, (datetime.now(timezone.utc) - ts).total_seconds() / 3600.0)
+
+
+def _entry_mtime(entry: ChartEntry) -> float:
+    if not entry.mtime_iso:
+        return 0.0
+    try:
+        ts = datetime.fromisoformat(entry.mtime_iso.replace("Z", "+00:00"))
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        return ts.timestamp()
+    except ValueError:
+        return 0.0
+
+
+def _is_stale(entry: ChartEntry, stale_h: int) -> bool:
+    if stale_h <= 0 or not entry.exists:
+        return False
+    age = _age_hours(entry.mtime_iso)
+    return age is not None and age > stale_h
+
+
+def _prefer_fresh(entries: list[ChartEntry], stale_h: int) -> list[ChartEntry]:
+    """If the top match is stale, lift a fresh chart from the same family."""
+    if not entries or stale_h <= 0:
+        return entries
+    top = entries[0]
+    if not _is_stale(top, stale_h):
+        return entries
+    fam = (top.family or "").lower()
+    fresh_same = [
+        e
+        for e in entries
+        if (e.family or "").lower() == fam and not _is_stale(e, stale_h)
+    ]
+    if not fresh_same:
+        return entries
+    chosen = {id(e) for e in fresh_same}
+    rest = [e for e in entries if id(e) not in chosen]
+    return fresh_same + rest
+
+
+def _refresh_families(families: set[str], vault: Path) -> None:
+    if not families or not refresh_enabled():
+        return
+    from shared.agent.platform_config import platform_int
+
+    max_n = max(1, platform_int("chart_refresh", "max_builders_per_call", default=1))
+    ran: set[str] = set()
+    for fam in sorted(families):
+        for key in match_builder_keys(family=fam):
+            if key in ran or len(ran) >= max_n:
+                continue
+            run_chart_builder(key, vault=vault)
+            ran.add(key)
 
 
 def _query_tokens(query: str) -> list[str]:
@@ -83,10 +139,10 @@ def score_chart_match(entry: ChartEntry, query: str) -> int:
 def rank_charts_for_query(entries: list[ChartEntry], query: str) -> list[ChartEntry]:
     q = (query or "").strip()
     if not q:
-        return list(entries)
+        return sorted(entries, key=lambda e: (-_entry_mtime(e), e.key))
     return sorted(
         entries,
-        key=lambda e: (-score_chart_match(e, q), e.family, e.key),
+        key=lambda e: (-score_chart_match(e, q), -_entry_mtime(e), e.key),
     )
 
 
@@ -112,15 +168,7 @@ async def list_vault_charts(
         return dmsg(*_NS, "none_found", query=query or "-", family=family or "-")
     stale_h = _stale_hours()
     body = format_catalog(entries, stale_hours=stale_h)
-    stale_n = 0
-    if stale_h > 0:
-        for e in entries:
-            age = _age_hours(e.mtime_iso)
-            if e.exists and age is not None and age > stale_h:
-                stale_n += 1
     header = dmsg(*_NS, "list_header", count=len(entries))
-    if stale_n:
-        header += "\n" + dmsg(*_NS, "stale_hint", count=stale_n, hours=stale_h)
     return header + "\n" + body
 
 
@@ -148,6 +196,24 @@ def _remember_charts(ctx: AgentContext, entries: list[ChartEntry]) -> None:
         pass
 
 
+async def _deliver_charts_now(ctx: AgentContext, items: list[tuple[str, str]]) -> int:
+    """Send photos immediately when the Telegram bot is on this turn's extras."""
+    bot = ctx.extras.get("telegram_bot")
+    chat_id = ctx.extras.get("telegram_id")
+    if bot is None or not chat_id or not items:
+        return 0
+    vault = vault_root_optional()
+    if vault is None:
+        return 0
+    try:
+        from shared.telegram.kb_media import send_vault_media_files
+
+        return int(await send_vault_media_files(bot, int(chat_id), vault, items) or 0)
+    except Exception:
+        log.warning("immediate chart send failed", exc_info=True)
+        return 0
+
+
 @tool(category="charts")
 async def send_vault_charts(
     ctx: AgentContext,
@@ -164,22 +230,20 @@ async def send_vault_charts(
     q = tool_q or (ctx.question or "").strip()
     recent_keys = _recent_chart_keys(ctx)
     try:
-        lim = int(limit) if limit else (1 if tool_q or recent_keys else _max_send())
+        lim = int(limit) if limit else _max_send()
     except (TypeError, ValueError):
-        lim = 1 if tool_q or recent_keys else _max_send()
+        lim = _max_send()
     lim = max(1, min(lim, _max_send()))
 
     entries = [
         e
         for e in catalog_charts(vault, query="", family=family, only_existing=True)
     ]
+    entries = rank_charts_for_query(entries, q)
     if q:
-        ranked = rank_charts_for_query(entries, q)
-        positive = [e for e in ranked if score_chart_match(e, q) > 0]
+        positive = [e for e in entries if score_chart_match(e, q) > 0]
         if positive:
             entries = positive
-            if not limit:
-                lim = 1
         elif tool_q:
             entries = rank_charts_for_query(
                 [
@@ -195,27 +259,50 @@ async def send_vault_charts(
         recalled = [by_key[k] for k in recent_keys if k in by_key]
         if recalled:
             entries = recalled
-            if not limit:
-                lim = 1
 
     if not entries:
         return dmsg(*_NS, "none_found", query=tool_q or q or "-", family=family or "-")
 
-    picked = entries[:lim]
+    stale_h = _stale_hours()
+    if stale_h > 0:
+        stale_fams = {e.family for e in entries[:lim] if _is_stale(e, stale_h)}
+        if stale_fams:
+            _refresh_families(stale_fams, vault)
+            entries = rank_charts_for_query(
+                [
+                    e
+                    for e in catalog_charts(
+                        vault, query="", family=family, only_existing=True
+                    )
+                ],
+                q,
+            )
+            if q:
+                positive = [e for e in entries if score_chart_match(e, q) > 0]
+                if positive:
+                    entries = positive
+    picked = _prefer_fresh(entries, stale_h)[:lim]
+
     items: list[tuple[str, str]] = []
     for e in picked:
         caption = dmsg(*_NS, "caption", key=e.key, family=e.family)
         items.append((e.rel_path, caption))
+    names = ", ".join(Path(e.rel_path).name for e in picked)
+    delivered = await _deliver_charts_now(ctx, items)
+    if delivered:
+        _remember_charts(ctx, picked)
+        return dmsg(*_NS, "send_delivered", count=delivered, names=names)
     queued = queue_chart_media(ctx, items, max_total=_max_send())
     _remember_charts(ctx, picked)
-    names = ", ".join(Path(e.rel_path).name for e in picked)
-    return dmsg(
-        *_NS,
-        "send_ok",
-        count=len(picked),
-        queued=queued,
-        names=names,
-    )
+    if queued:
+        return dmsg(
+            *_NS,
+            "send_ok",
+            count=len(picked),
+            queued=queued,
+            names=names,
+        )
+    return dmsg(*_NS, "send_failed", names=names or "-")
 
 
 @tool(category="charts")

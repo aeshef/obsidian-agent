@@ -1,7 +1,7 @@
 ## 📡 Сигналы сегодня
 
 ```dataviewjs
-const candidates = ["300_Дашборды/Данные/life_os_daily.json"]
+const candidates = ["{{life_os_daily_json}}"]
 let rows = []
 for (const p of candidates) {
   try {
@@ -13,18 +13,71 @@ for (const p of candidates) {
     }
   } catch (e) {}
 }
+
+function node(tag, style, text) {
+  const el = document.createElement(tag)
+  if (style) el.style.cssText = style
+  if (text != null) el.textContent = text
+  return el
+}
+
+function metricCard(label, value, accent) {
+  const card = node(
+    "div",
+    `flex:1 1 110px;min-width:100px;padding:12px 14px;border-radius:12px;background:color-mix(in srgb, var(--background-secondary) 90%, transparent);border:1px solid var(--background-modifier-border);border-top:3px solid ${accent}`
+  )
+  card.appendChild(node(
+    "div",
+    "font-size:0.72em;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:6px;font-weight:600",
+    label
+  ))
+  card.appendChild(node(
+    "div",
+    "font-size:1.45em;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15",
+    String(value)
+  ))
+  return card
+}
+
 if (!rows.length) {
-  dv.paragraph("_Нет данных Life OS_")
+  dv.paragraph("_{{cockpit_signals_empty}}_")
 } else {
   let last = rows[rows.length - 1]
   for (let i = rows.length - 1; i >= 0; i--) {
     if (rows[i].regime) { last = rows[i]; break }
   }
   const regime = last.regime || "?"
+  const regimeMeta = {
+    flow: { label: "{{analytics_regime_flow}}", accent: "#66bb6a" },
+    charge: { label: "{{analytics_regime_charge}}", accent: "#42a5f5" },
+    overreach: { label: "{{analytics_regime_overreach}}", accent: "#ffa726" },
+    recovery: { label: "{{analytics_regime_recovery}}", accent: "#90a4ae" },
+  }[regime] || { label: regime, accent: "var(--text-accent)" }
+
   const debt = last.sleep_debt != null ? Number(last.sleep_debt).toFixed(1) : "—"
   const cap = last.capacity != null ? Math.round(last.capacity) : "—"
   const out = last.output != null ? Math.round(last.output) : "—"
   const drain = last.drain != null ? Math.round(last.drain) : "—"
-  dv.paragraph(`**${last.date || ""}** · ${regime} · Cap ${cap} · Out ${out} · Drain ${drain} · sleep debt ${debt}h`)
+  const debtWarn = last.sleep_debt != null && Number(last.sleep_debt) >= 6
+
+  const head = node("div", "display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 14px;margin:0 0 12px")
+  head.appendChild(node("span", "font-weight:700;font-variant-numeric:tabular-nums", last.date || ""))
+  const badge = node(
+    "span",
+    `display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:0.88em;font-weight:600;background:color-mix(in srgb, ${regimeMeta.accent} 18%, transparent);color:var(--text-normal)`
+  )
+  badge.appendChild(node("span", `width:8px;height:8px;border-radius:50%;background:${regimeMeta.accent};flex:0 0 auto`, ""))
+  badge.appendChild(node("span", "", regimeMeta.label))
+  head.appendChild(badge)
+  dv.container.appendChild(head)
+
+  const row = node("div", "display:flex;flex-wrap:wrap;gap:10px;margin:0 0 12px")
+  row.appendChild(metricCard("Capacity", cap, "#43a047"))
+  row.appendChild(metricCard("Output", out, "#1e88e5"))
+  row.appendChild(metricCard("Drain", drain, "#e53935"))
+  row.appendChild(metricCard("{{cockpit_label_sleep_debt}}", debtWarn ? `${debt} ч` : `${debt} ч`, debtWarn ? "#e53935" : "#7e57c2"))
+  dv.container.appendChild(row)
+
+  dv.paragraph("{{cockpit_signals_links}}")
 }
 ```

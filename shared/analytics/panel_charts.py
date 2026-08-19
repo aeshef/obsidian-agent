@@ -270,35 +270,86 @@ def chart_sleep_debt(
     label_debt: str,
     label_sleep: str,
     label_target: str,
+    label_gap: str = "no data (debt frozen)",
 ) -> bool:
+    """Two-panel chart: daily sleep (top) + cumulative debt (bottom).
+
+    Missing sleep days leave an empty bar slot and keep debt flat (freeze) —
+    shown as a dotted hold on the debt line, not as zero sleep.
+    """
     if len(series) < 5:
         return False
+    # Drop leading all-missing stretch (panel often starts months before sleep exists).
+    start = 0
+    for i, r in enumerate(series):
+        raw = r.get("sleep_hours")
+        if raw is not None and not r.get("missing"):
+            try:
+                if 0.0 <= float(raw) <= 24.0:
+                    start = i
+                    break
+            except (TypeError, ValueError):
+                continue
+    series = list(series[start:])
+    if len(series) < 5:
+        return False
+
     debt = _col(series, "debt")
     sleep = _col(series, "sleep_hours")
-    if int(np.isfinite(debt).sum()) < 5:
+    if int(np.isfinite(debt).sum()) < 3:
         return False
+
     plt = _mpl()
     dates = _dates(series)
     x = np.arange(len(dates))
-    fig, ax1 = plt.subplots(figsize=(10, 4))
-    ax1.fill_between(x, debt, color="#ef9a9a", alpha=0.85, label=label_debt)
-    ax1.set_ylabel(label_debt, color="#c62828")
-    ax1.tick_params(axis="y", labelcolor="#c62828")
-    ax2 = ax1.twinx()
-    # Only plot sleep bars where data exists — missing days are gaps, not 0h
-    sleep_plot = np.where(np.isfinite(sleep), sleep, np.nan)
-    ax2.bar(x, sleep_plot, color="#5c6bc0", alpha=0.35, width=0.85, label=label_sleep)
-    missing_idx = [i for i, r in enumerate(series) if r.get("missing") or not np.isfinite(sleep[i])]
-    if missing_idx:
-        ax1.scatter(
-            missing_idx,
-            [float(debt[i]) if np.isfinite(debt[i]) else 0 for i in missing_idx],
-            marker="x",
-            color="#9e9e9e",
-            s=28,
-            zorder=5,
-            label="gap",
-        )
+    missing = np.array(
+        [bool(r.get("missing") or not np.isfinite(sleep[i])) for i, r in enumerate(series)],
+        dtype=bool,
+    )
+
+    fig, (ax_sleep, ax_debt) = plt.subplots(
+        2,
+        1,
+        figsize=(10, 5.4),
+        sharex=True,
+        layout="constrained",
+        gridspec_kw={"height_ratios": [1.0, 1.15]},
+    )
+
+    # Contiguous no-data bands (clearer than per-day markers).
+    gap_labeled = False
+    i = 0
+    n = len(missing)
+    while i < n:
+        if not missing[i]:
+            i += 1
+            continue
+        j = i + 1
+        while j < n and missing[j]:
+            j += 1
+        for ax in (ax_sleep, ax_debt):
+            ax.axvspan(
+                i - 0.5,
+                j - 0.5,
+                color="#eceff1",
+                zorder=0,
+                label=label_gap if not gap_labeled else None,
+            )
+        gap_labeled = True
+        i = j
+
+    # --- top: sleep hours ---
+    sleep_plot = np.where(~missing, sleep, np.nan)
+    ax_sleep.bar(
+        x,
+        sleep_plot,
+        color="#5c6bc0",
+        alpha=0.85,
+        width=0.85,
+        label=label_sleep,
+        edgecolor="none",
+        zorder=2,
+    )
     target = None
     for r in series:
         if r.get("target_hours") is not None:
@@ -308,16 +359,27 @@ def chart_sleep_debt(
             except (TypeError, ValueError):
                 pass
     if target is not None:
-        ax2.axhline(target, color="#ef6c00", linestyle="--", linewidth=1, label=label_target)
-    ax1.set_title(title, fontsize=11)
-    ax2.set_ylabel(label_sleep)
+        ax_sleep.axhline(target, color="#ef6c00", linestyle="--", linewidth=1.2, label=label_target, zorder=3)
+        ymax = target * 1.35
+        if np.isfinite(sleep_plot).any():
+            ymax = max(ymax, float(np.nanmax(sleep_plot)) * 1.1)
+        ax_sleep.set_ylim(0, ymax)
+    ax_sleep.set_ylabel(label_sleep, fontsize=9)
+    ax_sleep.set_title(title, fontsize=12)
+    ax_sleep.grid(True, axis="y", alpha=0.25, zorder=1)
+    ax_sleep.legend(fontsize=8, loc="upper left", ncol=2)
+
+    # --- bottom: debt stays continuous; flat segments inside gray bands = freeze ---
+    ax_debt.fill_between(x, debt, color="#ef9a9a", alpha=0.35, zorder=1)
+    ax_debt.plot(x, debt, color="#c62828", linewidth=2.0, label=label_debt, zorder=2)
+    ax_debt.set_ylabel(label_debt, fontsize=9)
+    ax_debt.set_ylim(bottom=0)
+    ax_debt.grid(True, axis="y", alpha=0.25, zorder=0)
+    ax_debt.legend(fontsize=8, loc="upper left")
+
     step = max(1, len(dates) // 10)
-    ax1.set_xticks(x[::step])
-    ax1.set_xticklabels([dates[i][5:] for i in range(0, len(dates), step)], rotation=45, ha="right", fontsize=7)
-    lines1, lab1 = ax1.get_legend_handles_labels()
-    lines2, lab2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, lab1 + lab2, fontsize=8, loc="upper left")
-    fig.tight_layout()
+    ax_debt.set_xticks(x[::step])
+    ax_debt.set_xticklabels([dates[i][5:] for i in range(0, len(dates), step)], rotation=45, ha="right", fontsize=7)
     ensure_parent(png_path)
     fig.savefig(png_path, dpi=144, bbox_inches="tight", facecolor="white")
     plt.close(fig)

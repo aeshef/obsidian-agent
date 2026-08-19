@@ -4,6 +4,41 @@
 const TAG_FOCUS = "{{tag_focus}}";
 const goalsFile = dv.page("{{goals_page}}")
 
+function node(tag, style, text) {
+  const el = document.createElement(tag)
+  if (style) el.style.cssText = style
+  if (text != null) el.textContent = text
+  return el
+}
+
+/** Coverage / done% — green sequential (success), not alarm. */
+function progressCell(pct) {
+  const p = Math.max(0, Math.min(100, Number(pct) || 0))
+  const t = p / 100
+  const c1 = `hsl(142, ${Math.round(42 + t * 28)}%, ${Math.round(70 - t * 26)}%)`
+  const c2 = `hsl(142, ${Math.round(48 + t * 30)}%, ${Math.round(46 - t * 16)}%)`
+  const row = node("div", "display:flex;align-items:center;gap:10px;min-width:140px;max-width:240px")
+  const track = node(
+    "div",
+    "flex:1;height:14px;border-radius:999px;background:color-mix(in srgb, var(--background-modifier-border) 85%, transparent);box-shadow:inset 0 1px 2px rgba(0,0,0,.08);overflow:hidden"
+  )
+  track.appendChild(node(
+    "div",
+    `height:100%;width:${p}%;border-radius:999px;background:linear-gradient(90deg,${c1},${c2})`
+  ))
+  row.appendChild(track)
+  row.appendChild(node(
+    "span",
+    "flex:0 0 3.2ch;text-align:right;font-variant-numeric:tabular-nums;font-size:0.85em;color:var(--text-muted);font-weight:600",
+    `${Math.round(p)}%`
+  ))
+  return row
+}
+
+function numCell(text) {
+  return node("span", "font-variant-numeric:tabular-nums;font-weight:600", String(text))
+}
+
 if (!goalsFile) {
   dv.paragraph("{{goals_not_found}}")
 } else {
@@ -24,11 +59,11 @@ if (!goalsFile) {
     })
   })
 
-  const rows = Object.entries(quarters).map(([q, stats]) => {
-    const progress = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
-    const bar = "🟩".repeat(Math.floor(progress / 10)) + "⬜".repeat(10 - Math.floor(progress / 10))
-    return [q, `${stats.completed}/${stats.total}`, `${bar} ${progress}%`]
-  }).filter(row => quarters[row[0]] && quarters[row[0]].total > 0)
+  const rows = ["Q1", "Q2", "Q3", "Q4"].filter(q => quarters[q].total > 0).map(q => {
+    const stats = quarters[q]
+    const progress = Math.round((stats.completed / stats.total) * 100)
+    return [q, numCell(`${stats.completed}/${stats.total}`), progressCell(progress)]
+  })
 
   if (rows.length > 0) {
     dv.table(["{{table_quarter}}", "{{table_goals}}", "{{table_progress}}"], rows)

@@ -172,6 +172,13 @@ def chart_lead_cycle_weekly(
     return True
 
 
+def _tick_label(labels: Dict[str, str], key: str, fallback: str) -> str:
+    """Never return empty — empty x labels collapse all bars onto one tick."""
+    raw = labels.get(key)
+    text = str(raw).strip() if raw is not None else ""
+    return text or fallback
+
+
 def chart_aging_buckets(
     buckets: dict,
     png_path: Path,
@@ -180,15 +187,23 @@ def chart_aging_buckets(
     labels: Dict[str, str],
 ) -> bool:
     keys = ["0_7", "8_14", "15_30", "31_plus"]
+    fallbacks = {"0_7": "0-7d", "8_14": "8-14d", "15_30": "15-30d", "31_plus": "31d+"}
     vals = [int(buckets.get(k, 0) or 0) for k in keys]
     if sum(vals) == 0:
         return False
     plt = _mpl()
     fig, ax = plt.subplots(figsize=(8, 4))
     colors = ["#a5d6a7", "#fff59d", "#ffcc80", "#ef9a9a"]
-    ax.bar([labels.get(k, k) for k in keys], vals, color=colors, edgecolor="white")
-    ax.set_title(title, fontsize=11)
-    ax.set_ylabel(labels.get("y_open", "open"))
+    xs = list(range(len(keys)))
+    tick_labels = [_tick_label(labels, k, fallbacks[k]) for k in keys]
+    ax.bar(xs, vals, color=colors, edgecolor="white", width=0.72)
+    ax.set_xticks(xs)
+    ax.set_xticklabels(tick_labels)
+    ax.set_title(title.strip() or "Aging WIP", fontsize=11)
+    ax.set_ylabel(_tick_label(labels, "y_open", "open"))
+    for i, v in enumerate(vals):
+        if v:
+            ax.text(i, v, str(v), ha="center", va="bottom", fontsize=9)
     fig.tight_layout()
     ensure_parent(png_path)
     fig.savefig(png_path, dpi=130, bbox_inches="tight", facecolor="white")
@@ -421,38 +436,54 @@ def chart_deadline_blitz(
 ) -> bool:
     """Two panels: timed (early/on_day/late) + coverage bar for no_deadline."""
     timed_order = ["early", "on_day", "late"]
+    timed_fallbacks = {"early": "early", "on_day": "on day", "late": "late"}
     timed_vals = [int(counts.get(k, 0) or 0) for k in timed_order]
     none_v = int(counts.get("no_deadline", 0) or 0)
-    if sum(timed_vals) + none_v == 0:
+    with_v = sum(timed_vals)
+    if with_v + none_v == 0:
         return False
     plt = _mpl()
     fig, (ax1, ax2) = plt.subplots(
-        1, 2, figsize=(10, 4), gridspec_kw={"width_ratios": [3, 1.2]}
+        1, 2, figsize=(10, 4), gridspec_kw={"width_ratios": [3, 1.4]}
     )
     colors = ["#81c784", "#64b5f6", "#e57373"]
-    ax1.bar(
-        [labels.get(k, k) for k in timed_order],
-        timed_vals,
-        color=colors,
-        edgecolor="white",
+    xs = list(range(len(timed_order)))
+    ax1.bar(xs, timed_vals, color=colors, edgecolor="white", width=0.72)
+    ax1.set_xticks(xs)
+    ax1.set_xticklabels(
+        [_tick_label(labels, k, timed_fallbacks[k]) for k in timed_order],
+        rotation=15,
+        ha="right",
     )
-    ax1.set_title(labels.get("panel_timed", title), fontsize=10)
-    ax1.set_ylabel(labels.get("y", "tasks"))
+    ax1.set_title(_tick_label(labels, "panel_timed", "With deadline"), fontsize=10)
+    ax1.set_ylabel(_tick_label(labels, "y", "tasks"))
     for i, v in enumerate(timed_vals):
         if v:
             ax1.text(i, v, str(v), ha="center", va="bottom", fontsize=9)
 
+    cov_xs = [0, 1]
+    cov_vals = [none_v, with_v]
     ax2.bar(
-        [labels.get("no_deadline", "none"), labels.get("with_dl", "with")],
-        [none_v, sum(timed_vals)],
+        cov_xs,
+        cov_vals,
         color=["#bdbdbd", "#90caf9"],
         edgecolor="white",
+        width=0.65,
     )
-    ax2.set_title(labels.get("panel_none", "coverage"), fontsize=10)
-    for i, v in enumerate([none_v, sum(timed_vals)]):
+    ax2.set_xticks(cov_xs)
+    ax2.set_xticklabels(
+        [
+            _tick_label(labels, "no_deadline", "none"),
+            _tick_label(labels, "with_dl", "with"),
+        ],
+        rotation=15,
+        ha="right",
+    )
+    ax2.set_title(_tick_label(labels, "panel_none", "coverage"), fontsize=10)
+    for i, v in enumerate(cov_vals):
         if v:
             ax2.text(i, v, str(v), ha="center", va="bottom", fontsize=9)
-    fig.suptitle(title, fontsize=11, y=1.02)
+    fig.suptitle((title or "").strip() or "Deadline blitz", fontsize=11, y=1.02)
     fig.tight_layout()
     ensure_parent(png_path)
     fig.savefig(png_path, dpi=130, bbox_inches="tight", facecolor="white")

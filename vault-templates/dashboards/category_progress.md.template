@@ -43,9 +43,70 @@ function completionTs(task) {
   return null
 }
 
-function bar(n, max) {
-  const filled = max > 0 ? Math.min(10, Math.round((n / max) * 10)) : 0
-  return "🟧".repeat(filled) + "⬜".repeat(10 - filled)
+function node(tag, style, text) {
+  const el = document.createElement(tag)
+  if (style) el.style.cssText = style
+  if (text != null) el.textContent = text
+  return el
+}
+
+/** Category label: emoji + name, never wraps mid-row. */
+function catCell(emoji, name) {
+  const wrap = node("span", "display:inline-flex;align-items:center;gap:0.45em;white-space:nowrap;font-weight:600")
+  wrap.appendChild(node("span", "flex:0 0 auto;line-height:1", emoji))
+  wrap.appendChild(node("span", "line-height:1.2", name))
+  return wrap
+}
+
+/** Hero count — what you act on. */
+function openCell(n, stale) {
+  const el = node(
+    "span",
+    `font-variant-numeric:tabular-nums;font-weight:700;font-size:1.1em;${stale ? "color:var(--text-error,#e11d48)" : ""}`,
+    String(n)
+  )
+  return el
+}
+
+/**
+ * Portfolio share bar (industry WIP-by-type):
+ * width = open / totalOpen. Heat encodes concentration.
+ * Number lives in «Открыто», not glued to the track.
+ */
+function shareCell(share) {
+  const pct = Math.round(share * 1000) / 10 // one decimal when needed
+  const pctLabel = Number.isInteger(pct) ? `${pct}%` : `${pct.toFixed(1)}%`
+  const fillPct = Math.max(0, Math.min(100, share * 100))
+
+  // Sequential indigo: more share = denser blue (magnitude, not alarm).
+  // Alarm stays on the Open number (stale), not on the bar hue.
+  const t = Math.max(0, Math.min(1, share / 0.45))
+  const c1 = `hsl(234, ${Math.round(48 + t * 30)}%, ${Math.round(72 - t * 28)}%)`
+  const c2 = `hsl(234, ${Math.round(55 + t * 28)}%, ${Math.round(58 - t * 26)}%)`
+  const fill = `linear-gradient(90deg,${c1} 0%,${c2} 100%)`
+
+  const row = node("div", "display:flex;align-items:center;gap:10px;min-width:160px;max-width:280px")
+  const track = node(
+    "div",
+    "flex:1;height:14px;border-radius:999px;background:color-mix(in srgb, var(--background-modifier-border) 85%, transparent);box-shadow:inset 0 1px 2px rgba(0,0,0,.08);overflow:hidden"
+  )
+  const bar = node(
+    "div",
+    `height:100%;width:${fillPct}%;border-radius:999px;background:${fill};box-shadow:0 0 0 1px rgba(0,0,0,.04);transition:width .2s ease`
+  )
+  track.appendChild(bar)
+  const label = node(
+    "span",
+    "flex:0 0 3.6ch;text-align:right;font-variant-numeric:tabular-nums;font-size:0.85em;color:var(--text-muted);font-weight:600",
+    pctLabel
+  )
+  row.appendChild(track)
+  row.appendChild(label)
+  return row
+}
+
+function numCell(n) {
+  return node("span", "font-variant-numeric:tabular-nums;font-weight:500", String(n))
 }
 
 if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0])) {
@@ -67,22 +128,45 @@ if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0]
     }
   })
 
-  const maxOpen = Math.max(1, ...categories.map(c => categoryStats[c].open), 1)
-  const rows = categories.map(cat => {
-    const s = categoryStats[cat]
-    if ((s.open + s.doneAll) === 0) return null
+  const active = categories
+    .map(cat => ({ cat, s: categoryStats[cat] }))
+    .filter(({ s }) => (s.open + s.doneAll) > 0)
+
+  const totalOpen = active.reduce((sum, { s }) => sum + s.open, 0)
+  const totalDone30 = active.reduce((sum, { s }) => sum + s.done30, 0)
+
+  // Sort by open DESC — pressure first (standard WIP triage).
+  active.sort((a, b) => b.s.open - a.s.open || b.s.done30 - a.s.done30)
+
+  const rows = active.map(({ cat, s }) => {
     const emoji = (catEmoji && catEmoji[cat]) ? catEmoji[cat] : "📌"
+    const share = totalOpen > 0 ? s.open / totalOpen : 0
+    // Stale stock: high open, weak 30d throughput.
+    const stale = s.open >= 8 && (s.done30 / Math.max(s.open, 1)) < 0.15
     return [
-      `${emoji} ${cat}`,
-      `${bar(s.open, maxOpen)} ${s.open}`,
-      String(s.done30),
-      String(s.open),
-      String(s.doneAll),
+      catCell(emoji, cat),
+      openCell(s.open, stale),
+      shareCell(share),
+      numCell(s.done30),
+      numCell(s.doneAll),
     ]
-  }).filter(Boolean)
+  })
 
   if (rows.length > 0) {
-    dv.table(["{{table_category}}", "{{table_wip_bar}}", "{{table_done_30d}}", "{{table_open}}", "{{table_done_all}}"], rows)
+    const summary = node(
+      "div",
+      "display:flex;flex-wrap:wrap;gap:12px 20px;margin:0 0 10px;font-variant-numeric:tabular-nums;color:var(--text-muted);font-size:0.92em"
+    )
+    summary.appendChild(node("span", "", `{{label_wip_total_open}}: ${totalOpen}`))
+    summary.appendChild(node("span", "", `{{label_wip_total_done30}}: ${totalDone30}`))
+    summary.appendChild(node("span", "", `{{label_wip_categories}}: ${rows.length}`))
+    dv.container.appendChild(summary)
+
+    dv.table(
+      ["{{table_category}}", "{{table_open}}", "{{table_wip_bar}}", "{{table_done_30d}}", "{{table_done_all}}"],
+      rows
+    )
+    dv.paragraph("_{{category_wip_legend}}_")
   } else {
     dv.paragraph("{{no_categorized_tasks}}")
   }

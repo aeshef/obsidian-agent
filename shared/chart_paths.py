@@ -24,8 +24,12 @@ def ensure_parent(path: Path) -> None:
 
 
 def chart_wikilink_png(file_key: str) -> str:
-    """Obsidian embed for chart PNG — always .png to avoid md self-embed loops."""
+    """Obsidian embed for chart PNG — vault-absolute under dashboards/charts.
+
+    Always ``.png`` to avoid md self-embed loops. Path includes the dashboards
+    folder (e.g. ``300_Dashboards/Charts/...``) so embeds resolve from any note.
+    """
     rel = vault_file(file_key)
     if not rel.lower().endswith(".png"):
         rel = f"{rel}.png"
-    return f"![[{dashboards_sub('charts')}/{rel}]]"
+    return f"![[{folder('dashboards')}/{dashboards_sub('charts')}/{rel}]]"

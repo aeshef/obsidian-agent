@@ -4,14 +4,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
+from shared.analytics.hub_hero import render_system_hero
 from shared.chart_paths import chart_path, chart_wikilink_png
 from shared.vault_paths_config import dashboards_sub, folder, vault_file
 
 
-def _md_embed(key: str) -> str:
+def _md_wikilink(key: str, label: str) -> str:
     rel = vault_file(key)
     stem = rel[:-3] if rel.lower().endswith(".md") else rel
-    return f"![[{dashboards_sub('charts')}/{stem}]]"
+    return f"[[{folder('dashboards')}/{dashboards_sub('charts')}/{stem}|{label}]]"
 
 
 def _png_exists(vault: Path, key: str) -> bool:
@@ -19,6 +20,16 @@ def _png_exists(vault: Path, key: str) -> bool:
         return chart_path(vault, key).is_file()
     except Exception:
         return False
+
+
+def _safe_msg(msg: Callable[[str], str], key: str) -> str:
+    try:
+        text = msg(key)
+    except Exception:
+        return ""
+    if not text or text == key:
+        return ""
+    return str(text).strip()
 
 
 def render_system_hub(
@@ -35,9 +46,21 @@ def render_system_hub(
         "",
         "---",
         "",
-        f"## {msg('system_section_agent')}",
-        "",
     ]
+
+    tip = _safe_msg(msg, "system_hub_tip")
+    if tip:
+        lines.extend([tip.replace("{updated}", ts), "", "---", ""])
+
+    hero = render_system_hero(vault, msg).rstrip()
+    if hero:
+        lines.extend([hero, "", "---", ""])
+
+    lines.extend([f"## {msg('system_section_agent')}", ""])
+    agent_hint = _safe_msg(msg, "system_hint_agent")
+    if agent_hint:
+        lines.extend([agent_hint, ""])
+
     if _png_exists(vault, "chart_agent_cost_daily_png"):
         lines.extend(
             [
@@ -67,9 +90,18 @@ def render_system_hub(
         )
     try:
         if chart_path(vault, "agent_cost_dashboard_md").is_file():
-            lines.extend([_md_embed("agent_cost_dashboard_md"), ""])
+            detail = _safe_msg(msg, "system_link_agent_cost_detail") or "Agent cost detail"
+            tip = _safe_msg(msg, "system_agent_cost_detail_tip")
+            link = _md_wikilink("agent_cost_dashboard_md", detail)
+            if tip:
+                lines.extend([tip.replace("{link}", link), ""])
+            else:
+                lines.extend([f"> [!note]- {detail}", f"> {link}", ""])
     except Exception:
         pass
+
+    lines.append("---")
+    lines.append("")
 
     audit_lines: list[str] = []
     for key, label_key in (
@@ -85,5 +117,9 @@ def render_system_hub(
             continue
     if audit_lines:
         lines.extend([f"## {msg('system_section_audits')}", ""] + audit_lines + [""])
+
+    footer = _safe_msg(msg, "system_hub_footer")
+    if footer:
+        lines.extend([footer, ""])
 
     return "\n".join(lines).rstrip() + "\n"
