@@ -203,9 +203,16 @@ async def schedule_weekly_review(self, bot: Bot):
         if not ok:
             logger.warning("Scheduled weekly review cancelled: %s", err_msg)
             if self.chat_id:
-                await bot.send_message(
-                    chat_id=self.chat_id,
-                    text=pmsg("weekly_review_failed", error=err_msg),
+                from shared.i18n import msg
+                from shared.telegram.push_format import format_push, send_push
+
+                await send_push(
+                    bot,
+                    self.chat_id,
+                    format_push(
+                        msg("push", "weekly_review_title"),
+                        pmsg("weekly_review_failed", error=err_msg),
+                    ),
                     reply_markup=keyboards.get_main_keyboard(),
                 )
             return
@@ -237,11 +244,14 @@ async def schedule_weekly_review(self, bot: Bot):
         self.reflection_manager.save_weekly_reflection(review)
         if self.chat_id:
             append_turn(self.chat_id, "planning", "assistant", review)
+            from shared.i18n import msg
+            from shared.telegram.push_format import format_push, send_push
+
             full_text = review + "\n\n" + pmsg("reflection_thoughts_prompt")
-            await send_long_message(
+            await send_push(
                 bot,
                 self.chat_id,
-                full_text,
+                format_push(msg("push", "weekly_review_title"), full_text),
                 reply_markup=keyboards.get_main_keyboard(),
             )
             await set_reflection_waiting(

@@ -103,11 +103,16 @@ async def send_daily_checkin_prompt(bot: Bot, chat_id: int) -> bool:
         return False
     mark_prompt_sent()
     day = ritual_day_date()
-    await bot.send_message(
-        chat_id=chat_id,
-        text=pmsg("checkin_offer", date=day),
-        reply_markup=offer_keyboard(),
+    from shared.i18n import msg
+    from shared.telegram.push_format import format_push, send_push
+
+    # Same card envelope as finance evening / morning brief (# title + body).
+    text = format_push(
+        msg("push", "checkin_title") or msg("push", "section_evening_routines"),
+        pmsg("checkin_offer", date=day),
+        footer=day,
     )
+    await send_push(bot, chat_id, text, reply_markup=offer_keyboard())
     return True
 
 

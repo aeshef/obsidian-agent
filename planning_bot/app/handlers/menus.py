@@ -27,59 +27,43 @@ from planning_bot.services.routines_analyzer import (
 )
 
 logger = logging.getLogger(__name__)
+from shared.telegram.ui_send import answer_card
 
 
 async def show_tasks_menu(self, message: Message):
-    await message.answer(
-        pmsg("tasks_menu_title"),
-        reply_markup=keyboards.get_tasks_filter_keyboard(),
-        parse_mode="Markdown",
-    )
+    await answer_card(message, pmsg("tasks_menu_title"),
+        reply_markup=keyboards.get_tasks_filter_keyboard(),)
 
 
 async def show_categories_menu(self, message: Message):
-    await message.answer(
-        pmsg("categories_menu_title"),
-        reply_markup=keyboards.get_categories_keyboard(),
-        parse_mode="Markdown",
-    )
+    await answer_card(message, pmsg("categories_menu_title"),
+        reply_markup=keyboards.get_categories_keyboard(),)
 
 
 async def show_priorities_menu(self, message: Message):
-    await message.answer(
-        pmsg("priorities_menu_title"),
-        reply_markup=keyboards.get_priorities_keyboard(),
-        parse_mode="Markdown",
-    )
+    await answer_card(message, pmsg("priorities_menu_title"),
+        reply_markup=keyboards.get_priorities_keyboard(),)
 
 
 async def show_statuses_menu(self, message: Message):
-    await message.answer(
-        pmsg("statuses_menu_title"),
-        reply_markup=keyboards.get_statuses_keyboard(),
-        parse_mode="Markdown",
-    )
+    await answer_card(message, pmsg("statuses_menu_title"),
+        reply_markup=keyboards.get_statuses_keyboard(),)
 
 
 async def show_routines_menu(self, message: Message):
-    await message.answer(
-        pmsg("routines_menu_title"),
-        reply_markup=keyboards.get_routines_keyboard(),
-        parse_mode="Markdown",
-    )
+    await answer_card(message, pmsg("routines_menu_title"),
+        reply_markup=keyboards.get_routines_keyboard(),)
 
 
 async def show_routines_statistics(self, message: Message):
     try:
         stats = get_routines_statistics(days=30)
         text = format_statistics_text(stats)
-        await message.answer(
-            text, parse_mode="Markdown", reply_markup=keyboards.get_routines_keyboard()
+        await answer_card(message, text, reply_markup=keyboards.get_routines_keyboard()
         )
     except Exception as e:
         logger.error("Routines stats failed: %s\n%s", e, traceback.format_exc())
-        await message.answer(
-            pmsg("routines_stats_error"),
+        await answer_card(message, pmsg("routines_stats_error"),
             reply_markup=keyboards.get_routines_keyboard(),
         )
 
@@ -100,13 +84,10 @@ async def show_pending_routines(self, message: Message):
             text += pmsg("evening_section") + "".join(f"• {t}\n" for t in pending["evening"])
         else:
             text += pmsg("evening_all_done")
-        await message.answer(
-            text, parse_mode="Markdown", reply_markup=keyboards.get_routines_keyboard()
-        )
+        await answer_card(message, text, reply_markup=keyboards.get_routines_keyboard())
     except Exception as e:
         logger.error("Pending routines failed: %s", e)
-        await message.answer(
-            pmsg("pending_routines_error"),
+        await answer_card(message, pmsg("pending_routines_error"),
             reply_markup=keyboards.get_routines_keyboard(),
         )
 
@@ -118,13 +99,11 @@ async def show_goals_progress(self, message: Message):
         alerts_text = self.goals_analyzer.format_alerts_text(current_quarter)
         await message.answer(
             progress_text + "\n" + alerts_text,
-            parse_mode="Markdown",
             reply_markup=keyboards.get_main_keyboard(),
         )
     except Exception as e:
         logger.error("Goals progress failed: %s\n%s", e, traceback.format_exc())
-        await message.answer(
-            pmsg("goals_progress_error"),
+        await answer_card(message, pmsg("goals_progress_error"),
             reply_markup=keyboards.get_main_keyboard(),
         )
 
@@ -216,7 +195,8 @@ async def send_morning_brief(self, bot: Bot):
         if not text:
             logger.info("Morning brief empty — skip send")
             return
-        await bot.send_message(chat_id=self.chat_id, text=text)
+        from shared.telegram.push_format import send_push
+        await send_push(bot, self.chat_id, text)
         logger.info("Sent morning brief sections=%s", len(sections))
     except Exception as e:
         logger.error("Morning brief failed: %s", e)
@@ -241,7 +221,8 @@ async def send_morning_routine_reminder(self, bot: Bot):
 
         body = _plain_bullet_lines(pending["morning"])
         text = format_push(msg("push", "section_routines"), body)
-        await bot.send_message(chat_id=self.chat_id, text=text)
+        from shared.telegram.push_format import send_push
+        await send_push(bot, self.chat_id, text)
         logger.info("Sent morning routine reminder")
     except Exception as e:
         logger.error("Morning routine reminder failed: %s", e)
@@ -281,7 +262,8 @@ async def send_evening_routine_reminder(self, bot: Bot):
 
         body = _plain_bullet_lines(pending["evening"])
         text = format_push(msg("push", "section_evening_routines"), body)
-        await bot.send_message(chat_id=self.chat_id, text=text)
+        from shared.telegram.push_format import send_push
+        await send_push(bot, self.chat_id, text)
         logger.info("Sent evening routine reminder")
     except Exception as e:
         logger.error("Evening routine reminder failed: %s", e)
@@ -297,11 +279,15 @@ async def send_weekly_goals_no_tasks(self, bot: Bot):
         if not goals_no_tasks:
             return
         goal_lines = "\n".join(f"• {p.get('goal', {}).get('text', '?')}" for p in goals_no_tasks)
-        await bot.send_message(
-            chat_id=self.chat_id,
-            text=pmsg("weekly_goals_no_tasks", quarter=current_quarter, goals=goal_lines),
-            reply_markup=keyboards.get_main_keyboard(),
+        from shared.telegram.push_format import format_push, send_push
+
+        from shared.i18n import msg
+
+        text = format_push(
+            msg("push", "section_goals"),
+            pmsg("weekly_goals_no_tasks", quarter=current_quarter, goals=goal_lines),
         )
+        await send_push(bot, self.chat_id, text, reply_markup=keyboards.get_main_keyboard())
         logger.info(
             "Weekly goals-without-tasks message sent for %s (%s goals)",
             current_quarter,
@@ -321,11 +307,14 @@ async def send_goals_alerts(self, bot: Bot):
         problematic = self.goals_analyzer.get_problematic_goals(current_quarter)
         if problematic:
             alerts_text = self.goals_analyzer.format_alerts_text(current_quarter)
-            await bot.send_message(
-                chat_id=self.chat_id,
-                text=pmsg("goals_alerts_header", quarter=current_quarter, alerts=alerts_text),
-                parse_mode="Markdown",
+            from shared.i18n import msg
+            from shared.telegram.push_format import format_push, send_push
+
+            text = format_push(
+                msg("push", "section_goals"),
+                pmsg("goals_alerts_header", quarter=current_quarter, alerts=alerts_text),
             )
+            await send_push(bot, self.chat_id, text)
             logger.info("Sent goals alerts for %s goals", len(problematic))
     except Exception as e:
         logger.error("Goals alerts failed: %s", e)
@@ -378,9 +367,11 @@ async def send_deadlines_alerts(self, bot: Bot):
                     column_emoji = "🔄" if task.get("column") == IN_WORK_COLUMN else "📋"
                     parts.append(f"{pri} {column_emoji} {task.get('title', '')[:60]}\n")
                     parts.append(pmsg("deadline_line", deadline=task.get("deadline")))
-        await bot.send_message(
-            chat_id=self.chat_id, text="".join(parts).strip(), parse_mode="Markdown"
-        )
+        from shared.i18n import msg
+        from shared.telegram.push_format import format_push, send_push
+
+        text = format_push(msg("push", "section_deadlines"), "".join(parts).strip())
+        await send_push(bot, self.chat_id, text)
         logger.info(
             "Deadline alerts sent: missed=%s upcoming=%s",
             len(missed),
@@ -455,7 +446,8 @@ async def send_stuck_alerts(self, bot: Bot):
             for t in stuck[:8]
         )
         text = format_push(msg("push", "section_stuck"), body)
-        await bot.send_message(chat_id=self.chat_id, text=text)
+        from shared.telegram.push_format import send_push
+        await send_push(bot, self.chat_id, text)
         logger.info("Stuck-task alerts sent: %s tasks", len(stuck))
     except Exception as e:
         logger.error("Stuck alerts failed: %s", e)
