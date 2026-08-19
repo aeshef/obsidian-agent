@@ -21,26 +21,28 @@ from planning_bot.core.config import (
     CALENDAR_JSON_FILE,
     CALENDAR_DASHBOARD_MD,
     CALENDAR_ANALYTICS_JSON,
-    CALENDAR_INSIGHTS_CACHE,
 )
 from planning_bot.services.calendar_analytics import (
-    analytics_stable_hash,
     compute_week_analytics,
     write_analytics_json,
 )
+from planning_bot.services.calendar_activity_classify import ensure_activity_types
 from planning_bot.services.calendar_dashboard import write_meeting_focus_dashboard
-from planning_bot.services.calendar_insights_llm import get_or_create_insights
 from planning_bot.services.calendar_retention import (
     apply_retention,
     compact_calendar_txt,
     should_compact_txt,
 )
+from shared.agent.llm_classify import LLMClassificationError
+from shared.agent.platform_config import platform_int
 
 
 def _dashboard_horizon_days() -> int:
-    from shared.agent.platform_config import platform_int
-
     return platform_int("planning_calendar", "sync_horizon_days", default=8)
+
+
+def _classify_on_sync() -> bool:
+    return bool(platform_int("planning_calendar", "classify_on_sync", default=1))
 
 
 def _build_and_write_dashboard(events: List[Dict], now_iso: str) -> None:
@@ -49,9 +51,8 @@ def _build_and_write_dashboard(events: List[Dict], now_iso: str) -> None:
         events, date.today(), horizon_days=_dashboard_horizon_days()
     )
     write_analytics_json(CALENDAR_ANALYTICS_JSON, analytics)
-    h = analytics_stable_hash(analytics)
-    insights, _from_cache = get_or_create_insights(analytics, CALENDAR_INSIGHTS_CACHE, h, now_iso)
-    write_meeting_focus_dashboard(CALENDAR_DASHBOARD_MD, now_iso, analytics, insights)
+    # LLM week insights removed from dashboard (token noise); keep signature for callers.
+    write_meeting_focus_dashboard(CALENDAR_DASHBOARD_MD, now_iso, analytics, "")
 
 # DD.MM.YYYY HH:MM - HH:MM TITLE
 _LINE_RE = re.compile(
@@ -423,6 +424,20 @@ def run_calendar_sync() -> bool:
     data, moved, detail_n = apply_retention(data)
     if moved:
         logger.info("calendar retention: moved %s events to archive, detail=%s", moved, detail_n)
+
+    events = data.get("events", merged)
+    if _classify_on_sync():
+        try:
+            events, n_classified = ensure_activity_types(events)
+            if n_classified:
+                changed = True
+                data["events"] = events
+                data["meta"]["last_updated"] = now_iso
+                data["meta"]["total_events"] = len(events)
+                logger.info("calendar activity: classified %s event(s)", n_classified)
+        except LLMClassificationError as e:
+            logger.warning("calendar activity classify failed: %s", e)
+
     if changed or moved:
         _save_json(CALENDAR_JSON_FILE, data)
 

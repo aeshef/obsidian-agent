@@ -1,0 +1,45 @@
+# Activity taxonomy for calendar analytics (LLM classifies; no keyword rules).
+# cp calendar_activity_types.yaml.example calendar_activity_types.yaml
+#
+# Personal overrides: attention_weights / type_descriptions / chart_colors only.
+# Do NOT add needle lists — classification is LLM-only (calendar_activity_router).
+
+default_type: прочее
+# Stable type ids used in code (override when personalizing taxonomy labels).
+work_type: работа
+flight_type: путешествия
+block_type: блок
+
+# Short hints for the LLM (ids must match attention_weights keys).
+type_descriptions:
+  работа: "Employer / team work: syncs, reviews, standups, product/ops meetings"
+  собесы: "Job interviews, recruiting screens, hiring loops"
+  учёба: "Study, courses, exams, labs, homework, university"
+  путешествия: "Travel, flights, city-city tags, hotels, vacation, stays"
+  здоровье: "Gym, doctors, clinics, training, medical"
+  соц: "Friends, dates, birthdays, social meals, dacha with people"
+  прочее: "Anything else that is still a real calendar commitment"
+  блок: "Timed placeholder / focus block / empty title — not a real meeting"
+
+# Attention prior for Life OS Drain (not "was I there"):
+# invite minutes × weight → attention minutes.
+attention_weights:
+  собесы: 1.0
+  учёба: 1.0
+  здоровье: 1.0
+  соц: 0.7
+  работа: 0.45
+  путешествия: 0.15
+  прочее: 0.35
+  блок: 0.1
+
+# Optional chart colors keyed by activity type id
+chart_colors:
+  работа: "#1e88e5"
+  собесы: "#8e24aa"
+  учёба: "#43a047"
+  путешествия: "#fb8c00"
+  здоровье: "#e53935"
+  соц: "#ec407a"
+  прочее: "#78909c"
+  блок: "#90a4ae"

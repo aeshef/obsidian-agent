@@ -16,6 +16,7 @@ generic_en:
   - config/agent/prompts/health_tools.example.txt
   - config/agent/prompts/knowledge_unified_tools.example.txt
   - config/agent/prompts/memory_synth.example.txt
+  - config/agent/prompts/calendar_activity_router.example.txt
   - planning_bot/config/prompts/intent_router.example.txt
   - finance_bot/config/prompts/amount_extract_prompt.example.txt
 
