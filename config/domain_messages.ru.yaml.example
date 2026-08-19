@@ -122,6 +122,10 @@ knowledge_maintenance:
 
     столбцы retag / reprocess / дубли — **сумма** за день; `singleton` в `run` — с последнего прогона.
 
+  report_dynamics_open: "> [!abstract] Динамика"
+  report_dynamics_hist: "> История в `{history_path}`"
+  report_days_fold: "> [!note]- Последние **{days}** дней"
+  report_day_line: "> - **{date}** · runs {runs} · Δ {delta} · −дуб {dup} · −repr∅ {empty} · retag {retag} · repr✓ {repr_ok} · {ok}"
   report_chart_pending: "*График появится после ≥1 записи в истории и при установленном `matplotlib` в окружении, где генерируется отчёт.*"
   report_no_history: "*Пока нет записей истории — прогоните обслуживание хотя бы раз.*"
   report_table_days: "Последние **{days}** дней (новые снизу):"
@@ -190,6 +194,11 @@ knowledge_vault_audit:
   step_unknown: '{step}'
   step_ok: ok
   step_fail: fail
+  maint_steps_fold: "Шаги прогона ({count})"
+  maint_step_ok_line: "🟢 **{label}** — {seconds}с"
+  maint_step_fail_line: "🔴 **{label}** — {seconds}с"
+  maint_step_detail: "`{snippet}`"
+  maint_step_warn_detail: "⚠️ `{snippet}`"
   maint_step_line: '  - [{status}] **{label}** — {seconds:.1f}с'
   maint_stdout_line: '    > {line}'
   maint_stderr_line: '    ! {line}'
@@ -197,11 +206,69 @@ knowledge_vault_audit:
   maint_hub_row: '  - `{name}` — {links} ссылок (обновлён {mtime})'
   maint_hub_row_short: '  - `{name}` (обновлён {mtime})'
   maint_hubs_missing: '**Хабы**: `{hubs_rel}/` ещё не создан (запустите `sync_hubs.py --apply`)'
+  maint_hubs_ok_open: "> [!success] Хабы (`{path}/`)"
+  maint_hubs_ok_head: "> ### {count} файлов"
+  maint_hub_callout_row: "> - `{name}` — **{links}** ссылок · {mtime}"
+  maint_hub_callout_row_short: "> - `{name}` · {mtime}"
+  maint_hubs_warn_open: "> [!warning] Хабы"
+  maint_hubs_warn_body: "> `{hubs_rel}/` ещё нет — `sync_hubs.py --apply`"
+  dups_abstract_open: "> [!abstract] Дубликаты"
+  dups_abstract_head: "> ### {groups} групп дублей"
+  dups_abstract_meta: "> Заметок **{total}** · с суффиксом `_N` **{suffix}** · серии {generic} · контент {content}"
+  dups_clean_open: "> [!success] Чисто"
+  dups_clean_body: "> Нет групп дублей (≥2).{extra}"
+  dups_clean_suffix_note: " Одиночные `_N` в имени: **{suffix}** — не всегда проблема."
+  dups_warn_open: "> [!warning] Есть группы дублей"
+  dups_warn_body: "> Серии: **{generic}** · контент: **{content}** — разберёт `apply_duplicates`."
+  dups_trash_ok_open: "> [!success] Мусорные кандидаты"
+  dups_trash_ok_body: "> Коротких «мусорных» имён на удаление нет"
+  maint_deleted_paths_open: "> [!note] Удалённые пути · `{ts}`"
+  maint_deleted_paths_more: "> - … ещё {count}"
+  report_updated_callout: "> [!info] Обновлено"
+  report_updated_body: "> _{timestamp}_"
+  maint_reprocess_queue_open: "> [!{kind}] Очередь reprocess"
+  maint_reprocess_queue_body: "> Всего **{total}** · ждать обработки **{eligible}**{skip}"
+  maint_reprocess_row: "> - `{path}`"
+  maint_reprocess_more_callout: "> - … ещё {count}"
+  maint_reprocess_empty_open: "> [!success] Очередь reprocess"
+  maint_reprocess_empty_body: "> Нет совпадений с `reprocess.yaml`"
   maint_ontology: '**Онтология тегов**: {count} маппингов в `config/tag_ontology.yaml`'
-  maint_ontology_error: '**Онтология тегов**: ошибка чтения конфига'
-  maint_ontology_missing: '**Онтология тегов**: конфиг не найден'
-  maint_marker: '**Маркер даты последнего обслуживания**: `{date}`'
-  maint_marker_missing: '**Маркер даты последнего обслуживания**: не задан'
+  maint_ontology_zero: |
+    > [!success] Онтология тегов — ок
+    > `0` маппингов в `tag_ontology.yaml` — это **не поломка**. Файл-заглушка: алиасы тегов не настроены,
+    > vault живёт на domain/topic из ingest. Чинить надо только если ты сознательно ведёшь ontology.
+  maint_ontology_ok: |
+    > [!success] Онтология тегов
+    > **{count}** маппингов в `config/tag_ontology.yaml`
+  maint_ontology_error: |
+    > [!failure] Онтология тегов
+    > Ошибка чтения конфига
+  maint_ontology_missing: |
+    > [!warning] Онтология тегов
+    > Файл `config/tag_ontology.yaml` не найден (опционально)
+  maint_marker: |
+    > [!success] Маркер обслуживания
+    > Последний день: `{date}`
+  maint_marker_missing: |
+    > [!warning] Маркер обслуживания
+    > `daily_vault_write_maintenance_date.txt` ещё не записан
+  maint_run_header: |
+    > [!{callout}] Последний прогон
+    > Статус **{status}** · шагов: **{count}**
+  maint_step_line: '- [{status}] **{label}** — {seconds:.1f}с'
+  maint_deletions_ok: |
+    > [!success] Удаления за прогон
+    > Это ожидаемые действия maintenance (дубликаты / orphan export), не авария.
+  maint_deletions_header: '**Удалённые пути** ({ts}):'
+  step_ok: 'ok'
+  step_fail: 'fail'
+  status_ok: 'ok'
+  status_fail: 'сбой'
+  hero_open: '> [!abstract] Обслуживание 700_'
+  hero_title_ok: '> ### Всё зелёное'
+  hero_title_warn: '> ### Есть предупреждения'
+  hero_title_fail: '> ### Есть сбои'
+  hero_meta: '> Шагов ok **{ok}** · fail **{fail}** · удалений **{deleted}**'
   maint_run_details_missing: '**Детали прогона**: нет `.sync/last_vault_maintenance_run.json` и нет разбираемого JSON в `planning_bot/logs/vault_write_maintenance.log`.'
   maint_reprocess_header: '**Очередь reprocess** (`bad_stem_pattern` в `config/reprocess.yaml`): всего **{total}**, без `reprocess_skip` — **{eligible}**{skipped_suffix}'
   maint_reprocess_skipped: ' ({count} пропущено)'
@@ -302,11 +369,11 @@ finance_txn_core:
   line_type: "- Тип: {type}"
   recorded_header: "{emoji} Записал:"
 finance_txn_query:
-  expenses_total: "Всего расходов: {total:,.0f} RUB"
+  expenses_total: "Всего расходов: {total} RUB"
   no_expenses_in_period: "(нет расходов в периоде)"
   category_filter: "filter={category} (родитель включает дочерние)"
   by_day_header: "По дням:"
-  by_day_line: "  {day}: {total:,.0f} ({detail})"
+  by_day_line: "  {day}: {total} ({detail})"
   debts_empty: "Долги: (нет счетов долгов)"
   debts_header: "Долги (балансы external_balance на счетах-контрагентах):"
   receivable_line: "  Мне должны — {name}: {balance} {currency}"
@@ -374,6 +441,12 @@ memory_layers:
   pending_header: "Кандидаты (ещё не в промпте; подтверди в меню «Память»):"
   durable_header: "Устойчивые наблюдения:"
   periodic_header: "Периодические наблюдения (с TTL):"
+  core_header: "## Приоры (подтверждённые)"
+  core_line: "- [{domain}/{kind}] {text}"
+  situation_header: "## Сейчас"
+  situation_calendar: "Календарь сегодня:"
+  situation_wip: "В работе:"
+  situation_wip_none: "В работе: пусто"
 
 memory_insights:
   global_header: "## Общие наблюдения о пользователе"
@@ -389,14 +462,28 @@ chart_tools:
   stale_hint: "{count} график(ов) старше {hours}ч — можно refresh_vault_charts."
   caption: "{key} [{family}]"
   send_ok: "В очередь на отправку: {count} график(ов) (всего queued={queued}): {names}"
+  send_delivered: "Отправлено в чат: {count} график(ов): {names}"
+  send_failed: "Не удалось отправить графики ({names}). Файл не найден или Telegram отклонил фото."
   refresh_disabled: "Обновление графиков выключено (chart_refresh.enabled в platform config)."
   refresh_unknown: "Нет builder в allowlist для builder={builder} family={family}. Доступно: {available}"
   refresh_done: "Пересборка графиков: {ok}/{total} builders ok."
 
 series_tools:
-  empty_input: "Нужны series_a и series_b (строки YYYY-MM-DD|value)."
+  empty_input: "Нужны две таблицы из предыдущих tools с датами YYYY-MM-DD, либо series_a и series_b."
   no_points: "Не удалось разобрать точки день/значение."
   header: "Выровненные ряды по дням:"
+  tally_empty: "Нет таблицы с меткой времени и категорией в предыдущих tools. Сначала вызови лог за период, потом агрегатор долей с пустыми аргументами."
+  tally_header: "Доли по «{column}» ({mode}), источник: {source}:"
+  tally_coverage: "coverage: n={n} first={first} last={last} median_gap={gap}"
+  tally_other: "other"
+
+log_dump:
+  coverage: "запрошено {start}…{end}. полное совпадение: n={n} first={match_first} last={match_last}. показано: {shown} first={shown_first} last={shown_last}. Агрегаты ниже по ВСЕМ {n}, не по показанному срезу."
+  incomplete_start: "НЕПОЛНО: first={first} позже запрошенного start={requested_start}. Более ранние метки не считай отсутствующими в источнике."
+  incomplete_end: "НЕПОЛНО: shown last={last}; полное совпадение идёт до {requested_end}. Более поздние метки не считай отсутствующими в источнике."
+  slice_note: "Сырой срез — {kind}: {shown}/{total} строк. Агрегаты выше уже по полному совпадению."
+  shares_header: "Доли «{column}» (все {n} точек, mode={mode}):"
+  other: "другое"
 
 knowledge_write:
   disabled: "Запись в knowledge выключена (KNOWLEDGE_AGENT_WRITES=1)."
@@ -610,7 +697,7 @@ planning:
   agent_calendar_analytics_header: "Календарь, аналитика: anchor={anchor}, horizon={horizon} дн."
   agent_calendar_analytics_minutes: "Минут встреч в окне: {minutes}"
   agent_calendar_analytics_tags: "Теги: {tags}"
-  agent_calendar_analytics_sections: "Секции жизни: {sections}"
+  agent_calendar_analytics_sections: "Типы активностей: {sections}"
   agent_calendar_analytics_daily_header: "По дням (встречи с временем):"
   agent_calendar_analytics_daily_columns: "date\tweekday\tmeetings\tminutes"
   agent_calendar_analytics_daily_row: "{date}\t{weekday}\t{meetings}\t{minutes}"
@@ -637,13 +724,17 @@ planning:
   agent_action_log_chain_period: "Период: {start} — {end}. Событий: {count} (в файле {raw})."
   agent_action_log_range_empty: "За {start} — {end} в логе нет событий task_*."
   agent_routines_header: "Рутины ({day}):"
-  agent_mac_series_hint: "Сводка: последний Mac-снимок на день. Лента → get_mac_snapshots(from_ts, to_ts)."
+  agent_mac_series_hint: "Сводка: последний foreground на календарный день — это НЕ доля времени. Доля времени — в интервальном логе (агрегаты по всем совпадениям)."
   agent_mac_snapshots_need_range: "Укажи from_ts и/или to_ts (ISO: YYYY-MM-DD или YYYY-MM-DDTHH:MM)."
   agent_mac_snapshots_empty: "Нет Mac-снапшотов за {start} … {end}."
   agent_mac_context_content_day_note: "  ⚠ content_day={content_day} ≠ as_of_today={as_of} — «сегодня» только as_of_today"
   agent_mac_snapshots_header: "Mac-снапшоты {start} … {end}: показано {shown}/{total}"
+  agent_mac_snapshots_coverage: "Полное совпадение: n={total} first={match_first} last={match_last}. Показанный хвост: {shown} first={shown_first} last={shown_last}. Доли ниже — по всем {total}, не по хвосту."
+  agent_mac_snapshots_incomplete: "НЕПОЛНО: first={first} позже запрошенного start={requested_start}. Не трактуй более ранние даты как «источник пуст»."
+  agent_mac_snapshots_shares_header: "Доли foreground (все {total} точек, mode={mode}; не хвост сырых строк):"
+  agent_mac_snapshots_other: "other"
   agent_mac_snapshots_columns: "ts\tapp\tfocus\tbattery_pct\tsafari"
-  agent_mac_snapshots_truncated: "… последние {shown} из {total}; сузь интервал или limit=0"
+  agent_mac_snapshots_truncated: "… сырой хвост: последние {shown} из {total}; сузь интервал или limit=0. Доли выше уже по полному совпадению."
   agent_mac_snapshots_row: "{ts}\t{app}\t{focus}\t{battery_pct}\t{safari}"
   agent_kanban_today_anchor: "Канбан (дата-якорь: {today})."
   agent_kanban_today_hint: "Колонка «Сегодня» — статус канбана, не календарный день."
@@ -669,8 +760,61 @@ planning:
   agent_system_prompt_today: "Сегодня: {today}."
   agent_system_prompt_tools: "Вызывай инструменты для фактов; не выдумывай данные."
   agent_system_prompt_format: "Формат: кратко, по делу."
-  calendar_life_chart_missing_callout: "> [!info] Нет данных по секциям жизни в текущем окне календаря.\n\n"
+  calendar_life_chart_missing_callout: "> [!info] Нет данных по типам активностей в текущем окне календаря.\n\n"
   calendar_companion_updated: "_Обновлено: {now}_"
+  calendar_chart_title_week_load: "Часы в календаре по дням"
+  calendar_chart_title_activity_types: "Типы активностей (часы)"
+  calendar_dash_title: "# Встречи · {date}"
+  calendar_nav_callout: |
+    > [!abstract] Дашборды
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📊 Финансы_Дашборд|💰 Финансы]] · [[🛠 Система|🛠 Система]]
+  calendar_dash_hero_open: "> [!abstract] Неделя"
+  calendar_dash_hero_hours: "> ### {hours} ч в календаре"
+  calendar_dash_hero_mix: "> {mix}"
+  calendar_dash_hero_peak: "> Пик **{weekday} {date}** — {hours} ч · {title}"
+  calendar_dash_hero_top_type: "> Топ тип **{name}** — {hours} ч"
+  calendar_dash_hero_untyped: "> Типы ещё не размечены — смотри слоты и свободные окна ниже"
+  calendar_dash_hero_updated: "> _{date}_"
+  calendar_dash_mix_join: " · "
+  calendar_dash_mix_item: "**{name}** {hours}"
+  calendar_dash_section_load: "## Нагрузка"
+  calendar_dash_section_pressure: "## Что давит"
+  calendar_dash_section_pressure_fold: "Крупные слоты недели"
+  calendar_dash_section_unclassified: "## Не разобрано"
+  calendar_dash_section_unclassified_fold: "Ещё без типа"
+  calendar_dash_section_rhythms: "## Ритмы"
+  calendar_dash_pressure_line: "- **{weekday} {date}** · {hours} ч · {title}"
+  calendar_dash_pressure_fold_line: "- **{weekday} {date}** · {hours} ч · {title}"
+  calendar_dash_unclassified_line: "- {hours} ч · {title}"
+  calendar_dash_unclassified_fold_line: "- {hours} ч · {title}"
+  calendar_dash_rhythm_join: " · "
+  calendar_dash_rhythm_item: "×{count} {title}"
+  calendar_dash_upcoming_title: "Сегодня и завтра"
+  calendar_dash_upcoming_head: "**{n}** слотов"
+  calendar_dash_upcoming_when: "{weekday} {date} {start}–{end}"
+  calendar_dash_upcoming_line: "- **{when}** · {title}"
+  calendar_dash_upcoming_empty: "В ближайшие 48ч нет timed-слотов — можно глубоко работать."
+  calendar_dash_free_title: "Свободные окна"
+  calendar_dash_free_note: "Будни, дырки ≥1.5ч между 09:00–18:00 — кандидаты на deep work."
+  calendar_dash_free_line: "- **{weekday} {date}** · {start}–{end} ({hours} ч)"
+  calendar_dash_markers_title: "Метки дней"
+  calendar_dash_markers_note: "All-day / блок — контекст жизни, не нагрузка встречами."
+  calendar_dash_markers_line: "- **{weekday} {date}** · {title}"
+  calendar_dash_heavy_title: "Тяжёлые дни (≥3ч)"
+  calendar_dash_heavy_item: "{weekday} {date} {hours}ч"
+  calendar_companion_week_body: |
+    Часы в календаре по дням (как в слотах, без коэффициентов).
+
+    ![Нагрузка по дням]({png_name})
+
+    _Обновлено: {now}_
+  calendar_companion_activity_body: |
+    Часы по типам активностей.
+
+    ![Типы активностей]({png_name})
+
+    _Обновлено: {now}_
+  analytics_life_os_calendar_attention_note: "_Drain по календарю внутри Life OS учитывает веса типов (не факт присутствия); на дашборде встреч показываются сырые часы слотов._"
   calendar_attendance_context: |
     Слоты в календаре не равны по «стоимости внимания». Настрой свой режим (офис/удалёнка/гибрид) в этом ключе — это шаблон для владельца vault, не факты о конкретном человеке.
     События на весь день (отпуск, поездка) могут отменять рабочую нагрузку.
@@ -4882,7 +5026,28 @@ planning:
     > [!abstract] Дашборды
     > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]] · [[🛠 Система|🛠 Система]]
   analytics_hub_tip: |
-    > [!tip] Лаги D−1→D. **Аналитика = жизнь**. Агент — в Система. Обновлено: {updated}
+    > [!tip] Лаги D−1→D. **Аналитика = жизнь**. Агент — в [[🛠 Система|Система]]. Обновлено: {updated}
+  analytics_hero_open: "> [!abstract] Сегодня"
+  analytics_hero_title: "> ### {regime} · долг сна {debt} ч"
+  analytics_hero_meta: "> Capacity **{capacity}** · Output **{output}** · Drain **{drain}**"
+  analytics_hero_updated: "> _{date}_"
+  analytics_hero_empty: "> [!info] Life OS ещё нет — появится после sync analytics."
+  health_hero_open: "> [!abstract] Последний день"
+  health_hero_title: "> ### {steps} шагов"
+  health_hero_meta: "> Active **{kcal}** ккал · вес **{weight}** кг · сон **{sleep}** ч"
+  health_hero_updated: "> _{date}_"
+  health_hero_empty: "> [!info] Нет строк в master_daily_panel — жди health sync."
+  system_hero_open: "> [!abstract] Агент"
+  system_hero_title: "> ### ${cost}"
+  system_hero_meta: "> Прогонов **{runs}** · usage **{usage}%**"
+  system_hero_empty: "> [!info] Сводка стоимости агента ещё не собрана."
+  analytics_hint_body: |
+    > [!note] Вес и состав тела — тренд важнее дневного шума (смотри 7d MA на графике).
+  analytics_hint_sleep: |
+    > [!note] Сон: часы → долг → стадии. Серые полосы на долге = нет данных (метрика замирает, это не 0ч).
+  analytics_hint_correlations: |
+    > [!note] Spearman по панели дней. Сильный |ρ| ≠ причинность; смотри лаги и покрытие.
+
   analytics_overview_system_hint: |
     > [!note] Инсайты и агент → [[{system}|🛠 Система]]
   analytics_life_os_legend: |
@@ -4917,7 +5082,7 @@ planning:
   analytics_title_sleep_trend: "Сон: часы сна по дням"
   analytics_title_sleep_stages: "Сон: стадии (Deep / REM / Core / Awake)"
   analytics_title_sleep_weight: "Сон D−1 vs Δ вес завтра"
-  analytics_title_sleep_debt: "Долг сна (thermometer)"
+  analytics_title_sleep_debt: "Долг сна"
   analytics_sub_sleep_debt: "Накопленный недосып (дыры не лечат долг)"
   analytics_section_life_os: "🧬 Life OS — режим дня"
   analytics_sub_life_os_scores: "Capacity / Output / Drain (перцентиль окна)"
@@ -4931,6 +5096,22 @@ planning:
   analytics_label_sleep_hours_axis: "Сон (ч)"
   analytics_label_sleep_target: "Цель сна"
   analytics_label_percentile_axis: "Перцентиль окна 0–100"
+  analytics_label_sleep_gap: "нет данных (долг заморожен)"
+  trace_insight_empty_window: "Нет прогонов агента в выбранном окне — включи AGENT_TRACE=1."
+  trace_insight_no_data: "Нет данных."
+  trace_insight_usage_low: "Покрытие usage {cov:.0f}% — в streaming-раундах токены могут не приходить; дашборд оценивает пропуски по размеру контекста."
+  trace_insight_usage_ok: "Покрытие usage {cov:.0f}% на {rounds} LLM-раундах."
+  trace_insight_avg_rounds: "В среднем {avg:.1f} LLM-раундов на прогон — стоит проверить лишние циклы инструментов или ужесточить max_tool_calls."
+  trace_insight_avg_tools: "В среднем {avg:.1f} инструментов выбирается на прогон — бюджет выбора широкий; меньший набор режет токены промпта."
+  trace_insight_tool_budget: "{n} прогон(ов) упёрлись в tool_budget — ответы могли обрезаться."
+  trace_insight_cost: "~${cost:.4f} оценка за {days}д (${per:.5f}/прогон)."
+  trace_insight_top_tool: "Самый частый инструмент: {name} ×{n}."
+  analytics_sleep_debt_how: |
+    ## Как читать
+
+    **Сверху** — сон по дням. Пустые слоты = нет данных, не 0ч.
+
+    **Снизу** — долг; на дырках замирает (белые точки).
   analytics_regime_flow: "Flow — ёмкость↑ + выдача↑"
   analytics_regime_charge: "Charge — ёмкость↑, выдача↓"
   analytics_regime_overreach: "Overreach — выдача при ёмкости↓"
@@ -4938,30 +5119,89 @@ planning:
   system_hub_title: "🛠 Система"
   system_nav_callout: |
     > [!abstract] Дашборды
-    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[📊 Финансы_Дашборд|💰 Финансы]]
+    > [[🎯 Главный_Дашборд|🎯 Главный]] · [[📊 Прогресс_2026|📊 Прогресс]] · [[🏥 Здоровье|🏥 Здоровье]] · [[🔬 Аналитика|🔬 Аналитика]] · [[📅 Встречи_и_фокус_недели|📅 Встречи]] · [[📊 Финансы_Дашборд|💰 Финансы]]
   system_hub_tip: |
-    > [!tip] Агент, инсайты, аудиты. Обновлено: {updated}
+    > [!tip] Стоимость агента и аудиты. Жизнь — в [[🔬 Аналитика|Аналитика]]. Обновлено: {updated}
+  system_hint_agent: |
+    > [!note] ₽/день и токены — контроль бюджета LLM; тулы — что реально дергает агент.
+
   system_section_insights: "📋 Инсайты (текст)"
   system_section_agent: "🤖 Стоимость агента"
   system_section_audits: "📝 Отчёты"
   system_sub_agent_cost: "Стоимость по дням"
   system_sub_agent_tokens: "Токены"
   system_sub_agent_tools: "Инструменты"
+  system_link_agent_cost_detail: "Таблицы и наблюдения"
+  system_agent_cost_detail_tip: |
+    > [!note]- Детали (таблицы, домены) — без дубля графиков
+    > {link}
   system_link_system_audit: "Аудит системы"
   system_link_vault_audit: "Аудит хранилища"
+  system_audit_title: "Аудит системы"
+  system_audit_snapshot_title: "Снимок"
+  system_audit_readonly: "только чтение"
+  system_audit_status_title: "Статус"
+  system_audit_status_head: "{ok}/{total} маркеров свежие (<24ч)"
+  system_audit_no_fresh: "Нет свежих маркеров"
+  system_audit_stale_title: "Протухло / нет файла"
+  system_audit_sync_ok_title: "Синк в норме"
+  system_audit_sync_ok_body: "Все ключевые маркеры обновлялись за сутки."
+  system_audit_markers_heading: "Маркеры `.sync/`"
+  system_audit_marker_body: "содержимое: `{content}`"
+  system_audit_marker_age: "возраст {hours}ч"
+  system_audit_health_last: "Последняя проверка"
+  system_audit_health_tail: "хвост (5 строк)"
+  system_audit_empty: "пусто"
+  system_audit_file_missing: "файл не найден"
+  system_audit_kanban_heading: "Канбан"
+  system_audit_kanban_title: "Доска"
+  system_audit_kanban_board: "доска `{name}` · mtime {mtime}"
+  system_audit_kanban_state: "`kanban_state.json`: **{n}** записей · {mtime}"
+  system_audit_kanban_state_err: "`kanban_state.json`: ошибка чтения ({err})"
+  system_audit_kanban_state_missing: "`kanban_state.json` нет"
+  system_audit_actions_heading: "Action-логи"
+  system_audit_actions_title: "Логи действий"
+  system_audit_actions_head: "**{files}** файлов · **{events}** событий"
+  system_audit_actions_recent: "Последние файлы (4)"
+  system_audit_actions_err: "парсер: {err}"
+  system_audit_actions_missing: "каталог логов не найден"
+  system_audit_howto_title: "Как читать"
+  system_audit_howto_body: "**mtime** — когда файл трогали на диске. **Содержимое маркера** — последняя успешная операция. `health.log` — последняя строка + свёрнутый хвост из 5."
   system_hub_footer: |
     > [!info] Жизненные графики — [[🔬 Аналитика]].
   kanban_flow_deadline_coverage: "с дедлайном {with_dl} / без {without}"
   kanban_flow_deadline_panel_timed: "С дедлайном"
-  kanban_flow_deadline_panel_none: "Без дедлайна"
+  kanban_flow_deadline_panel_none: "С vs без дедлайна"
   analytics_title_panel_corr: "Корреляции master panel (Spearman)"
   analytics_title_tasks_sleep: "Задачи и сон (lag1), z-score 7d MA"
   analytics_heading_coverage: "Покрытие данных"
-  analytics_heading_hypothesis_table: "Таблица гипотез (top |ρ|)"
-  analytics_heading_top_hypotheses: "Топ гипотез (FDR)"
-  analytics_heading_partial_weight: "Partial: сон → Δвес завтра | вес lag1"
+  analytics_heading_hypothesis_table: "Сырая таблица (top |ρ|)"
+  analytics_heading_top_hypotheses: "Подтверждённые (FDR)"
+  analytics_heading_weak_signals: "Слабые сигналы (top |ρ|)"
+  analytics_heading_partial_weight: "Partial: сон → Δвес завтра"
   analytics_no_hypotheses: "Пока недостаточно данных для sleep-гипотез (нужно ≥8 дней с сном)."
   analytics_no_fdr_significant: "Пока нет FDR<0.05 — ниже top-|ρ| без коррекции:"
+  analytics_insights_updated_title: "Обновлено"
+  analytics_insights_window_line: "окно **{window_days}** дн. · панель **{days}**"
+  analytics_insights_verdict_title: "Вердикт"
+  analytics_insights_verdict_none_head: "Ничего не подтверждено"
+  analytics_insights_verdict_none: "FDR < {alpha}: **0**. Сырых p<0.05: **{raw}** — направление есть, факта нет."
+  analytics_insights_verdict_ok: "**{n}** гипотез с FDR < {alpha}"
+  analytics_insights_verdict_sleep_gap: "Сон всего **{days}/{total}** дней — для уверенных выводов мало."
+  analytics_insights_weak_note: "Не FDR-значимы — читай как направление, не как факт."
+  analytics_insights_partial_note: "Контроль: вес вчера. Та же оговорка — без FDR-подтверждения."
+  analytics_cov_tag_thin: "слабо"
+  analytics_cov_tag_gaps: "дыры"
+  analytics_feat_sleep_hours: "часы сна"
+  analytics_feat_sleep_awake_min: "пробуждения"
+  analytics_feat_sleep_deep_min: "глубокий сон"
+  analytics_feat_sleep_core_min: "core-сон"
+  analytics_feat_sleep_rem_min: "REM"
+  analytics_feat_sleep_deep_ratio: "доля deep"
+  analytics_feat_sleep_core_ratio: "доля core"
+  analytics_feat_sleep_rem_ratio: "доля REM"
+  analytics_feat_hrv_ms: "HRV"
+  analytics_feat_resting_hr: "пульс покоя"
   analytics_label_sleep_hours: "сон, ч"
   analytics_label_sleep_hours_lag1: "сон D−1, ч"
   analytics_label_hrv: "HRV"

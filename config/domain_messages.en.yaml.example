@@ -57,14 +57,28 @@ chart_tools:
   stale_hint: "{count} chart(s) older than {hours}h — consider refresh_vault_charts."
   caption: "{key} [{family}]"
   send_ok: "Queued {count} chart(s) for delivery (total queued={queued}): {names}"
+  send_delivered: "Sent to chat: {count} chart(s): {names}"
+  send_failed: "Could not send charts ({names}). File missing or Telegram rejected the photo."
   refresh_disabled: "Chart refresh is disabled (chart_refresh.enabled in platform config)."
   refresh_unknown: "No allowlisted builder for builder={builder} family={family}. Available: {available}"
   refresh_done: "Chart rebuild finished: {ok}/{total} builders ok."
 
 series_tools:
-  empty_input: "Both series_a and series_b are required (YYYY-MM-DD|value lines)."
+  empty_input: "Need two prior tool tables with YYYY-MM-DD values, or pass series_a and series_b."
   no_points: "No parseable day/value points found in either series."
   header: "Aligned day series:"
+  tally_empty: "No timestamped category table in prior tools. Call the log for the period first, then the share aggregator with empty series."
+  tally_header: "Shares of «{column}» ({mode}), source: {source}:"
+  tally_coverage: "coverage: n={n} first={first} last={last} median_gap={gap}"
+  tally_other: "other"
+
+log_dump:
+  coverage: "requested {start}…{end}. full match: n={n} first={match_first} last={match_last}. shown: {shown} first={shown_first} last={shown_last}. Aggregates below cover ALL {n}, not the shown slice."
+  incomplete_start: "INCOMPLETE: first={first} after requested start={requested_start}. Do not treat earlier timestamps as missing-from-source."
+  incomplete_end: "INCOMPLETE: shown last={last}; full match continues to {requested_end}. Do not treat later timestamps as missing-from-source."
+  slice_note: "Raw slice is a {kind}: {shown}/{total} rows. Aggregates above already cover the full match."
+  shares_header: "Shares of «{column}» (all {n} points, mode={mode}):"
+  other: "other"
 
 knowledge_write:
   disabled: "Knowledge writes disabled (set KNOWLEDGE_AGENT_WRITES=1)."
@@ -201,11 +215,11 @@ finance_txn_query:
   broker_header: 'Broker and external balances:'
   debts_empty: 'Debts: (no debt accounts)'
   debts_header: 'Debts (external_balance on counterparty accounts):'
-  expenses_total: 'Total expenses: {total:,.0f} RUB'
+  expenses_total: 'Total expenses: {total} RUB'
   no_expenses_in_period: (no expenses in period)
   category_filter: 'filter={category} (parent matches children)'
   by_day_header: 'By day:'
-  by_day_line: '  {day}: {total:,.0f} ({detail})'
+  by_day_line: '  {day}: {total} ({detail})'
   payable_line: '  I owe — {name}: {balance} {currency}'
   receivable_line: '  I''m owed — {name}: {balance} {currency}'
 invest_report:
@@ -352,6 +366,10 @@ knowledge_maintenance:
   regex_export_deleted_total: EXPORT_ORPHANS_DELETED_TOTAL:\s*count=(\d+)\s+bytes=(\d+)
   regex_export_broken_refs_cleaned: EXPORT_BROKEN_REFS_CLEANED_NOTES:\s*count=(\d+)
   regex_export_broken_body_refs_cleaned: EXPORT_BROKEN_BODY_REFS_CLEANED_NOTES:\s*count=(\d+)
+  report_dynamics_open: "> [!abstract] Dynamics"
+  report_dynamics_hist: "> History in `{history_path}`"
+  report_days_fold: "> [!note]- Last **{days}** days"
+  report_day_line: "> - **{date}** · runs {runs} · Δ {delta} · −dup {dup} · −repr∅ {empty} · retag {retag} · repr✓ {repr_ok} · {ok}"
   report_chart_pending: '*Chart will appear after ≥1 history entry and with `matplotlib`
     installed in report generation environment.*'
   report_intro: 'Snapshot history and step totals (`vault_daily_maintenance`): data
@@ -418,6 +436,11 @@ knowledge_vault_audit:
   step_unknown: '{step}'
   step_ok: ok
   step_fail: fail
+  maint_steps_fold: "Run steps ({count})"
+  maint_step_ok_line: "🟢 **{label}** — {seconds}s"
+  maint_step_fail_line: "🔴 **{label}** — {seconds}s"
+  maint_step_detail: "`{snippet}`"
+  maint_step_warn_detail: "⚠️ `{snippet}`"
   maint_step_line: '  - [{status}] **{label}** — {seconds:.1f}s'
   maint_stdout_line: '    > {line}'
   maint_stderr_line: '    ! {line}'
@@ -425,6 +448,32 @@ knowledge_vault_audit:
   maint_hub_row: '  - `{name}` — {links} links (updated {mtime})'
   maint_hub_row_short: '  - `{name}` (updated {mtime})'
   maint_hubs_missing: '**Hubs**: `{hubs_rel}/` not created yet (run `sync_hubs.py --apply`)'
+  maint_hubs_ok_open: "> [!success] Hubs (`{path}/`)"
+  maint_hubs_ok_head: "> ### {count} files"
+  maint_hub_callout_row: "> - `{name}` — **{links}** links · {mtime}"
+  maint_hub_callout_row_short: "> - `{name}` · {mtime}"
+  maint_hubs_warn_open: "> [!warning] Hubs"
+  maint_hubs_warn_body: "> `{hubs_rel}/` missing — `sync_hubs.py --apply`"
+  dups_abstract_open: "> [!abstract] Duplicates"
+  dups_abstract_head: "> ### {groups} duplicate groups"
+  dups_abstract_meta: "> Notes **{total}** · `_N` **{suffix}** · series {generic} · content {content}"
+  dups_clean_open: "> [!success] Clean"
+  dups_clean_body: "> No duplicate groups (≥2).{extra}"
+  dups_clean_suffix_note: " Lone `_N` names: **{suffix}**."
+  dups_warn_open: "> [!warning] Duplicate groups"
+  dups_warn_body: "> Series: **{generic}** · content: **{content}**"
+  dups_trash_ok_open: "> [!success] Trash candidates"
+  dups_trash_ok_body: "> No short junk names to delete"
+  maint_deleted_paths_open: "> [!note] Deleted paths · `{ts}`"
+  maint_deleted_paths_more: "> - … plus {count}"
+  report_updated_callout: "> [!info] Updated"
+  report_updated_body: "> _{timestamp}_"
+  maint_reprocess_queue_open: "> [!{kind}] Reprocess queue"
+  maint_reprocess_queue_body: "> Total **{total}** · pending **{eligible}**{skip}"
+  maint_reprocess_row: "> - `{path}`"
+  maint_reprocess_more_callout: "> - … plus {count}"
+  maint_reprocess_empty_open: "> [!success] Reprocess queue"
+  maint_reprocess_empty_body: "> No matches for `reprocess.yaml`"
   maint_ontology: '**Tag ontology**: {count} mappings in `config/tag_ontology.yaml`'
   maint_ontology_error: '**Tag ontology**: config read error'
   maint_ontology_missing: '**Tag ontology**: config not found'
@@ -644,6 +693,12 @@ memory_layers:
   pending_line: '  • [{domain}, {date}, {kind}] {text} (candidate, ×{count})'
   durable_header: 'Durable observations:'
   periodic_header: 'Periodic observations (TTL):'
+  core_header: '## Priors (confirmed)'
+  core_line: '- [{domain}/{kind}] {text}'
+  situation_header: '## Now'
+  situation_calendar: 'Calendar today:'
+  situation_wip: 'In work:'
+  situation_wip_none: 'In work: empty'
   profile_unset: (profile not set)
   unknown_scope: 'Unknown scope/domain: {scope}. Allowed: current, global, all, finance,
     planning, knowledge.'
@@ -714,7 +769,7 @@ planning:
   agent_calendar_analytics_header: "Calendar analytics: anchor={anchor}, horizon={horizon} d."
   agent_calendar_analytics_minutes: "Meeting minutes in window: {minutes}"
   agent_calendar_analytics_tags: "Tags: {tags}"
-  agent_calendar_analytics_sections: "Life sections: {sections}"
+  agent_calendar_analytics_sections: "Activity types: {sections}"
   agent_calendar_analytics_daily_header: "Per day (timed meetings):"
   agent_calendar_analytics_daily_columns: "date\tweekday\tmeetings\tminutes"
   agent_calendar_analytics_daily_row: "{date}\t{weekday}\t{meetings}\t{minutes}"
@@ -741,13 +796,17 @@ planning:
   agent_action_log_chain_period: "Period: {start} — {end}. Events: {count} (in file {raw})."
   agent_action_log_range_empty: "No task_* events for {start} — {end}."
   agent_routines_header: "Routines ({day}):"
-  agent_mac_series_hint: "Summary: last Mac snapshot per day. Timeline → get_mac_snapshots(from_ts, to_ts)."
+  agent_mac_series_hint: "Summary: last foreground app per calendar day — NOT time spent. Duration share is in the interval log (aggregates over all matches)."
   agent_mac_snapshots_need_range: "Provide from_ts and/or to_ts (ISO: YYYY-MM-DD or YYYY-MM-DDTHH:MM)."
   agent_mac_snapshots_empty: "No Mac snapshots for {start} … {end}."
   agent_mac_context_content_day_note: "  ⚠ content_day={content_day} ≠ as_of_today={as_of} — use as_of_today as «today»"
   agent_mac_snapshots_header: "Mac snapshots {start} … {end}: showing {shown}/{total}"
+  agent_mac_snapshots_coverage: "Full match: n={total} first={match_first} last={match_last}. Shown tail: {shown} first={shown_first} last={shown_last}. Shares below cover all {total}, not the tail."
+  agent_mac_snapshots_incomplete: "INCOMPLETE: first={first} is after requested start={requested_start}. Do not treat earlier dates as an empty source."
+  agent_mac_snapshots_shares_header: "Foreground shares (all {total} points, mode={mode}; not the raw tail):"
+  agent_mac_snapshots_other: "other"
   agent_mac_snapshots_columns: "ts\tapp\tfocus\tbattery_pct\tsafari"
-  agent_mac_snapshots_truncated: "… last {shown} of {total}; narrow interval or limit=0"
+  agent_mac_snapshots_truncated: "… raw tail: last {shown} of {total}; narrow interval or limit=0. Shares above already cover the full match."
   agent_mac_snapshots_row: "{ts}\t{app}\t{focus}\t{battery_pct}\t{safari}"
   agent_kanban_today_anchor: "Kanban (date anchor: {today})."
   agent_kanban_today_hint: "Column «Today» is kanban status, not calendar date."
@@ -4955,32 +5014,91 @@ planning:
     vault owner, not facts about a specific person.
 
     All-day events (vacation, trip) can cancel the workload.'
-  calendar_companion_updated: '_Updated: {now}_'
-  calendar_life_chart_missing_callout: '> [!info] No data on life sections in the
-    current calendar window.
+  calendar_companion_updated: "_Updated: {now}_"
+  calendar_chart_title_week_load: "Calendar hours by day"
+  calendar_chart_title_activity_types: "Activity types (hours)"
+  calendar_dash_title: "# Meetings · {date}"
+  calendar_nav_callout: |
+    > [!abstract] Dashboards
+    > [[Main_Dashboard|Main]] · [[Progress_2026|Progress]] · [[Health|Health]] · [[Analytics|Analytics]] · [[Finance_Dashboard|Finance]] · [[System|System]]
+  calendar_dash_hero_open: "> [!abstract] This week"
+  calendar_dash_hero_hours: "> ### {hours} h on calendar"
+  calendar_dash_hero_mix: "> {mix}"
+  calendar_dash_hero_peak: "> Peak **{weekday} {date}** — {hours} h · {title}"
+  calendar_dash_hero_top_type: "> Top type **{name}** — {hours} h"
+  calendar_dash_hero_untyped: "> Types not labeled yet — see slots and free windows below"
+  calendar_dash_hero_updated: "> _{date}_"
+  calendar_dash_mix_join: " · "
+  calendar_dash_mix_item: "**{name}** {hours}"
+  calendar_dash_section_load: "## Load"
+  calendar_dash_section_pressure: "## What presses"
+  calendar_dash_section_pressure_fold: "Large slots this week"
+  calendar_dash_section_unclassified: "## Unclassified"
+  calendar_dash_section_unclassified_fold: "Still untyped"
+  calendar_dash_section_rhythms: "## Rhythms"
+  calendar_dash_pressure_line: "- **{weekday} {date}** · {hours} h · {title}"
+  calendar_dash_pressure_fold_line: "- **{weekday} {date}** · {hours} h · {title}"
+  calendar_dash_unclassified_line: "- {hours} h · {title}"
+  calendar_dash_unclassified_fold_line: "- {hours} h · {title}"
+  calendar_dash_rhythm_join: " · "
+  calendar_dash_rhythm_item: "×{count} {title}"
+  calendar_dash_upcoming_title: "Today and tomorrow"
+  calendar_dash_upcoming_head: "**{n}** slots"
+  calendar_dash_upcoming_when: "{weekday} {date} {start}–{end}"
+  calendar_dash_upcoming_line: "- **{when}** · {title}"
+  calendar_dash_upcoming_empty: "No timed slots in the next 48h — deep-work time."
+  calendar_dash_free_title: "Free windows"
+  calendar_dash_free_note: "Weekday gaps ≥1.5h between 09:00–18:00 — deep-work candidates."
+  calendar_dash_free_line: "- **{weekday} {date}** · {start}–{end} ({hours} h)"
+  calendar_dash_markers_title: "Day markers"
+  calendar_dash_markers_note: "All-day / block — life context, not meeting load."
+  calendar_dash_markers_line: "- **{weekday} {date}** · {title}"
+  calendar_dash_heavy_title: "Heavy days (≥3h)"
+  calendar_dash_heavy_item: "{weekday} {date} {hours}h"
+  calendar_companion_week_body: |
+    Calendar hours by day (raw slots, no coefficients).
+
+    ![Daily load]({png_name})
+
+    _Updated: {now}_
+  calendar_companion_activity_body: |
+    Hours by activity type.
+
+    ![Activity types]({png_name})
+
+    _Updated: {now}_
+  analytics_life_os_calendar_attention_note: "_Life OS Drain applies type weights internally (not attendance); the meetings dashboard shows raw slot hours._"
+  calendar_life_chart_missing_callout: '> [!info] No data on life sections in the current calendar window.
 
 
     '
-  history_day_empty: 'No task_moved / task_completed / task_created events in logs
-    for {day}. Directory: {logs_dir}'
+  kanban_sort_recent_warning: ⚠️ Kanban file modified {seconds:.0f} sec ago (< {window} sec), skipping sort.
+  kanban_snapshot_hint: Kanban snapshot in context — current file state; if it differs from log, use log
+    for "what happened" and board for "where task is now".
+  history_day_empty: 'No task_moved / task_completed / task_created events in logs for {day}. Directory:
+    {logs_dir}'
   history_day_line: 'Day: {day}. events: {count} (in daily file was {raw}).'
   history_days_empty: No actions in the last {days} days.
   history_days_header: 'Action history for the last {days} days (since {period_start}):
 
     '
-  history_hours_empty: 'No task_moved / task_completed / task_created events in logs
-    for the last ~{hours:.0f} hours (or log file is unavailable). Log directory: {logs_dir}'
+  history_hours_empty: 'No task_moved / task_completed / task_created events in logs for the last ~{hours:.0f}
+    hours (or log file is unavailable). Log directory: {logs_dir}'
   history_truncated_events: (Truncated to last {max_events} events — window had more.)
   history_truncated_safety: (Truncated to last {limit} events — chain too long.)
   history_week_header: 'Action history for the last week (since {week_start}):
 
     '
-  history_window_line: 'Window: from {start} to {end} (~{hours:.0f} hours). events
-    in chain: {count} (in window file was {raw}).'
-  kanban_snapshot_hint: Kanban snapshot in context — current file state; if it differs
-    from log, use log for "what happened" and board for "where task is now".
-  kanban_sort_recent_warning: ⚠️ Kanban file modified {seconds:.0f} sec ago (< {window}
-    sec), skipping sort.
+  history_window_line: 'Window: from {start} to {end} (~{hours:.0f} hours). events in chain: {count} (in
+    window file was {raw}).'
+  analytics_hint_body: '> [!tip] Life metrics and regimes. Agent cost — in [[System|System]]. Updated: {updated}
+
+    '
+  analytics_hint_sleep: Sleep and recovery
+  analytics_hint_correlations: Cross-domain notes
+  system_hint_agent: '> [!note] $/day and tokens — LLM budget; tools — what the agent actually calls.
+
+    '
   kanban_sort_skip_no_columns: 'kanban_sort: skipped — no columns in planning_bot/config/kanban_schema.yaml
     (copy from kanban_schema.yaml.example).'
   kanban_archive_step_name: Kanban archive (monthly)
@@ -5079,6 +5197,20 @@ planning:
     > [[🎯 Main_Dashboard|🎯 Main]] · [[📊 Progress_2026|📊 Progress]] · [[🏥 Health|🏥 Health]] · [[📅 Meetings_and_week_focus|📅 Meetings]] · [[📊 Finance_Dashboard|💰 Finance]] · [[🛠 System|🛠 System]]
   analytics_hub_tip: |
     > [!tip] D−1→D lags. **Analytics = life**. Agent → System. Updated: {updated}
+  analytics_hero_open: "> [!abstract] Today"
+  analytics_hero_title: "> ### {regime} · sleep debt {debt} h"
+  analytics_hero_meta: "> Capacity **{capacity}** · Output **{output}** · Drain **{drain}**"
+  analytics_hero_updated: "> _{date}_"
+  analytics_hero_empty: "> [!info] No Life OS yet — appears after analytics sync."
+  health_hero_open: "> [!abstract] Latest day"
+  health_hero_title: "> ### {steps} steps"
+  health_hero_meta: "> Active **{kcal}** kcal · weight **{weight}** kg · sleep **{sleep}** h"
+  health_hero_updated: "> _{date}_"
+  health_hero_empty: "> [!info] No master_daily_panel rows yet — wait for health sync."
+  system_hero_open: "> [!abstract] Agent"
+  system_hero_title: "> ### ${cost}"
+  system_hero_meta: "> Runs **{runs}** · usage **{usage}%**"
+  system_hero_empty: "> [!info] Agent cost summary not built yet."
   analytics_overview_system_hint: |
     > [!note] Insights & agent cost → [[{system}|🛠 System]]
   analytics_life_os_legend: |
@@ -5113,7 +5245,7 @@ planning:
   analytics_title_sleep_trend: "Sleep: hours per day"
   analytics_title_sleep_stages: "Sleep stages (Deep / REM / Core / Awake)"
   analytics_title_sleep_weight: "Sleep D−1 vs Δ weight tomorrow"
-  analytics_title_sleep_debt: "Sleep debt (thermometer)"
+  analytics_title_sleep_debt: "Sleep debt"
   analytics_sub_sleep_debt: "Accumulated shortfall (gaps do not heal debt)"
   analytics_section_life_os: "🧬 Life OS — day regime"
   analytics_sub_life_os_scores: "Capacity / Output / Drain (window percentile)"
@@ -5127,6 +5259,22 @@ planning:
   analytics_label_sleep_hours_axis: "Sleep (h)"
   analytics_label_sleep_target: "Sleep target"
   analytics_label_percentile_axis: "Window percentile 0–100"
+  analytics_label_sleep_gap: "no data (debt frozen)"
+  trace_insight_empty_window: "No agent runs in the selected window — enable AGENT_TRACE=1."
+  trace_insight_no_data: "No data."
+  trace_insight_usage_low: "Usage coverage {cov:.0f}% — streaming rounds may omit tokens; dashboard estimates gaps from context size."
+  trace_insight_usage_ok: "Usage coverage {cov:.0f}% across {rounds} LLM rounds."
+  trace_insight_avg_rounds: "Avg {avg:.1f} LLM rounds per run — check extra tool loops or tighten max_tool_calls."
+  trace_insight_avg_tools: "Avg {avg:.1f} tools selected per run — wide selection budget; a smaller set cuts prompt tokens."
+  trace_insight_tool_budget: "{n} run(s) hit tool_budget — answers may be truncated."
+  trace_insight_cost: "~${cost:.4f} estimate over {days}d (${per:.5f}/run)."
+  trace_insight_top_tool: "Most frequent tool: {name} x{n}."
+  analytics_sleep_debt_how: |
+    ## How to read
+
+    **Top** — hours slept. Empty slots are missing data, not 0h.
+
+    **Bottom** — debt; gaps freeze it (hollow points).
   analytics_regime_flow: "Flow — capacity↑ + output↑"
   analytics_regime_charge: "Charge — capacity↑, output↓"
   analytics_regime_overreach: "Overreach — output with capacity↓"
@@ -5143,21 +5291,77 @@ planning:
   system_sub_agent_cost: "Cost by day"
   system_sub_agent_tokens: "Tokens"
   system_sub_agent_tools: "Tools"
+  system_link_agent_cost_detail: "Tables and notes"
+  system_agent_cost_detail_tip: |
+    > [!note]- Detail (tables, domains) — no chart duplicate
+    > {link}
   system_link_system_audit: "System audit"
   system_link_vault_audit: "Vault audit"
+  system_audit_title: "System audit"
+  system_audit_snapshot_title: "Snapshot"
+  system_audit_readonly: "read-only"
+  system_audit_status_title: "Status"
+  system_audit_status_head: "{ok}/{total} markers fresh (<24h)"
+  system_audit_no_fresh: "No fresh markers"
+  system_audit_stale_title: "Stale / missing"
+  system_audit_sync_ok_title: "Sync OK"
+  system_audit_sync_ok_body: "All key markers updated within 24h."
+  system_audit_markers_heading: "`.sync/` markers"
+  system_audit_marker_body: "content: `{content}`"
+  system_audit_marker_age: "age {hours}h"
+  system_audit_health_last: "Latest check"
+  system_audit_health_tail: "tail (5 lines)"
+  system_audit_empty: "empty"
+  system_audit_file_missing: "file not found"
+  system_audit_kanban_heading: "Kanban"
+  system_audit_kanban_title: "Board"
+  system_audit_kanban_board: "board `{name}` · mtime {mtime}"
+  system_audit_kanban_state: "`kanban_state.json`: **{n}** records · {mtime}"
+  system_audit_kanban_state_err: "`kanban_state.json` read error ({err})"
+  system_audit_kanban_state_missing: "`kanban_state.json` missing"
+  system_audit_actions_heading: "Action logs"
+  system_audit_actions_title: "Action logs"
+  system_audit_actions_head: "**{files}** files · **{events}** events"
+  system_audit_actions_recent: "Recent files (4)"
+  system_audit_actions_err: "parser: {err}"
+  system_audit_actions_missing: "logs directory not found"
+  system_audit_howto_title: "How to read"
+  system_audit_howto_body: "**mtime** = disk touch time. Marker content = last successful op. `health.log` = last line + collapsed 5-line tail."
   system_hub_footer: |
     > [!info] Life charts — [[🔬 Analytics]].
   kanban_flow_deadline_coverage: "with deadline {with_dl} / without {without}"
   kanban_flow_deadline_panel_timed: "With deadline"
-  kanban_flow_deadline_panel_none: "No deadline"
+  kanban_flow_deadline_panel_none: "With vs without deadline"
   analytics_title_panel_corr: "Master panel correlations (Spearman)"
   analytics_title_tasks_sleep: "Tasks & sleep (lag1), z-score 7d MA"
   analytics_heading_coverage: "Data coverage"
-  analytics_heading_hypothesis_table: "Hypothesis table (top |ρ|)"
-  analytics_heading_top_hypotheses: "Top hypotheses (FDR)"
-  analytics_heading_partial_weight: "Partial: sleep → Δweight tomorrow | weight lag1"
+  analytics_heading_hypothesis_table: "Raw table (top |ρ|)"
+  analytics_heading_top_hypotheses: "Confirmed (FDR)"
+  analytics_heading_weak_signals: "Weak signals (top |ρ|)"
+  analytics_heading_partial_weight: "Partial: sleep → Δweight tomorrow"
   analytics_no_hypotheses: "Not enough sleep data for hypotheses yet (need ≥8 days with sleep)."
   analytics_no_fdr_significant: "No FDR<0.05 yet — top-|ρ| without correction:"
+  analytics_insights_updated_title: "Updated"
+  analytics_insights_window_line: "window **{window_days}**d · panel **{days}**"
+  analytics_insights_verdict_title: "Verdict"
+  analytics_insights_verdict_none_head: "Nothing confirmed"
+  analytics_insights_verdict_none: "FDR < {alpha}: **0**. Raw p<0.05: **{raw}** — direction only, not a fact."
+  analytics_insights_verdict_ok: "**{n}** hypotheses with FDR < {alpha}"
+  analytics_insights_verdict_sleep_gap: "Sleep only **{days}/{total}** days — too thin for confidence."
+  analytics_insights_weak_note: "Not FDR-significant — read as direction, not fact."
+  analytics_insights_partial_note: "Control: yesterday weight. Same caveat — not FDR-confirmed."
+  analytics_cov_tag_thin: "thin"
+  analytics_cov_tag_gaps: "gaps"
+  analytics_feat_sleep_hours: "sleep hours"
+  analytics_feat_sleep_awake_min: "awake minutes"
+  analytics_feat_sleep_deep_min: "deep sleep"
+  analytics_feat_sleep_core_min: "core sleep"
+  analytics_feat_sleep_rem_min: "REM"
+  analytics_feat_sleep_deep_ratio: "deep ratio"
+  analytics_feat_sleep_core_ratio: "core ratio"
+  analytics_feat_sleep_rem_ratio: "REM ratio"
+  analytics_feat_hrv_ms: "HRV"
+  analytics_feat_resting_hr: "resting HR"
   analytics_label_sleep_hours: "sleep, h"
   analytics_label_sleep_hours_lag1: "sleep D−1, h"
   analytics_label_hrv: "HRV"
