@@ -2,11 +2,11 @@
 """Build Obsidian dashboard for agent cost / tokens / tools / latency.
 
 Reads logs/agent_traces.jsonl (no message bodies) and writes:
-  - vault markdown dashboard (tables + mermaid + optional PNGs)
+  - vault markdown dashboard (tables + optional PNGs)
   - logs/agent_trace_summary.json
 
 Usage:
-  PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --days 14
+  PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --days 30
   PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --path logs/agent_traces.jsonl --vault "$VAULT_PATH"
 """
 from __future__ import annotations
@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -80,8 +79,13 @@ def _try_plot_lines(path: Path, title: str, xs: list[str], ys: list[float], ylab
     ax.plot(range(len(ys)), ys, marker="o", linewidth=2)
     ax.set_title(title)
     ax.set_ylabel(ylabel)
-    ax.set_xticks(range(len(xs)))
-    ax.set_xticklabels(xs, rotation=45, ha="right", fontsize=8)
+    n = len(xs)
+    step = 1 if n <= 16 else max(1, n // 10)
+    ticks = list(range(0, n, step))
+    if ticks[-1] != n - 1:
+        ticks.append(n - 1)
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([xs[i] for i in ticks], rotation=45, ha="right", fontsize=8)
     ax.grid(True, alpha=0.25)
     fig.tight_layout()
     fig.savefig(path, dpi=140)
@@ -129,9 +133,10 @@ def render_markdown(
     cost_png: Path | None,
     tools_png: Path | None,
 ) -> str:
-    from shared.charts.mermaid import mermaid_pie, mermaid_xychart_lines
+    from shared.charts.mermaid import mermaid_pie
+    from shared.tz import now_in_tz
 
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    ts = now_in_tz().strftime("%Y-%m-%d %H:%M")
     d = summary.as_dict()
     lines: list[str] = [
         "# ✦ Стоимость агента",
@@ -180,32 +185,6 @@ def render_markdown(
             lines.append(
                 f"| {row['date']} | {row['runs']} | {row['tokens']:,} | "
                 f"${row['est_cost_usd']:.4f} | {row['tool_calls']} |"
-            )
-        xs = [r["date"][5:] for r in daily[-14:]]  # MM-DD
-        tok = [float(r["tokens"]) for r in daily[-14:]]
-        cost = [float(r["est_cost_usd"]) * 10000 for r in daily[-14:]]  # scale for chart
-        if len(xs) >= 2:
-            lines.extend(
-                [
-                    "",
-                    "```mermaid",
-                    mermaid_xychart_lines(
-                        xs,
-                        {"tokens": tok},
-                        "Токены по дням",
-                        y_label="токены",
-                    ),
-                    "```",
-                    "",
-                    "```mermaid",
-                    mermaid_xychart_lines(
-                        xs,
-                        {"cost_x1e4": cost},
-                        "Оценка стоимости (USD ×10000)",
-                        y_label="USD*10000",
-                    ),
-                    "```",
-                ]
             )
     else:
         lines.append("_По дням пока нет строк._")
@@ -265,8 +244,8 @@ def render_markdown(
             "## Как обновить",
             "",
             "```bash",
-            "PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --days 14",
-            "# или: PYTHONPATH=. python scripts/agent_trace_rollup.py --days 14 --json",
+            "PYTHONPATH=. python scripts/build_agent_cost_dashboard.py --days 30",
+            "# или: PYTHONPATH=. python scripts/agent_trace_rollup.py --days 30 --json",
             "```",
             "",
             "Цены: `config/agent/platform.yaml` → `agent_trace.pricing` "
@@ -280,7 +259,7 @@ def render_markdown(
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Build agent cost dashboard for Obsidian")
     p.add_argument("--path", type=Path, default=None, help="agent_traces.jsonl")
-    p.add_argument("--days", type=int, default=14)
+    p.add_argument("--days", type=int, default=30)
     p.add_argument("--vault", type=Path, default=None)
     p.add_argument("--out", type=Path, default=None, help="Override markdown path")
     p.add_argument("--no-png", action="store_true")
@@ -291,7 +270,7 @@ def main(argv: list[str] | None = None) -> int:
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
 
-    from shared.agent.trace_analytics import load_trace_rows, summarize_traces
+    from shared.agent.trace_analytics import dense_daily_series, load_trace_rows, summarize_traces
     from shared.paths import vault_root_optional
 
     trace_path = args.path or _default_trace_path()
@@ -322,20 +301,21 @@ def main(argv: list[str] | None = None) -> int:
     if args.out:
         md_path = args.out
 
-    if not args.no_png and summary.daily:
-        xs = [r["date"][5:] for r in summary.daily]
+    plot_daily = dense_daily_series(summary.daily, days=args.days) if summary.daily else []
+    if not args.no_png and plot_daily:
+        xs = [r["date"][5:] for r in plot_daily]
         _try_plot_lines(
             tokens_png,
             "Токены агента / день",
             xs,
-            [float(r["tokens"]) for r in summary.daily],
+            [float(r["tokens"]) for r in plot_daily],
             "токены",
         )
         _try_plot_lines(
             cost_png,
             "Оценка стоимости агента / день (USD)",
             xs,
-            [float(r["est_cost_usd"]) for r in summary.daily],
+            [float(r["est_cost_usd"]) for r in plot_daily],
             "USD",
         )
     if not args.no_png and summary.top_tools:

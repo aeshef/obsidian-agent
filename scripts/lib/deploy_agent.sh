@@ -19,6 +19,7 @@ patch_agent_env_remote() {
   local kanban_writes="${KANBAN_AGENT_WRITES:-}"
   local vault_rel_knowledge="${VAULT_REL_KNOWLEDGE:-}"
   local agent_locale="${AGENT_LOCALE:-en}"
+  local timezone="${TIMEZONE:-}"
 
   if [ -z "$token" ]; then
     # shellcheck source=scripts/lib/sh_msg.sh
@@ -61,6 +62,22 @@ upsert AGENT_MEMORY_DB "${bots}/memory.db"
 upsert AGENT_ROOT "${bots}"
 upsert AGENT_LOCALE "${agent_locale}"
 REMOTE
+  if [ -n "$timezone" ]; then
+    common_ssh "bash -s" <<REMOTE_TZ
+set -euo pipefail
+REMOTE_ENV="${remote_env}"
+upsert() {
+  local k="\$1" v="\$2"
+  if grep -qE "^\${k}=" "\$REMOTE_ENV" 2>/dev/null; then
+    sed -i "s|^\${k}=.*|\${k}=\${v}|" "\$REMOTE_ENV"
+  else
+    echo "\${k}=\${v}" >> "\$REMOTE_ENV"
+  fi
+}
+upsert TIMEZONE "${timezone}"
+REMOTE_TZ
+    echo "✅ TIMEZONE=${timezone} on server"
+  fi
   if [ -n "$vault_rel_knowledge" ]; then
     common_ssh "bash -s" <<REMOTE_KB
 set -euo pipefail

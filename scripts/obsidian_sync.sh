@@ -811,26 +811,13 @@ unset _SHOULD_CAL _CAL_JSON _CAL_PNG _cal_j _cal_p
 
 # 5c.1 Стоимость агента — traces с VPS → PNG/MD в Графики/Система/ + хаб 🛠 Система.md.
 # Не валим весь sync при SSH-флапе: трейсы живут только на сервере, без них графики просто остаются вчерашними.
-# Пересобираем если: FORCE / нет маркера на сегодня / нет PNG / локальные traces не трогали сегодня
-# (иначе после ночного scp+маркера дневные прогоны на VPS до завтра не попадают на график — как залипание на 08-03).
+# Тянем jsonl каждый цикл (файл маленький). PNG пересобираем, когда содержимое traces
+# изменилось / нет картинки / FORCE. Старый маркер «уже сегодня» + TRACE_DAY==TODAY
+# оставлял хаб с свежей датой и графики на утреннем снимке.
 AGENT_COST_MARKER="$SYNC_DIR/agent_cost_dashboard_date.txt"
 _AC_COST_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Система/Агент_стоимость_день.png"
 _TRACE_LOCAL="$AGENT_ROOT/logs/agent_traces.jsonl"
-_SHOULD_AGENT_COST=0
-_TRACE_DAY=""
-if [ -f "$_TRACE_LOCAL" ]; then
-  _TRACE_DAY=$(stat -f '%Sm' -t '%Y-%m-%d' "$_TRACE_LOCAL" 2>/dev/null || date -r "$(stat -c '%Y' "$_TRACE_LOCAL" 2>/dev/null)" '+%Y-%m-%d' 2>/dev/null || true)
-fi
-if [ -n "${FORCE_CHARTS:-}" ] || [ -n "${FORCE_AGENT_COST:-}" ]; then
-  _SHOULD_AGENT_COST=1
-elif [ ! -f "$AGENT_COST_MARKER" ] || [ "$(cat "$AGENT_COST_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  _SHOULD_AGENT_COST=1
-elif [ ! -f "$_AC_COST_PNG" ]; then
-  _SHOULD_AGENT_COST=1
-elif [ -z "$_TRACE_DAY" ] || [ "$_TRACE_DAY" != "$TODAY" ]; then
-  _SHOULD_AGENT_COST=1
-fi
-unset _TRACE_DAY
+_AC_LOG="$AGENT_ROOT/logs/agent_cost_dashboard.log"
 _rebuild_system_hub() {
   PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
   if [ ! -f "$PLANNING_BOT/scripts/build_system_dashboard_hub.py" ]; then
@@ -849,47 +836,60 @@ _rebuild_system_hub() {
       --vault "$LOCAL_VAULT") >>"$PLANNING_BOT/logs/charts.log" 2>&1 || true
   unset _hub_py
 }
-if [ "$_SHOULD_AGENT_COST" = "1" ] && [ -n "$SERVER" ] && [ -n "$SERVER_BOTS" ]; then
-  mkdir -p "$AGENT_ROOT/logs" 2>/dev/null || true
+_ac_build_dashboard() {
+  _AC_PY="${CHART_PYTHON:-}"
+  if [ -z "$_AC_PY" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
+    _AC_PY="$AGENT_ROOT/planning_bot/venv/bin/python"
+  fi
+  if [ -z "$_AC_PY" ] || [ ! -f "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" ]; then
+    return 1
+  fi
+  export LOCAL_VAULT AGENT_ROOT
+  export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
+  (cd "$AGENT_ROOT" && common_run_python_script "$_AC_PY" "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" \
+      --vault "$LOCAL_VAULT" --days 30 --path "$_TRACE_LOCAL") >>"$_AC_LOG" 2>&1
+}
+mkdir -p "$AGENT_ROOT/logs" 2>/dev/null || true
+_AC_CHANGED=0
+_AC_FORCE=0
+if [ -n "${FORCE_CHARTS:-}" ] || [ -n "${FORCE_AGENT_COST:-}" ]; then
+  _AC_FORCE=1
+fi
+if [ -n "$SERVER" ] && [ -n "$SERVER_BOTS" ]; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost" >> "$DEBUG_LOG" 2>/dev/null || true
-  if scp "${SSH_OPTS[@]}" "$SERVER:$SERVER_BOTS/logs/agent_traces.jsonl" "$_TRACE_LOCAL" >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1; then
-    _AC_PY="${CHART_PYTHON:-}"
-    if [ -z "$_AC_PY" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
-      _AC_PY="$AGENT_ROOT/planning_bot/venv/bin/python"
-    fi
-    if [ -n "$_AC_PY" ] && [ -f "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" ]; then
-      export LOCAL_VAULT
-      export AGENT_ROOT
-      export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-      if (cd "$AGENT_ROOT" && common_run_python_script "$_AC_PY" "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" \
-          --vault "$LOCAL_VAULT" --days 30 --path "$_TRACE_LOCAL") >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1; then
-        echo "$TODAY" > "$AGENT_COST_MARKER"
-        _rebuild_system_hub
-      else
-        echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost build-fail (see logs/agent_cost_dashboard.log)" >> "$DEBUG_LOG" 2>/dev/null || true
-      fi
+  _TRACE_TMP="${_TRACE_LOCAL}.scp.$$"
+  if scp "${SSH_OPTS[@]}" "$SERVER:$SERVER_BOTS/logs/agent_traces.jsonl" "$_TRACE_TMP" >>"$_AC_LOG" 2>&1; then
+    if [ ! -f "$_TRACE_LOCAL" ] || ! cmp -s "$_TRACE_TMP" "$_TRACE_LOCAL"; then
+      mv -f "$_TRACE_TMP" "$_TRACE_LOCAL"
+      _AC_CHANGED=1
+    else
+      rm -f "$_TRACE_TMP"
     fi
   else
-    # SSH/scp флапает часто (Network unreachable). Не ставим маркер — попробуем на следующем цикле.
-    # Если локальные traces уже есть — всё же пересоберём PNG (лучше вчерашние данные, чем пустой хаб).
+    rm -f "$_TRACE_TMP"
     echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost scp-fail (soft)" >> "$DEBUG_LOG" 2>/dev/null || true
-    if [ -f "$_TRACE_LOCAL" ] && [ ! -f "$_AC_COST_PNG" ]; then
-      _AC_PY="${CHART_PYTHON:-}"
-      if [ -z "$_AC_PY" ] && [ -x "$AGENT_ROOT/planning_bot/venv/bin/python" ]; then
-        _AC_PY="$AGENT_ROOT/planning_bot/venv/bin/python"
-      fi
-      if [ -n "$_AC_PY" ] && [ -f "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" ]; then
-        export LOCAL_VAULT AGENT_ROOT
-        export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
-        (cd "$AGENT_ROOT" && common_run_python_script "$_AC_PY" "$AGENT_ROOT/scripts/build_agent_cost_dashboard.py" \
-            --vault "$LOCAL_VAULT" --days 30 --path "$_TRACE_LOCAL") >>"$AGENT_ROOT/logs/agent_cost_dashboard.log" 2>&1 || true
-        _rebuild_system_hub
-      fi
-    fi
   fi
-  unset _AC_PY
+  unset _TRACE_TMP
 fi
-unset _SHOULD_AGENT_COST _AC_COST_PNG _TRACE_LOCAL
+_SHOULD_AGENT_COST=0
+if [ "$_AC_FORCE" = "1" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ ! -f "$_AC_COST_PNG" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ "$_AC_CHANGED" = "1" ]; then
+  _SHOULD_AGENT_COST=1
+elif [ -f "$_TRACE_LOCAL" ] && [ "$_TRACE_LOCAL" -nt "$_AC_COST_PNG" ]; then
+  _SHOULD_AGENT_COST=1
+fi
+if [ "$_SHOULD_AGENT_COST" = "1" ] && [ -f "$_TRACE_LOCAL" ]; then
+  if _ac_build_dashboard; then
+    echo "$TODAY" > "$AGENT_COST_MARKER"
+    _rebuild_system_hub
+  else
+    echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ step=5c.1-agent-cost build-fail (see logs/agent_cost_dashboard.log)" >> "$DEBUG_LOG" 2>/dev/null || true
+  fi
+fi
+unset _SHOULD_AGENT_COST _AC_COST_PNG _TRACE_LOCAL _AC_LOG _AC_CHANGED _AC_FORCE _AC_PY
 
 # 5d. График КБЖУ: перенесён сразу после 5b.4b (iphone_context_sync) — иначе PNG строится по
 # вчерашнему iphone_week.json и день с ручным .txt в IPhone/ даёт пустой/битый столбец.

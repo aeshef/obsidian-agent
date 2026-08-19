@@ -1,7 +1,17 @@
 # shellcheck shell=bash
 # Fallback when export_vault_paths_env.py is unavailable; folder defaults follow AGENT_LOCALE.
 vault_paths_apply_defaults() {
-  local locale="${AGENT_LOCALE:-en}"
+  # Prefer folder names already loaded from vault_paths.yaml over AGENT_LOCALE.
+  # Infer locale from loaded folders so we never wipe a valid yaml load.
+  local locale="${AGENT_LOCALE:-}"
+  if [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Дашборды" || "${VAULT_FOLDER_TASKS:-}" == "100_Задачи" ]]; then
+    locale=ru
+  elif [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Dashboards" || "${VAULT_FOLDER_TASKS:-}" == "100_Tasks" ]]; then
+    locale=en
+  elif [[ -z "$locale" ]]; then
+    locale=en
+  fi
+
   if [[ -z "${VAULT_FOLDER_TASKS:-}" ]]; then
     local _locale_yaml=""
     if [[ "$locale" == ru* ]]; then
@@ -14,6 +24,7 @@ vault_paths_apply_defaults() {
     fi
     unset _locale_yaml
   fi
+
   if [[ -z "${VAULT_FOLDER_TASKS:-}" ]]; then
     if [[ "$locale" == ru* ]]; then
       : "${VAULT_FOLDER_TASKS:=100_Задачи}"
@@ -36,20 +47,10 @@ vault_paths_apply_defaults() {
       : "${VAULT_DASH_CHARTS:=Charts}"
       : "${VAULT_DASH_DATA:=Data}"
     fi
-  elif [[ "$locale" == ru* ]]; then
-    if [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Dashboards" || "${VAULT_FOLDER_TASKS:-}" == "100_Tasks" ]]; then
-      unset VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS VAULT_FOLDER_ROUTINES \
-        VAULT_FOLDER_HANDWRITTEN VAULT_FOLDER_AUTOMATION VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
-      vault_paths_apply_defaults
-      return
-    fi
-  elif [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Дашборды" || "${VAULT_FOLDER_TASKS:-}" == "100_Задачи" ]]; then
-    unset VAULT_FOLDER_TASKS VAULT_FOLDER_GOALS VAULT_FOLDER_DASHBOARDS VAULT_FOLDER_ROUTINES \
-      VAULT_FOLDER_HANDWRITTEN VAULT_FOLDER_AUTOMATION VAULT_DASH_LOGS VAULT_DASH_CHARTS VAULT_DASH_DATA
-    vault_paths_apply_defaults
-    return
   fi
-  if [[ "$locale" == ru* ]]; then
+
+  # Fill missing dash subdirs from the dashboards folder language (not AGENT_LOCALE).
+  if [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Дашборды" ]]; then
     : "${VAULT_DASH_LOGS:=Логи}"
     : "${VAULT_DASH_CHARTS:=Графики}"
     : "${VAULT_DASH_DATA:=Данные}"
@@ -69,7 +70,7 @@ vault_paths_apply_defaults() {
   : "${VAULT_FILE_AUDIT_SYSTEM:=System_audit_report.md}"
   : "${VAULT_FILE_AUDIT_VAULT:=Vault_audit_report.md}"
   : "${VAULT_LEGACY_MAINTENANCE_CHART_PNG:=vault_maintenance_dynamics.png}"
-  if [[ "$locale" == ru* ]]; then
+  if [[ "${VAULT_FOLDER_DASHBOARDS:-}" == "300_Дашборды" ]]; then
     : "${VAULT_FILE_ROUTINES_STATS_LEGACY_MD:=📊 Рутины_Статистика.md}"
     : "${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD:=📅 Сегодня.md}"
     : "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:=📅 Рутины/}"
