@@ -74,11 +74,23 @@ PY
 
 # Drop kanban board/archive from an ignore-times force-push list when the local
 # copy is missing task IDs that still exist on the server (stale Mac clobber).
+# IDs already in the closed-tasks archive are not "lost" — strip them from the
+# board instead of pushing Done back after monthly archive.
 _sync_filter_force_push_tasks_safe() {
   local list_file="${1:-}"
   local tasks_root="${2:-}"
+  local helper="${AGENT_ROOT:-}/scripts/lib/sync_kanban_protect.py"
   [ -n "$list_file" ] && [ -f "$list_file" ] && [ -n "$tasks_root" ] || return 0
   [ -n "${SERVER:-}" ] && [ -n "${SERVER_VAULT:-}" ] || return 0
+  if [[ -f "$helper" ]]; then
+    python3 "$helper" filter-force-push \
+      --list-file "$list_file" \
+      --tasks-root "$tasks_root" \
+      --server "$SERVER" \
+      --server-tasks "$SERVER_VAULT/${VAULT_FOLDER_TASKS}" \
+      || true
+    return 0
+  fi
   python3 - "$list_file" "$tasks_root" "$SERVER" "$SERVER_VAULT/${VAULT_FOLDER_TASKS}" <<'PY_FILTER_FP' || true
 import re
 import subprocess
@@ -150,11 +162,22 @@ PY_FILTER_FP
 # Build rsync --exclude-from entries for task markdown where LOCAL has task IDs
 # that the server copy lacks. Prevents step-4 --ignore-times (or a newer server
 # mtime) from shrinking the board after a local restore / create.
+# Archived IDs (present in the closed-tasks file) do not count as local-only.
 _sync_write_pull_protect_excludes() {
   local tasks_root="${1:-}"
   local out_file="${2:-}"
+  local helper="${AGENT_ROOT:-}/scripts/lib/sync_kanban_protect.py"
   [ -n "$tasks_root" ] && [ -d "$tasks_root" ] && [ -n "$out_file" ] || return 1
   [ -n "${SERVER:-}" ] && [ -n "${SERVER_VAULT:-}" ] || return 1
+  if [[ -f "$helper" ]]; then
+    python3 "$helper" pull-protect \
+      --tasks-root "$tasks_root" \
+      --out-file "$out_file" \
+      --server "$SERVER" \
+      --server-tasks "$SERVER_VAULT/${VAULT_FOLDER_TASKS}" \
+      || true
+    return 0
+  fi
   python3 - "$tasks_root" "$out_file" "$SERVER" "$SERVER_VAULT/${VAULT_FOLDER_TASKS}" <<'PY_PULL_PROTECT' || true
 import re
 import subprocess

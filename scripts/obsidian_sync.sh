@@ -482,6 +482,13 @@ if [[ -n "${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR:-}" && -n "${VAULT_FILE_ROUTINES
   PUSH_EXCLUDE_ROUTINES+=(--exclude="${VAULT_FILE_ROUTINES_CALENDAR_SUBDIR}${VAULT_FILE_ROUTINES_TODAY_LEGACY_MD}")
 fi
 if cap_module_enabled PLANNING; then
+  # Drop cards that already live in the closed-tasks archive so --update / force-push
+  # cannot resurrect them after monthly archive. Genuine new local IDs are kept.
+  if [[ -f "$AGENT_ROOT/scripts/lib/sync_kanban_protect.py" ]]; then
+    python3 "$AGENT_ROOT/scripts/lib/sync_kanban_protect.py" strip-dir \
+      --tasks-root "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" \
+      >>"$DEBUG_LOG" 2>&1 || true
+  fi
   # Recent local task files (since last_sync_ok / 30m): force-push with --ignore-times.
   # Safety filter: never clobber a server kanban that has task IDs missing locally.
   _sync_filter_force_push_tasks_safe "$_LOCAL_TASKS_RECENT" "$LOCAL_VAULT/${VAULT_FOLDER_TASKS}" 2>>"$DEBUG_LOG" || true
