@@ -63,6 +63,18 @@ sections:
 
   month_plan:
     heading: "### 📅 Month plan"
+    gauges_note: "> RUB/day is from salary only. Cash = cushion/runway · broker = capital."
+    free_open: "> [!{kind}] Flexible living (from salary)"
+    free_title: "> ### {amount} ₽"
+    free_meta: "> Pool **{pool}** · already from pool **{spent}** ({burn}%) · ≈ **{daily}** ₽/day · {days} d"
+    buffer_open: "> [!{kind}] Savings (pay yourself first)"
+    buffer_title: "> ### {progress} / {goal} ₽"
+    buffer_meta: "> **{rate}%** of salary = **{goal}** · to broker **{invest}** · **{status}**"
+    safety_open: "> [!{kind}] Cushion (cash, not broker)"
+    safety_title: "> ### {runway} mo runway"
+    safety_meta: "> Cash **{cash}** · broker **{broker}** · essentials **{essentials}**/mo · after one-offs **{after}** · target **{target}** mo → gap **{gap}**"
+    income_callout_open: "> [!success] Flexible pool (from salary)"
+    income_callout_title: "> ### {amount} ₽ this month"
     income: "- Expected income: **{amount}** ₽"
     commitment: "- Commitments (recurring + plans + buffer): **{amount}** ₽"
     flexible: "- Flexible pool: **{amount}** ₽"

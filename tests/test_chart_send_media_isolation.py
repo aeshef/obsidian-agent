@@ -57,29 +57,34 @@ def test_rank_tie_breaks_newer_mtime():
 
 
 def test_prefer_fresh_same_family_over_stale_named(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+
     from shared.agent import chart_tools as ct
 
     monkeypatch.setattr(ct, "_stale_hours", lambda: 48)
+    now = datetime.now(timezone.utc)
+    stale_iso = (now - timedelta(days=10)).isoformat()
+    fresh_iso = (now - timedelta(hours=1)).isoformat()
     stale = ChartEntry(
         key="chart_finance_spend_png",
         rel_path="Charts/Finance/Spending_by_day_category.png",
         family="finance",
         exists=True,
-        mtime_iso="2026-06-08T00:00:00+00:00",
+        mtime_iso=stale_iso,
     )
     fresh = ChartEntry(
         key="chart_finance_balance_png",
         rel_path="Charts/Finance/Balance.png",
         family="finance",
         exists=True,
-        mtime_iso="2026-08-18T00:00:00+00:00",
+        mtime_iso=fresh_iso,
     )
     other = ChartEntry(
         key="chart_planning_activity_png",
         rel_path="Charts/Planning/Daily_activity.png",
         family="planning",
         exists=True,
-        mtime_iso="2026-08-18T00:00:00+00:00",
+        mtime_iso=fresh_iso,
     )
     out = ct._prefer_fresh([stale, other, fresh], stale_h=48)
     assert out[0].key == "chart_finance_balance_png"

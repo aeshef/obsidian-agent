@@ -35,7 +35,7 @@ def test_format_spending_filters_parent_and_groups_by_day():
         rows, label="Apr", category="Еда/*", group_by_day=True
     )
     assert "2026-04-15" in out_glob
-    assert "3,925" in out_glob or "3925" in out_glob
+    assert "3 925" in out_glob or "3,925" in out_glob or "3925" in out_glob
     assert "2026-04-20" in out_glob
     assert "Транспорт" not in out_glob
     assert "Перевод" not in out_glob

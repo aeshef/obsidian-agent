@@ -8,17 +8,16 @@ def test_fold_text_uses_callout():
     assert "> - a" in lines
 
 
-def test_fold_table_uses_details():
+def test_fold_table_uses_callout_and_bullets():
     lines = fold_section(
         "Big spends",
         ["![[chart.png]]", "", "| A | B |", "|---|---|", "| 1 | 2 |"],
     )
     text = "\n".join(lines)
-    assert "<details>" in text
-    assert "<summary>Big spends</summary>" in text
-    assert "![[chart.png]]" in text
-    assert "| A | B |" in text
-    assert "> [!note]" not in text
+    assert text.startswith("> [!note]- Big spends")
+    assert "> ![[chart.png]]" in text
+    assert "> - 1 · 2" in text
+    assert "<details>" not in text
 
 
 def test_fold_force_details():

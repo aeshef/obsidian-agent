@@ -9,6 +9,6 @@ input:
 expect:
   contains:
     - "Compare spend (Еда)"
-    - "12,000"
-    - "10,000"
+    - "12 000"
+    - "10 000"
     - "+20%"
