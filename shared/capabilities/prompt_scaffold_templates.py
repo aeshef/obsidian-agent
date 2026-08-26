@@ -1,6 +1,8 @@
 """English scaffolds for personalized prod prompts (OSS first run)."""
 from __future__ import annotations
 
+from pathlib import Path
+
 # Keys: repo-relative path to *.example.txt
 SCAFFOLDS: dict[str, str] = {
     "finance_bot/config/prompts/nlu_prompt.example.txt": """\

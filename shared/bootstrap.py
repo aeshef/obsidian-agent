@@ -29,14 +29,16 @@ def setup_bot(component: str) -> None:
             os.environ.setdefault(key.strip(), val.strip().strip("'\""))
 
 
-def __getattr__(name: str) -> Any:
-    if name in ("run_host_bot", "resolve_host_token"):
-        from unified_bot.host.bootstrap import resolve_host_token, run_host_bot
+def resolve_host_token(*args: Any, **kwargs: Any) -> Any:
+    from unified_bot.host.bootstrap import resolve_host_token as _impl
 
-        globals()["resolve_host_token"] = resolve_host_token
-        globals()["run_host_bot"] = run_host_bot
-        return globals()[name]
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    return _impl(*args, **kwargs)
+
+
+def run_host_bot(*args: Any, **kwargs: Any) -> Any:
+    from unified_bot.host.bootstrap import run_host_bot as _impl
+
+    return _impl(*args, **kwargs)
 
 
 __all__ = ["setup_bot", "resolve_host_token", "run_host_bot"]

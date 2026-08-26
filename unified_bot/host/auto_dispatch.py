@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -16,10 +17,8 @@ log = logging.getLogger("unified_bot.host.auto_dispatch")
 __all__ = ["MessageWithText", "dispatch_auto_free_text"]
 
 
-def _money_token_re() -> "re.Pattern[str]":
+def _money_token_re() -> re.Pattern[str]:
     """Currency / transfer markers without Cyrillic string literals (CI gate)."""
-    import re
-
     _rub = "".join(chr(c) for c in (0x440, 0x443, 0x431))  # rub
     _transfer = "".join(chr(c) for c in (0x43F, 0x435, 0x440, 0x435, 0x432, 0x43E, 0x434))
     _spent = "".join(chr(c) for c in (0x43F, 0x43E, 0x442, 0x440, 0x430, 0x442))
@@ -35,8 +34,6 @@ def _nonempty_lines(text: str) -> list[str]:
 
 
 def _money_line_count(text: str) -> int:
-    import re
-
     money = _money_token_re()
     n = 0
     for ln in _nonempty_lines(text):
@@ -58,8 +55,6 @@ def _looks_like_txn_batch(text: str) -> bool:
 
 def _looks_like_txn_candidate(text: str) -> bool:
     """Cheap prefilter before finance-intent LLM (avoid tax on every question)."""
-    import re
-
     t = (text or "").strip()
     if not t:
         return False
@@ -119,8 +114,6 @@ async def _try_knowledge_save(message: Message, agent_app, text: str) -> bool:
     """Bare URL → ingest. Other save phrasing stays with the unified agent."""
     if not agent_app.has_domain(DOMAIN_KNOWLEDGE):
         return False
-    import re
-
     if not re.match(r"^https?://\S+$", (text or "").strip(), re.IGNORECASE):
         return False
     from knowledge_bot.app.handlers.query import handle_message as kb_handle
