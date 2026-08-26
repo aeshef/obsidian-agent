@@ -131,7 +131,10 @@ case "$MODULES" in
   planning) CAP_ARGS=(--preset planning_only) ;;
   finance) CAP_ARGS=(--preset finance_only) ;;
   "planning finance knowledge") CAP_ARGS=(--preset full) ;;
-  *) CAP_ARGS=(--only-modules $MODULES) ;;
+  *)
+    read -r -a _mods <<< "$MODULES"
+    CAP_ARGS=(--only-modules "${_mods[@]}")
+    ;;
 esac
 if [[ "$WRITE_CAP" -eq 1 ]]; then
   CAP_ARGS+=(--write --patch-env)

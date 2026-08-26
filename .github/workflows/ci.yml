@@ -76,8 +76,8 @@ jobs:
             scripts/run_tests.sh \
             scripts/onboarding_wizard.sh \
             scripts/setup_agent_config.sh
-          # Sync step libs (sourced; still lintable)
-          shellcheck -e SC1090,SC1091,SC2034,SC2154,SC2086,SC2155 \
+          # Sync step libs (sourced; intentional ssh expansion + i18n helpers)
+          shellcheck -e SC1090,SC1091,SC2005,SC2012,SC2029,SC2034,SC2046,SC2086,SC2154,SC2155 \
             scripts/lib/sync_steps_rsync.sh \
             scripts/lib/sync_steps_charts.sh \
             scripts/lib/sync_steps_maintenance.sh
