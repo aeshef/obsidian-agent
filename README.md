@@ -16,19 +16,6 @@ Capture, file, recall, and chart: tasks, notes, money, calendar, and optional bo
 
 ![obsidian-agent](assets/banner.png)
 
-![15s storyboard](assets/demo/storyboard.png)
-
-### 15-second story
-
-```mermaid
-flowchart LR
-  A[Telegram<br/>voice / photo / text] --> B[confirm-in-chat]
-  B --> C[Obsidian<br/>note / kanban / ledger]
-  C --> D[Dashboard<br/>markdown + PNGs]
-```
-
-Product demo (no PII): [assets/demo/README.md](assets/demo/README.md) · record your own with [docs/DEMO_CAPTURE.md](docs/DEMO_CAPTURE.md).
-
 ---
 
 ## The point
