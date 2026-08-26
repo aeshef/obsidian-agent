@@ -1,5 +1,6 @@
 """Multi-transaction confirmation UI."""
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import logging
 from datetime import datetime
@@ -82,7 +83,7 @@ async def show_transaction_confirmation(
             fmsg(
                 "confirm_preview_amount",
                 amount=parsed["amount"],
-                currency=parsed.get("currency", "RUB"),
+                currency=parsed.get("currency") or base_currency(),
             )
         )
     elif missing.get("amount"):
@@ -124,7 +125,7 @@ async def show_transaction_confirmation(
                         fmsg(
                             "confirm_preview_broker_fee",
                             fee=fee_dec,
-                            currency=parsed.get("currency", "RUB"),
+                            currency=parsed.get("currency") or base_currency(),
                         )
                     )
                 else:

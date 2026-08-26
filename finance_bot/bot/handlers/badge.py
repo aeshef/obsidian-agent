@@ -1,5 +1,6 @@
 """Badge meal tracking: NLU flow, coaching, dashboard section."""
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import re
 import sqlite3
@@ -238,7 +239,7 @@ def build_badge_section(
             x_labels,
             {dtpl("badge", "chart_spent"): spent_vals, dtpl("badge", "chart_burned"): burned_vals},
             title=dtpl("badge", "chart_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=badge_png,
             show_total_labels=True,
             totals_for_labels=[float(d.limit) for d in wdays],

@@ -1,4 +1,5 @@
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import calendar
 import json
@@ -104,7 +105,7 @@ class FinancialAnalyst:
                     "date": t.occurred_at.strftime("%Y-%m-%d"),
                     "type": t.type,
                     "amount": float(t.amount),
-                    "currency": t.currency or "RUB",
+                    "currency": t.currency or base_currency(),
                     "category": t.category or "",
                     "description": t.description or "",
                 }

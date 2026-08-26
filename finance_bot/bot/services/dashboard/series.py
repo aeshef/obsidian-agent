@@ -75,7 +75,7 @@ def accumulate_daily_flow(
     badge_category: Optional[str],
     parse_datetime: ParseDatetime,
 ) -> dict[date, dict[str, Decimal]]:
-    """Return day -> {income, expense} for RUB non-excluded / non-badge txns."""
+    """Return day -> {income, expense} for base-currency non-excluded / non-badge txns."""
     day_flow: dict[date, dict[str, Decimal]] = defaultdict(
         lambda: {"income": Decimal(0), "expense": Decimal(0)}
     )

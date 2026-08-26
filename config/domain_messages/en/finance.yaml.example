@@ -2,27 +2,27 @@ badge:
   default_category: Food/Badge
   dash_none: —
   day_off: Today is a day off — no daily badge quota.
-  day_over: 'Over limit: {over} RUB'
-  day_remaining: Remaining {remaining} RUB (expires today)
-  day_spent_line: '📊 Today: {spent} / {limit} RUB'
-  input_prompt_fallback: '🍽 Badge spend (account: {account}, category: {category}, limit: {limit} RUB/day)
+  day_over: 'Over limit: {over} {currency}'
+  day_remaining: Remaining {remaining} {currency} (expires today)
+  day_spent_line: '📊 Today: {spent} / {limit} {currency}'
+  input_prompt_fallback: '🍽 Badge spend (account: {account}, category: {category}, limit: {limit} {currency}/day)
 
 
     {prompt}'
   line_keyword_pattern: badge
-  line_over_limit: 'Over limit: {amount} RUB (will be deducted from salary).'
+  line_over_limit: 'Over limit: {amount} {currency} (will be deducted from salary).'
   llm_after_spend_user: Advice right after new spend.
-  month_burned: 'Burned quota: {burned} RUB'
-  month_ndfl: 'Estimated income tax on spend: ~{ndfl} RUB'
-  month_over_limit: 'Over daily limit: {over} RUB'
-  month_spent_line: '📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned} RUB'
-  month_spent_total: 'Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)'
+  month_burned: 'Burned quota: {burned} {currency}'
+  month_ndfl: 'Estimated income tax on spend: ~{ndfl} {currency}'
+  month_over_limit: 'Over daily limit: {over} {currency}'
+  month_spent_line: '📅 Month: {spent} / {entitlement} {currency} ({pct:.0f}%), burned {burned} {currency}'
+  month_spent_total: 'Spent: {spent} {currency} of {entitlement} {currency} ({pct:.0f}%)'
   month_title: 🍽 Badge for {month:02d}.{year}
   month_working_days: 'Working days: {working_days}, with spend: {days_with_spend}'
   month_zero_days: 'Days without spend (full burn): {days}'
-  post_save_header: ✅ {amount} RUB badge{desc}
-  today_alert_remaining: Remaining {remaining} RUB — quota expires at midnight.
-  today_alert_spent: '🍽 Badge: spent {spent} RUB of {limit} today.'
+  post_save_header: ✅ {amount} {currency} badge{desc}
+  today_alert_remaining: Remaining {remaining} {currency} — quota expires at midnight.
+  today_alert_spent: '🍽 Badge: spent {spent} {currency} of {limit} today.'
 budget:
   large_expenses: 'Major expenses:'
   no_data: (no data)
@@ -49,7 +49,7 @@ finance_agent:
   import_badge_db_missing: 'DB not found: {path}'
   import_badge_done: Import ({mode}) {file} -> {db}
   import_badge_file_missing: 'File not found: {path}'
-  import_badge_inserted: '   Added: {count} ops totaling {total} RUB'
+  import_badge_inserted: '   Added: {count} ops totaling {total} {currency}'
   import_badge_replaced: '   Period: {year_month}, replaced old rows: {count}'
   import_badge_skipped: '   Skipped duplicates: {count}'
   import_badge_transactions: File must contain non-empty transactions list
@@ -119,11 +119,11 @@ finance_agent:
   transfer_category_legacy: Transfers
   user_not_found: User not found.
 finance_summary:
-  balance_line: 'Balance: {amount:,.0f} RUB'
-  category_line: '- {category}: {amount:,.0f} RUB ({pct:.1f}%)'
+  balance_line: 'Balance: {amount:,.0f} {currency}'
+  category_line: '- {category}: {amount:,.0f} {currency} ({pct:.1f}%)'
   expense_change: 'Spending change vs previous period: {change:+.1f}%'
-  expense_line: 'Spending (excl. transfers/broker top-ups): {amount:,.0f} RUB'
-  income_line: 'Income (excl. transfers/broker withdraw): {amount:,.0f} RUB'
+  expense_line: 'Spending (excl. transfers/broker top-ups): {amount:,.0f} {currency}'
+  income_line: 'Income (excl. transfers/broker withdraw): {amount:,.0f} {currency}'
   llm_empty: LLM returned empty response for summary.
   period_user: 'Period: {period}'
   prompt_period: 'Period: {from_date} - {to_date}'
@@ -136,10 +136,10 @@ finance_tinkoff:
   no_portfolio: No portfolio data.
   no_portfolio_data: 'No portfolio data. Check broker API token and availability. Debug: {keys}'
   no_positions: (no position data)
-  portfolio_total_rub: 'Portfolio total: {total:,.0f} RUB'
+  portfolio_total_rub: 'Portfolio total: {total:,.0f} {currency}'
   token_missing: Broker API token is not set in .env (e.g. TINKOFF_API_TOKEN for provider tinkoff)
-  total_fmt: 'Total: {total:,.2f} RUB'
-  total_line: 'Total: {total} RUB'
+  total_fmt: 'Total: {total:,.2f} {currency}'
+  total_line: 'Total: {total} {currency}'
 finance_txn_core:
   account_required: Account not specified for transaction
   broker_fee_default: Broker fee
@@ -158,7 +158,7 @@ finance_txn_query:
   broker_header: 'Broker and external balances:'
   debts_empty: 'Debts: (no debt accounts)'
   debts_header: 'Debts (external_balance on counterparty accounts):'
-  expenses_total: 'Total expenses: {total} RUB'
+  expenses_total: 'Total expenses: {total} {currency}'
   no_expenses_in_period: (no expenses in period)
   category_filter: filter={category} (parent matches children)
   by_day_header: 'By day:'
@@ -166,7 +166,7 @@ finance_txn_query:
   payable_line: '  I owe — {name}: {balance} {currency}'
   receivable_line: '  I''m owed — {name}: {balance} {currency}'
 invest_report:
-  total_line: 'Total: {total} RUB
+  total_line: 'Total: {total} {currency}
 
     '
 finance_analyst:
@@ -182,8 +182,8 @@ finance_analyst:
   insight_pace_header: 'Current-month spend pace (facts; baseline = median of past months excluding current):
 
     '
-  insight_pace_line: '- {category}: {spent} RUB in {days_elapsed} days; baseline {baseline} RUB/mo; projected month-end {projected}
-    RUB ({delta_pct:+.0f}% vs baseline)'
+  insight_pace_line: '- {category}: {spent} {currency} in {days_elapsed} days; baseline {baseline} {currency}/mo; projected month-end {projected}
+    {currency} ({delta_pct:+.0f}% vs baseline)'
 finance:
   uncategorized: Uncategorized
   misc: Other

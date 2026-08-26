@@ -373,17 +373,23 @@ class PlanningLLMDomainMixin:
             system_prompt = load_prompt(config_path, "recommendations")
 
             try:
+                from shared.tz import get_tz
+
+                local_tz = get_tz()
+            except Exception:
+                from shared.constants import timezone_name
                 from zoneinfo import ZoneInfo
 
-                msk_tz = ZoneInfo("Europe/Moscow")
-            except Exception:
-                msk_tz = timezone(timedelta(hours=3))
-            now_msk = datetime.now(msk_tz)
-            current_time_msk = now_msk.strftime("%H:%M")
-            anchor_date = now_msk.date()
+                try:
+                    local_tz = ZoneInfo(timezone_name())
+                except Exception:
+                    local_tz = timezone.utc
+            now_local = datetime.now(local_tz)
+            current_time_msk = now_local.strftime("%H:%M")  # legacy prompt slot name
+            anchor_date = now_local.date()
             current_date_iso = anchor_date.isoformat()
             current_date_ru = f"{anchor_date.day} {_months_ru[anchor_date.month]} {anchor_date.year}"
-            day_of_week = now_msk.strftime("%A")
+            day_of_week = now_local.strftime("%A")
             day_names_ru = {
                 k: v
                 for k, v in zip(
@@ -392,7 +398,9 @@ class PlanningLLMDomainMixin:
                 )
             }
             day_of_week_ru = day_names_ru.get(day_of_week, day_of_week)
-            is_weekend = lctx("weekend_label") if now_msk.weekday() >= 5 else lctx("weekday_label")
+            is_weekend = lctx("weekend_label") if now_local.weekday() >= 5 else lctx("weekday_label")
+
+            from shared.constants import timezone_name as _tz_name
 
             system_prompt = system_prompt.format(
                 current_time_msk=current_time_msk,
@@ -400,6 +408,7 @@ class PlanningLLMDomainMixin:
                 is_weekend=is_weekend,
                 current_date_iso=current_date_iso,
                 current_date_ru=current_date_ru,
+                tz=_tz_name(),
             )
 
             logger.debug("recommendations prompt len=%d", len(system_prompt))

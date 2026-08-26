@@ -1,3 +1,4 @@
+from shared.finance.currency import base_currency
 from decimal import Decimal
 import re
 
@@ -209,7 +210,7 @@ async def debt_set_amount(message: types.Message, state: FSMContext) -> None:
                     .limit(1)
                 )
             ).scalars().first()
-            currency = first_acc.currency if first_acc else "RUB"
+            currency = first_acc.currency if first_acc else base_currency()
 
         # store amount/currency; record debt or ask for account
         await state.update_data(amount=str(amount), currency=currency, counterparty=data.get("counterparty"))
@@ -317,7 +318,7 @@ async def debt_settle_recv_select_account(callback: types.CallbackQuery, state: 
 
     data = await state.get_data()
     amount = Decimal(str(data.get("amount")))
-    currency = data.get("currency", "RUB")
+    currency = data.get("currency") or base_currency()
     counterparty = data.get("counterparty") or dmsg("finance", "default_counterparty")
 
     async with AsyncSessionLocal() as session:
@@ -381,7 +382,7 @@ async def debt_select_account(callback: types.CallbackQuery, state: FSMContext) 
 
     data = await state.get_data()
     amount = Decimal(str(data.get("amount")))
-    currency = data.get("currency", "RUB")
+    currency = data.get("currency") or base_currency()
     mode = data.get("mode")
     counterparty = data.get("counterparty") or dmsg("finance", "default_counterparty")
 

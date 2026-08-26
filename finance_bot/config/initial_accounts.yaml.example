@@ -1,16 +1,16 @@
-# Скопируй в initial_accounts.yaml и заполни своими данными.
-# Файл initial_accounts.yaml в git не коммитится (только этот пример).
+# Copy to initial_accounts.yaml and fill in your data.
+# initial_accounts.yaml is gitignored (this example is the public template).
 
-# Числовой Telegram ID (узнай у @userinfobot или в логах после /start)
+# Numeric Telegram ID (@userinfobot or logs after /start)
 telegram_id: YOUR_TELEGRAM_NUMERIC_ID
 
 accounts:
-  - name: "Основная карта"
+  - name: "Primary card"
     balance: 0
-    currency: "RUB"
+    currency: "USD"
     type: "card"
 
-  - name: "Наличные"
+  - name: "Cash"
     balance: 0
-    currency: "RUB"
+    currency: "USD"
     type: "wallet"

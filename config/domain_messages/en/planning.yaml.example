@@ -475,7 +475,7 @@ planning:
     Goals — what needs to be done:
 
     '
-  auto_171fc5d5f1: 'Calendar (MSK, {p1}–{p3}):'
+  auto_171fc5d5f1: 'Calendar ({tz}, {p1}–{p3}):'
   auto_1727994366: ' (no categories)'
   auto_1772d0120c: '#priority/high'
   auto_17b28e5992: 📅 Launch daily alerts for stuck tasks
@@ -663,7 +663,7 @@ planning:
     '
   auto_2753bba2b1: '- Total events (parser): **{_p1}**'
   auto_2782d1a49d: ': merged '
-  auto_27be31b07b: ' (MSK):'
+  auto_27be31b07b: ' ({tz}):'
   auto_27c8e8e900: reset context
   auto_27ff33587d: '## 2. Planning: board and kanban state'
   auto_286d494572: '![Deadlines by horizon]({PNG_NAME})
@@ -2262,7 +2262,7 @@ planning:
   auto_95e4a8ee6e: Chat ID not set, goal alerts not sent
   auto_95f57d852f: set
   auto_96001db447: study
-  auto_9604d3e155: 'Calendar (MSK, '
+  auto_9604d3e155: 'Calendar ({tz}, '
   auto_967a5baffd: '⚠️ Error in iphone_context_sync: '
   auto_968011438a: '; allowed: create, move, complete'
   auto_96885ff2f3: '
@@ -3295,7 +3295,7 @@ planning:
 
     '
   auto_cbc7c75467: ✅ Periodic check every 5 min enabled.
-  auto_cc0fce24bf: 'Calendar for {p1} (MSK):'
+  auto_cc0fce24bf: 'Calendar for {p1} ({tz}):'
   auto_cc2630657e: 'Export: {n} days → {path}'
   auto_cc2e3dfd19: Timeout at
   auto_cc39ac0ed0: ' to '
@@ -3433,7 +3433,7 @@ planning:
   auto_d38ecce4e3: 'No unfinished tasks with tag `#deadline/YYYY-MM-DD` in open board columns '
   auto_d3919865a6: Path to 📊 Action_Logs_YYYY-MM.md
   auto_d3a8727860: ' most recent by creation date):'
-  auto_d3ab22a5fd: 'Anchor date and time (MSK), the only reference for "today", "tomorrow" and overdue deadlines: '
+  auto_d3ab22a5fd: 'Anchor date and time ({tz}), the only reference for "today", "tomorrow" and overdue deadlines: '
   auto_d3ec3004d3: '
 
     Returns (prio_by_id, prio_by_title) from `100_Tasks/📋 Task_Board.md`.
@@ -3959,7 +3959,7 @@ planning:
   auto_f596df73e0: '## 3. Action logs and events'
   auto_f5f94578f3: 'Total records fixed: {_p1}'
   auto_f61e904259: 📝 Generating weekly review
-  auto_f64bd06a7a: 'Anchor date and time (MSK), the only reference for «today», «tomorrow», and overdue deadlines: {current_date_ru}
+  auto_f64bd06a7a: 'Anchor date and time ({tz}), the only reference for «today», «tomorrow», and overdue deadlines: {current_date_ru}
     ({current_date_iso}), {current_time_msk}. Check the fields «⚠️ Deadline:» with the date {current_date_iso}.'
   auto_f6622f8d0d: Added calendar context to recommendations
   auto_f6630539d9: ❌ Something went wrong. Try again or describe the task differently.
@@ -4690,8 +4690,8 @@ planning:
 planning_forecast:
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'
-  balance_all: 'RUB balance total (incl. broker): {amount:,.0f}'
-  balance_planned: 'RUB balance (cards/wallets — for plans): {amount:,.0f}'
+  balance_all: '{currency} balance total (incl. broker): {amount:,.0f}'
+  balance_planned: '{currency} balance (cards/wallets — for plans): {amount:,.0f}'
   current_date: 'CURRENT DATE: {date} ({day} {month_name} {year})'
   forecast_failed: Could not generate forecast.
   month_names: ',,January,February,March,April,May,June,July,August,September,October,November,December'

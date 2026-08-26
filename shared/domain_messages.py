@@ -99,7 +99,18 @@ def dmsg(*keys: str, default: str = "", cap: str | None = None, **kwargs: object
             return default
         node = node.get(k)
     template = str(node).strip() if node is not None else default
-    if kwargs and template:
+    if not template:
+        return default
+    # OSS-neutral: catalogs use {currency}/{tz}; inject from env when callers omit them.
+    if "{currency}" in template and "currency" not in kwargs:
+        from shared.finance.currency import base_currency
+
+        kwargs = {**kwargs, "currency": base_currency()}
+    if "{tz}" in template and "tz" not in kwargs:
+        from shared.constants import timezone_name
+
+        kwargs = {**kwargs, "tz": timezone_name()}
+    if kwargs:
         try:
             return template.format(**kwargs)
         except (KeyError, ValueError):

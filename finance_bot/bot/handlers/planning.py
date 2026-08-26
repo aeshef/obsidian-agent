@@ -1,5 +1,6 @@
 """Planned expense and forecast handlers."""
 
+from shared.finance.currency import base_currency
 from datetime import datetime
 from typing import Optional
 from decimal import Decimal
@@ -190,7 +191,7 @@ async def plan_add_text(message: types.Message, state: FSMContext) -> None:
     plan = {
         "name": parsed.get("name", fmsg("planning_default_name")),
         "amount": float(parsed.get("amount", 0)),
-        "currency": parsed.get("currency", "RUB"),
+        "currency": parsed.get("currency") or base_currency(),
         "due_date": due_date,
     }
 

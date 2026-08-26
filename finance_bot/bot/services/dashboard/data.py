@@ -46,12 +46,12 @@ def acc_balance(cur, acc_id: int, is_external: bool, external_bal) -> Decimal:
     return base + txn_sum
 
 
-def external_rub_non_portfolio_total(
+def external_base_non_portfolio_total(
     balances_now: dict[int, Decimal],
     acc_by_id: dict,
 ) -> float:
     """
-    Sum RUB for external-balance accounts that are not Invest API portfolios.
+    Sum base-currency amounts for external-balance accounts that are not Invest API portfolios.
     They lack account_balance_snapshots — carry current balance in daily series.
     """
     s = Decimal(0)
@@ -66,6 +66,8 @@ def external_rub_non_portfolio_total(
         s += bal
     return float(s)
 
+
+external_rub_non_portfolio_total = external_base_non_portfolio_total
 
 def load_data(db_path: Path, user_id: int = 1):
     """Load accounts, transactions, and planned_expenses from DB."""

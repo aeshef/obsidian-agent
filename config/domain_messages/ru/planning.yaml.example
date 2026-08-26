@@ -31,8 +31,8 @@ relative_calendar:
 planning_forecast:
   user_not_found: User not found
   current_date: 'CURRENT DATE: {date} ({day} {month_name} {year})'
-  balance_planned: 'RUB balance (cards/wallets — for plans): {amount:,.0f}'
-  balance_all: 'RUB balance total (incl. broker): {amount:,.0f}'
+  balance_planned: '{currency} balance (cards/wallets — for plans): {amount:,.0f}'
+  balance_all: '{currency} balance total (incl. broker): {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   planned_header: 'PLANNED EXPENSES:'
@@ -752,7 +752,7 @@ planning:
   auto_1078726108: '   Путь: {p1}'
   auto_114f5d2712: ⚠️ Файл изменился снова (проверка {p1}/3), ждем...
   auto_149d577e20: '⚠️ Ошибка при сохранении состояния: {p1}'
-  auto_171fc5d5f1: 'Календарь (МСК, {p1}–{p3}):'
+  auto_171fc5d5f1: 'Календарь ({tz}, {p1}–{p3}):'
   auto_1d6719e150: ⚠️ Файл был изменен после чтения (timestamp изменился с {p1} на {p3})
   auto_2457713b8f: '  Прошедшие по времени ({p1}):'
   auto_2a940195a2: '## 🎯 Q1 {p1} (Январь - Март)'
@@ -846,7 +846,7 @@ planning:
   auto_c82f64c61c: ⚠️ Файл изменился (попытка {p1}/3), ждем стабилизации...
   auto_c8a05e5b5b: '    (показаны последние {p1} по времени из {p3})'
   auto_cb179471ae: '## 🎯 Q2 {p1} (Апрель - Июнь)'
-  auto_cc0fce24bf: 'Календарь на {p1} (МСК):'
+  auto_cc0fce24bf: 'Календарь на {p1} ({tz}):'
   auto_d11bd20e95: '  health_day: {p1}  (календарный день метрик)'
   auto_d359b4b96e: '⚠️ Ошибка при загрузке состояния: {p1}'
   auto_d4a2685e67: 'Ошибка загрузки маппинга: {p1}'
@@ -2033,7 +2033,7 @@ planning:
   auto_27363fb627: '📅 **Через {days} дней:**
 
     '
-  auto_27be31b07b: ' (МСК):'
+  auto_27be31b07b: ' ({tz}):'
   auto_28ebe753d0: 📋 Цели {current_quarter} без задач на доске
   auto_29b6ab6fff: Колонка '
   auto_2b7c0a5903: '📋 **Твои задачи**{filter_text}:
@@ -2428,7 +2428,7 @@ planning:
   auto_94c505f3a9: '  Предстоящие по времени ('
   auto_9529d6a2b5: '📋 **Задача:** '
   auto_95c596eae6: 'Встреч (мин): '
-  auto_9604d3e155: 'Календарь (МСК, '
+  auto_9604d3e155: 'Календарь ({tz}, '
   auto_967a5baffd: '⚠️ Ошибка при iphone_context_sync: '
   auto_968011438a: '; допустимо: create, move, complete'
   auto_96d5efcef1: '; день '
@@ -2658,7 +2658,7 @@ planning:
   auto_d1b087a4ea: ' секунд назад (менее '
   auto_d2465227ea: '🔄 Найдено '
   auto_d3a8727860: ' последних по дате создания):'
-  auto_d3ab22a5fd: 'Якорная дата и время (МСК), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: '
+  auto_d3ab22a5fd: 'Якорная дата и время ({tz}), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: '
   auto_d4265558af: ' (Январь - Март)'
   auto_d511a35283: "\n\U0001F4CB Целей в базе: \n"
   auto_d54f11eb7a: 'Ни один id не на доске: '
@@ -2739,7 +2739,7 @@ planning:
   auto_f4acd5ebf5: '🟡 **Через '
   auto_f532df1052: 'За последние '
   auto_f55677027e: ' дней → '
-  auto_f64bd06a7a: 'Якорная дата и время (МСК), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: {current_date_ru}
+  auto_f64bd06a7a: 'Якорная дата и время ({tz}), единственный ориентир для «сегодня», «завтра» и просроченных дедлайнов: {current_date_ru}
     ({current_date_iso}), {current_time_msk}. Сверяй поля «⚠️ Дедлайн:» с датой {current_date_iso}.'
   auto_f6630539d9: ❌ Что-то пошло не так. Попробуй ещё раз или опиши задачу по-другому.
   auto_f73e5591d7: '(нет Health-данных за '
@@ -4344,7 +4344,7 @@ planning:
   auto_0d5e670659: 'Доступные цели (используй ТОЛЬКО эти ID!):
 
     '
-  auto_1039496542: 'Время МСК: %s, дата якорь: %s, День: %s, %s'
+  auto_1039496542: 'Время {tz}: %s, дата якорь: %s, День: %s, %s'
   auto_16916c0f4c: средний
   auto_32cddb1bd5: === ЗАДАЧИ В РАБОТЕ (приоритет!) ===
   auto_392ad7831d: 'Health-контекст для ревью недоступен: %s'

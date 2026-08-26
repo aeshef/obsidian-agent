@@ -1,1 +1,1 @@
-Anchor date/time (MSK) for today/tomorrow/overdue: {current_date_ru} ({current_date_iso}), {current_time_msk}. Match Deadline fields to {current_date_iso}.
+Anchor date/time ({tz}) for today/tomorrow/overdue: {current_date_ru} ({current_date_iso}), {current_time_msk}. Match Deadline fields to {current_date_iso}.

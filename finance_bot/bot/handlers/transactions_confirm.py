@@ -1,4 +1,5 @@
 """Transaction confirmation handlers."""
+from shared.finance.currency import base_currency
 from decimal import Decimal
 import asyncio
 import json
@@ -47,7 +48,7 @@ async def _process_confirmed_transaction(
     if parsed.get("type") == "account_balance":
         account_name = parsed.get("account", fmsg("default_wallet_name"))
         balance = Decimal(str(parsed.get("balance", 0)))
-        currency = parsed.get("currency", "RUB")
+        currency = parsed.get("currency") or base_currency()
         
         existing = (
             await session.execute(select(Account).where(Account.user_id == user.id, Account.name == account_name))
@@ -89,7 +90,7 @@ async def _process_confirmed_transaction(
 
         counterparty = parsed.get("counterparty") or dmsg("finance", "unknown_counterparty")
         amount = Decimal(str(parsed.get("amount", 0)))
-        currency = parsed.get("currency", "RUB")
+        currency = parsed.get("currency") or base_currency()
         account_name = parsed.get("_found_account_name") or parsed.get("account")
         if not account_name:
             await callback.answer(fmsg("confirm_no_credit_account"), show_alert=True)
@@ -137,7 +138,7 @@ async def _process_confirmed_transaction(
 
         counterparty = parsed.get("counterparty") or dmsg("finance", "unknown_counterparty")
         amount = Decimal(str(parsed.get("amount", 0)))
-        currency = parsed.get("currency", "RUB")
+        currency = parsed.get("currency") or base_currency()
         mode = "recv" if parsed.get("type") == "debt_receivable" else "pay"
 
         if mode == "recv":
@@ -233,7 +234,7 @@ async def _process_confirmed_transaction(
                 account_id=account.id,
                 type=parsed["type"],
                 amount=Decimal(str(parsed["amount"])),
-                currency=parsed.get("currency", "RUB"),
+                currency=parsed.get("currency") or base_currency(),
                 category=parsed.get("category"),
                 description=parsed.get("description"),
                 occurred_at=occurred,

@@ -1,0 +1,13 @@
+# Default {{PLACEHOLDER}} values for scripts/scaffold_personalized_prompts.py
+# Copy to onboarding_slots.yaml (gitignored) or pass --slots during onboarding.
+
+USER_LOCALE: en
+USER_TONE: concise, friendly
+USER_CURRENCY: USD
+USER_ACCOUNTS: "(fill during onboarding: wallet, card names)"
+USER_CATEGORIES: "(fill during onboarding)"
+USER_PLAN_EXAMPLES: need 500 for repairs by March
+USER_TASK_EXAMPLES: Buy milk, high priority
+USER_GOALS: "(fill during onboarding)"
+USER_VAULT_FOLDERS: "(fill during onboarding: Video, Knowledge, Links, …)"
+AUTHOR_CONTEXT: "(from user_profile.md)"

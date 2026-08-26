@@ -11,6 +11,7 @@ from bot.services.dashboard.charts import plot_lines_png, plot_stacked_bar_categ
 from bot.services.dashboard.data import (
     acc_balance,
     ensure_account_balance_snapshots_table,
+    external_base_non_portfolio_total,
     external_rub_non_portfolio_total,
     load_data,
     parse_datetime,
@@ -42,7 +43,6 @@ from bot.services.dashboard.windows import (
     week_range,
 )
 
-from bot.services.dashboard.build import build_arg_parser, run_build
 
 __all__ = [
     "HERO_META_PLACEHOLDER",
@@ -57,6 +57,7 @@ __all__ = [
     "chart_window_int",
     "day_range",
     "ensure_account_balance_snapshots_table",
+    "external_base_non_portfolio_total",
     "external_rub_non_portfolio_total",
     "fill_summary_hero",
     "fmt_num",

@@ -7,6 +7,7 @@ import logging
 import re
 
 from shared.domain_messages import dmsg
+from shared.finance.currency import base_currency, is_base_currency
 
 from ..llm import LLMClient
 from ..db import AsyncSessionLocal
@@ -39,7 +40,7 @@ async def get_planning_data(telegram_id: int) -> str:
         total_rub_planned = Decimal(0)
         total_rub_all = Decimal(0)
         for a in accounts:
-            if a.currency not in ("RUB", "RUR"):
+            if not is_base_currency(a.currency):
                 continue
             if a.is_external_balance and a.external_balance:
                 bal = a.external_balance
@@ -148,7 +149,7 @@ async def get_planning_data(telegram_id: int) -> str:
                             "subscription_line",
                             name=name,
                             amount=amt,
-                            currency=s.get("currency", "RUB"),
+                            currency=s.get("currency") or base_currency(),
                             period=period,
                         )
                     )
@@ -220,7 +221,7 @@ async def generate_month_plan_summary(telegram_id: int) -> str:
             {
                 "name": p.name,
                 "amount": float(p.amount or 0),
-                "currency": p.currency or "RUB",
+                "currency": p.currency or base_currency(),
                 "due_date": p.due_date,
                 "category": getattr(p, "category", "") or "",
             }

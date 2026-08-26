@@ -1,6 +1,7 @@
 """Badge meal metrics: daily buckets, quota burn, income tax, month summary."""
 
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import calendar
 import json
@@ -203,7 +204,7 @@ class BadgeTracker:
             user_id=user_id,
             name=self.account_name,
             type="badge",
-            currency="RUB",
+            currency=base_currency(),
             is_external_balance=False,
             external_balance=Decimal(0),
         )

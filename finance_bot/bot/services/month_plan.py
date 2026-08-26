@@ -7,6 +7,7 @@ Composes existing pieces:
   - actual consumption from transactions (caller supplies)
 """
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
@@ -19,7 +20,7 @@ from typing import Any, Iterable, Optional, Sequence
 class PlanLine:
     name: str
     amount: float
-    currency: str = "RUB"
+    currency: str = field(default_factory=base_currency)
     kind: str = "planned"  # subscription | inferred | planned | buffer
     category: str = ""
 
@@ -101,7 +102,7 @@ def load_subscriptions(path: Path) -> list[PlanLine]:
             PlanLine(
                 name=name,
                 amount=round(amount, 2),
-                currency=str(item.get("currency") or "RUB"),
+                currency=str(item.get("currency") or base_currency()),
                 kind="subscription",
                 category=str(item.get("category") or ""),
             )
@@ -350,7 +351,7 @@ def _plan_line_from_row(p: dict[str, Any]) -> Optional[PlanLine]:
     return PlanLine(
         name=name,
         amount=round(amount, 2),
-        currency=str(p.get("currency") or "RUB"),
+        currency=str(p.get("currency") or base_currency()),
         kind="planned",
         category=str(p.get("category") or ""),
     )

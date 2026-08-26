@@ -22,7 +22,7 @@ def reference_today_iso() -> str:
 
 
 def format_reference_today_label() -> str:
-    """Locale weekday + ISO date for agent prompts (MSK/TIMEZONE anchor)."""
+    """Locale weekday + ISO date for agent prompts (TIMEZONE anchor)."""
     today = reference_today()
     weekday = today.strftime("%A")
     try:

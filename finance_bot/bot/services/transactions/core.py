@@ -1,5 +1,6 @@
 """Finance transaction domain logic (NLU write, accounts, missing fields)."""
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import logging
 from datetime import date, datetime, time
@@ -205,7 +206,7 @@ def format_transaction_response(parsed: dict, account: Account) -> str:
             *_TC,
             "line_amount",
             amount=parsed["amount"],
-            currency=parsed.get("currency", "RUB"),
+            currency=parsed.get("currency") or base_currency(),
         )
     )
     lines.append(dmsg(*_TC, "line_type", type=parsed["type"]))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Apply finance_bot/config/initial_accounts.yaml to the local SQLite DB (idempotent)."""
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 import argparse
 import asyncio
@@ -75,7 +76,7 @@ async def apply(path: Path, *, dry_run: bool = False) -> int:
             if not name:
                 continue
             bal = Decimal(str(row.get("balance") or 0))
-            currency = str(row.get("currency") or "RUB").strip().upper()[:8]
+            currency = str(row.get("currency") or base_currency()).strip().upper()[:8]
             acc_type = str(row.get("type") or "card").strip().lower()
             if acc_type == "cash":
                 acc_type = "wallet"

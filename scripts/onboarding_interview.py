@@ -319,24 +319,18 @@ def _write_user_profile(about: str, tone: str, locale: str) -> None:
         cur = path.read_text(encoding="utf-8").strip()
         if len(cur) > 80 and "..." not in cur[:30]:
             return
-    if locale == "ru":
-        body = f"""# Профиль пользователя
-
-## Кто я
-{about}
-
-## Как со мной общаться
-- {tone or 'коротко, по делу'}
-"""
-    else:
-        body = f"""# User profile
-
-## About me
-{about}
-
-## Communication
-- {tone or 'concise, friendly'}
-"""
+    loc = "ru" if str(locale).lower().startswith("ru") else "en"
+    tpl_path = _ROOT / "config" / "agent" / f"user_profile.{loc}.example.md"
+    if not tpl_path.is_file():
+        tpl_path = _ROOT / "config" / "agent" / "user_profile.en.example.md"
+    raw = tpl_path.read_text(encoding="utf-8") if tpl_path.is_file() else (
+        "# User profile\n\n## About me\n{{ABOUT}}\n\n## Communication\n- {{TONE}}\n"
+    )
+    default_tone = "коротко, по делу" if loc == "ru" else "concise, friendly"
+    body = (
+        raw.replace("{{ABOUT}}", (about or "").strip() or "…")
+        .replace("{{TONE}}", (tone or default_tone).strip())
+    )
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(body.strip() + "\n", encoding="utf-8")
     print(f"wrote {path.relative_to(_ROOT)}")

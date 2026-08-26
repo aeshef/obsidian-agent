@@ -10,7 +10,7 @@ finance_txn_core:
   line_type: '- Тип: {type}'
   recorded_header: '{emoji} Записал:'
 finance_txn_query:
-  expenses_total: 'Всего расходов: {total} RUB'
+  expenses_total: 'Всего расходов: {total} {currency}'
   no_expenses_in_period: (нет расходов в периоде)
   category_filter: filter={category} (родитель включает дочерние)
   by_day_header: 'По дням:'
@@ -41,16 +41,16 @@ budget:
   txn_type_transfer: перевод
   recent_header: 'Последние {n} операций:'
 invest_report:
-  total_line: 'Итого: {total} RUB
+  total_line: 'Итого: {total} {currency}
 
     '
 finance_tinkoff:
-  total_line: 'Итого: {total} RUB'
+  total_line: 'Итого: {total} {currency}'
   no_accounts: No accounts from API or all excluded via TINKOFF_IGNORE_ACCOUNT_IDS
   no_portfolio_data: 'No portfolio data. Check TINKOFF_API_TOKEN and API availability. Debug: {keys}'
   token_missing: TINKOFF_API_TOKEN is not set in .env
-  total_fmt: 'Total: {total:,.2f} RUB'
-  portfolio_total_rub: 'Portfolio total: {total:,.0f} RUB'
+  total_fmt: 'Total: {total:,.2f} {currency}'
+  portfolio_total_rub: 'Portfolio total: {total:,.0f} {currency}'
   api_accounts_count: 'API accounts in response: {count}'
   no_positions: (no position data)
   no_portfolio: No portfolio data.
@@ -118,7 +118,7 @@ finance_agent:
   import_badge_done: Import ({mode}) {file} -> {db}
   import_badge_replaced: '   Period: {year_month}, replaced old rows: {count}'
   import_badge_skipped: '   Skipped duplicates: {count}'
-  import_badge_inserted: '   Added: {count} ops totaling {total} RUB'
+  import_badge_inserted: '   Added: {count} ops totaling {total} {currency}'
   import_txn_done: '{db}: added {added}, skipped {skipped}, max_id={max_id}, total={total}'
   import_default_account: Основной счёт
   show_txn_db_missing: 'DB not found: {path}'
@@ -138,11 +138,11 @@ finance_summary:
   period_user: 'Period: {period}'
   llm_empty: LLM returned empty response for summary.
   prompt_period: 'Period: {from_date} - {to_date}'
-  income_line: 'Income (excl. transfers/broker withdraw): {amount:,.0f} RUB'
-  expense_line: 'Spending (excl. transfers/broker top-ups): {amount:,.0f} RUB'
-  balance_line: 'Balance: {amount:,.0f} RUB'
+  income_line: 'Income (excl. transfers/broker withdraw): {amount:,.0f} {currency}'
+  expense_line: 'Spending (excl. transfers/broker top-ups): {amount:,.0f} {currency}'
+  balance_line: 'Balance: {amount:,.0f} {currency}'
   top_categories: 'Top spending categories:'
-  category_line: '- {category}: {amount:,.0f} RUB ({pct:.1f}%)'
+  category_line: '- {category}: {amount:,.0f} {currency} ({pct:.1f}%)'
   expense_change: 'Spending change vs previous period: {change:+.1f}%'
 badge:
   default_category: Еда/Бейдж

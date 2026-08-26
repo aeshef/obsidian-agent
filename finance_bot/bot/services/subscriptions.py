@@ -1,4 +1,5 @@
 from __future__ import annotations
+from shared.finance.currency import base_currency
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, date
@@ -44,7 +45,7 @@ def load_subscriptions() -> List[Subscription]:
             Subscription(
                 name=str(r.get("name")),
                 amount=float(r.get("amount")),
-                currency=str(r.get("currency", "RUB")),
+                currency=str(r.get("currency") or base_currency()),
                 period=str(r.get("period", "monthly")),
                 next_charge=datetime.fromisoformat(str(r.get("next_charge"))).date(),
             )

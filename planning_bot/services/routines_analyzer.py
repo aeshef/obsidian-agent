@@ -15,8 +15,13 @@ from shared.routines_paths import routines_history_path
 from shared.tz import get_tz
 
 
-def get_current_time_msk() -> datetime:
+def get_current_local_time() -> datetime:
+    """Now in TIMEZONE / CALENDAR_TZ (legacy alias: get_current_time_msk)."""
     return datetime.now(get_tz())
+
+
+def get_current_time_msk() -> datetime:
+    return get_current_local_time()
 
 
 def parse_history() -> Dict[str, Dict[str, Dict[str, bool]]]:
