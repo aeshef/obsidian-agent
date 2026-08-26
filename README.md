@@ -16,6 +16,40 @@ Capture, file, recall, and chart: tasks, notes, money, calendar, and optional bo
 
 ![obsidian-agent](assets/banner.png)
 
+## Install (start here)
+
+You do **not** need to learn this monorepo. Open the project in an AI coding chat and let it run setup.
+
+### Cursor (easiest)
+
+1. Clone and open **this repo root** in Cursor (the folder that contains `unified_bot/` and `scripts/` — not your Obsidian vault as the only root).
+2. In chat type **`/setup`** (or `@setup` if slash commands are empty).
+3. Answer a few questions: which modules (planning / finance / knowledge / full), language (`en` / `ru`), path to your vault.
+4. When it asks — paste tokens one at a time: [BotFather](https://t.me/BotFather) bot token, [DeepSeek](https://platform.deepseek.com/) API key.
+5. When it says the bot is ready: `./scripts/run_unified_bot.sh`, open Telegram, send `/start`.
+
+The chat agent follows a fixed playbook (venvs, capabilities, vault folders, prompts). You only decide modules and paste secrets.
+
+### Claude Code / Claude Desktop / similar
+
+Same idea: open the **repo root**, then tell the agent:
+
+> Run onboarding for this repo. Follow `.cursor/skills/setup/SKILL.md` end to end. Ask me one question at a time.
+
+It will use the same checklist as Cursor `/setup`. If the tool cannot run `/setup`, that path is the fallback.
+
+### Without an AI chat
+
+```bash
+git clone https://github.com/aeshef/obsidian-agent.git
+cd obsidian-agent
+./scripts/onboarding_wizard.sh --playbook planning   # or finance / knowledge / full
+```
+
+Then set secrets with `./scripts/oa-python.sh scripts/setup/env_tools.py set KEY 'value'` and start the bot (see [Quick start](#quick-start) below).
+
+You need: Python **3.10–3.12**, an Obsidian vault path, Telegram token, DeepSeek key.
+
 ---
 
 ## The point
