@@ -51,7 +51,20 @@ finance_bot/.venv/bin/python -m pytest \
   tests/test_note_lookup.py -q
 ```
 
-CI: `.github/workflows/ci.yml` (Python 3.10–3.12).
+CI: `.github/workflows/ci.yml` (Python 3.10–3.12, `AGENT_LOCALE` en + ru).
+
+---
+
+## Good first issues
+
+| Idea | Where |
+|------|--------|
+| New `menu_actions` row + handler | `config/ui_capabilities.yaml.example`, `{bot}/menu_action_handlers.py` |
+| New connector flag (fail-closed) | `shared/capabilities/profile.py` + preset + CAPABILITIES.md |
+| EN/RU string parity | `config/domain_messages/{locale}/*.yaml.example` + rebuild script |
+| Shrink a god script further | `finance_bot/scripts/build_finance_dashboard.py` helpers under `bot/services/dashboard/` |
+
+Open a [capability request](.github/ISSUE_TEMPLATE/capability_request.md) or [locale](.github/ISSUE_TEMPLATE/locale.md) issue if unsure.
 
 ---
 
@@ -60,16 +73,14 @@ CI: `.github/workflows/ci.yml` (Python 3.10–3.12).
 | Режим | Запуск |
 |-------|--------|
 | **Prod / рекомендуется** | `python -m unified_bot.main` |
-| Legacy finance | `python -m bot.main` (cwd: finance_bot) |
-| Legacy knowledge | `knowledge_bot/start_bot.py` |
-| Legacy planning | `python -m planning_bot.app.main` |
+| Host package | `unified_bot.host` (not `shared.telegram.host`) |
 
 ---
 
 ## Стиль
 
-- Доменная логика в боте; `shared/` — инфраструктура.
-- Скрипты: `scripts/lib/common.sh`, без хардкода путей VPS.
+- Composition root: `unified_bot/host/`; `shared/` is infrastructure (+ `shared/memory` may call domains).
+- Скрипты: `scripts/lib/common.sh` + `sync_steps_*.sh`, без хардкода путей VPS.
 - Deploy: `./scripts/deploy.sh --prod` для production.
 
-Документация: [docs/README.md](docs/README.md).
+Документация: [docs/README.md](docs/README.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md).

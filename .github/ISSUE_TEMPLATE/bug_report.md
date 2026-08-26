@@ -1,17 +1,30 @@
 ---
 name: Bug report
-about: Something broke in obsidian-agent
-title: "[bug] "
+about: Something broken in setup, bot, sync, or locale
 labels: bug
 ---
 
+**Describe the bug**
+A clear description of what went wrong.
+
 **Environment**
-- Install profile: full / planning-only / finance-only / custom (attach `capabilities.yaml` redacted)
-- OS: Mac / Linux VPS
-- Python version:
+- OS:
+- Python:
+- `AGENT_LOCALE`:
+- Modules enabled (capabilities / FULL_INSTALL):
+- Install path: Cursor `/setup` / wizard / DIY
+
+**Steps to reproduce**
+1.
+2.
+3.
 
 **Expected**
+What should happen.
 
-**Actual**
+**Logs**
+Paste relevant stderr (redact tokens). Do not paste `.env` or API keys.
 
-**Logs** (unified_bot.log, `onboarding_smoke.py` output, sync debug — no secrets)
+**Checklist**
+- [ ] Reproduced on a clean clone with only `*.example` configs
+- [ ] Ran `scripts/onboarding_smoke.py` (note which flags)

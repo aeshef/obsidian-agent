@@ -1,8 +1,10 @@
 """Host composition-root import boundary (OSS audit F12).
 
 Composition root: ``unified_bot/host`` (outside ``shared/``).
-``shared/memory`` may still import bots. New bot imports elsewhere in
-``shared/`` fail CI. Host shims under ``shared/telegram/host`` are removed.
+``shared/memory`` is the only remaining allowlisted zone that may import
+bot packages (context collectors / synth). Prefer extending
+``unified_bot.host`` for new cross-domain wiring — do not grow this list.
+Host shims under ``shared/telegram/host`` are removed.
 """
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](pyproject.toml)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![Obsidian](https://img.shields.io/badge/Obsidian-vault-7c3aed)](https://obsidian.md)
 [![Telegram](https://img.shields.io/badge/Telegram-bot-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
 [![Locale](https://img.shields.io/badge/locale-en%20%7C%20ru-green)](config/agent/)
@@ -101,24 +101,16 @@ No names. No amounts. No institutions. Your vault, your nouns.
 
 ## Quick start
 
-**Requirements:** Python 3.9+, an Obsidian vault path, a [Telegram bot token](https://t.me/BotFather), and an LLM key (DeepSeek by default; knowledge vision may use OpenRouter).
+**One bootstrap contract** for every install path:  
+[`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example)
 
-### Option A — Guided setup in Cursor (recommended)
+**Requirements:** Python **3.10–3.12** (3.9 may work), an Obsidian vault path, a [Telegram bot token](https://t.me/BotFather), and an LLM key (DeepSeek by default).
 
-Follow the single checklist: [`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example).
+### 1) Bootstrap (pick one UI — same checklist)
 
-1. Clone and open **this repo root** in Cursor (`obsidian-agent`, not the parent vault).
-2. In chat: **`/setup`** or **`@setup`**. See [AGENTS.md](AGENTS.md).
-3. Run:
+**Cursor (recommended):** open this repo root → `/setup` or `@setup` ([AGENTS.md](AGENTS.md)).
 
-```bash
-export PYTHONPATH=.
-python -m unified_bot.main
-```
-
-### Option B — CLI wizard
-
-Same checklist, non-interactive wrapper:
+**CLI:**
 
 ```bash
 git clone https://github.com/aeshef/obsidian-agent.git
@@ -126,25 +118,29 @@ cd obsidian-agent
 cp .env.example .env
 ./scripts/setup.sh
 ./scripts/onboarding_wizard.sh --playbook planning   # or finance / full / knowledge_only
-python3 scripts/init_vault_layout.py
-python3 scripts/onboarding_smoke.py --golden-planning
+./scripts/oa-python.sh scripts/init_vault_layout.py
+./scripts/oa-python.sh scripts/onboarding_smoke.py --golden-planning
+```
 
+### 2) Run the bot
+
+```bash
 export PYTHONPATH=.
 python -m unified_bot.main
 ```
 
-### Option C — Docker (runtime after bootstrap)
+### Docker (runtime only — not a bootstrap shortcut)
 
-Complete Option A or B first (capabilities, vault paths, secrets). Compose only runs the bot:
+Finish step 1 first (capabilities, vault paths, secrets). Then:
 
 ```bash
 export HOST_VAULT_PATH="/absolute/path/to/your-vault"
 docker compose up --build
 ```
 
-Minimum `.env`: `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN`, `DEEPSEEK_API_KEY`.
+Minimum `.env`: `TELEGRAM_UNIFIED_BOT_TOKEN`, `DEEPSEEK_API_KEY` (vault comes from the compose mount).
 
-**Next:** [docs/SETUP.md](docs/SETUP.md) · [docs/ONBOARDING.md](docs/ONBOARDING.md) · [docs/PROMPTS_ONBOARDING.md](docs/PROMPTS_ONBOARDING.md)
+**Docs:** [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
 
 ---
 
@@ -167,8 +163,8 @@ Pin a domain on the reply keyboard, or leave **Auto**.
 
 ```
 obsidian-agent/
-├── unified_bot/       # production Telegram host
-├── shared/            # agent platform, LLM, capabilities, Telegram
+├── unified_bot/       # production Telegram host (composition root: host/)
+├── shared/            # agent platform, LLM, capabilities, Telegram utils
 ├── planning_bot/
 ├── knowledge_bot/
 ├── finance_bot/
@@ -185,6 +181,8 @@ Copy lives in YAML. Python stays locale-agnostic. Default `AGENT_LOCALE=en`; Rus
 
 | Doc | Topic |
 |-----|--------|
+| [SECURITY.md](SECURITY.md) | Tokens, vault, reporting |
+| [CHANGELOG.md](CHANGELOG.md) | Releases |
 | [docs/SETUP.md](docs/SETUP.md) | Install, deploy, Mac ↔ server sync |
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | Modules, connectors, smoke |
 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md) | Manifest, sync gates, UI |

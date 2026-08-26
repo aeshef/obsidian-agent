@@ -12,6 +12,11 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
+        locale: [en]
+        include:
+          # Locale parity job (one Python version is enough)
+          - python-version: "3.12"
+            locale: ru
 
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +50,7 @@ jobs:
           TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
-          AGENT_LOCALE: en
+          AGENT_LOCALE: ${{ matrix.locale }}
           VAULT_PATH: ${{ runner.temp }}/ci-vault
         run: |
           mkdir -p "$VAULT_PATH"
@@ -62,14 +67,20 @@ jobs:
         run: |
           python -m pip install -q ruff
           ruff check shared unified_bot --select E9,F63,F7,F82 --ignore E501
-      - name: Shellcheck (scripts)
+      - name: Shellcheck (OSS entrypoints — must pass)
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck
-          shellcheck -e SC1090,SC1091 scripts/setup.sh scripts/run_tests.sh scripts/onboarding_wizard.sh
-          # Optional: other top-level shell helpers (non-fatal noise suppressed above)
-          find scripts -maxdepth 1 -name '*.sh' ! -name 'setup.sh' ! -name 'run_tests.sh' ! -name 'onboarding_wizard.sh' \
-            -print0 | xargs -0 -r shellcheck -e SC1090,SC1091,SC2034,SC2155,SC2086 || true
+          shellcheck -e SC1090,SC1091 \
+            scripts/setup.sh \
+            scripts/run_tests.sh \
+            scripts/onboarding_wizard.sh \
+            scripts/setup_agent_config.sh
+          # Sync step libs (sourced; still lintable)
+          shellcheck -e SC1090,SC1091,SC2034,SC2154,SC2086,SC2155 \
+            scripts/lib/sync_steps_rsync.sh \
+            scripts/lib/sync_steps_charts.sh \
+            scripts/lib/sync_steps_maintenance.sh
 
   capabilities:
     runs-on: ubuntu-latest
@@ -94,7 +105,6 @@ jobs:
           export VAULT_PATH="${RUNNER_TEMP}/ci-vault"
           mkdir -p "$VAULT_PATH"
           "$FIN_PY" -m pip install -q pytest pytest-asyncio
-          # Golden presets + agent registry (no --verify-all: needs local badge/broker yaml)
           "$FIN_PY" scripts/onboarding_smoke.py --golden-planning --golden-finance --golden-knowledge --agent-sanity
           "$FIN_PY" -m eval.harness
           "$FIN_PY" -m pytest tests/test_capabilities.py tests/test_profile_matrix.py \
@@ -102,4 +112,6 @@ jobs:
             tests/test_prompt_preamble.py tests/test_onboarding.py tests/test_no_cyrillic_in_py.py \
             tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
             tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py \
-            tests/test_cheap_router.py tests/test_fsm_sqlite.py tests/test_finance_category_match.py -q
+            tests/test_cheap_router.py tests/test_fsm_sqlite.py tests/test_finance_category_match.py \
+            tests/test_host_import_boundary.py tests/test_bootstrap_checklist.py \
+            tests/test_config_policy.py tests/test_no_temperature_literals.py -q
