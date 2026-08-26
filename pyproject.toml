@@ -1,9 +1,26 @@
 [project]
 name = "obsidian-agent"
 version = "0.1.0"
-description = "Telegram bots + shared tooling for Obsidian vault automation"
+description = "Telegram bot for Obsidian — self-hosted AI agent / life OS (PKM, tasks, personal finance, RAG)"
 requires-python = ">=3.10"
 readme = "README.md"
+license = { text = "MIT" }
+keywords = [
+  "obsidian",
+  "telegram-bot",
+  "ai-agent",
+  "personal-knowledge-management",
+  "pkm",
+  "rag",
+  "self-hosted",
+  "second-brain",
+  "personal-finance",
+  "kanban",
+  "llm",
+  "deepseek",
+  "life-os",
+  "personal-assistant",
+]
 
 [tool.ruff]
 line-length = 120

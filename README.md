@@ -1,20 +1,30 @@
 # obsidian-agent
 
+**Telegram bot for Obsidian** — a self-hosted AI agent / life OS over your local vault (tasks, notes RAG, personal finance).
+
 [![CI](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/aeshef/obsidian-agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
-[![Obsidian](https://img.shields.io/badge/Obsidian-vault-7c3aed)](https://obsidian.md)
+[![Obsidian](https://img.shields.io/badge/Obsidian-PKM-7c3aed)](https://obsidian.md)
 [![Telegram](https://img.shields.io/badge/Telegram-bot-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
+[![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-000000)](https://platform.deepseek.com/)
 [![Locale](https://img.shields.io/badge/locale-en%20%7C%20ru-green)](config/agent/)
 [![GitHub stars](https://img.shields.io/github/stars/aeshef/obsidian-agent?style=social)](https://github.com/aeshef/obsidian-agent/stargazers)
 
-**A life OS that writes itself into an Obsidian vault.** Telegram is the sensor. The vault is the system of record. The agent is a tool loop over *your* files — not a chat that forgets.
+Open-source **Obsidian + Telegram** personal assistant: capture from chat (text, voice, photos), write into markdown / SQLite in the vault, answer with a tool-using LLM — not a chat that forgets.
 
-> **One line:** vault-native agent with **fail-closed modules** — if a capability is off, it is gone from UI, tools, prompts, and sync.
+> Vault-native, **fail-closed modules** (planning / knowledge / finance). If a capability is off, it is gone from UI, tools, prompts, and Mac sync.
 
-Capture, file, recall, and chart: tasks, notes, money, calendar, and optional body/work connectors. Edit in Obsidian whenever you want. The bot never replaces the vault; it keeps it alive when you are not at the desk.
+Edit in Obsidian whenever you want. Optional Mac↔VPS sync keeps the vault alive when you are away from the desk.
 
 ![obsidian-agent](assets/banner.png)
+
+## Who this is for
+
+- You live in **Obsidian** and want a **Telegram** inbox that actually files into the vault
+- You want a **self-hosted** personal AI assistant (not another cloud second-brain SaaS)
+- You care about **PKM**, kanban tasks, and/or **personal finance** in one process
+- You want modules you can turn off for real (capabilities manifest), including sync and tools
 
 ## Install (start here)
 
@@ -149,14 +159,9 @@ No names. No amounts. No institutions. Your vault, your nouns.
 
 ## Quick start
 
-**One bootstrap contract** for every install path:  
-[`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example)
+Same steps as [Install](#install-start-here). Short form once you know the path:
 
-**Requirements:** Python **3.10–3.12** (3.9 may work), an Obsidian vault path, a [Telegram bot token](https://t.me/BotFather), and an LLM key (DeepSeek by default).
-
-### 1) Bootstrap (pick one UI — same checklist)
-
-**Cursor (recommended):** open this repo root → `/setup` or `@setup` ([AGENTS.md](AGENTS.md)).
+**Cursor:** repo root → `/setup` → answer prompts → run bot.
 
 **CLI:**
 
@@ -165,30 +170,22 @@ git clone https://github.com/aeshef/obsidian-agent.git
 cd obsidian-agent
 cp .env.example .env
 ./scripts/setup.sh
-./scripts/onboarding_wizard.sh --playbook planning   # or finance / full / knowledge_only
+./scripts/onboarding_wizard.sh --playbook planning   # or finance / knowledge / full
 ./scripts/oa-python.sh scripts/init_vault_layout.py
 ./scripts/oa-python.sh scripts/onboarding_smoke.py --golden-planning
-```
-
-### 2) Run the bot
-
-```bash
 export PYTHONPATH=.
 python -m unified_bot.main
 ```
 
-### Docker (runtime only — not a bootstrap shortcut)
-
-Finish step 1 first (capabilities, vault paths, secrets). Then:
+**Docker** is runtime only after bootstrap (not a shortcut past `/setup`):
 
 ```bash
 export HOST_VAULT_PATH="/absolute/path/to/your-vault"
 docker compose up --build
 ```
 
-Minimum `.env`: `TELEGRAM_UNIFIED_BOT_TOKEN`, `DEEPSEEK_API_KEY` (vault comes from the compose mount).
-
-**Docs:** [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
+Checklist contract: [`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example).  
+Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
 
 ---
 
