@@ -42,44 +42,44 @@ finance:
   add_account_balance_invalid: '❌ Invalid format. Enter a number (e.g., 5000 or 0):'
   add_account_balance_prompt: 'Enter the initial balance (a number, e.g., 5000 or
     0):'
-  add_account_currency_invalid: '❌ Unsupported currency. Use: RUB, USD, EUR, GBP,
+  add_account_currency_invalid: '❌ Unsupported currency. Use: USD, EUR,, GBP,
     CNY'
-  add_account_currency_prompt: '💰 Enter the currency (RUB, USD, EUR, GBP, CNY) or
-    press /skip for RUB:'
+  add_account_currency_prompt: '💰 Enter the currency (USD, EUR,, GBP, CNY) or
+    press /skip for BASE_CURRENCY:'
   add_account_name_invalid: '❌ The name must be between 1 and 64 characters. Try again:'
-  add_account_name_prompt: 'Enter the account name (e.g., "Sberbank", "Tinkoff", "Wallet"):'
+  add_account_name_prompt: 'Enter the account name (e.g., "Checking", "Cash", "Broker"):'
   add_account_title: '💳 <b>Adding an account</b>
 
 
     '
   badge_coaching_header: ''
   badge_disabled: Badge disabled in config/badge.yaml
-  badge_evening_over: '⚠️ Over limit: {over} RUB (deducted from salary).'
-  badge_evening_remain: '{remaining} RUB left — quota burns at midnight.'
+  badge_evening_over: '⚠️ Over limit: {over} (deducted from salary).'
+  badge_evening_remain: '{remaining} left — quota burns at midnight.'
   badge_evening_title: '🍽 Badge: spent {spent} of {limit} today.'
   badge_menu_hint: '🍽 Badge expense (account: {account}, category: {category}, limit:
-    {limit} RUB/day)
+    {limit}/day)
 
 
     {prompt}
 
     '
-  badge_month_burned: 'Quota burned: {burned} RUB'
-  badge_month_line: '📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned}
-    RUB'
-  badge_month_ndfl: 'Estimated income tax on spend: ~{ndfl} RUB'
-  badge_month_over: 'Over daily limit: {over} RUB'
-  badge_month_spent: 'Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)'
+  badge_month_burned: 'Quota burned: {burned}'
+  badge_month_line: '📅 Month: {spent} / {entitlement} ({pct:.0f}%), burned {burned}
+   '
+  badge_month_ndfl: 'Estimated income tax on spend: ~{ndfl}'
+  badge_month_over: 'Over daily limit: {over}'
+  badge_month_spent: 'Spent: {spent} of {entitlement} ({pct:.0f}%)'
   badge_month_title: 🍽 Badge for {month:02d}.{year}
   badge_month_working: 'Working days: {working}, with spend: {with_spend}'
   badge_month_zero_days: 'Days without spend (full burn): {days}'
   badge_prompt: 'Enter free text — amount, place, and optionally date:
 
     '
-  badge_recorded: ✅ {amount} RUB badge{desc}
-  badge_today_line: '📊 Today: {spent} / {limit} RUB'
-  badge_today_over: 'Over limit: {over} RUB'
-  badge_today_remain: '{remaining} RUB left (burns today)'
+  badge_recorded: ✅ {amount} badge{desc}
+  badge_today_line: '📊 Today: {spent} / {limit}'
+  badge_today_over: 'Over limit: {over}'
+  badge_today_remain: '{remaining} left (burns today)'
   badge_weekend: Today is a day off — no daily badge quota.
   balance_add_account_hint: 'Add an account via:'
   balance_add_account_path: 🔄 Sync → 💳 Add card/account
@@ -173,7 +173,7 @@ finance:
   debts_settled_recv: 'Repaid: repaid to me {counterparty} {amount} {currency} (credited
     to {account})'
   default_wallet_name: Wallet
-  exact_command_broker_sync: Sync Tinkoff
+  exact_command_broker_sync: Sync broker
   finance_agent_missing: ❌ Finance agent is not registered in unified.
   finance_data_no_answer: ❌ Failed to get a response based on the data.
   finance_llm_unavailable: '❌ LLM is unavailable: {error}'
@@ -327,12 +327,12 @@ finance:
   summary_week: 📅 Week
   sync_add_account_button: 💳 Add card/account
   sync_back_button: ⬅️ Back
-  sync_broker_button: 🔄 Tinkoff Broker
-  sync_broker_error: '❌ Tinkoff sync error:
+  sync_broker_button: 🔄 Sync broker
+  sync_broker_error: '❌ Broker sync error:
 
 
     {error}'
-  sync_broker_progress: ⏳ Syncing Tinkoff...
+  sync_broker_progress: ⏳ Syncing broker...
   sync_list_accounts_button: 📋 My accounts
   sync_menu_choose: 'Select action:'
   sync_menu_title: 🔄 Sync

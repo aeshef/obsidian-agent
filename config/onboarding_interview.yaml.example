@@ -27,23 +27,23 @@ questions:
     prompt_en: "Main accounting currency?"
     prompt_ru: "Основная валюта учёта?"
     slot_keys: [USER_CURRENCY]
-    choices_en: ["RUB", "USD", "EUR"]
-    choices_ru: ["RUB (₽)", "USD ($)", "EUR (€)"]
+    choices_en: ["USD", "EUR", "RUB"]
+    choices_ru: ["USD ($)", "EUR (€)", "RUB (₽)"]
 
   finance_accounts:
     phase: intro
     modules: [finance]
     kind: accounts
-    prompt_en: "List your accounts/cards/wallets — one per line or comma-separated. Example: Tinkoff card, Sber card, Cash"
-    prompt_ru: "Перечислите счета/карты/кошельки — по одному в строке или через запятую. Пример: Тинькофф, Сбер, Наличные"
+    prompt_en: "List your accounts/cards/wallets — one per line or comma-separated. Example: Checking, Cash, Broker"
+    prompt_ru: "Перечислите счета/карты/кошельки — по одному в строке или через запятую. Пример: Карта, Наличные, Брокер"
     slot_keys: [USER_ACCOUNTS]
 
   finance_opening_balances:
     phase: after_secrets
     modules: [finance]
     kind: account_balances
-    prompt_en: "Opening balance for each account (today). Format per line: Account name: amount (e.g. Tinkoff card: 45000). Use 0 if unknown."
-    prompt_ru: "Стартовый баланс по каждому счёту на сегодня. Формат строки: Название: сумма (например Тинькофф: 45000). 0 — если не знаете."
+    prompt_en: "Opening balance for each account (today). Format per line: Account name: amount (e.g. Checking: 1200). Use 0 if unknown."
+    prompt_ru: "Стартовый баланс по каждому счёту на сегодня. Формат строки: Название: сумма (например Карта: 45000). 0 — если не знаете."
 
   finance_categories:
     phase: intro

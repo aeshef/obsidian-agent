@@ -7,7 +7,8 @@ from typing import Iterable, Mapping
 
 # Keys to suggest when a connector is on (values left empty for the user).
 _CONNECTOR_ENV_HINTS: dict[str, tuple[str, ...]] = {
-    "broker_sync": ("TINKOFF_API_TOKEN=",),
+    # Token depends on broker_sync.yaml provider (csv needs none; tinkoff → TINKOFF_API_TOKEN).
+    "broker_sync": (),
     "gmail_health_pipeline": (
         "GMAIL_IMAP_USER=",
         "GMAIL_IMAP_APP_PASSWORD=",

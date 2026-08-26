@@ -11,7 +11,7 @@ import pytz
 from aiogram import Bot
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-TIMEZONE = os.environ.get('TIMEZONE') or os.environ.get('CALENDAR_TZ') or 'Europe/Moscow'
+TIMEZONE = os.environ.get('TIMEZONE') or os.environ.get('CALENDAR_TZ') or 'UTC'
 logger = logging.getLogger(__name__)
 _scheduler: Optional[AsyncIOScheduler] = None
 

@@ -149,7 +149,7 @@ sequenceDiagram
 | planning, finance NLU | DeepSeek | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` |
 | knowledge (часть пайплайна) | OpenRouter | `OPENROUTER_API_KEY` |
 | ASR (голос) | OpenAI-compatible / Ollama | `ASR_*`, `OPENAI_*` |
-| finance broker | Tinkoff Invest API | `TINKOFF_API_TOKEN` |
+| finance broker | CSV balances or optional T-Invest API | `provider: csv` / `TINKOFF_API_TOKEN` |
 
 `finance_bot/bot/llm.py` — тонкая async-обёртка над `shared.llm.LLMClient`.
 

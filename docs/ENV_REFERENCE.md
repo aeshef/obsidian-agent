@@ -34,13 +34,13 @@ Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required
 
 | Переменная | Default / заметка |
 |------------|-------------------|
-| `TIMEZONE` | UTC; для MSK: `Europe/Moscow` |
+| `TIMEZONE` | UTC (set `Europe/Moscow` etc. if needed) |
 | `OBSIDIAN_VAULT_PATH` | алиас `VAULT_PATH` |
 | `LLM_BASE_URL` / `DEEPSEEK_BASE_URL` | OpenAI-compatible base (default DeepSeek) |
 | `LLM_MODEL` / `DEEPSEEK_MODEL` | chat model id |
 | `LLM_API_KEY` / `DEEPSEEK_API_KEY` | chat API key |
 | `OPENROUTER_BASE_URL` / `VISION_BASE_URL` | vision + embeddings host |
-| `BASE_CURRENCY` | ledger/dashboard filter currency (default `RUB`) |
+| `BASE_CURRENCY` | ledger/dashboard filter currency (default `USD`) |
 | `GOALS_YEAR` | текущий год |
 | `LOG_LEVEL` | уровень логирования |
 
@@ -95,7 +95,7 @@ Gmail IMAP (planning, Mac only): `GMAIL_IMAP_USER`, `GMAIL_IMAP_APP_PASSWORD`, `
 
 ## finance_bot
 
-`TINKOFF_*`, `BASE_CURRENCY`, `FINANCE_DB_PATH`, `DATABASE_URL`, `FINANCE_USE_VAULT_DB`, `FINANCE_BOT_ROOT`, `FIN_DASHBOARD_START_DATE`, `FIN_ONEOFF_THRESHOLD_RUB`, `FINANCE_REL_*`, `BROKER_SYNC_LABEL_*`, `MPLCONFIGDIR`.
+`TINKOFF_*` (optional, provider `tinkoff` only), `BASE_CURRENCY`, `FIN_ONEOFF_THRESHOLD` / `FIN_ONEOFF_THRESHOLD_RUB`, `FINANCE_DB_PATH`, `DATABASE_URL`, `FINANCE_USE_VAULT_DB`, `FINANCE_BOT_ROOT`, `FIN_DASHBOARD_START_DATE`, `FINANCE_REL_*`, `BROKER_SYNC_LABEL_*`, `MPLCONFIGDIR`.
 
 **БД:** запись всегда в **canonical** (`FINANCE_DB_PATH` или `{finance_bot}/finance.db`). Vault `300_Дашборды/Данные/finance.db` — read-only реплика.
 

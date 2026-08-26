@@ -45,13 +45,13 @@ PLAYBOOKS: tuple[ConnectorPlaybook, ...] = (
         id=CONNECTOR_BROKER_SYNC,
         module=MODULE_FINANCE,
         cli_flag="--broker-sync",
-        env_keys=("TINKOFF_API_TOKEN",),
+        env_keys=(),
         user_steps=(
             "cp finance_bot/config/broker_sync.yaml.example → broker_sync.yaml",
-            "Set provider in broker_sync.yaml (tinkoff or your implementation in broker_providers.py)",
-            "Add broker API token to .env (TINKOFF_API_TOKEN for tinkoff provider)",
+            "Set provider: csv (portable) or tinkoff (optional T-Invest API)",
+            "csv → broker_balances.csv; tinkoff → TINKOFF_API_TOKEN in .env",
         ),
-        smoke_hint="broker_sync_enabled() and token set",
+        smoke_hint="broker_sync.yaml provider not none",
     ),
     ConnectorPlaybook(
         id=CONNECTOR_DOMESTIC_BANK_CARDS,

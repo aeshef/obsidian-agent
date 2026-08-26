@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-One-off Tinkoff broker sync (same as daily 7:00 job).
+One-off broker portfolio sync (provider from broker_sync.yaml).
 Run on server from finance_bot directory with .env loaded.
 
 Used from sync_finance_db.sh before downloading finance.db to Mac

@@ -1,10 +1,10 @@
 """
-Broker portfolio account type helpers (T-Invest API sync vs manual broker YAML).
+Broker portfolio account type helpers (API sync vs manual broker YAML).
 
-Only type == broker_portfolio — account from Invest API sync (snapshots, broker line in dashboard).
+Only type == broker_portfolio — account from API sync (snapshots, broker line in dashboard).
 
-Accounts with type == broker from YAML/manual entry are other brokers, not T-Invest API:
-do not mix with Tinkoff portfolio (counted as other external RUB in totals).
+Accounts with type == broker from YAML/manual entry are other custodians:
+do not mix with API portfolio totals (counted as other external balances).
 """
 from __future__ import annotations
 

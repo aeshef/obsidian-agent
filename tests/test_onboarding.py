@@ -151,13 +151,13 @@ def test_env_tools_set_locale_no_dry_run_crash(tmp_path: Path):
 def test_parse_accounts_and_balances():
     from scripts.onboarding_interview import _parse_accounts, _parse_balances
 
-    accs = _parse_accounts("Тинькофф, Сбер\nНаличные")
+    accs = _parse_accounts("Checking, Broker\nCash")
     assert len(accs) == 3
     assert accs[2]["type"] == "wallet"
-    merged = _parse_balances("Тинькофф: 45000\nНаличные: 1200", accs)
+    merged = _parse_balances("Checking: 45000\nCash: 1200", accs)
     by_name = {a["name"]: a["balance"] for a in merged}
-    assert by_name["Тинькофф"] == 45000.0
-    assert by_name["Наличные"] == 1200.0
+    assert by_name["Checking"] == 45000.0
+    assert by_name["Cash"] == 1200.0
 
 
 def test_init_vault_layout_requires_capabilities(tmp_path: Path, monkeypatch):

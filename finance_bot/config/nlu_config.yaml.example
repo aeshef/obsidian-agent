@@ -22,7 +22,7 @@ cancel_text_aliases:
 
 # Точные команды, которые не должны обрабатываться NLU (должны совпадать с handlers)
 exact_commands:
-  - "Синк Тинькофф"
+  - "Sync broker"
 
 # Кнопки reply-меню (опционально; по умолчанию — balance, last_ops)
 # invest/plan — через агента и свободный текст

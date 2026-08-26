@@ -52,7 +52,7 @@ python3 scripts/apply_capabilities_profile.py --only-modules planning --write --
 # Knowledge base only
 python3 scripts/apply_capabilities_profile.py --only-modules knowledge --write --patch-env
 
-# Finance + Tinkoff API sync
+# Finance + broker sync (csv or optional T-Invest)
 python3 scripts/apply_capabilities_profile.py --only-modules finance --broker-sync --write --patch-env
 
 python3 scripts/init_vault_layout.py
@@ -117,12 +117,12 @@ Telegram: `python -m unified_bot.main` → mode **Finance** → balance / last o
 
 Folder names live in `config/vault_paths.yaml` (materialized from `vault_paths.en.yaml.example` or `vault_paths.ru.yaml.example` via `AGENT_LOCALE`). Rename `folders.tasks`, `folders.goals`, etc. to match **your** Obsidian tree — Python reads segments only from YAML. `init_vault_layout.py` creates missing dirs under `VAULT_PATH`.
 
-## Rebrand connectors (examples use Tinkoff / corporate badge)
+## Rebrand connectors (broker / meal badge)
 
 | What | Where |
 |------|--------|
 | Broker API label | `config/messages.ru.yaml` → `finance.sync_broker_button`, `inline_invest_*` |
-| Broker provider | `finance_bot/config/broker_sync.yaml` → `provider: tinkoff\|none` |
+| Broker provider | `finance_bot/config/broker_sync.yaml` → `provider: csv\|tinkoff\|none` |
 | Account display names | `broker_sync.yaml` → `accounts`, `display_names` |
 | Meal badge | `finance_bot/config/badge.yaml` + `messages.ru` → `finance.menu.badge` |
 | UI capability gates + reply menu | `config/ui_capabilities.yaml` (`strings`, `menu_actions`; optional override of `.example`) |

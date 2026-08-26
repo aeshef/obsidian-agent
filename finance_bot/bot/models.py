@@ -17,7 +17,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     chat_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    base_currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    base_currency: Mapped[str] = mapped_column(String(8), default="USD")
     reminder_time: Mapped[str] = mapped_column(String(8), default="21:00")  # HH:MM
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -38,7 +38,7 @@ class Account(Base):
     # Stable external account key (e.g. T-Invest account id). Upsert by (user_id, external_ref).
     external_ref: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     type: Mapped[str] = mapped_column(String(24), default="wallet")  # wallet/card/broker/crypto/other
-    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
     is_external_balance: Mapped[bool] = mapped_column(Boolean, default=False)
     external_balance: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 2), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -55,7 +55,7 @@ class Transaction(Base):
     account_id: Mapped[int] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"), index=True)
     type: Mapped[str] = mapped_column(String(8))  # expense | income
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2))
-    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
     category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     description: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -86,7 +86,7 @@ class PlannedExpense(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(128))
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 2))
-    currency: Mapped[str] = mapped_column(String(8), default="RUB")
+    currency: Mapped[str] = mapped_column(String(8), default="USD")
     due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     category: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(24), default="active")  # active | done | cancelled | expired

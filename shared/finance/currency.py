@@ -1,12 +1,12 @@
-"""Base currency helpers (BASE_CURRENCY env; default RUB for backward compat)."""
+"""Base currency helpers (BASE_CURRENCY env; default USD for OSS-neutral installs)."""
 from __future__ import annotations
 
 import os
 
 
 def base_currency(*, override: str | None = None) -> str:
-    raw = (override or os.environ.get("BASE_CURRENCY") or "RUB").strip().upper()
-    return raw or "RUB"
+    raw = (override or os.environ.get("BASE_CURRENCY") or "USD").strip().upper()
+    return raw or "USD"
 
 
 def currency_aliases(code: str | None = None) -> frozenset[str]:

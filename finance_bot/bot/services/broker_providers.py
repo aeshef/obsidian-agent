@@ -31,7 +31,7 @@ async def run_broker_sync(provider: str, session: "AsyncSession", user: "User") 
         return await sync_csv_balances(session, user)
     if key == "example":
         raise ValueError(
-            "broker provider 'example' is a template stub — set provider: tinkoff or csv "
+            "broker provider 'example' is a template stub — set provider: csv or tinkoff "
             "in broker_sync.yaml (see finance_bot/config/broker_sync.yaml.example)"
         )
     raise ValueError(

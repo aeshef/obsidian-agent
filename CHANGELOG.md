@@ -12,7 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Shortcut / Tasker recipes (`docs/connectors/shortcuts/`)
 - Hosting without Mac + systemd unit example
 - Broker provider `csv` (balance file sync)
-- `BASE_CURRENCY` respected in finance dashboard charts/labels
+- OSS-neutral finance defaults: `BASE_CURRENCY=USD`, `TIMEZONE=UTC`, broker `provider: none|csv` first; Tinkoff optional
+- Meal badge example without NDFL; `show_ndfl_estimate` defaults off
+- EN/RU UI strings: generic “broker” / account names (no bank brands)
 - Capabilities YAML alias `health_snapshots` → `apple_health`
 
 ### Changed

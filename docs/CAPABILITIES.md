@@ -34,7 +34,7 @@ python3 scripts/init_vault_layout.py
 
 Connectors also gate agent tools (`shared/capabilities/registry.py`) and finance scheduler jobs (broker sync, badge digests).
 
-Broker API kind toggles: `features.broker_*` in capabilities and/or `accounts` in `finance_bot/config/broker_sync.yaml` (`provider: tinkoff|none`).
+Broker API kind toggles: `features.broker_*` in capabilities and/or `accounts` in `finance_bot/config/broker_sync.yaml` (`provider: csv|tinkoff|none`).
 
 ## Environment overrides
 
@@ -68,7 +68,7 @@ Exported via `CAP_MODULE_*` (see `export_capabilities_env.py`):
 | `300_` | any of finance / planning / knowledge |
 | Knowledge subdir (`VAULT_REL_KNOWLEDGE`) | `knowledge` module on |
 
-Broker UI/NLU (Tinkoff sync commands, invest menu) is hidden when `connectors.broker_sync` is off — see `shared/capabilities/finance_gates.py`.
+Broker UI/NLU (sync commands, invest menu) is hidden when `connectors.broker_sync` is off — see `shared/capabilities/finance_gates.py`.
 
 ## Examples
 
@@ -156,7 +156,7 @@ python3 scripts/onboarding_smoke.py --golden-planning
 | `features.health_body_metrics` | Weight/fat on nutrition chart |
 | `features.health_nutrition_chart` | KBJU chart sync step |
 | `domestic_bank_cards` | Card lines on finance balance chart |
-| `broker_sync` + `broker_sync.yaml` `provider` | API sync (today: `tinkoff`) |
+| `broker_sync` + `broker_sync.yaml` `provider` | Portfolio sync (`csv` portable, or optional `tinkoff`) |
 | `manual_broker_accounts` | Broker overview tool without API |
 
 ## Code map

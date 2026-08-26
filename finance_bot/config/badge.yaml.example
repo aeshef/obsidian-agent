@@ -1,79 +1,70 @@
-# Трекинг корпоративного бейджа питания. Скопируйте в badge.yaml и настройте под себя.
+# Corporate meal / food-benefit tracking.
 #   cp config/badge.yaml.example config/badge.yaml
-# В git только этот example. Боевой config/badge.yaml — локально и на VPS
-# (deploy.sh rsync-ит badge.yaml на сервер, если файл есть у вас в finance_bot/config/).
+# Only the example is in git. Local badge.yaml is gitignored / deployed if present.
 
 enabled: false
 
 account_name: "Meal Badge"
-category: "Еда/Бейдж"
+category: "Food/Badge"
 exclude_from_balance: true
 
-daily_limit_rub: 1000
-ndfl_rate: 0.13
+# Daily entitlement in your ledger currency (alias: daily_limit_rub).
+daily_limit: 15
+# Optional payroll tax on in-limit spend (e.g. RU personal income tax). 0 = off.
+ndfl_rate: 0
 
 extra_non_working_days: []
 extra_working_days: []
 
-# Контекст правил для LLM (не хардкод в коде). Подставляется в промпты как {rules_context}
 rules_context: |
-  Корпоративный бейдж питания: на каждый рабочий день месяца начисляется дневной лимит.
-  Непотраченный остаток дня сгорает, на следующий день не переносится.
-  Траты в рамках дневного лимита облагаются НДФЛ (удержание из зарплаты).
-  Сверх дневного лимита (если снят cap) удерживается из ЗП в следующем месяце, на сверхлимит НДФЛ не начисляется.
-  Цель: не терять квоты впустую и не раздувать перерасход/НДФЛ.
+  Workplace meal benefit: each working day receives a daily limit.
+  Unused daily remainder burns (does not roll over).
+  Optional income tax on in-limit spend is controlled by ndfl_rate (0 = none).
 
 ui:
-  menu_button: "🍽 Бейдж"
-  # Пустой список = без круглых кнопок, только ввод суммы
+  menu_button: "🍽 Badge"
   quick_amounts: []
   amount_prompt: |
-    Введите сумму и место одной строкой.
-    Пример: 347 вендомат
-    или: 1297 лавка
-  dashboard_hint: "График и месяц: Obsidian → 📊 Финансы_Дашборд.md → «Бейдж питания»"
+    Enter amount and place on one line.
+    Example: 12.50 cafeteria
+  dashboard_hint: "Charts: Obsidian finance dashboard → Meal badge section"
 
-# Пороги и шаблоны подсказок после траты (подстановки: {remaining}, {over}, {burned}, {burn_pct}, {ndfl})
 coaching:
   month_burn_warn_pct: 25
   tips:
-    over_limit: "Сверх лимита сегодня {over} ₽ — уйдёт в удержание из ЗП (на эту часть НДФЛ нет)."
-    quota_left: "До полуночи ещё {remaining} ₽ квоты — иначе сгорят."
-    month_burn: "В месяце уже сгорело {burned} ₽ квот ({burn_pct}% от начисленного) — это «потерянный» бенефит."
-    ndfl_month: "Оценка НДФЛ с трат за месяц: ~{ndfl} ₽ из зарплаты."
+    over_limit: "Over today's limit by {over} — usually payroll-deducted."
+    quota_left: "{remaining} of today's quota left before midnight."
+    month_burn: "Burned {burned} of quota this month ({burn_pct}%)."
+    ndfl_month: "Estimated tax on in-limit spend this month: ~{ndfl}."
 
 alerts:
   evening_hour: 19
   evening_minute: 0
-  # Вечером напомнить, если потрачено меньше этого % дневного лимита
   burn_threshold_pct: 40
   overspend_notify: true
 
 llm:
-  # Короткий совет после каждой записи (1–2 предложения, без Markdown)
   after_spend_enabled: true
-  # Вечерний пуш — по умолчанию только расчёт; true = дополнить советом LLM
   evening_enabled: false
-  # 1-е число — итоги месяца (используется в scheduler)
   monthly_digest_enabled: true
   after_spend_prompt: |
-    Ты коуч по бейджу питания. Отвечай 1–2 предложениями, без Markdown.
-    Правила:
+    You coach a workplace meal benefit. Reply in 1–2 sentences, no Markdown.
+    Rules:
     {rules_context}
-    Дневной лимит: {daily_limit} ₽. НДФЛ: {ndfl_pct}% с трат в лимите.
-    Только что записана трата: {amount} ₽, комментарий: {comment}.
-    Сегодня после траты: потрачено {spent_today} ₽, сверх лимита {over_today} ₽.
-    Месяц: потрачено {spent_month} из {entitlement_month} ₽, сгорело квот {burned_month} ₽.
-    Дай один практический совет: сжечь остаток квоты, не раздувать перерасход, или спокойно — если норм.
+    Daily limit: {daily_limit}. Tax rate setting: {ndfl_pct}%.
+    Just logged: {amount}, note: {comment}.
+    Today after spend: spent {spent_today}, over limit {over_today}.
+    Month: spent {spent_month} of {entitlement_month}, burned {burned_month}.
+    One practical tip.
   monthly_digest_prompt: |
-    КРИТИЧЕСКИ ВАЖНО: только обычный текст, без Markdown.
-    Анализ бейджа за прошлый месяц. Правила:
+    Plain text only, no Markdown.
+    Meal-benefit month review. Rules:
     {rules_context}
-    Данные JSON: {month_stats_json}
-    Дневной лимит {daily_limit} ₽, НДФЛ {ndfl_pct}%.
-    2–4 предложения: итог, сгорание квот, НДФЛ, один совет на следующий месяц.
+    JSON: {month_stats_json}
+    Daily limit {daily_limit}, tax setting {ndfl_pct}%.
+    2–4 sentences: outcome, burn, tax if any, one tip.
 
 dashboard:
-  section_title: "🍽 Бейдж питания"
-  show_ndfl_estimate: true
+  section_title: "🍽 Meal badge"
+  show_ndfl_estimate: false
   chart_days: 31

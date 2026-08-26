@@ -9,6 +9,7 @@ from decimal import Decimal
 from ..db import AsyncSessionLocal
 from ..models import User, Account
 from ..broker_portfolio import is_broker_portfolio_account
+from ..config import get_settings
 from ..services.tinkoff_integration import tinkoff_debug_text
 from finance_bot.bot.services.broker_portfolio_sync import sync_broker_portfolio_api
 from bot.ui import fmsg
@@ -230,8 +231,8 @@ async def add_account_balance(message: types.Message, state: FSMContext) -> None
 @router.message(AddAccountState.currency)
 async def add_account_currency(message: types.Message, state: FSMContext) -> None:
     """Handle currency input and save account."""
-    currency = message.text.strip().upper() if message.text.strip() != "/skip" else "RUB"
-    if currency not in ["RUB", "USD", "EUR", "GBP", "CNY"]:
+    currency = message.text.strip().upper() if message.text.strip() != "/skip" else get_settings().BASE_CURRENCY
+    if currency not in ["USD", "EUR", "RUB", "GBP", "CNY"]:
         await message.answer(fmsg("add_account_currency_invalid"))
         return
     
@@ -281,7 +282,7 @@ async def add_account_currency(message: types.Message, state: FSMContext) -> Non
 
 @router.callback_query(F.data == "action:tinkoff_debug")
 async def tinkoff_debug_cb(callback: types.CallbackQuery) -> None:
-    """Tinkoff debug info."""
+    """Broker API debug info (tinkoff provider)."""
     text = tinkoff_debug_text()
     await callback.message.edit_text(text, reply_markup=sync_menu_kb())
     await callback.answer()

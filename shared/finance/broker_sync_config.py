@@ -24,8 +24,8 @@ def load_broker_sync_yaml() -> dict:
 
 
 def broker_sync_provider() -> str:
-    raw = str((load_broker_sync_yaml().get("provider") or "tinkoff")).strip().lower()
-    return raw or "tinkoff"
+    raw = str(load_broker_sync_yaml().get("provider") or "none").strip().lower()
+    return raw or "none"
 
 
 def broker_account_yaml_enabled(kind: str) -> bool:

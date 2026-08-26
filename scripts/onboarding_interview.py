@@ -85,8 +85,8 @@ def _parse_accounts(text: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for name in names:
         low = name.lower()
-        acc_type = "wallet" if any(h in low for h in ("cash", "налич", "нал")) else "card"
-        out.append({"name": name, "type": acc_type, "balance": 0, "currency": "RUB"})
+        acc_type = "wallet" if any(h in low for h in ("cash", "wallet", "налич", "нал")) else "card"
+        out.append({"name": name, "type": acc_type, "balance": 0, "currency": "USD"})
     return out
 
 
@@ -367,7 +367,7 @@ def _write_initial_accounts(
     if not tid.isdigit():
         print("skip initial_accounts.yaml — set telegram_user_id first")
         return
-    currency = slots.get("USER_CURRENCY", "RUB")
+    currency = slots.get("USER_CURRENCY", "USD")
     rows: list[dict[str, Any]] = []
     for a in accounts:
         rows.append(

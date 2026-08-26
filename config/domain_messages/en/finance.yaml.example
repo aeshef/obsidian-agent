@@ -134,10 +134,10 @@ finance_tinkoff:
   errors_prefix: 'Errors: {errors}'
   no_accounts: No accounts from API or all excluded via TINKOFF_IGNORE_ACCOUNT_IDS
   no_portfolio: No portfolio data.
-  no_portfolio_data: 'No portfolio data. Check TINKOFF_API_TOKEN and API availability. Debug: {keys}'
+  no_portfolio_data: 'No portfolio data. Check broker API token and availability. Debug: {keys}'
   no_positions: (no position data)
   portfolio_total_rub: 'Portfolio total: {total:,.0f} RUB'
-  token_missing: TINKOFF_API_TOKEN is not set in .env
+  token_missing: Broker API token is not set in .env (e.g. TINKOFF_API_TOKEN for provider tinkoff)
   total_fmt: 'Total: {total:,.2f} RUB'
   total_line: 'Total: {total} RUB'
 finance_txn_core:

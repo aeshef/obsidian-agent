@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     )
     TINKOFF_API_TOKEN: Optional[str] = Field(default=None)
     TINKOFF_IGNORE_ACCOUNT_IDS: Optional[str] = Field(default=None)
-    BASE_CURRENCY: str = Field(default="RUB")
+    BASE_CURRENCY: str = Field(default="USD")
     DEEPSEEK_API_KEY: Optional[str] = Field(default=None)
     DEEPSEEK_API_TOKEN: Optional[str] = Field(default=None)
     DEEPSEEK_BASE_URL: Optional[str] = Field(default=None)

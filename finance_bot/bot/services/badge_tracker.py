@@ -73,8 +73,12 @@ def _parse_dates(raw: Any) -> set[date]:
 class BadgeTracker:
     def __init__(self, config: Optional[dict] = None) -> None:
         self.cfg = config if config is not None else get_badge_config()
-        self.daily_limit = _cfg_decimal(self.cfg, "daily_limit_rub", "1000")
-        self.ndfl_rate = Decimal(str(self.cfg.get("ndfl_rate", 0.13)))
+        if "daily_limit" in self.cfg:
+            self.daily_limit = _cfg_decimal(self.cfg, "daily_limit", "0")
+        else:
+            self.daily_limit = _cfg_decimal(self.cfg, "daily_limit_rub", "1000")
+        # Income-tax estimate on meal benefit (e.g. RU NDFL). 0 = disabled / non-taxable.
+        self.ndfl_rate = Decimal(str(self.cfg.get("ndfl_rate", 0)))
         self.account_name = str(self.cfg.get("account_name", "Meal Badge"))
         self.category = str(self.cfg.get("category") or "")
         self._extra_off = _parse_dates(self.cfg.get("extra_non_working_days"))
@@ -286,7 +290,7 @@ class BadgeTracker:
             t = self._tip("month_burn", burned=_fmt(ms.total_burned), burn_pct=f"{burn_pct:.0f}")
             if t:
                 out.append(t)
-        if (self.cfg.get("dashboard") or {}).get("show_ndfl_estimate", True) and ms.total_ndfl > 0:
+        if (self.cfg.get("dashboard") or {}).get("show_ndfl_estimate", False) and ms.total_ndfl > 0:
             t = self._tip("ndfl_month", ndfl=_fmt(ms.total_ndfl))
             if t and len(out) < 2:
                 out.append(t)
@@ -429,7 +433,7 @@ class BadgeTracker:
             ),
             dmsg("badge", "month_burned", burned=_fmt(m.total_burned)),
         ]
-        if self.cfg.get("dashboard", {}).get("show_ndfl_estimate", True):
+        if self.cfg.get("dashboard", {}).get("show_ndfl_estimate", False):
             lines.append(dmsg("badge", "month_ndfl", ndfl=_fmt(m.total_ndfl)))
         if m.zero_spend_days:
             lines.append(dmsg("badge", "month_zero_days", days=m.zero_spend_days))

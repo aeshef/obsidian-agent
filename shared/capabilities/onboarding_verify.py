@@ -71,7 +71,7 @@ def _broker_yaml_errors(*, strict: bool) -> list[str]:
         data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     except Exception as e:
         return [f"broker_sync: invalid broker_sync.yaml: {e}"]
-    provider = str(data.get("provider") or "tinkoff").strip().lower()
+    provider = str(data.get("provider") or "none").strip().lower()
     if provider == "none":
         return ["broker_sync: provider is none but connector is on"]
     return []

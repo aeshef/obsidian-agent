@@ -56,7 +56,7 @@ def build_badge_section(
         ),
         dtpl("badge", "burned", amount=fmt_num(float(m.total_burned), decimals=0)),
     ]
-    if dash_cfg.get("show_ndfl_estimate", True):
+    if dash_cfg.get("show_ndfl_estimate", False):
         lines.append(dtpl("badge", "ndfl", amount=fmt_num(float(m.total_ndfl), decimals=0)))
     lines.append(dtpl("badge", "zero_days", days=m.zero_spend_days))
     if float(m.total_over_limit) > 0:

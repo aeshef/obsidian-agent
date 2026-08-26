@@ -524,7 +524,11 @@ def run_build(args: argparse.Namespace) -> None:
         dashboard_start_date = datetime(2026, 2, 15).date()
     # One-off expense threshold
     # Override: FIN_ONEOFF_THRESHOLD_RUB=50000 ...
-    oneoff_threshold_rub = int(os.environ.get("FIN_ONEOFF_THRESHOLD_RUB", "30000"))
+    oneoff_threshold_rub = int(
+        os.environ.get("FIN_ONEOFF_THRESHOLD")
+        or os.environ.get("FIN_ONEOFF_THRESHOLD_RUB")
+        or "500"
+    )
     # Categories excluded from spending/income analytics
     # Internal transfers excluded from spending
     # Override: FIN_EXCLUDE_FROM_SPENDING_CATEGORIES

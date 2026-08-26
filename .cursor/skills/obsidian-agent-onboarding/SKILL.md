@@ -92,7 +92,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 
 **Never ask (unless user volunteers):** planning kanban/cron, health Shortcuts, badge, Gmail IMAP, calendar export, Mac context snapshots, knowledge serendipity, `install_planning_crontab.sh`.
 
-**Optional:** `--broker-sync` + `broker_sync.yaml` + `env_tools.py set TINKOFF_API_TOKEN` (tinkoff provider); `--corporate-badge` + `badge.yaml`.
+**Optional:** `--broker-sync` + `broker_sync.yaml` (`provider: csv` or `tinkoff`); `--corporate-badge` + `badge.yaml`.
 
 ### Full / custom
 
@@ -240,7 +240,7 @@ Again loop `onboarding_interview.py next` for remaining questions:
 
 | id | What you collect |
 |----|------------------|
-| `finance_opening_balances` | `Тинькофф: 45000` per line → `initial_accounts.yaml` |
+| `finance_opening_balances` | `Checking: 1200` per line → `initial_accounts.yaml` |
 | `telegram_user_id` | Numeric id (@userinfobot) |
 
 ```bash
@@ -259,7 +259,7 @@ python3 finance_bot/scripts/apply_initial_accounts.py
 Tell user:
 
 1. Telegram → `/start`
-2. Send a test expense, e.g. `кофе 300 сбер`
+2. Send a test expense, e.g. `coffee 4.50 checking`
 3. Confirm balances match opening balances
 
 When user confirms it works:
@@ -365,7 +365,7 @@ One **AskQuestion** cluster at a time. Flags: `python3 scripts/apply_capabilitie
 | Connector | CLI flags | Secret / file |
 |-----------|-----------|---------------|
 | Corporate meal badge | `--corporate-badge` `--setup-badge` | `config/badge.yaml` |
-| Broker API | `--broker-sync` | `broker_sync.yaml`, `TINKOFF_API_TOKEN` (tinkoff) |
+| Broker sync | `--broker-sync` | `broker_sync.yaml` (`csv` or `tinkoff`) |
 | Manual accounts / cards | on with finance; `--no-domestic-bank-cards` to hide | bot UI |
 | Apple Health | `--apple-health` | `health_parse.yaml`, Shortcuts |
 | Gmail → health | `--gmail-health-pipeline` | `GMAIL_IMAP_*` via `env_tools.py set` |
@@ -486,7 +486,7 @@ Example prod blocks (see `health_tools.example.txt`, `context_tools.example.txt`
 |--------|-----------------|---------|
 | Vision / KB | [OpenRouter](https://openrouter.ai/) | `OPENROUTER_API_KEY` |
 | Gmail IMAP | Google App Passwords | `GMAIL_IMAP_USER`, `GMAIL_IMAP_APP_PASSWORD` |
-| Broker (tinkoff) | Provider developer portal | `TINKOFF_API_TOKEN` + `broker_sync.yaml` |
+| Broker CSV / API | csv file or T-Invest token | `provider: csv` or `TINKOFF_API_TOKEN` |
 
 ### Finance-only interview (after core secrets)
 

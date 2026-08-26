@@ -134,7 +134,7 @@ if [[ -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
   }
   case "$MODULES" in
     *finance*)
-      _ask_conn --broker-sync "Enable broker API sync (Tinkoff token)?"
+      _ask_conn --broker-sync "Enable broker portfolio sync (CSV file or optional T-Invest API)?"
       _ask_conn --corporate-badge "Enable corporate meal badge?"
       ;;
   esac
