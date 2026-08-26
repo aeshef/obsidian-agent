@@ -6,15 +6,14 @@ import logging
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
-from shared.telegram.host.auto_routing import MessageWithText, auto_handler_for
-from shared.telegram.host.constants import UI_MODE_AUTO
+from shared.telegram.host.constants import DOMAIN_FINANCE, DOMAIN_KNOWLEDGE, UI_MODE_AUTO
 from shared.telegram.host.keyboards import keyboard_for_mode
+from shared.telegram.host.message_proxy import MessageWithText
 from shared.telegram.agent_delivery import deliver_agent_answer
 
 log = logging.getLogger("shared.telegram.host.auto_dispatch")
 
-# Re-export for callers that build ASR proxies.
-__all__ = ["MessageWithText", "dispatch_auto_free_text", "auto_handler_for"]
+__all__ = ["MessageWithText", "dispatch_auto_free_text"]
 
 
 def _money_token_re() -> "re.Pattern[str]":
@@ -58,11 +57,7 @@ def _looks_like_txn_batch(text: str) -> bool:
 
 
 def _looks_like_txn_candidate(text: str) -> bool:
-    """Cheap prefilter before finance-intent LLM (avoid tax on every question).
-
-    Short money notes and multi-line dumps (confirm queue) both qualify.
-    Hard length was 160 and silently dropped bulk transfer lists into unified chat.
-    """
+    """Cheap prefilter before finance-intent LLM (avoid tax on every question)."""
     import re
 
     t = (text or "").strip()
@@ -70,10 +65,8 @@ def _looks_like_txn_candidate(text: str) -> bool:
         return False
     if len(t) > 4000:
         return False
-    # Batches always qualify (even if a line has '?').
     if _looks_like_txn_batch(t):
         return True
-    # Short questions stay with the agent; don't tax intent LLM.
     if "?" in t and len(t) <= 160:
         return False
     if not re.search(r"\d", t):
@@ -94,11 +87,10 @@ async def _try_finance_transaction(
     text: str,
 ) -> bool:
     """Keep NLU transaction entry — not yet a first-class agent write tool."""
-    if not agent_app.has_domain("finance"):
+    if not agent_app.has_domain(DOMAIN_FINANCE):
         return False
     from bot.handlers.transactions import _process_transactions
 
-    # Explicit multi-line spend dumps must hit confirm queue, not the agent.
     if _looks_like_txn_batch(text):
         log.info("free text → finance NLU batch (skip intent LLM) lines=%d", len(_nonempty_lines(text)))
         await _process_transactions(text, message, state)
@@ -111,7 +103,6 @@ async def _try_finance_transaction(
     try:
         intent = await classify_finance_intent_llm(text, chat_id=message.chat.id)
     except LLMClassificationError as e:
-        # Strong money signal + classifier down → still try NLU rather than agent essay.
         if _money_token_re().search(text or ""):
             log.warning("finance intent LLM failed; fallback NLU: %s", e)
             await _process_transactions(text, message, state)
@@ -126,7 +117,7 @@ async def _try_finance_transaction(
 
 async def _try_knowledge_save(message: Message, agent_app, text: str) -> bool:
     """Bare URL → ingest. Other save phrasing stays with the unified agent."""
-    if not agent_app.has_domain("knowledge"):
+    if not agent_app.has_domain(DOMAIN_KNOWLEDGE):
         return False
     import re
 

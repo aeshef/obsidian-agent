@@ -8,7 +8,8 @@ from pathlib import Path
 from shared.constants import deepseek_chat_completions_url, deepseek_model, goals_year
 from shared.paths import vault_root_optional
 from shared.vault_paths_config import dashboards_sub, folder, vault_file, vault_rel_path
-from shared.yaml_config import load_merged_config
+from shared.locale import agent_locale
+from shared.yaml_config import load_locale_merged_config
 
 _PLANNING_CONFIG_DIR = Path(__file__).resolve().parent.parent / "config"
 
@@ -91,7 +92,8 @@ DEEPSEEK_MODEL = deepseek_model()
 
 @lru_cache(maxsize=1)
 def _kanban_schema() -> dict:
-    return load_merged_config(str(_PLANNING_CONFIG_DIR), "kanban_schema")
+    # Locale-specific example first so EN installs do not inherit RU column labels.
+    return load_locale_merged_config(str(_PLANNING_CONFIG_DIR), "kanban_schema", agent_locale())
 
 
 def _schema_list(key: str) -> list:

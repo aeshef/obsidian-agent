@@ -80,7 +80,7 @@ def generate_calendar_insights(analytics: Dict[str, Any]) -> Optional[str]:
     try:
         text = client.chat_messages(
             messages,
-            temperature=planning_llm_temperature("calendar_insights", 0.45),
+            temperature=planning_llm_temperature("calendar_insights"),
             max_retries=2,
             raise_on_error=True,
         )

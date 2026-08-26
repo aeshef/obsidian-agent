@@ -6,7 +6,7 @@
 ../../scripts/setup_agent_config.sh
 ```
 
-Создаёт при отсутствии: `platform.yaml`, `memory/models/routing/tools.yaml`, `prompts/*.txt`, `user_profile.md`. **`capabilities.yaml` не создаёт** — см. [CAPABILITIES.md](../../docs/CAPABILITIES.md) (`apply_capabilities_profile.py --write`, или omit file + `OBSIDIAN_AGENT_FULL_INSTALL=1` = full product; present YAML is fail-closed for omitted keys).
+Создаёт при отсутствии: `platform.yaml`, `memory/models/routing/tools.yaml`, `prompts/*.txt`, `user_profile.md`. **`capabilities.yaml`:** `setup_agent_config.sh` копирует starter, если нет `OBSIDIAN_AGENT_FULL_INSTALL=1`; иначе omit = full. Present YAML is fail-closed — [CAPABILITIES.md](../../docs/CAPABILITIES.md).
 
 См. [docs/AGENT_CONFIG.md](../../docs/AGENT_CONFIG.md).
 

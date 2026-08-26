@@ -57,7 +57,7 @@ def _normalize_block(raw: str) -> tuple[str, datetime] | None:
     lines = [
         "   ---",
         f"   ts: {dt.strftime('%d.%m.%Y, %H:%M')}",
-        f"   source: {fields.get('source') or 'aeshef-osx'}",
+        f"   source: {fields.get('source') or 'mac'}",
     ]
     for key in (
         "safari_title",

@@ -102,10 +102,12 @@ def include_knowledge_ingest(dp: Dispatcher) -> None:
 
 
 def include_planning_aux(dp: Dispatcher) -> None:
+    from shared.telegram.host.constants import DOMAIN_PLANNING, UI_MODE_AUTO
+
     class _PlanningMode(BaseFilter):
         async def __call__(self, message: Message, state: FSMContext) -> bool:
             data = await state.get_data()
-            return data.get("ui_mode", "auto") == "planning"
+            return data.get("ui_mode", UI_MODE_AUTO) == DOMAIN_PLANNING
 
     aux = Router(name="planning_aux")
 

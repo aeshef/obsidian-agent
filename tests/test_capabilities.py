@@ -240,6 +240,17 @@ def test_infer_planning_only_sync_profile():
     assert infer_sync_profile(doc) == SYNC_PROFILE_PLANNING_KANBAN
 
 
+def test_infer_knowledge_only_sync_profile():
+    from shared.capabilities.compose import infer_sync_profile
+    from shared.capabilities.profile import SYNC_PROFILE_KNOWLEDGE_ONLY
+
+    doc = {
+        "modules": {"finance": False, "planning": False, "knowledge": True},
+        "connectors": {},
+    }
+    assert infer_sync_profile(doc) == SYNC_PROFILE_KNOWLEDGE_ONLY
+
+
 def test_manual_broker_tool_without_api_connector():
     from shared.capabilities.profile import CONNECTOR_BROKER_SYNC, CONNECTOR_MANUAL_BROKER
 

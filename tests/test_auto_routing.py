@@ -1,19 +1,20 @@
-"""Auto-mode handler registry."""
+"""MessageWithText proxy lives under host.message_proxy (auto_routing removed)."""
 from __future__ import annotations
 
-from shared.telegram.host.auto_routing import auto_handler_for
-from shared.telegram.host.constants import (
-    DOMAIN_FINANCE,
-    DOMAIN_GENERAL,
-    DOMAIN_KNOWLEDGE,
-    DOMAIN_PLANNING,
-    DOMAIN_UNIFIED,
-)
+from shared.telegram.host.message_proxy import MessageWithText
 
 
-def test_auto_handler_registry():
-    assert auto_handler_for(DOMAIN_FINANCE) is auto_handler_for(DOMAIN_FINANCE)
-    assert auto_handler_for(DOMAIN_KNOWLEDGE) is not auto_handler_for(DOMAIN_FINANCE)
-    assert auto_handler_for("unknown") is auto_handler_for(DOMAIN_UNIFIED)
-    for domain in (DOMAIN_FINANCE, DOMAIN_KNOWLEDGE, DOMAIN_GENERAL, DOMAIN_PLANNING, DOMAIN_UNIFIED):
-        assert callable(auto_handler_for(domain))
+def test_message_with_text_hides_voice():
+    class _Msg:
+        voice = object()
+        audio = object()
+        chat = type("C", (), {"id": 1})()
+
+        def __getattr__(self, name):
+            raise AttributeError(name)
+
+    proxy = MessageWithText(_Msg(), "hello")
+    assert proxy.text == "hello"
+    assert proxy.voice is None
+    assert proxy.audio is None
+    assert proxy.chat.id == 1

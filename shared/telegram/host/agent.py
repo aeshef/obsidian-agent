@@ -103,6 +103,7 @@ async def pick_host_domain(
     *,
     chat_id: int | None = None,
 ) -> str:
+    """Legacy domain classifier (tests / eval). Live free text uses ``answer_unified``."""
     enabled = [d for d in ("finance", "planning", "knowledge") if agent_app.has_domain(d)]
     if not enabled:
         raise RuntimeError("pick_host_domain: no domain adapters registered")

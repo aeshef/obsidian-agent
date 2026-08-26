@@ -12,7 +12,7 @@ def test_parse_window_title_and_idle_sec(tmp_path: Path):
     path.write_text(
         """---
 ts: 30.06.2026, 14:05
-source: aeshef-osx
+source: mac-host
 app: Cursor
 window_title: obsidian-agent — context_parser.py
 idle_sec: 42
@@ -35,7 +35,7 @@ def test_focus_window_alias_for_window_title(tmp_path: Path):
     path.write_text(
         """---
 ts: 30.06.2026, 14:10
-source: aeshef-osx
+source: mac-host
 app: Obsidian
 focus_window: 🎯 2026_Цели
 idle_sec: 400

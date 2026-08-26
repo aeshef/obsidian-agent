@@ -131,6 +131,6 @@ English UI: `cp config/messages.en.yaml.example config/messages.en.yaml`, set `A
 
 ## Author install (unchanged)
 
-Do **not** run `apply_capabilities_profile.py --write`. Omit `capabilities.yaml` for the full product.
+Author full install: omit `capabilities.yaml` and set `OBSIDIAN_AGENT_FULL_INSTALL=1`. Clones: always `--write` a profile (or accept OSS starter).
 
 See [CAPABILITIES.md](CAPABILITIES.md).

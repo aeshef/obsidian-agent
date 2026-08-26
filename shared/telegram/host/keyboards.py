@@ -98,13 +98,18 @@ def keyboard_for_mode(mode: str, user_id: int | None = None) -> ReplyKeyboardMar
         MODULE_PLANNING,
         get_capabilities,
     )
+    from shared.telegram.host.constants import (
+        DOMAIN_FINANCE,
+        DOMAIN_KNOWLEDGE,
+        DOMAIN_PLANNING,
+    )
 
     prof = get_capabilities()
-    if mode == "finance" and prof.module(MODULE_FINANCE):
+    if mode == DOMAIN_FINANCE and prof.module(MODULE_FINANCE):
         return finance_keyboard()
-    if mode == "planning" and prof.module(MODULE_PLANNING):
+    if mode == DOMAIN_PLANNING and prof.module(MODULE_PLANNING):
         return planning_keyboard()
-    if mode == "knowledge" and prof.module(MODULE_KNOWLEDGE):
+    if mode == DOMAIN_KNOWLEDGE and prof.module(MODULE_KNOWLEDGE):
         from knowledge_bot.app.state import is_bulk_ingest
 
         return knowledge_keyboard(bulk_active=is_bulk_ingest(user_id) if user_id else False)

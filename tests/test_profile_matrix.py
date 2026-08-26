@@ -37,3 +37,15 @@ def test_minimal_preset():
     prof = profile_from_document(preset_document(PRESET_MINIMAL))
     assert prof.module(MODULE_FINANCE)
     assert not prof.module(MODULE_PLANNING)
+
+
+def test_knowledge_only_preset():
+    from shared.capabilities.presets import PRESET_KNOWLEDGE_ONLY
+    from shared.capabilities.sync_steps import STEP_KB_MAINTENANCE
+
+    prof = profile_from_document(preset_document(PRESET_KNOWLEDGE_ONLY))
+    assert prof.module(MODULE_KNOWLEDGE)
+    assert not prof.module(MODULE_FINANCE)
+    assert not prof.module(MODULE_PLANNING)
+    assert sync_step_enabled(STEP_KB_MAINTENANCE, prof)
+    assert not sync_step_enabled(STEP_FINANCE_DASHBOARD, prof)

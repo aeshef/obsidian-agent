@@ -11,7 +11,12 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 
 from shared.agent.app import AgentApp
-from shared.telegram.host.constants import UI_MODE_AUTO
+from shared.telegram.host.constants import (
+    DOMAIN_FINANCE,
+    DOMAIN_KNOWLEDGE,
+    DOMAIN_PLANNING,
+    UI_MODE_AUTO,
+)
 from shared.telegram.host.domain_handlers import DOMAIN_HANDLERS
 from shared.telegram.host.domain_routing import (
     auto_menu_match_enabled,
@@ -28,16 +33,17 @@ log = logging.getLogger("shared.telegram.host.domain_dispatch")
 
 
 def _menu_matches(domain: str, text: str) -> bool:
-    # Resolve detectors at call time so tests can monkeypatch menus.*.
+    # Resolve detectors at call time so tests can monkeypatch menus.* / domain_dispatch.*.
     key = domain_menu_detection_key(domain) or domain
-    if key == "finance":
-        return is_finance_menu(text)
-    if key == "planning":
-        return is_planning_menu(text)
-    if key == "knowledge":
-        return is_knowledge_menu(text)
-    return False
-
+    detectors = {
+        DOMAIN_FINANCE: is_finance_menu,
+        DOMAIN_PLANNING: is_planning_menu,
+        DOMAIN_KNOWLEDGE: is_knowledge_menu,
+    }
+    detector = detectors.get(key)
+    if detector is None:
+        return False
+    return detector(text)
 
 def _should_handle_menu(domain: str, ui_mode: str, text: str) -> bool:
     if not _menu_matches(domain, text):

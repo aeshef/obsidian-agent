@@ -4072,7 +4072,7 @@ planning:
 
     Запуск из корня vault:
 
-    python3 800_Автоматизация/Agent/planning_bot/scripts/backfill_task_completed.py [--vault PATH] [--month 2026-03] [--dry-run]
+    python3 {automation}/Agent/planning_bot/scripts/backfill_task_completed.py [--vault PATH] [--month 2026-03] [--dry-run]
 
 
   auto_07696bf4f3: "**«Удалено»** — события по `task_id`, которые раньше двигались по доске (`task_moved`), но сейчас отсутствуют на текущей доске (полезно как индикатор чисток). "
@@ -4165,7 +4165,7 @@ planning:
 
     V="$VAULT_PATH"
 
-    cd "$V/800_Автоматизация/Agent/planning_bot"
+    cd "$V/{automation}/Agent/planning_bot"
 
     PYTHONPATH="$(cd .. && pwd)" python3 scripts/build_deadline_horizon_chart.py --vault "$V"
 
@@ -4271,7 +4271,7 @@ planning:
 
     Запуск:
 
-    Из корня vault: python 800_Автоматизация/Agent/planning_bot/scripts/remove_root_action_logs.py [--vault PATH]
+    Из корня vault: python {automation}/Agent/planning_bot/scripts/remove_root_action_logs.py [--vault PATH]
 
     Или из planning_bot: python scripts/remove_root_action_logs.py
 
@@ -4564,7 +4564,7 @@ planning:
 
 
 
-  auto_e7eb0224f4: "800_Автоматизация"
+  auto_e7eb0224f4: "{automation}"
   auto_e8b081156a: "Завершено по категориям по дням (action-логи)"
   auto_e9e498371d: "Вес, кг (d+1)"
   auto_eaf25a8237: |

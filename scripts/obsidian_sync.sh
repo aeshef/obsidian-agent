@@ -527,7 +527,7 @@ if cap_module_enabled PLANNING && [ -d "${AGENT_ROOT}/planning_bot" ]; then
        done" >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || SYNC_OK=0
   fi
   ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
+    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-en}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
 from planning_bot.services.routines_layout import ensure_routines_layout
 from planning_bot.services.dashboard_layout import cleanup_legacy_dashboard_files
 for line in ensure_routines_layout():
@@ -539,7 +539,7 @@ fi
 if cap_module_enabled KNOWLEDGE && [ -d "${AGENT_ROOT}/knowledge_bot" ]; then
   echo "[2r-kb] legacy vault charts on server" >&2
   ssh "${SSH_OPTS[@]}" "$SERVER" \
-    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-ru}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
+    "VAULT_PATH='${SERVER_VAULT}' AGENT_LOCALE='${AGENT_LOCALE:-en}' PYTHONPATH='${SERVER_BOTS}' cd '${SERVER_BOTS}' && ./scripts/oa-python.sh -c \"
 from knowledge_bot.services.chart_layout import cleanup_legacy_vault_charts
 for line in cleanup_legacy_vault_charts():
     print('[2r-kb]', line)

@@ -46,7 +46,7 @@ class DeepSeekClient(PlanningLLMDomainMixin):
     ) -> str:
         """Chat completion; retries/timeouts delegated to shared.llm.LLMClient."""
         if temperature is None:
-            temperature = planning_llm_temperature("recommendations", 0.7)
+            temperature = planning_llm_temperature("recommendations")
         del max_retries
         import requests
 

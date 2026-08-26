@@ -18,6 +18,7 @@ from shared.capabilities.profile import (
     MODULE_PLANNING,
     SYNC_PROFILE_FINANCE_ONLY,
     SYNC_PROFILE_FULL,
+    SYNC_PROFILE_KNOWLEDGE_ONLY,
     SYNC_PROFILE_MINIMAL,
     SYNC_PROFILE_PLANNING_KANBAN,
     SYNC_PROFILE_PLANNING_LIGHT,
@@ -29,6 +30,7 @@ PRESET_CUSTOM = "custom"
 PRESET_FINANCE_ONLY = "finance_only"
 PRESET_PLANNING_ONLY = "planning_only"
 PRESET_PLANNING_LIGHT = "planning_light"
+PRESET_KNOWLEDGE_ONLY = "knowledge_only"
 PRESET_MINIMAL = "minimal"
 
 _ALL_OFF_CONNECTORS = {
@@ -94,6 +96,14 @@ PRESET_DOCUMENTS: dict[str, dict[str, Any]] = {
         modules={MODULE_FINANCE: True, MODULE_PLANNING: False, MODULE_KNOWLEDGE: False},
         connectors=_ALL_OFF_CONNECTORS.copy(),
         sync_profile=SYNC_PROFILE_MINIMAL,
+    ),
+    PRESET_KNOWLEDGE_ONLY: _doc(
+        modules={MODULE_FINANCE: False, MODULE_PLANNING: False, MODULE_KNOWLEDGE: True},
+        connectors={
+            **_ALL_OFF_CONNECTORS,
+            CONNECTOR_KB_SERENDIPITY: True,
+        },
+        sync_profile=SYNC_PROFILE_KNOWLEDGE_ONLY,
     ),
 }
 

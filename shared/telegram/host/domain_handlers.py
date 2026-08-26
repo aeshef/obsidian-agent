@@ -17,7 +17,7 @@ from shared.telegram.host.constants import (
 from shared.telegram.host.dispatch import switch_mode
 from shared.telegram.host import labels as L
 from shared.telegram.host.keyboards import keyboard_for_mode
-from shared.telegram.host.menus import is_finance_menu
+from shared.telegram.host.menus import is_finance_menu, is_planning_menu
 
 log = logging.getLogger("shared.telegram.host.domain_handlers")
 
@@ -52,6 +52,7 @@ async def dispatch_planning(
     ui_mode: str,
     planning: Optional[object],
 ) -> bool:
+    """Reply-menu taps only; free text in planning pin goes to unified agent."""
     uid = message.from_user.id if message.from_user else message.chat.id
     if planning is None:
         await message.answer(
@@ -66,11 +67,16 @@ async def dispatch_planning(
         return True
     if ui_mode != DOMAIN_PLANNING:
         await state.update_data(ui_mode=DOMAIN_PLANNING, fixed_domain=DOMAIN_PLANNING)
-    from planning_bot.app.handlers import commands as planning_commands
+    if is_planning_menu(text):
+        from planning_bot.app.handlers import commands as planning_commands
 
-    await planning_commands.process_user_text(
-        planning, message, state, text, agent_app=agent_app
-    )
+        await planning_commands.process_user_text(
+            planning, message, state, text, agent_app=agent_app
+        )
+        return True
+    from shared.telegram.host.auto_dispatch import dispatch_auto_free_text
+
+    await dispatch_auto_free_text(message, state, agent_app, text)
     return True
 
 

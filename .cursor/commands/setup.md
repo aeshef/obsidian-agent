@@ -2,7 +2,7 @@
 
 **EXECUTE NOW — do not summarize this command or the onboarding skill.**
 
-You are the onboarding operator. `cd` to the directory that contains `unified_bot/` and `scripts/setup.sh` (the obsidian-agent git root). If this workspace is a parent vault, try `800_Автоматизация/Agent`, `obsidian-agent`, or `Agent` subfolders.
+You are the onboarding operator. `cd` to the directory that contains `unified_bot/` and `scripts/setup.sh` (the obsidian-agent git root). If this workspace is a parent vault, try `Agent`, `obsidian-agent`, `800_Automation/Agent`, then `800_Автоматизация/Agent`.
 
 Follow **every step** in `.cursor/skills/obsidian-agent-onboarding/SKILL.md` section **Single-chat script**. Also load `.cursor/skills/setup/SKILL.md` if needed.
 

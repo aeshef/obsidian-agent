@@ -23,7 +23,7 @@ Git ships **templates only** (`config/agent/*.example.yaml`, `prompts/*.example.
 - `config/agent/prompts/*.txt`
 - `config/agent/user_profile.md`
 
-**Не создаёт** `capabilities.yaml` (опционально: `apply_capabilities_profile.py --write` или omit = full product) — [CAPABILITIES.md](CAPABILITIES.md).
+**Не создаёт** `capabilities.yaml` без флага (см. `setup_agent_config.sh`: starter, или omit + `OBSIDIAN_AGENT_FULL_INSTALL=1` = full). Иначе: `apply_capabilities_profile.py --write` — [CAPABILITIES.md](CAPABILITIES.md).
 
 ## Приоритет настроек
 

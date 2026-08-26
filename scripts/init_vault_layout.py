@@ -42,9 +42,12 @@ def main() -> int:
     cap_file = Path(env_cap).expanduser() if env_cap else (agent_config_dir() / "capabilities.yaml")
     if not cap_file.is_file() and not args.allow_missing_capabilities:
         print(
-            "capabilities.yaml missing — all modules would be enabled (wrong folders for finance/planning-only).\n"
-            "Run: python3 scripts/apply_capabilities_profile.py --preset <name> --write --patch-env\n"
-            "Or pass --allow-missing-capabilities only on the author full-install machine.",
+            "capabilities.yaml missing — runtime would use OSS starter "
+            "(or full install if OBSIDIAN_AGENT_FULL_INSTALL=1).\n"
+            "For an explicit module subset run:\n"
+            "  python3 scripts/apply_capabilities_profile.py --preset <name> --write --patch-env\n"
+            "Author full install: set OBSIDIAN_AGENT_FULL_INSTALL=1 and pass "
+            "--allow-missing-capabilities.",
             file=sys.stderr,
         )
         return 2

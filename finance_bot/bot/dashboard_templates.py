@@ -4,14 +4,15 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from shared.yaml_config import load_merged_config
+from shared.locale import agent_locale
+from shared.yaml_config import load_locale_merged_config
 
 _CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 
 @lru_cache(maxsize=1)
 def _templates() -> dict:
-    return load_merged_config(str(_CONFIG), "dashboard_templates")
+    return load_locale_merged_config(str(_CONFIG), "dashboard_templates", agent_locale())
 
 
 def dtpl_raw(*keys: str):

@@ -190,7 +190,7 @@ async def get_routines_recommendations(self, message: Message):
 
         recommendations = self.llm.chat(
             messages,
-            temperature=planning_llm_temperature("routines_recommendations", 0.7),
+            temperature=planning_llm_temperature("routines_recommendations"),
         )
         await message.answer(
             pmsg("routines_recommendations_header", recommendations=recommendations),

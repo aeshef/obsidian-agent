@@ -45,7 +45,7 @@ jobs:
           TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
-          AGENT_LOCALE: ru
+          AGENT_LOCALE: en
           VAULT_PATH: ${{ runner.temp }}/ci-vault
         run: |
           mkdir -p "$VAULT_PATH"
@@ -65,7 +65,7 @@ jobs:
           TELEGRAM_UNIFIED_BOT_TOKEN: ci-smoke-test-token
           DEEPSEEK_API_KEY: ci-smoke-test-key
           DEPLOY_MODE: single
-          AGENT_LOCALE: ru
+          AGENT_LOCALE: en
         run: |
           bash scripts/ensure_bot_venv.sh finance_bot --recreate
           FIN_PY="$PWD/finance_bot/.venv/bin/python"
@@ -75,7 +75,7 @@ jobs:
           mkdir -p "$VAULT_PATH"
           "$FIN_PY" -m pip install -q pytest pytest-asyncio
           # Golden presets + agent registry (no --verify-all: needs local badge/broker yaml)
-          "$FIN_PY" scripts/onboarding_smoke.py --golden-planning --golden-finance --agent-sanity
+          "$FIN_PY" scripts/onboarding_smoke.py --golden-planning --golden-finance --golden-knowledge --agent-sanity
           "$FIN_PY" -m eval.harness
           "$FIN_PY" -m pytest tests/test_capabilities.py tests/test_profile_matrix.py \
             tests/test_ui_bindings.py tests/test_ui_patterns.py tests/test_agent_sanity.py \

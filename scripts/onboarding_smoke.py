@@ -96,6 +96,34 @@ def _golden_planning_check(errors: list[str]) -> None:
         errors.append("golden planning: broker_sync connector should be off")
 
 
+def _golden_knowledge_check(errors: list[str]) -> None:
+    """Assert knowledge-only preset enables KB maintenance sync."""
+    from shared.capabilities.presets import PRESET_KNOWLEDGE_ONLY, preset_document
+    from shared.capabilities.profile import (
+        MODULE_FINANCE,
+        MODULE_KNOWLEDGE,
+        MODULE_PLANNING,
+        profile_from_document,
+    )
+    from shared.capabilities.sync_steps import (
+        STEP_FINANCE_DASHBOARD,
+        STEP_KB_MAINTENANCE,
+        sync_step_enabled,
+    )
+
+    prof = profile_from_document(preset_document(PRESET_KNOWLEDGE_ONLY))
+    if not prof.module(MODULE_KNOWLEDGE):
+        errors.append("golden knowledge: knowledge module should be on")
+    if prof.module(MODULE_FINANCE):
+        errors.append("golden knowledge: finance module should be off")
+    if prof.module(MODULE_PLANNING):
+        errors.append("golden knowledge: planning module should be off")
+    if not sync_step_enabled(STEP_KB_MAINTENANCE, prof):
+        errors.append("golden knowledge: KB maintenance sync should be on")
+    if sync_step_enabled(STEP_FINANCE_DASHBOARD, prof):
+        errors.append("golden knowledge: finance dashboard sync should be off")
+
+
 def _check_bot_import(errors: list[str]) -> None:
     try:
         import unified_bot.main  # noqa: F401
@@ -143,6 +171,11 @@ def main() -> int:
         "--golden-finance",
         action="store_true",
         help="Validate finance-only profile shape (CI / docs golden path)",
+    )
+    parser.add_argument(
+        "--golden-knowledge",
+        action="store_true",
+        help="Validate knowledge-only profile shape (CI / docs golden path)",
     )
     parser.add_argument(
         "--check-bot-import",
@@ -211,6 +244,8 @@ def main() -> int:
         _golden_planning_check(errors)
     if args.golden_finance:
         _golden_finance_check(errors)
+    if args.golden_knowledge:
+        _golden_knowledge_check(errors)
 
     if args.agent_sanity:
         _agent_sanity(errors, warnings)

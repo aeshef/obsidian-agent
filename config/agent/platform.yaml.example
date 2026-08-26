@@ -205,6 +205,7 @@ push_policy:
     enabled: 0
   finance_dashboard_insight:
     enabled: 1
+    temperature: 0.35
   finance_daily_insight_PLACEHOLDER:
     enabled: 0
     days: mon,wed,fri

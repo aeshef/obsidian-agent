@@ -6,14 +6,9 @@ from pathlib import Path
 
 from shared.capabilities.ui_bindings import message_allowed
 from shared.locale import agent_locale
-from shared.yaml_config import deep_merge, load_runtime_config, load_yaml
+from shared.yaml_config import deep_merge, load_yaml
 
 _REPO_CONFIG = Path(__file__).resolve().parent.parent / "config"
-
-
-@lru_cache(maxsize=2)
-def _domain_for_stem(stem: str) -> dict:
-    return load_runtime_config(str(_REPO_CONFIG), stem)
 
 
 def _overlay_yaml(merged: dict, path: Path) -> dict:
@@ -36,11 +31,18 @@ def _ru_domain() -> dict:
     return _overlay_yaml(merged, base / "domain_messages.ru.yaml")
 
 
+def _en_domain() -> dict:
+    """EN catalog: .en.example as base + local .en.yaml overlay (same stale-local rule)."""
+    base = _REPO_CONFIG
+    merged = load_yaml(base / "domain_messages.en.yaml.example", default={})
+    return _overlay_yaml(merged, base / "domain_messages.en.yaml")
+
+
 @lru_cache(maxsize=2)
 def _domain(_locale: str) -> dict:
     if _locale.startswith("en"):
         ru = _ru_domain()
-        en = _domain_for_stem("domain_messages.en")
+        en = _en_domain()
         if ru and en:
             return deep_merge(ru, en)
         return en or ru
@@ -53,7 +55,6 @@ def _active_domain() -> dict:
 
 def clear_domain_messages_cache() -> None:
     _domain.cache_clear()
-    _domain_for_stem.cache_clear()
 
 
 def dmsg(*keys: str, default: str = "", cap: str | None = None, **kwargs: object) -> str:

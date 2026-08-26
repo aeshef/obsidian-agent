@@ -16,7 +16,7 @@ Monorepo map: **unified_bot** hosts finance/planning/knowledge in one Telegram p
 
 1. **Vault — источник правды для контента.** Боты читают и пишут markdown/JSON/SQLite в Obsidian; Telegram — только интерфейс. Имена папок и файлов — в `config/vault_paths.yaml` (см. `vault_paths.yaml.example`), не в `.py` и не в shell-хардкоде.
 2. **Один конфиг.** Корневой `.env`; per-bot дубли не обязательны.
-3. **Shared без бизнес-логики.** В `shared/` — инфраструктура (LLM, пути, логи, ASR, telegram utils), не доменные сервисы ботов.
+3. **Shared without domain business logic** except the Telegram **host composition root** (`shared/telegram/host/`), which may import `planning_bot` / `finance_bot` / `knowledge_bot`. Treat that package as part of `unified_bot`, not a reusable library.
 4. **Разделение Mac / VPS.** Боты и тяжёлый maintenance — на VPS; rsync и matplotlib-графики — на Mac.
 
 ---
@@ -79,7 +79,7 @@ python -m unified_bot.main   # DEPLOY_MODE=single, TELEGRAM_UNIFIED_BOT_TOKEN
 
 Finance/planning/knowledge schedulers и handlers регистрируются внутри host bootstrap.
 
-**Legacy (три polling-процесса):** `DEPLOY_MODE=multi`, отдельные `run.sh` + watchdog. `./scripts/deploy.sh --prod` по умолчанию **не** рестартует legacy; флаг `--legacy-bots`.
+**Legacy multi-bot (`DEPLOY_MODE=multi`):** unsupported for new installs; kept only for old three-process deployments. Prefer `DEPLOY_MODE=single` + `unified_bot`.
 
 | Режим | Запуск |
 |-------|--------|

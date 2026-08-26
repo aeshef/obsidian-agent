@@ -147,7 +147,7 @@ class PlanningLLMDomainMixin:
 
             response = self.chat(
                 messages,
-                temperature=planning_llm_temperature("task_parsing", 0.3),
+                temperature=planning_llm_temperature("task_parsing"),
             )
             logger.debug("parse_task llm response len=%d", len(response))
 
@@ -342,7 +342,7 @@ class PlanningLLMDomainMixin:
 
             review = self.chat(
                 messages,
-                temperature=planning_llm_temperature("weekly_review", 0.8),
+                temperature=planning_llm_temperature("weekly_review"),
             )
             logger.info("weekly_review done len=%d", len(review))
             return review
@@ -518,7 +518,7 @@ class PlanningLLMDomainMixin:
 
             recommendations = self.chat(
                 messages,
-                temperature=planning_llm_temperature("recommendations", 0.7),
+                temperature=planning_llm_temperature("recommendations"),
             )
             recommendations = strip_telegram_markdown((recommendations or "").strip())
             logger.info("generate_recommendations done len=%d", len(recommendations))
@@ -565,7 +565,7 @@ class PlanningLLMDomainMixin:
 
             response = self.chat(
                 messages,
-                temperature=planning_llm_temperature("goals_mapping", 0.3),
+                temperature=planning_llm_temperature("goals_mapping"),
             )
 
             try:

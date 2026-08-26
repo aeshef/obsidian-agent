@@ -22,8 +22,8 @@ You run shell/Python steps yourself. **Secrets are a live conversation** — one
 |------|-----|
 | Repo root = directory with `unified_bot/`, `scripts/setup.sh`, `config/agent/` | |
 | **Never** commit `.env`, `capabilities.yaml`, `badge.yaml`, prod `**/prompts/*.txt`, `user_profile.md` | Secrets + personal tone |
-| **Author full install**: if `config/agent/capabilities.yaml` is **absent**, do **not** create it (absent = all modules/connectors on) | Preserves maintainer machine |
-| **New clone**: always `--write` capabilities profile for the chosen modules | Explicit contract |
+| **Author full install**: omit `capabilities.yaml` **and** set `OBSIDIAN_AGENT_FULL_INSTALL=1` (otherwise missing YAML = OSS starter) | Preserves maintainer machine |
+| **New clone**: always `--write` capabilities profile for the chosen modules (or copy starter) | Explicit contract |
 | **Never overwrite** existing prod `*.txt` or `user_profile.md` unless user explicitly asks | `ensure_bot_prompts.sh` only copies missing |
 | `.env`: append placeholders via `--patch-env` / `env_tools.py append-hints`; secrets via `env_tools.py set` only | Never replace non-empty values without `--force` |
 | Use **AskQuestion** for modules/connectors; **do not mention** declined options in UI/prompts/sync | Capability contract |
@@ -329,7 +329,7 @@ python3 scripts/setup/env_tools.py list-missing VAULT_PATH 2>/dev/null || true
 ```
 
 - No `.env` → `cp .env.example .env`; `env_tools.py set VAULT_PATH` with user path.
-- `FULL_INSTALL_DEFAULT` on **your** machine (user says they are the author) → skip writing `capabilities.yaml`.
+- `FULL_INSTALL_DEFAULT` on **your** machine (author): skip writing `capabilities.yaml` **and** ensure `OBSIDIAN_AGENT_FULL_INSTALL=1` in `.env`. Without that flag, missing YAML = OSS starter.
 - Any other clone → proceed with `--write` profile.
 
 ---

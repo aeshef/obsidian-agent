@@ -82,8 +82,8 @@ if [[ ! -f "$RUNTIME_AGENT/config/vault_paths.yaml" && -f "$AGENT_DIR/.env" ]]; 
   set +a
   _mat_py="$(common_launchagent_python "$AGENT_DIR/finance_bot" 2>/dev/null || true)"
   if [[ -n "$_mat_py" && -f "$AGENT_DIR/scripts/setup/materialize_locale.py" ]]; then
-  AGENT_LOCALE="${AGENT_LOCALE:-ru}" "$_mat_py" "$AGENT_DIR/scripts/setup/materialize_locale.py" \
-    "${AGENT_LOCALE:-ru}" --refresh-vault-paths 2>/dev/null || true
+  AGENT_LOCALE="${AGENT_LOCALE:-en}" "$_mat_py" "$AGENT_DIR/scripts/setup/materialize_locale.py" \
+    "${AGENT_LOCALE:-en}" --refresh-vault-paths 2>/dev/null || true
   if [[ -f "$AGENT_DIR/config/vault_paths.yaml" ]]; then
     cp -f "$AGENT_DIR/config/vault_paths.yaml" "$RUNTIME_AGENT/config/vault_paths.yaml"
   fi

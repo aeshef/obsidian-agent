@@ -21,7 +21,7 @@ fi
 source "$ROOT/scripts/lib/vault_paths_defaults.sh"
 vault_paths_load_from_agent "$ROOT" 2>/dev/null || vault_paths_apply_defaults
 
-export AGENT_LOCALE="${AGENT_LOCALE:-ru}"
+export AGENT_LOCALE="${AGENT_LOCALE:-en}"
 export PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
 echo "== prepare_routines: vault=$VAULT_PATH locale=$AGENT_LOCALE =="

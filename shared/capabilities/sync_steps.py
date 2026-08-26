@@ -16,6 +16,7 @@ from shared.capabilities.profile import (
     CONNECTOR_MAC_CONTEXT,
     SYNC_PROFILE_FINANCE_ONLY,
     SYNC_PROFILE_FULL,
+    SYNC_PROFILE_KNOWLEDGE_ONLY,
     SYNC_PROFILE_MINIMAL,
     SYNC_PROFILE_PLANNING_LIGHT,
     SYNC_PROFILE_PLANNING_KANBAN,
@@ -102,6 +103,18 @@ _PROFILE_DEFAULTS: dict[str, dict[str, bool]] = {
         STEP_KB_MAINTENANCE: False,
         STEP_FINANCE_DASHBOARD: False,
         STEP_VAULT_AUDIT_HEAVY: False,
+    },
+    SYNC_PROFILE_KNOWLEDGE_ONLY: {
+        STEP_MAC_IPHONE: False,
+        STEP_GMAIL_HEALTH: False,
+        STEP_PLANNING_CHARTS: False,
+        STEP_CALENDAR: False,
+        STEP_NUTRITION: False,
+        STEP_HEALTH_ANALYTICS: False,
+        STEP_CROSS_ANALYTICS: False,
+        STEP_KB_MAINTENANCE: True,
+        STEP_FINANCE_DASHBOARD: False,
+        STEP_VAULT_AUDIT_HEAVY: True,
     },
 }
 

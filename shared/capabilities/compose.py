@@ -14,6 +14,7 @@ from shared.capabilities.profile import (
     MODULE_PLANNING,
     SYNC_PROFILE_FINANCE_ONLY,
     SYNC_PROFILE_FULL,
+    SYNC_PROFILE_KNOWLEDGE_ONLY,
     SYNC_PROFILE_MINIMAL,
     SYNC_PROFILE_PLANNING_KANBAN,
     SYNC_PROFILE_PLANNING_LIGHT,
@@ -60,7 +61,7 @@ def infer_sync_profile(doc: dict[str, Any]) -> str:
     if p and f and not k:
         return SYNC_PROFILE_FULL
     if not f and not p and k:
-        return SYNC_PROFILE_MINIMAL
+        return SYNC_PROFILE_KNOWLEDGE_ONLY
     return SYNC_PROFILE_FULL
 
 

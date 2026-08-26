@@ -82,7 +82,7 @@ TELEGRAM_USER_ID=...          # numeric id для knowledge ingest / алерт�
 
 Legacy (три polling-процесса): `DEPLOY_MODE=multi` и отдельные `TELEGRAM_*_BOT_TOKEN` — см. [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Узкий профиль продукта (например только финансы): [CAPABILITIES.md](CAPABILITIES.md). Без `config/agent/capabilities.yaml` включено всё — как у полной установки.
+Узкий профиль продукта (например только финансы): [CAPABILITIES.md](CAPABILITIES.md). Без `capabilities.yaml` — OSS starter; полный продукт только с `OBSIDIAN_AGENT_FULL_INSTALL=1`.
 
 Для sync/deploy:
 

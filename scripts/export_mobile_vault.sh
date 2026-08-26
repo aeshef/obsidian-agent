@@ -14,8 +14,6 @@ set -euo pipefail
 
 if [[ -n "${0:A}" && -f "${0:A}" ]]; then
   AGENT_ROOT="$(cd "$(dirname "${0:A}")/.." && pwd)"
-  P="$(cd "$(dirname "${0:A}")/../.." && pwd)"
-  [[ -d "$P/800_Автоматизация" ]] && SRC="$P"
 fi
 AGENT_ROOT="${AGENT_ROOT:-$(cd "$(dirname "${0:A}")/.." 2>/dev/null && pwd)}"
 if [[ -f "${AGENT_ROOT}/.env" ]]; then
@@ -26,7 +24,7 @@ if [[ -f "${AGENT_ROOT}/.env" ]]; then
 fi
 # shellcheck source=scripts/lib/common.sh
 source "${AGENT_ROOT}/scripts/lib/common.sh"
-SRC="${SRC:-${VAULT_PATH:-${LOCAL_VAULT:-$(common_resolve_vault "$AGENT_ROOT" 2>/dev/null || true)}}}"
+SRC="${VAULT_PATH:-${LOCAL_VAULT:-$(common_resolve_vault "$AGENT_ROOT" 2>/dev/null || true)}}"
 if [[ -z "$SRC" ]]; then
   echo "export_mobile_vault: VAULT_PATH is not configured" >&2
   exit 1

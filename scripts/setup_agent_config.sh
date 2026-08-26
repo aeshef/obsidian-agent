@@ -32,9 +32,24 @@ for ex in "$CFG"/*.example.yaml "$CFG"/*.example.yml; do
   copy_if_missing "$ex" "${base}.yaml"
 done
 
-if [[ ! -f "$CFG/capabilities.yaml" && -f "$CFG/capabilities.starter.yaml.example" ]]; then
-  cp "$CFG/capabilities.starter.yaml.example" "$CFG/capabilities.yaml"
-  echo "created: $CFG/capabilities.yaml (OSS starter profile)"
+if [[ ! -f "$CFG/capabilities.yaml" ]]; then
+  # Author full install: omit capabilities.yaml + OBSIDIAN_AGENT_FULL_INSTALL=1.
+  # Do not materialize starter in that case.
+  _full="${OBSIDIAN_AGENT_FULL_INSTALL:-}"
+  if [[ -f "$ROOT/.env" ]]; then
+    # shellcheck disable=SC1091
+    _full="${_full:-$(grep -E '^[[:space:]]*OBSIDIAN_AGENT_FULL_INSTALL=' "$ROOT/.env" 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '[:space:]"'"'"'')}"
+  fi
+  case "${_full,,}" in
+    1|true|yes|on) echo "skip capabilities.yaml (OBSIDIAN_AGENT_FULL_INSTALL)";;
+    *)
+      if [[ -f "$CFG/capabilities.starter.yaml.example" ]]; then
+        cp "$CFG/capabilities.starter.yaml.example" "$CFG/capabilities.yaml"
+        echo "created: $CFG/capabilities.yaml (OSS starter profile)"
+      fi
+      ;;
+  esac
+  unset _full
 fi
 
 bash "$(dirname "$0")/ensure_bot_prompts.sh"

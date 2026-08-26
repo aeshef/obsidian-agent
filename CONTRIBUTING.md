@@ -14,16 +14,26 @@
 | venv | `./scripts/ensure_bot_venv.sh all` |
 | PYTHONPATH | `export PYTHONPATH="$(pwd)"` при ручном запуске |
 
-**Зависимости:** `constraints.txt` — пины для всех venv; `requirements-min.txt` — минимум для CI/smoke; `finance_bot/requirements.txt` (и аналоги) — полный набор домена; `pyproject.toml` — метаданные пакета и dev-tools. Боевые `config/**/*.yaml` в git не коммитятся — только `*.yaml.example`, runtime читает example или локальный override (`shared.yaml_config.load_merged_config`).
+**Зависимости:** `constraints.txt` — пины для всех venv; `requirements-min.txt` — минимум для CI/smoke; `finance_bot/requirements.txt` (и аналоги) — полный набор домена; `pyproject.toml` — метаданные пакета и dev-tools. Боевые `config/**/*.yaml` в git не коммитятся — только `*.yaml.example`.
+
+### Config loaders (`shared.yaml_config`)
+
+| API | Use for |
+|-----|---------|
+| `load_catalog_config` | UI / domain string catalogs (`messages`, `domain_messages`): **example as base ⊕ local overlay** so stale locals cannot blank new keys |
+| `load_locale_merged_config` | Locale-aware schemas (`kanban_schema`, dashboard templates): prefer `{stem}.{locale}.yaml.example` |
+| `load_runtime_config` | Local-only overrides that intentionally replace the whole file (rare) |
+| `load_merged_config` | Additive merge for structured configs (`ui_capabilities`, agent platform pieces) |
 
 ---
 
 ## Конфиги и секреты
 
-- **Не коммитьте:** `.env`, боевые промпты, личные yaml.
-- **UI-строки** — `config/messages.en.yaml` (canonical keys) + `messages.ru.yaml` (в git только `*.example`), не в Python. Default `AGENT_LOCALE=en`.
-- **Bot YAML** — в git `*.yaml.example`; runtime через `load_merged_config` / локальный override.
-- **Числа и лимиты** — `config/agent/platform.yaml`, не magic numbers в коде.
+- **Не коммитьте:** `.env`, боевые промпты, личные yaml, `capabilities.yaml`.
+- **Capabilities:** missing YAML = OSS starter unless `OBSIDIAN_AGENT_FULL_INSTALL=1`; present YAML is fail-closed.
+- **UI-строки** — `config/messages.*.yaml.example` + local overlay; Default `AGENT_LOCALE=en`.
+- **Bot YAML** — в git `*.yaml.example`; pick the loader above by stem.
+- **Числа и лимиты** — `config/agent/platform.yaml` / `models.yaml`, не magic numbers в коде.
 - **Промпты LLM** — `*.txt` / `config/agent/prompts/`, не строки в `.py`.
 
 ---

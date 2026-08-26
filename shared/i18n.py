@@ -6,20 +6,21 @@ from pathlib import Path
 
 from shared.capabilities.ui_bindings import message_allowed
 from shared.locale import is_english, messages_stem
-from shared.yaml_config import load_runtime_config
+from shared.yaml_config import load_catalog_config
 
 _REPO_CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 
 @lru_cache(maxsize=2)
 def messages() -> dict:
+    """Example-as-base + local overlay so stale gitignored snapshots cannot blank new keys."""
     stem = messages_stem()
-    cfg = load_runtime_config(str(_REPO_CONFIG), stem)
+    cfg = load_catalog_config(str(_REPO_CONFIG), stem)
     if cfg:
         return cfg
-    # Missing local file: other locale example (first-run clone).
+    # Missing primary locale: other locale example (first-run clone).
     fallback = "messages.ru" if is_english() else "messages.en"
-    return load_runtime_config(str(_REPO_CONFIG), fallback)
+    return load_catalog_config(str(_REPO_CONFIG), fallback)
 
 
 def clear_messages_cache() -> None:

@@ -4,8 +4,9 @@ from __future__ import annotations
 from shared.agent.platform_config import platform_float
 
 
-def planning_llm_temperature(key: str, default: float) -> float:
-    return platform_float("planning_llm", key, default=default)
+def planning_llm_temperature(key: str) -> float:
+    """Require a key under platform.yaml ``planning_llm`` (no call-site numeric fallbacks)."""
+    return platform_float("planning_llm", key)
 
 
 def planning_chat_timeout_sec() -> float:
