@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Первичная настройка монорепо (локально): .env, venv, smoke.
+# Capability-aware primary setup: .env, scoped venvs, gated configs.
 # Usage: ./scripts/setup.sh
 set -euo pipefail
 
@@ -20,9 +20,26 @@ fi
 
 common_load_env "$ROOT" 2>/dev/null || true
 
+# Resolve which bot venvs to create (default: finance_bot always for shared deps)
+_VENV_ARGS=(finance_bot)
+if [ -f "$ROOT/config/agent/capabilities.yaml" ]; then
+  _mods="$("$ROOT/scripts/oa-python.sh" -c "
+from shared.capabilities.profile import get_capabilities, clear_capabilities_cache, MODULE_PLANNING, MODULE_KNOWLEDGE
+clear_capabilities_cache()
+p=get_capabilities()
+print('planning' if p.module(MODULE_PLANNING) else '')
+print('knowledge' if p.module(MODULE_KNOWLEDGE) else '')
+" 2>/dev/null || true)"
+  echo "$_mods" | grep -q planning && _VENV_ARGS+=(planning_bot)
+  echo "$_mods" | grep -q knowledge && _VENV_ARGS+=(knowledge_bot)
+else
+  # No capabilities yet — minimal host deps only (wizard writes profile next)
+  _VENV_ARGS=(finance_bot)
+fi
+
 echo ""
 sh_msg scripts.setup.section_venv
-bash "$ROOT/scripts/ensure_bot_venv.sh" all
+bash "$ROOT/scripts/ensure_bot_venv.sh" "${_VENV_ARGS[@]}"
 OA_PY="$(common_resolve_python "$ROOT/finance_bot")"
 export PYTHONPATH="${ROOT}${PYTHONPATH:+:$PYTHONPATH}"
 
@@ -46,12 +63,9 @@ fi
 
 echo ""
 sh_msg scripts.setup.section_bot_configs
+# Always-safe shared configs
 for pair in \
-  "config/messages.ru.yaml:config/messages.ru.yaml.example" \
-  "config/agent/platform.yaml:config/agent/platform.yaml.example" \
-  "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example" \
-  "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example" \
-  "knowledge_bot/config/hubs_registry.yaml:knowledge_bot/config/hubs_registry.yaml.example"; do
+  "config/agent/platform.yaml:config/agent/platform.yaml.example"; do
   target="${pair%%:*}"
   example="${pair##*:}"
   if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
@@ -59,22 +73,51 @@ for pair in \
     sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
   fi
 done
+# Module-gated
+if [ -f "$ROOT/config/agent/capabilities.yaml" ]; then
+  _has_fin="$("$OA_PY" -c "from shared.capabilities.profile import get_capabilities,MODULE_FINANCE; import sys; sys.exit(0 if get_capabilities().module(MODULE_FINANCE) else 1)" && echo 1 || echo 0)"
+  _has_kb="$("$OA_PY" -c "from shared.capabilities.profile import get_capabilities,MODULE_KNOWLEDGE; import sys; sys.exit(0 if get_capabilities().module(MODULE_KNOWLEDGE) else 1)" && echo 1 || echo 0)"
+  _has_pl="$("$OA_PY" -c "from shared.capabilities.profile import get_capabilities,MODULE_PLANNING; import sys; sys.exit(0 if get_capabilities().module(MODULE_PLANNING) else 1)" && echo 1 || echo 0)"
+else
+  _has_fin=0; _has_kb=0; _has_pl=0
+fi
+if [ "$_has_fin" = 1 ]; then
+  for pair in \
+    "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example"; do
+    target="${pair%%:*}"; example="${pair##*:}"
+    if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
+      cp "$ROOT/$example" "$ROOT/$target"
+      sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
+    fi
+  done
+fi
+if [ "$_has_kb" = 1 ]; then
+  for pair in \
+    "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example" \
+    "knowledge_bot/config/hubs_registry.yaml:knowledge_bot/config/hubs_registry.yaml.example"; do
+    target="${pair%%:*}"; example="${pair##*:}"
+    if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
+      cp "$ROOT/$example" "$ROOT/$target"
+      sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
+    fi
+  done
+fi
 
 echo ""
 sh_msg scripts.setup.prompts_header
 bash "$ROOT/scripts/ensure_bot_prompts.sh"
-# pull_prompts_from_server.sh — author-only (gitignored); optional local file
 if [ -x "$ROOT/scripts/pull_prompts_from_server.sh" ]; then
   bash "$ROOT/scripts/pull_prompts_from_server.sh" 2>/dev/null || true
 fi
-if "$OA_PY" -c "from shared.capabilities.profile import get_capabilities, MODULE_PLANNING; import sys; sys.exit(0 if get_capabilities().module(MODULE_PLANNING) else 1)" 2>/dev/null; then
+if [ "$_has_pl" = 1 ]; then
   "$OA_PY" "$ROOT/scripts/seed_planning_prompts.py" || true
 fi
-bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
-
-echo ""
-sh_msg scripts.setup.section_tags_prompt
-bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
+if [ "$_has_kb" = 1 ]; then
+  bash "$ROOT/scripts/ensure_hubs_registry.sh" || true
+  echo ""
+  sh_msg scripts.setup.section_tags_prompt
+  bash "$ROOT/scripts/ensure_tags_prompt.sh" || true
+fi
 
 if [ -n "${VAULT_PATH:-}" ] && [ -d "${VAULT_PATH}" ] && [ -f "$ROOT/config/agent/capabilities.yaml" ]; then
   echo ""

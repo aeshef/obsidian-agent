@@ -59,10 +59,13 @@ def planned_vault_dirs(
                 routines_root / routines_sub("charts") / routines_sub("charts_routines"),
                 routines_root / routines_sub("charts") / routines_sub("charts_signals"),
                 root / folder("handwritten"),
-                data_dir / vault_rel_path("actions_mac"),
-                data_dir / vault_rel_path("actions_iphone"),
             ]
         )
+        # Mac/iPhone action sinks only when those connectors are on
+        if prof.connector("mac_context"):
+            paths.append(data_dir / vault_rel_path("actions_mac"))
+        if prof.connector("apple_health") or prof.connector("apple_calendar") or prof.connector("gmail_health_pipeline"):
+            paths.append(data_dir / vault_rel_path("actions_iphone"))
     if prof.module(MODULE_FINANCE) and needs_dash:
         paths.append((root / folder("dashboards") / dashboards_sub("charts")) / finance_sub("graphs_finance"))
     if prof.module(MODULE_KNOWLEDGE):

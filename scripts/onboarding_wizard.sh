@@ -29,7 +29,7 @@ Usage: scripts/onboarding_wizard.sh [options]
 Guided OSS setup (skill: .cursor/skills/obsidian-agent-onboarding/SKILL.md).
 
 Options:
-  --playbook planning|finance|full   Golden path (default: prompt if TTY)
+  --playbook planning|finance|knowledge|full   Golden path (default: prompt if TTY)
   --modules "planning finance"         Space-separated modules (overrides playbook modules)
   --connectors FLAGS                 Extra apply_capabilities_profile flags (repeatable)
   --locale en|ru                     Default: en
@@ -42,9 +42,11 @@ Options:
 Examples:
   ./scripts/onboarding_wizard.sh --playbook planning
   ./scripts/onboarding_wizard.sh --playbook finance --connectors --broker-sync
+  ./scripts/onboarding_wizard.sh --playbook knowledge
   ./scripts/onboarding_wizard.sh --modules knowledge --connectors --knowledge-serendipity
 
-After the wizard: set secrets with scripts/setup/env_tools.py set, then re-run smoke with --require-env.
+Secrets: wizard prompts on TTY, or set via scripts/setup/env_tools.py.
+Status anytime: ./scripts/oa-python.sh scripts/onboarding_status.py
 EOF
 }
 
@@ -102,14 +104,16 @@ if [[ -z "$MODULES" ]]; then
   case "$PLAYBOOK" in
     planning) MODULES="planning" ;;
     finance) MODULES="finance" ;;
+    knowledge) MODULES="knowledge" ;;
     full) MODULES="planning finance knowledge" ;;
     "")
       if [[ -t 0 ]]; then
-        echo "Select playbook: 1=planning 2=finance 3=full"
+        echo "Select playbook: 1=planning 2=finance 3=knowledge 4=full"
         read -r -p "Choice [1]: " choice
         case "${choice:-1}" in
           2) MODULES="finance" ;;
-          3) MODULES="planning finance knowledge" ;;
+          3) MODULES="knowledge" ;;
+          4) MODULES="planning finance knowledge" ;;
           *) MODULES="planning" ;;
         esac
       else
@@ -121,15 +125,43 @@ if [[ -z "$MODULES" ]]; then
   esac
 fi
 
-GOLDEN_FLAG=""
-case "$MODULES" in
-  planning) GOLDEN_FLAG="--golden-planning" ;;
-  finance) GOLDEN_FLAG="--golden-finance" ;;
-esac
+# Optional connectors (TTY) — full preset starts connectors OFF
+if [[ -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
+  _ask_conn() {
+    local flag="$1" prompt="$2"
+    read -r -p "$prompt [y/N]: " ans
+    case "${ans:-}" in y|Y|yes|YES) CONNECTOR_FLAGS+=("$flag") ;; esac
+  }
+  case "$MODULES" in
+    *finance*)
+      _ask_conn --broker-sync "Enable broker API sync (Tinkoff token)?"
+      _ask_conn --corporate-badge "Enable corporate meal badge?"
+      ;;
+  esac
+  case "$MODULES" in
+    *planning*)
+      _ask_conn --apple-health "Enable Apple Health / Shortcuts?"
+      _ask_conn --gmail-health-pipeline "Enable Gmail health email pipeline?"
+      _ask_conn --apple-calendar "Enable Apple Calendar export?"
+      _ask_conn --mac-context "Enable Mac context snapshots?"
+      ;;
+  esac
+  case "$MODULES" in
+    *knowledge*)
+      _ask_conn --knowledge-serendipity "Enable knowledge serendipity?"
+      ;;
+  esac
+fi
+
+GOLDEN_FLAGS=()
+case "$MODULES" in *planning*) GOLDEN_FLAGS+=(--golden-planning) ;; esac
+case "$MODULES" in *finance*) GOLDEN_FLAGS+=(--golden-finance) ;; esac
+case "$MODULES" in *knowledge*) GOLDEN_FLAGS+=(--golden-knowledge) ;; esac
 
 case "$MODULES" in
   planning) CAP_ARGS=(--preset planning_only) ;;
   finance) CAP_ARGS=(--preset finance_only) ;;
+  knowledge) CAP_ARGS=(--preset knowledge_only) ;;
   "planning finance knowledge") CAP_ARGS=(--preset full) ;;
   *)
     read -r -a _mods <<< "$MODULES"
@@ -191,8 +223,44 @@ fi
 "$PY" scripts/onboarding_interview.py list || true
 echo "Run /setup in Cursor for live interview, or: python3 scripts/onboarding_interview.py answer ID 'text'"
 
-log "Phase 8: secrets (set via env_tools.py set — use Cursor /setup for interactive chat)"
+log "Phase 8: secrets"
+_prompt_secret() {
+  local key="$1" hint="$2"
+  local cur=""
+  if [[ -f .env ]]; then
+    cur="$(grep -E "^${key}=" .env | tail -1 | cut -d= -f2- | tr -d "\"'" | xargs)"
+  fi
+  if [[ -n "${cur:-}" && "$cur" != *sk-...* && "$cur" != *YOUR* && "$cur" != *changeme* && "$cur" != *replace* ]]; then
+    log "$key already set"
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    log "NEED_ENV: $key ($hint)"
+    return 0
+  fi
+  echo "$hint"
+  if [[ "$key" == *KEY* || "$key" == *TOKEN* ]]; then
+    read -r -s -p "$key: " val
+    echo
+  else
+    read -r -p "$key: " val
+  fi
+  if [[ -n "${val:-}" ]]; then
+    "$PY" scripts/setup/env_tools.py set "$key" "$val"
+  fi
+}
+_prompt_secret VAULT_PATH "Absolute path to your Obsidian vault"
+_prompt_secret TELEGRAM_UNIFIED_BOT_TOKEN "BotFather → /newbot → paste token"
+_prompt_secret DEEPSEEK_API_KEY "https://platform.deepseek.com → API key"
+case "$MODULES" in
+  *knowledge*) _prompt_secret OPENROUTER_API_KEY "https://openrouter.ai (vision/KB) — optional until ingest" ;;
+esac
 "$PY" scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
+
+log "OS checklist (you do these — not automated)"
+echo "  - Obsidian: enable community plugins from vault .obsidian/community-plugins.json"
+echo "  - macOS Full Disk Access if Mac sync / Health Shortcuts"
+echo "  - See: ./scripts/oa-python.sh scripts/onboarding_status.py"
 
 if [[ "$MODULES" == *finance* ]]; then
   log "Phase 8b: finance initial accounts (after telegram_id in interview)"
@@ -204,12 +272,11 @@ fi
 if [[ "$SKIP_SMOKE" -eq 0 ]]; then
   log "Phase 9: smoke"
   SMOKE_ARGS=(--verify-all)
-  if [[ -n "$GOLDEN_FLAG" ]]; then
-    SMOKE_ARGS+=("$GOLDEN_FLAG")
-  fi
+  SMOKE_ARGS+=("${GOLDEN_FLAGS[@]}")
   "$PY" scripts/onboarding_smoke.py "${SMOKE_ARGS[@]}"
 fi
 
-log "Done. Finish interview: /setup in Cursor → onboarding_smoke.py --complete"
-log "Start bot: python3 -m unified_bot.main"
-log "Optional: ./scripts/install_mac_sync.sh | docs/ONBOARDING.md"
+log "Status"
+"$PY" scripts/onboarding_status.py || true
+log "Done. Interview: /setup in Cursor or onboarding_interview.py next"
+log "Start bot: ./scripts/run_unified_bot.sh → confirm-bot → finalize deploy"

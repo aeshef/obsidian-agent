@@ -10,9 +10,25 @@
 
 **A life OS that writes itself into an Obsidian vault.** Telegram is the sensor. The vault is the system of record. The agent is a tool loop over *your* files — not a chat that forgets.
 
+> **One line:** vault-native agent with **fail-closed modules** — if a capability is off, it is gone from UI, tools, prompts, and sync.
+
 Capture, file, recall, and chart: tasks, notes, money, calendar, and optional body/work connectors. Edit in Obsidian whenever you want. The bot never replaces the vault; it keeps it alive when you are not at the desk.
 
 ![obsidian-agent](assets/banner.png)
+
+![15s storyboard](assets/demo/storyboard.svg)
+
+### 15-second story
+
+```text
+Telegram (voice / photo / “spent 12 on coffee”)
+        ↓ confirm-in-chat
+Obsidian note / kanban card / ledger row
+        ↓ sync + charts
+Dashboard markdown + PNGs in the vault
+```
+
+Product demo (no PII): [assets/demo/README.md](assets/demo/README.md) · record your own with [docs/DEMO_CAPTURE.md](docs/DEMO_CAPTURE.md).
 
 ---
 
@@ -20,14 +36,26 @@ Capture, file, recall, and chart: tasks, notes, money, calendar, and optional bo
 
 Most “AI + notes” stacks are a chat window glued to a folder. This repo is the opposite:
 
-| Usual bot | This |
+| Usual bot / Notion AI / Khoj / Mem | This |
 |-----------|------|
-| Answers live in the thread | Answers are grounded in markdown / JSON / SQLite **in the vault** |
-| One mega-prompt | Three domains (`planning`, `knowledge`, `finance`) behind one process |
+| Answers live in the thread / cloud index | Answers are grounded in markdown / JSON / SQLite **in the vault** |
+| One mega-prompt or opaque workspace AI | Three domains (`planning`, `knowledge`, `finance`) behind one process |
 | Features you cannot turn off | **Capabilities manifest** — off means gone from UI, tools, prompts, and Mac sync |
 | Cloud is the database | Your laptop’s Obsidian tree is canonical; a VPS is optional 24/7 capture |
 
+### Why not X?
+
+| Tool | Gap this fills |
+|------|----------------|
+| **Notion AI** | Vendor lock-in; your graph is not a local markdown vault you own |
+| **Khoj / Mem / similar** | Great retrieval chat — weak as a **life OS** (kanban + ledger + fail-closed connectors + Mac sync) |
+| **Plain Telegram bots** | No vault as system of record; history dies in the chat |
+
 If a module is disabled, it does not leak into keyboards, LLM hints, or rsync. Fail-closed, not “hidden in a menu.”
+
+### Retrieval eval (public)
+
+Sanitized gold: [`eval/gold/public_v0.yaml`](eval/gold/public_v0.yaml) (21 synthetic queries, no personal vault). Run: see [`eval/gold/README.md`](eval/gold/README.md). Maintainer in-window Recall@1 / MRR ≈ **0.76** on private labeled runs (catalog window); publish a public baseline when you have a shareable vault fixture.
 
 ---
 

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+- `scripts/onboarding_status.py` — single readiness checklist
+- Public retrieval gold `eval/gold/public_v0.yaml` + demo storyboard
+- Interactive wizard: knowledge playbook, connector asks, TTY secrets
+
+### Changed
+- Finance dashboard CLI thin (`scripts/…` → `bot.services.dashboard.build`)
+- Interview CLI: no fuzzy skip NLP; `--choice` / `--mvp` for /setup skill
+- `full` preset: modules on, connectors off until asked
+- `setup.sh` scopes venvs/configs by capabilities
+
 ## [0.1.0] - 2026-08-26
 
 ### Added

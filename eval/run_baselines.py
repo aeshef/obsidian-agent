@@ -2,7 +2,7 @@
 """Blind retrieval baselines: production dense vs optional LLM-catalog.
 
   PYTHONPATH=. python eval/run_baselines.py \
-      --gold eval/gold/v0.yaml --retrievers dense,catalog
+      --gold eval/gold/public_v0.yaml --retrievers dense,catalog
 """
 from __future__ import annotations
 

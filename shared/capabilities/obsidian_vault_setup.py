@@ -7,7 +7,12 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
-from shared.capabilities.profile import MODULE_PLANNING, CapabilityProfile, get_capabilities
+from shared.capabilities.profile import (
+    MODULE_KNOWLEDGE,
+    MODULE_PLANNING,
+    CapabilityProfile,
+    get_capabilities,
+)
 from shared.locale import agent_locale
 from shared.paths import VaultPaths
 from shared.vault_paths_config import folder, vault_file, vault_rel_path
@@ -151,6 +156,10 @@ def install_obsidian_assets(
     loc = locale or _locale()
     written: list[str] = []
 
+    # Finance-only: skip Obsidian template trees (no kanban/KB templates needed)
+    if not prof.any_module(MODULE_PLANNING, MODULE_KNOWLEDGE):
+        return written
+
     automation = root / folder("automation")
     clones_dst = automation / vault_rel_path("templates_clones")
     v2_dst = automation / vault_rel_path("templates_v2")
@@ -164,10 +173,11 @@ def install_obsidian_assets(
     if dry_run:
         return [f"(dry-run) obsidian assets → {automation}"]
 
-    if clones_src.is_dir():
+    # Clones/entities: planning or knowledge
+    if clones_src.is_dir() and prof.any_module(MODULE_PLANNING, MODULE_KNOWLEDGE):
         written.extend(_copy_tree(clones_src, clones_dst, force=force))
 
-    if entities_src.is_dir():
+    if entities_src.is_dir() and prof.module(MODULE_PLANNING):
         written.extend(_copy_tree(entities_src, entities_dst, force=force))
 
     snippets_src = _OBSIDIAN_TEMPLATES / "snippets"
@@ -184,7 +194,7 @@ def install_obsidian_assets(
 
     templater_folder = f"{folder('automation')}/{vault_rel_path('templates_v2')}"
     tpl_path = _OBSIDIAN_TEMPLATES / "config" / "templater-data.json.template"
-    if tpl_path.is_file():
+    if tpl_path.is_file() and prof.module(MODULE_PLANNING):
         body = _substitute(tpl_path.read_text(encoding="utf-8"), {"templater_folder": templater_folder})
         t_dst = root / ".obsidian" / "plugins" / "templater-obsidian" / "data.json"
         if _write_text(t_dst, body, force=force):

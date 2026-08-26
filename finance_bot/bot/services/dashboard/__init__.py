@@ -6,6 +6,7 @@ from bot.services.dashboard.assemble import (
     write_dashboard_md,
 )
 from bot.services.dashboard.badge import build_badge_section
+from bot.services.dashboard.build import build_arg_parser, run_build
 from bot.services.dashboard.charts import plot_lines_png, plot_stacked_bar_categories_png
 from bot.services.dashboard.data import (
     acc_balance,
@@ -41,6 +42,8 @@ from bot.services.dashboard.windows import (
     week_range,
 )
 
+from bot.services.dashboard.build import build_arg_parser, run_build
+
 __all__ = [
     "HERO_META_PLACEHOLDER",
     "acc_balance",
@@ -49,6 +52,7 @@ __all__ = [
     "accumulate_weekly_flow",
     "accumulate_weekly_regular_spending",
     "assemble_dashboard_markdown",
+    "build_arg_parser",
     "build_badge_section",
     "chart_window_int",
     "day_range",
@@ -68,6 +72,7 @@ __all__ = [
     "resolve_badge_account_name",
     "resolve_badge_category",
     "resolve_exclude_spending_categories",
+    "run_build",
     "safe_comment",
     "series_floor",
     "skip_badge_account",

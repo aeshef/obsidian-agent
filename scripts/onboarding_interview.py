@@ -113,34 +113,77 @@ def _parse_balances(text: str, accounts: list[dict[str, Any]]) -> list[dict[str,
     return list(by_name.values())
 
 
-def _choice_to_tone(choice: str, locale: str) -> str:
-    c = choice.strip().lower()
-    if locale == "ru":
-        if "корот" in c or "делу" in c:
-            return "коротко, по делу"
-        if "друж" in c:
-            return "дружелюбно, разговорно"
-        return "подробно, формально"
-    if "short" in c or "direct" in c:
-        return "concise, direct"
-    if "friend" in c:
-        return "friendly, conversational"
-    return "detailed, formal"
+def _mvp_categories_slot(locale: str) -> str:
+    """Comma list for prompt slots from checked-in categories_mvp.*.example (no NLP)."""
+    name = (
+        "categories_mvp.ru.yaml.example"
+        if locale.startswith("ru")
+        else "categories_mvp.en.yaml.example"
+    )
+    path = _ROOT / "finance_bot" / "config" / name
+    raw = path.read_text(encoding="utf-8") if path.is_file() else ""
+    data = yaml.safe_load(raw) if raw else None
+    if not isinstance(data, list) or not data:
+        raise SystemExit(f"mvp categories file missing or not a list: {path}")
+    tops: list[str] = []
+    seen: set[str] = set()
+    for item in data:
+        s = str(item).strip()
+        if not s:
+            continue
+        top = s.split("/", 1)[0].strip()
+        if top and top not in seen:
+            seen.add(top)
+            tops.append(top)
+    return ", ".join(tops)
 
 
-def _choice_to_currency(choice: str) -> str:
+def _tone_slot_for_index(idx: int, locale: str) -> str:
+    en = ("concise, direct", "friendly, conversational", "detailed, formal")
+    ru = ("коротко, по делу", "дружелюбно, разговорно", "подробно, формально")
+    table = ru if locale.startswith("ru") else en
+    if idx < 0 or idx >= len(table):
+        raise SystemExit(f"tone choice index out of range: {idx}")
+    return table[idx]
+
+
+def _currency_from_choice_label(label: str) -> str:
+    upper = label.upper()
     for cur in ("RUB", "USD", "EUR"):
-        if cur in choice.upper():
+        if upper.startswith(cur) or f"({cur}" in upper or upper == cur:
             return cur
-    return "RUB"
+    raise SystemExit(f"currency choice must be RUB/USD/EUR catalog label, got {label!r}")
 
 
-def _apply_answer(state: dict[str, Any], qid: str, raw: str, locale: str) -> None:
+def _resolve_choice_label(q: Any, raw: str, locale: str) -> tuple[int, str]:
+    """Exact AskQuestion label only (no fuzzy). Prefer --choice N from the skill."""
+    from shared.capabilities.onboarding_interview import choices_for
+
+    choices = list(choices_for(q, locale))
+    if not choices:
+        raise SystemExit(f"{q.id}: not a choice question")
+    text = (raw or "").strip()
+    for i, c in enumerate(choices):
+        if text == c:
+            return i, c
+    raise SystemExit(
+        f"{q.id}: pass exact catalog string or --choice N (0-based). options={choices!r}"
+    )
+
+
+def _apply_answer(
+    state: dict[str, Any],
+    qid: str,
+    raw: str,
+    locale: str,
+    *,
+    choice_index: int | None = None,
+    use_mvp: bool = False,
+) -> None:
     q = question_by_id(qid)
     if q is None:
         raise SystemExit(f"unknown question id: {qid}")
     answers: dict[str, Any] = state.setdefault("answers", {})
-    answers[qid] = raw.strip()
     completed: list[str] = list(state.setdefault("completed", []))
     if qid not in completed:
         completed.append(qid)
@@ -155,69 +198,117 @@ def _apply_answer(state: dict[str, Any], qid: str, raw: str, locale: str) -> Non
 
     slots["USER_LOCALE"] = locale
 
+    def _label_from_choice() -> tuple[int, str]:
+        from shared.capabilities.onboarding_interview import choices_for
+
+        choices = list(choices_for(q, locale))
+        if choice_index is not None:
+            if choice_index < 0 or choice_index >= len(choices):
+                raise SystemExit(f"{qid}: --choice {choice_index} out of range 0..{len(choices)-1}")
+            return choice_index, choices[choice_index]
+        return _resolve_choice_label(q, raw, locale)
+
     if qid == "user_about":
-        slots["AUTHOR_CONTEXT"] = raw.strip()
-        _write_user_profile(raw.strip(), slots.get("USER_TONE", ""), locale)
+        text = raw.strip()
+        answers[qid] = text
+        slots["AUTHOR_CONTEXT"] = text
+        _write_user_profile(text, slots.get("USER_TONE", ""), locale)
     elif qid == "user_tone":
-        slots["USER_TONE"] = _choice_to_tone(raw, locale)
+        idx, label = _label_from_choice()
+        answers[qid] = label
+        slots["USER_TONE"] = _tone_slot_for_index(idx, locale)
     elif qid == "finance_currency":
-        slots["USER_CURRENCY"] = _choice_to_currency(raw)
+        _, label = _label_from_choice()
+        answers[qid] = label
+        slots["USER_CURRENCY"] = _currency_from_choice_label(label)
     elif qid == "finance_accounts":
-        accs = _parse_accounts(raw)
+        text = raw.strip()
+        answers[qid] = text
+        accs = _parse_accounts(text)
         slots["USER_ACCOUNTS"] = ", ".join(a["name"] for a in accs)
         state["_parsed_accounts"] = accs
-        _write_initial_accounts(state, accs, slots)
+        if str(state.get("telegram_id") or "").isdigit():
+            _write_initial_accounts(state, accs, slots)
     elif qid == "finance_categories":
-        low = raw.strip().lower()
-        if low in ("по умолчанию", "пропустить", "пропуск", "default", "skip", "mvp", "defaults"):
-            slots["USER_CATEGORIES"] = (
-                "Еда, Транспорт, Дом, Развлечения"
-                if locale.startswith("ru")
-                else "Food, Transport, Housing, Groceries, Fun"
-            )
+        # Dumb recorder: skill passes the final comma-list, or --mvp for checked-in MVP labels.
+        if use_mvp:
+            text = _mvp_categories_slot(locale)
         else:
-            slots["USER_CATEGORIES"] = raw.strip() or slots.get("USER_CATEGORIES", "")
+            text = raw.strip()
+            if not text:
+                raise SystemExit(
+                    "finance_categories: pass the comma-separated list, or --mvp "
+                    "(skill interprets 'defaults' — CLI does not)"
+                )
+        answers[qid] = text
+        slots["USER_CATEGORIES"] = text
     elif qid == "finance_opening_balances":
+        text = raw.strip()
+        answers[qid] = text
         base = state.get("_parsed_accounts") or _parse_accounts(
             state.get("answers", {}).get("finance_accounts", "")
         )
-        accs = _parse_balances(raw, base)
+        accs = _parse_balances(text, base)
         state["_parsed_accounts"] = accs
         _write_initial_accounts(state, accs, slots)
     elif qid == "planning_task_examples":
-        slots["USER_TASK_EXAMPLES"] = raw.strip()
+        text = raw.strip()
+        answers[qid] = text
+        slots["USER_TASK_EXAMPLES"] = text
     elif qid == "planning_goals":
-        slots["USER_GOALS"] = raw.strip()
+        text = raw.strip()
+        answers[qid] = text
+        slots["USER_GOALS"] = text
     elif qid == "knowledge_folders":
-        slots["USER_VAULT_FOLDERS"] = raw.strip()
+        text = raw.strip()
+        answers[qid] = text
+        slots["USER_VAULT_FOLDERS"] = text
     elif qid == "telegram_user_id":
         tid = re.sub(r"\D", "", raw)
+        answers[qid] = tid
         state["telegram_id"] = tid
-        _patch_initial_accounts_telegram(tid, state)
-    elif qid == "openrouter_api":
-        from scripts.setup.env_tools import set_env_value, env_path
+        if tid:
+            from scripts.setup.env_tools import env_path, set_env_value
 
+            set_env_value(env_path(_ROOT), "TELEGRAM_USER_ID", tid, force=True)
+        _patch_initial_accounts_telegram(tid, state)
+        accs = state.get("_parsed_accounts") or _parse_accounts(
+            state.get("answers", {}).get("finance_accounts", "")
+        )
+        if accs and get_capabilities().module(MODULE_FINANCE):
+            _write_initial_accounts(state, accs, slots)
+    elif qid == "openrouter_api":
         key = raw.strip()
-        if key and not key.lower().startswith("skip"):
+        answers[qid] = "(set)" if key else "(empty)"
+        if key:
+            from scripts.setup.env_tools import env_path, set_env_value
+
             set_env_value(env_path(_ROOT), "OPENROUTER_API_KEY", key)
+        # empty = skill chose to omit; do not invent "skip" synonyms
     elif qid == "deploy_target":
-        state["deploy_target"] = raw.strip()
-        state["deploy_mode"] = normalize_deploy_mode(raw)
+        _, label = _label_from_choice()
+        answers[qid] = label
+        state["deploy_target"] = label
+        state["deploy_mode"] = normalize_deploy_mode(label)
     elif qid == "deploy_ssh_host":
         host = ssh_host_sanitized(raw)
+        answers[qid] = host
         if host:
             from scripts.setup.env_tools import env_path, set_env_value
 
             set_env_value(env_path(_ROOT), "SERVER", host, force=True)
             state["deploy_ssh_host"] = host
-    elif qid == "deploy_ssh_key_ready":
-        state["deploy_ssh_key_ready"] = raw.strip()
     elif qid == "deploy_vps_ack":
-        low = raw.strip().lower()
-        if any(k in low for k in ("yes", "да", "up", "работает", "works")):
-            state["deploy_success"] = True
-        else:
-            state["deploy_deferred"] = True
+        _, label = _label_from_choice()
+        answers[qid] = label
+        state["deploy_success"] = True
+    elif qid in ("deploy_local_ack", "deploy_vps_later_ack", "deploy_ssh_key_ready"):
+        _, label = _label_from_choice()
+        answers[qid] = label
+        if qid == "deploy_ssh_key_ready":
+            state["deploy_ssh_key_ready"] = label
+    else:
+        answers[qid] = raw.strip()
 
     _dump_slots(slots_path, slots)
 
@@ -268,6 +359,14 @@ def _write_initial_accounts(
     prof = get_capabilities()
     if not prof.module(MODULE_FINANCE):
         return
+    tid = str(state.get("telegram_id") or "").strip()
+    if _INITIAL_ACCOUNTS.is_file():
+        cur = load_yaml(_INITIAL_ACCOUNTS, default={}) or {}
+        if isinstance(cur, dict) and str(cur.get("telegram_id", "")).isdigit():
+            tid = str(cur["telegram_id"])
+    if not tid.isdigit():
+        print("skip initial_accounts.yaml — set telegram_user_id first")
+        return
     currency = slots.get("USER_CURRENCY", "RUB")
     rows: list[dict[str, Any]] = []
     for a in accounts:
@@ -280,13 +379,9 @@ def _write_initial_accounts(
             }
         )
     doc: dict[str, Any] = {
-        "telegram_id": state.get("telegram_id") or "YOUR_TELEGRAM_NUMERIC_ID",
+        "telegram_id": tid,
         "accounts": rows,
     }
-    if _INITIAL_ACCOUNTS.is_file():
-        cur = load_yaml(_INITIAL_ACCOUNTS, default={}) or {}
-        if isinstance(cur, dict) and str(cur.get("telegram_id", "")).isdigit():
-            doc["telegram_id"] = cur["telegram_id"]
     _INITIAL_ACCOUNTS.parent.mkdir(parents=True, exist_ok=True)
     _INITIAL_ACCOUNTS.write_text(
         yaml.safe_dump(doc, allow_unicode=True, sort_keys=False),
@@ -335,7 +430,15 @@ def cmd_list(args: argparse.Namespace) -> int:
 def cmd_answer(args: argparse.Namespace) -> int:
     loc = _resolve_locale(args.locale)
     state = _load_state()
-    _apply_answer(state, args.id, args.text, loc)
+    text = args.text or ""
+    _apply_answer(
+        state,
+        args.id,
+        text,
+        loc,
+        choice_index=args.choice,
+        use_mvp=bool(args.mvp),
+    )
     _save_state(state)
     print(f"saved answer: {args.id}")
     return 0
@@ -422,9 +525,26 @@ def main() -> int:
     p_list = sub.add_parser("list", help="List interview questions")
     p_list.add_argument("--phase", default=None)
 
-    p_ans = sub.add_parser("answer", help="Save one answer")
+    p_ans = sub.add_parser("answer", help="Save one answer (skill interprets user intent)")
     p_ans.add_argument("id")
-    p_ans.add_argument("text")
+    p_ans.add_argument(
+        "text",
+        nargs="?",
+        default="",
+        help="Exact value to store (or exact catalog choice label)",
+    )
+    p_ans.add_argument(
+        "--choice",
+        type=int,
+        default=None,
+        metavar="N",
+        help="0-based index into catalog choices (preferred for kind=choice)",
+    )
+    p_ans.add_argument(
+        "--mvp",
+        action="store_true",
+        help="finance_categories only: fill from categories_mvp.*.example",
+    )
 
     p_json = sub.add_parser("apply-json", help="Apply answers from JSON file")
     p_json.add_argument("file")

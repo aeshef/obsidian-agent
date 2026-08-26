@@ -49,8 +49,8 @@ questions:
     phase: intro
     modules: [finance]
     kind: comma_list
-    prompt_en: "Top expense categories you care about (comma-separated). Defaults exist — skip to keep MVP list."
-    prompt_ru: "Важные категории расходов через запятую. Можно пропустить — останется MVP-список."
+    prompt_en: "Top expense categories (comma-separated). Or say you want the built-in MVP list — the setup skill will apply --mvp."
+    prompt_ru: "Важные категории расходов через запятую. Или скажите, что нужен встроенный MVP — скилл /setup применит --mvp."
     slot_keys: [USER_CATEGORIES]
 
   planning_task_examples:

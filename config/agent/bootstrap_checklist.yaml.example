@@ -11,10 +11,23 @@ phases:
     required: true
     check: "test -f unified_bot/main.py && test -f scripts/setup.sh"
 
+  - id: playbook
+    title: Choose playbook (planning|finance|knowledge|full) + locale
+    required: true
+    notes: >
+      AskQuestion in /setup, or ./scripts/onboarding_wizard.sh --playbook …
+      full = all modules, connectors OFF until asked.
+
+  - id: capabilities
+    title: Write capabilities profile (or FULL_INSTALL)
+    required: true
+    command: "./scripts/oa-python.sh scripts/apply_capabilities_profile.py --preset <name> --write --patch-env"
+
   - id: setup_sh
-    title: Create venvs
+    title: Create scoped venvs + gated configs
     required: true
     command: "./scripts/setup.sh"
+    notes: After capabilities.yaml so only enabled bots/configs are created.
 
   - id: env_file
     title: Materialize .env
@@ -24,20 +37,19 @@ phases:
   - id: locale
     title: Set AGENT_LOCALE (default en)
     required: true
-    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set-locale en"
-
-  - id: capabilities
-    title: Write capabilities profile (or FULL_INSTALL)
-    required: true
-    notes: >
-      Clones: apply_capabilities_profile.py --write for chosen modules.
-      Author: OBSIDIAN_AGENT_FULL_INSTALL=1 and omit capabilities.yaml.
-      Missing YAML without FULL_INSTALL = OSS starter (not full product).
+    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set-locale en --refresh-vault-paths"
 
   - id: vault_paths
     title: Materialize vault_paths for locale
     required: true
     command: "./scripts/oa-python.sh scripts/setup/materialize_locale.py"
+
+  - id: interview_intro
+    title: Personal interview (skill interprets; CLI records)
+    required: true
+    notes: >
+      onboarding_interview.py next / answer --choice N / answer --mvp
+      No fuzzy skip NLP in CLI.
 
   - id: vault_layout
     title: init_vault_layout (after capabilities + vault_paths)
@@ -45,18 +57,23 @@ phases:
     command: "./scripts/oa-python.sh scripts/init_vault_layout.py"
 
   - id: secrets
-    title: TELEGRAM + LLM keys via env_tools
+    title: TELEGRAM + LLM keys via env_tools (wizard TTY or /setup)
     required: true
 
   - id: smoke
-    title: onboarding_smoke golden path
+    title: onboarding_smoke golden path for enabled modules
     required: true
-    command: "./scripts/oa-python.sh scripts/onboarding_smoke.py --golden-planning"
+    command: "./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --golden-*"
+
+  - id: status
+    title: onboarding_status
+    required: true
+    command: "./scripts/oa-python.sh scripts/onboarding_status.py"
 
   - id: run
-    title: Start unified_bot
+    title: Start unified_bot + confirm-bot + finalize deploy
     required: true
-    command: "PYTHONPATH=. python -m unified_bot.main"
+    command: "./scripts/run_unified_bot.sh"
 
 docker:
   role: runtime_after_bootstrap

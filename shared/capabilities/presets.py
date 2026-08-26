@@ -61,7 +61,12 @@ def _doc(
 
 
 PRESET_DOCUMENTS: dict[str, dict[str, Any]] = {
-    PRESET_FULL: _default_document(),
+    # OSS "full": all modules on, connectors off until AskQuestion / --connectors
+    PRESET_FULL: _doc(
+        modules={MODULE_FINANCE: True, MODULE_PLANNING: True, MODULE_KNOWLEDGE: True},
+        connectors=_ALL_OFF_CONNECTORS.copy(),
+        sync_profile=SYNC_PROFILE_FULL,
+    ),
     PRESET_CUSTOM: _doc(
         modules={MODULE_FINANCE: False, MODULE_PLANNING: False, MODULE_KNOWLEDGE: False},
         connectors=_ALL_OFF_CONNECTORS.copy(),

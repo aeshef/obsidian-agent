@@ -23,11 +23,11 @@ _CORE_HINTS = (
 )
 
 _MODULE_ENV_HINTS: dict[str, tuple[str, ...]] = {
-    "finance": (),
-    "planning": ("TELEGRAM_PLANNING_BOT_TOKEN=",),
+    "finance": ("TELEGRAM_USER_ID=",),
+    "planning": (),
     "knowledge": (
-        "TELEGRAM_KNOWLEDGE_BOT_TOKEN=",
         "TELEGRAM_USER_ID=",
+        "OPENROUTER_API_KEY=",
     ),
 }
 

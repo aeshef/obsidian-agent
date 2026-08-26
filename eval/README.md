@@ -2,13 +2,14 @@
 
 - **Agent harness (offline goldens):** [`eval/harness/`](harness/) — routing, category
   match, conversation contract. Run: `PYTHONPATH=. python -m eval.harness`
-- **Retrieval:** gold `eval/gold/v0.yaml`; production dense vs catalog below.
+- **Retrieval:** public gold [`eval/gold/public_v0.yaml`](gold/public_v0.yaml)
+  (see [`eval/gold/README.md`](gold/README.md)); private labeled sets stay local/gitignored.
 
 # Retrieval eval
 
 ```bash
 PYTHONPATH=. python eval/run_baselines.py \
-  --gold eval/gold/v0.yaml --retrievers dense,catalog
+  --gold eval/gold/public_v0.yaml --retrievers dense,catalog
 ```
 
 Dense uses the same OpenRouter cache as prod (`knowledge_bot/data/dense_index.npz`).

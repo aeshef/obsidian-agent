@@ -166,19 +166,28 @@ python3 scripts/onboarding_interview.py next
 # → {"id": "user_about", "prompt": "...", "kind": "text"}
 ```
 
-Ask the user the `prompt` in chat (use **AskQuestion** when `kind` is `choice`). Save:
+Ask the user the `prompt` in chat (use **AskQuestion** when `kind` is `choice`).  
+**You (the skill) interpret the reply** — the CLI does not fuzzy-match “skip/defaults/да”.
 
 ```bash
-python3 scripts/onboarding_interview.py answer user_about '...'
+# text / comma_list — pass the final value you decided
+./scripts/oa-python.sh scripts/onboarding_interview.py answer user_about '...'
+./scripts/oa-python.sh scripts/onboarding_interview.py answer finance_categories 'Food, Transport, Housing'
+./scripts/oa-python.sh scripts/onboarding_interview.py answer finance_categories --mvp   # if user wants MVP list
+
+# choice — always --choice N (0-based) from AskQuestion options
+./scripts/oa-python.sh scripts/onboarding_interview.py answer user_tone --choice 0
+./scripts/oa-python.sh scripts/onboarding_interview.py answer finance_currency --choice 0
+./scripts/oa-python.sh scripts/onboarding_interview.py answer deploy_target --choice 0
 ```
 
 | id | What you collect |
 |----|------------------|
 | `user_about` | 2–4 sentences → `user_profile.md` + slots |
-| `user_tone` | How bot should talk |
-| `finance_currency` | RUB / USD / EUR (finance) |
+| `user_tone` | AskQuestion → `--choice N` |
+| `finance_currency` | AskQuestion → `--choice N` |
 | `finance_accounts` | Card/wallet names (finance) |
-| `finance_categories` | Expense categories or “defaults OK” |
+| `finance_categories` | Explicit list **or** `--mvp` (you decide if user wants defaults) |
 | `planning_task_examples` | Sample tasks (planning) |
 | `planning_goals` | Goals (planning) |
 | `knowledge_folders` | Note folders (knowledge) |

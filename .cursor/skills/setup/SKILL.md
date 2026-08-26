@@ -37,14 +37,19 @@ Read and **follow in order** (execute shell steps; do not paraphrase the doc):
 
 1. `cd "$AGENT_ROOT"` && `./scripts/setup.sh` (creates venvs — **required**; system `python3` has no PyYAML)
 2. Use **`./scripts/oa-python.sh`** for all Python during onboarding (not bare `python3`)
-3. **AskQuestion:** playbook (planning / finance / full) + locale (en / ru)
+3. **AskQuestion:** playbook (planning / finance / knowledge / full) + locale (en / ru)
 4. Ask for **VAULT_PATH** before `init_vault_layout.py`
+5. Status anytime: `./scripts/oa-python.sh scripts/onboarding_status.py`
 
 ## Interview CLI
 
+Dumb recorder — **you** interpret the user; pass structured flags:
+
 ```bash
 ./scripts/oa-python.sh scripts/onboarding_interview.py next
-./scripts/oa-python.sh scripts/onboarding_interview.py answer QUESTION_ID 'user reply'
+./scripts/oa-python.sh scripts/onboarding_interview.py answer QUESTION_ID 'exact value'
+./scripts/oa-python.sh scripts/onboarding_interview.py answer user_tone --choice 0
+./scripts/oa-python.sh scripts/onboarding_interview.py answer finance_categories --mvp
 ./scripts/oa-python.sh scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'
 ./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek
 ./scripts/oa-python.sh finance_bot/scripts/apply_initial_accounts.py

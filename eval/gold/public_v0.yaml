@@ -1,0 +1,160 @@
+version: 0
+# Public known-item retrieval gold (OSS). Synthetic, PII-free English queries
+# against a generic English vault layout (see config/vault_paths.en.yaml.example).
+# Private labeled sets (v0.yaml, frozen_eval_v0.yaml, teacher_v0.yaml) stay local.
+queries:
+- id: mtg-standup-notes
+  bucket: meeting
+  status: seed
+  query: Where are the notes from last week's standup?
+  relevant_paths:
+  - 300_Dashboards/📅 Meetings_and_week_focus.md
+  - 700_Database/Meetings/Weekly_standup.md
+
+- id: mtg-project-kickoff
+  bucket: meeting
+  status: seed
+  query: What did we decide in the project kickoff meeting?
+  relevant_paths:
+  - 700_Database/Meetings/Project_kickoff.md
+
+- id: mtg-one-on-one
+  bucket: meeting
+  status: seed
+  query: Find my one-on-one meeting notes from this month
+  relevant_paths:
+  - 700_Database/Meetings/One_on_one_notes.md
+
+- id: task-board-open
+  bucket: task
+  status: seed
+  query: What open tasks are on the kanban board?
+  relevant_paths:
+  - 100_Tasks/📋 Task_Board.md
+
+- id: task-deadline-week
+  bucket: task
+  status: seed
+  query: Which tasks have deadlines this week?
+  relevant_paths:
+  - 100_Tasks/📋 Task_Board.md
+  - 300_Dashboards/Charts/Planning/Deadlines_horizon.md
+
+- id: task-closed-archive
+  bucket: task
+  status: seed
+  query: Where is the archive of closed tasks?
+  relevant_paths:
+  - 100_Tasks/📦 Closed_Tasks.md
+
+- id: receipt-software-sub
+  bucket: receipt
+  status: seed
+  query: Find the receipt for the annual software subscription
+  relevant_paths:
+  - 700_Database/Finance/Receipts/Software_subscription_annual.md
+
+- id: receipt-office-supplies
+  bucket: receipt
+  status: seed
+  query: How much did office supplies cost last month?
+  relevant_paths:
+  - 700_Database/Finance/Receipts/Office_supplies.md
+  - 300_Dashboards/📊 Finance_Dashboard.md
+
+- id: receipt-travel-expense
+  bucket: receipt
+  status: seed
+  query: Locate the travel expense receipt from the conference trip
+  relevant_paths:
+  - 700_Database/Finance/Receipts/Conference_travel.md
+
+- id: article-spaced-repetition
+  bucket: article
+  status: seed
+  query: What article did I save about spaced repetition?
+  relevant_paths:
+  - 700_Database/Articles/Spaced_repetition_overview.md
+
+- id: article-api-design
+  bucket: article
+  status: seed
+  query: Find my notes on API design best practices
+  relevant_paths:
+  - 700_Database/Articles/API_design_practices.md
+
+- id: article-markdown-workflows
+  bucket: article
+  status: seed
+  query: Which article covers markdown-based PKM workflows?
+  relevant_paths:
+  - 700_Database/Articles/Markdown_PKM_workflows.md
+
+- id: how-tag-notes
+  bucket: how-to
+  status: seed
+  query: How do I tag new notes in this vault?
+  relevant_paths:
+  - 700_Database/How_To/Tagging_notes.md
+  - 800_Automation/Agent/README.md
+
+- id: how-weekly-review
+  bucket: how-to
+  status: seed
+  query: How do I run a weekly review?
+  relevant_paths:
+  - 700_Database/How_To/Weekly_review.md
+  - 200_Goals/Reflection/Reflection_template.md
+
+- id: how-add-expense
+  bucket: how-to
+  status: seed
+  query: How do I log an expense from a chat message?
+  relevant_paths:
+  - 700_Database/How_To/Log_expense_from_chat.md
+
+- id: how-link-goals-tasks
+  bucket: how-to
+  status: seed
+  query: How are goals linked to tasks on the board?
+  relevant_paths:
+  - 700_Database/How_To/Goals_task_mapping.md
+  - 300_Dashboards/🔗 Goals_Task_Mapping_Review.md
+
+- id: overview-dashboards
+  bucket: overview
+  status: seed
+  query: What dashboards are available in the vault?
+  relevant_paths:
+  - 300_Dashboards/🎯 Main_Dashboard.md
+  - 300_Dashboards/📊 Finance_Dashboard.md
+  - 300_Dashboards/🛠 System.md
+
+- id: overview-routines
+  bucket: overview
+  status: seed
+  query: Where are daily routines tracked?
+  relevant_paths:
+  - 400_Routines/📅 Routines/📋 Tasks_Config.md
+  - 400_Routines/📊 Routines_History.md
+
+- id: overview-knowledge-hubs
+  bucket: overview
+  status: seed
+  query: What are the knowledge hub pages in the vault?
+  relevant_paths:
+  - 700_Database/_Hubs/Index.md
+  - 700_Database/_Hubs/Articles.md
+
+- id: lexical-finance-dashboard
+  bucket: lexical
+  status: seed
+  query: Open Finance_Dashboard
+  relevant_paths:
+  - 300_Dashboards/📊 Finance_Dashboard.md
+
+- id: refuse-web-only
+  bucket: refuse
+  status: seed
+  query: What is the current weather outside right now?
+  relevant_paths: []

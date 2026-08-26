@@ -243,3 +243,8 @@ eval/results.png
 eval/__pycache__/
 eval/runs/
 eval/data/
+
+# Private retrieval gold (personal queries / vault paths); OSS uses public_*.yaml
+eval/gold/*.yaml
+!eval/gold/public_*.yaml
+

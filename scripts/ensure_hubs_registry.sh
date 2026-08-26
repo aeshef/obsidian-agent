@@ -27,7 +27,9 @@ if not path.is_file():
 data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 hubs = data.get("hubs") or []
 kd = knowledge_subdir()
-target = f"{kd}/_Хабы"
+from shared.vault_paths_config import vault_rel_path
+hubs_name = vault_rel_path("knowledge_hubs")
+target = f"{kd}/{hubs_name}"
 changed = 0
 for hub in hubs:
     if not isinstance(hub, dict):
