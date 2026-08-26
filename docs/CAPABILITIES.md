@@ -116,7 +116,7 @@ Dynamic supplement is **off by default** (`AGENT_PROMPT_DYNAMIC_SUPPLEMENT=0` in
 
 ## Runtime YAML (UI / domain strings)
 
-`messages.{en,ru}.yaml` and `domain_messages.{en,ru}.yaml` use `load_runtime_config` (see [LOCALE.md](LOCALE.md)). Default `AGENT_LOCALE=en`. English domain strings merge over Russian until the EN catalog is fully translated.
+`messages.{en,ru}.yaml` use `load_runtime_config` (local file only; see [LOCALE.md](LOCALE.md)). `domain_messages.ru` overlays the git `.example` so new catalog keys still resolve on a stale prod snapshot. Default `AGENT_LOCALE=en`. English domain strings merge over Russian until the EN catalog is fully translated.
 
 ### UI string gates (`config/ui_capabilities.yaml`)
 

@@ -35,7 +35,7 @@ Add new **tool** keys to both domain catalogs (or run `scripts/setup/translate_d
 | API | Locale |
 |-----|--------|
 | `msg()` / `msgf()` | `messages.en` or `messages.ru` |
-| `dmsg()` | `domain_messages.en` merged over `domain_messages.ru` when `AGENT_LOCALE=en` |
+| `dmsg()` | RU: gitignored `domain_messages.ru.yaml` overlays `.ru.example` (local wins, missing keys fill from example). EN: `domain_messages.en` merged over that RU catalog |
 
 Default `AGENT_LOCALE` is **`en`** (`shared/locale.py`).
 

@@ -16,19 +16,24 @@ def _domain_for_stem(stem: str) -> dict:
     return load_runtime_config(str(_REPO_CONFIG), stem)
 
 
-def _ru_domain() -> dict:
-    """RU catalog: domain_messages.ru.yaml → legacy domain_messages.yaml → .ru.example.
+def _overlay_yaml(merged: dict, path: Path) -> dict:
+    if not path.is_file():
+        return merged
+    over = load_yaml(path)
+    return deep_merge(merged, over) if over else merged
 
-    Author prod uses gitignored domain_messages.yaml; do not prefer .example over it.
+
+def _ru_domain() -> dict:
+    """RU catalog: .ru.example as base, then legacy yaml, then gitignored .ru.yaml.
+
+    Local files still win on overlapping keys (personal overrides). Missing keys
+    fill from the git example so a stale prod snapshot cannot blank new copy
+    (e.g. goals mapping review headings).
     """
     base = _REPO_CONFIG
-    local_ru = base / "domain_messages.ru.yaml"
-    if local_ru.is_file():
-        return load_yaml(local_ru)
-    legacy = base / "domain_messages.yaml"
-    if legacy.is_file():
-        return load_yaml(legacy)
-    return _domain_for_stem("domain_messages.ru")
+    merged = load_yaml(base / "domain_messages.ru.yaml.example", default={})
+    merged = _overlay_yaml(merged, base / "domain_messages.yaml")
+    return _overlay_yaml(merged, base / "domain_messages.ru.yaml")
 
 
 @lru_cache(maxsize=2)
