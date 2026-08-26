@@ -26,6 +26,8 @@ class APITimeoutError(Exception):
 
 
 class DeepSeekClient(PlanningLLMDomainMixin):
+    """Legacy name — prefer ``PlanningLLMClient`` / ``shared.llm.LLMClient`` in new code."""
+
     def __init__(self):
         if not DEEPSEEK_API_TOKEN:
             raise ValueError("DEEPSEEK_API_TOKEN is not set")
@@ -59,3 +61,7 @@ class DeepSeekClient(PlanningLLMDomainMixin):
             )
         except requests.exceptions.Timeout as e:
             raise APITimeoutError(str(e)) from e
+
+
+# Prefer this name in new planning code; DeepSeekClient kept for imports.
+PlanningLLMClient = DeepSeekClient

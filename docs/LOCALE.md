@@ -19,9 +19,8 @@ python3 scripts/setup/env_tools.py set-locale ru
 |------|------|
 | `config/messages.en.yaml.example` | **Canonical** Telegram UI keys (English) |
 | `config/messages.ru.yaml.example` | Russian UI (same keys, pytest parity) |
-| `config/domain_messages/{en,ru}/*.yaml.example` | Per-domain packages (source of truth); monolith regenerated via `scripts/rebuild_domain_messages.py` |
-| `config/domain_messages.en.yaml.example` | Generated English catalog (compat) |
-| `config/domain_messages.ru.yaml.example` | Generated Russian catalog (compat) |
+| `config/domain_messages/{en,ru}/*.yaml.example` | Per-domain packages (**source of truth**) |
+| `config/domain_messages.{en,ru}.yaml.example` | Optional local rebuild via `scripts/rebuild_domain_messages.py` (gitignored) |
 | `config/vault_paths.en.yaml.example` | English vault folder/file names (default) |
 | `config/vault_paths.ru.yaml.example` | Russian vault paths |
 | `finance_bot/config/categories_mvp.{en,ru}.yaml.example` | Expense categories by locale |
@@ -36,7 +35,7 @@ Add new **tool** keys to both domain catalogs (or run `scripts/setup/translate_d
 | API | Locale |
 |-----|--------|
 | `msg()` / `msgf()` | `messages.en` or `messages.ru` |
-| `dmsg()` | RU: gitignored `domain_messages.ru.yaml` overlays `.ru.example` (local wins, missing keys fill from example). EN: `domain_messages.en` merged over that RU catalog |
+| `dmsg()` | Packages under `config/domain_messages/{locale}/`; optional gitignored overlays `domain_messages.{en,ru}.yaml` |
 
 Default `AGENT_LOCALE` is **`en`** (`shared/locale.py`).
 

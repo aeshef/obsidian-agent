@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Rebuild config/domain_messages.{en,ru}.yaml.example from per-domain packages."""
+"""Optionally rebuild local monolith catalogs from packages (not committed).
+
+Source of truth: config/domain_messages/{en,ru}/*.yaml.example
+Output (gitignored): config/domain_messages.{en,ru}.yaml.example
+
+  python3 scripts/rebuild_domain_messages.py
+"""
 from __future__ import annotations
 
 import sys
@@ -25,7 +31,7 @@ def rebuild(locale: str) -> Path:
     out = _ROOT / "config" / f"domain_messages.{locale}.yaml.example"
     header = (
         f"# AUTO-GENERATED from config/domain_messages/{locale}/*.yaml.example — do not edit by hand.\n"
-        f"# Edit packages, then: python3 scripts/rebuild_domain_messages.py\n\n"
+        f"# Local-only (gitignored). Edit packages, then: python3 scripts/rebuild_domain_messages.py\n\n"
     )
     body = yaml.safe_dump(merged, allow_unicode=True, sort_keys=False, width=120)
     out.write_text(header + body, encoding="utf-8")
@@ -35,7 +41,7 @@ def rebuild(locale: str) -> Path:
 def main() -> int:
     for loc in ("en", "ru"):
         path = rebuild(loc)
-        print(f"wrote {path.relative_to(_ROOT)}")
+        print(f"wrote {path.relative_to(_ROOT)} (gitignored local cache)")
     return 0
 
 

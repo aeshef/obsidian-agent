@@ -82,15 +82,15 @@ def _knowledge_subdir_for_tests(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _domain_messages_merge_example(monkeypatch):
-    """Tests see domain_messages en+ru examples merged under local overrides."""
+    """Tests see domain_messages en+ru packages merged under local overrides."""
     from functools import lru_cache
 
     from shared import domain_messages as dm
     from shared.yaml_config import deep_merge, load_yaml
 
     cfg = ROOT / "config"
-    ru = load_yaml(cfg / "domain_messages.ru.yaml.example", default={})
-    en = load_yaml(cfg / "domain_messages.en.yaml.example", default={})
+    ru = dm.load_domain_packages("ru")
+    en = dm.load_domain_packages("en")
     merged = deep_merge(ru, en)
     local_path = cfg / "domain_messages.en.yaml"
     if not local_path.is_file():

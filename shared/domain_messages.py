@@ -1,7 +1,8 @@
 """Non-UI domain strings — config/domain_messages/{locale}/*.yaml.example packages.
 
-Legacy monolith ``domain_messages.{locale}.yaml.example`` remains as a fallback
-when packages are absent (older checkouts). Packages win when present.
+Optional local overlays: gitignored ``domain_messages.{locale}.yaml``.
+Legacy monolith ``domain_messages.{locale}.yaml.example`` is no longer shipped;
+``_load_monolith`` remains only for older checkouts that still have those files.
 """
 from __future__ import annotations
 
@@ -21,6 +22,11 @@ def _overlay_yaml(merged: dict, path: Path) -> dict:
         return merged
     over = load_yaml(path)
     return deep_merge(merged, over) if over else merged
+
+
+def load_domain_packages(locale: str) -> dict:
+    """Merge per-domain packages under config/domain_messages/{locale}/ (public helper)."""
+    return _load_packages(locale)
 
 
 def _load_packages(locale: str) -> dict:

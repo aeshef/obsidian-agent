@@ -78,7 +78,7 @@ CI: `.github/workflows/ci.yml` (Python 3.10–3.12, `AGENT_LOCALE` en + ru).
 |------|--------|
 | New `menu_actions` row + handler | `config/ui_capabilities.yaml.example`, `{bot}/menu_action_handlers.py` |
 | New connector flag (fail-closed) | `shared/capabilities/profile.py` + preset + CAPABILITIES.md |
-| EN/RU string parity | `config/domain_messages/{locale}/*.yaml.example` + rebuild script |
+| EN/RU string parity | `config/domain_messages/{locale}/*.yaml.example` |
 | Shrink a god script further | `finance_bot/scripts/build_finance_dashboard.py` helpers under `bot/services/dashboard/` |
 
 Open a [capability request](.github/ISSUE_TEMPLATE/capability_request.md) or [locale](.github/ISSUE_TEMPLATE/locale.md) issue if unsure.

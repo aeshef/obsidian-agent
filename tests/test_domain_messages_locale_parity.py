@@ -1,4 +1,4 @@
-"""domain_messages.en.yaml.example must mirror RU keys (values may lag translation)."""
+"""domain_messages packages: EN/RU key parity (packages are source of truth)."""
 from __future__ import annotations
 
 import re
@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 import yaml
+
+from shared.domain_messages import load_domain_packages
 
 ROOT = Path(__file__).resolve().parents[1]
 CYR = re.compile(r"[а-яА-ЯёЁ]")
@@ -21,28 +23,10 @@ def _flatten(d: object, prefix: tuple[str, ...] = ()) -> dict[tuple[str, ...], s
     return out
 
 
-def test_domain_packages_match_monolith_and_parity() -> None:
-    """Packages are source of truth; monolith is generated; EN/RU key parity."""
-    order = ("shared", "finance", "planning", "knowledge")
-
-    def load_packages(locale: str) -> dict:
-        merged: dict = {}
-        for name in order:
-            path = ROOT / "config" / "domain_messages" / locale / f"{name}.yaml.example"
-            assert path.is_file(), path
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-            merged.update(data)
-        return merged
-
-    for loc in ("en", "ru"):
-        pkgs = load_packages(loc)
-        mono = yaml.safe_load(
-            (ROOT / f"config/domain_messages.{loc}.yaml.example").read_text(encoding="utf-8")
-        )
-        assert set(pkgs) == set(mono), f"{loc} package/monolith top-key drift"
-
-    ru = load_packages("ru")
-    en = load_packages("en")
+def test_domain_packages_en_ru_key_parity() -> None:
+    ru = load_domain_packages("ru")
+    en = load_domain_packages("en")
+    assert ru and en
     fr, fe = set(_flatten(ru)), set(_flatten(en))
     missing = sorted(fr - fe)
     extra = sorted(fe - fr)
@@ -50,9 +34,8 @@ def test_domain_packages_match_monolith_and_parity() -> None:
     assert not extra, "EN packages extra keys:\n" + "\n".join(".".join(k) for k in extra[:30])
 
 
-def test_domain_en_values_no_cyrillic() -> None:
-    """When EN catalog is translated, this guards OSS English."""
-    en = yaml.safe_load((ROOT / "config/domain_messages.en.yaml.example").read_text(encoding="utf-8"))
+def test_domain_en_package_values_no_cyrillic() -> None:
+    en = load_domain_packages("en")
     bad = [p for p, v in _flatten(en).items() if CYR.search(v)]
     if len(bad) > 100:
         pytest.skip(
@@ -60,6 +43,18 @@ def test_domain_en_values_no_cyrillic() -> None:
             "scripts/setup/translate_domain_messages.py (maintainer)"
         )
     assert not bad, (
-        "Cyrillic in domain_messages.en.yaml.example:\n"
+        "Cyrillic in domain_messages/en packages:\n"
         + "\n".join(".".join(p) for p in bad[:20])
     )
+
+
+def test_optional_monolith_matches_packages_if_present() -> None:
+    """If someone ran rebuild_domain_messages locally, keep them in sync."""
+    order = ("shared", "finance", "planning", "knowledge")
+    for loc in ("en", "ru"):
+        mono_path = ROOT / f"config/domain_messages.{loc}.yaml.example"
+        if not mono_path.is_file():
+            continue
+        pkgs = load_domain_packages(loc)
+        mono = yaml.safe_load(mono_path.read_text(encoding="utf-8")) or {}
+        assert set(pkgs) == set(mono), f"{loc} package/monolith top-key drift"

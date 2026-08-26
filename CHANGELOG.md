@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Removed
+- Tracked monolith `domain_messages.{en,ru}.yaml.example` (~11k lines); packages under `config/domain_messages/{locale}/` are SoT
+- Orphan scripts `prepare_routines_deploy.sh`, `watch_add_ids_launchagent.sh`; one-shot `migrate_taxonomy_ascii.py`
+- `docs/OSS_AUDIT.md` / `docs/LAUNCH_POST.md` from public tree (local copies under gitignored `docs/_maintainer/`)
+
 ### Added
 - `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` (DeepSeek env names remain aliases)
 - Portable health snapshot spec + samples (`docs/connectors/health/`)
@@ -21,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Vision uses `OPENROUTER_BASE_URL` / `VISION_BASE_URL` (no hardcoded host)
 - README / onboarding: Mac optional; LLM provider-agnostic
+- Domain message tests load packages directly (no monolith dependency)
 
 ## [0.1.0] - 2026-08-26
 
