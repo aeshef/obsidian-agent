@@ -20,7 +20,6 @@ I got tired of AI chats that forget and vaults that stay stale when I’m away f
 - EN + RU catalogs; Docker is runtime after bootstrap (not a fake one-click OS)
 
 Repo: https://github.com/aeshef/obsidian-agent  
-Demo storyboard: https://github.com/aeshef/obsidian-agent/blob/main/assets/demo/storyboard.svg  
 Public retrieval gold: `eval/gold/public_v0.yaml`
 
 Happy to take issues on onboarding friction — `/setup` in Cursor or `./scripts/onboarding_wizard.sh`.

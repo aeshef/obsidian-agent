@@ -43,7 +43,7 @@ def build_capabilities_document(
     *,
     modules: Optional[Mapping[str, bool]] = None,
     connectors: Optional[Mapping[str, bool]] = None,
-    yandex_corporate_badge: Optional[bool] = None,
+    corporate_badge: Optional[bool] = None,
     broker_sync: Optional[bool] = None,
     apple_health: Optional[bool] = None,
     gmail_health: Optional[bool] = None,
@@ -68,7 +68,7 @@ def build_capabilities_document(
     if connectors:
         connector_updates.update({k: bool(v) for k, v in connectors.items()})
     for key, val in (
-        (CONNECTOR_CORPORATE_BADGE, yandex_corporate_badge),
+        (CONNECTOR_CORPORATE_BADGE, corporate_badge),
         (CONNECTOR_BROKER_SYNC, broker_sync),
         (CONNECTOR_MANUAL_BROKER, manual_broker),
         (CONNECTOR_APPLE_HEALTH, apple_health),

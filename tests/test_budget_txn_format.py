@@ -20,7 +20,7 @@ def _income(date: str, amount: float, category: str, description: str) -> dict:
 
 def test_summary_has_income_category_totals():
     rows = [
-        _income("2026-07-10", 50000, "Зарплата", "ИТМО июль"),
+        _income("2026-07-10", 50000, "Зарплата", "Employer July"),
         _income("2026-07-15", 20000, "Прочее", "фриланс"),
         {
             "type": "expense",
@@ -33,25 +33,25 @@ def test_summary_has_income_category_totals():
     out = format_txn_summary(rows, label="Jul")
     assert "Зарплата" in out
     assert "50 000" in out
-    assert "ИТМО июль" not in out
+    assert "Employer July" not in out
 
 
 def test_query_filter_matches_description():
     rows = [
-        _income("2026-07-10", 50000, "Зарплата", "ИТМО июль"),
+        _income("2026-07-10", 50000, "Зарплата", "Employer July"),
         _income("2026-07-15", 20000, "Прочее", "другой источник"),
     ]
-    matched = filter_rows_by_query(rows, "итмо")
+    matched = filter_rows_by_query(rows, "employer")
     assert len(matched) == 1
-    assert matched[0]["description"] == "ИТМО июль"
-    out = format_txn_matches(matched, label="Jul", query="итмо")
-    assert "ИТМО июль" in out
+    assert matched[0]["description"] == "Employer July"
+    out = format_txn_matches(matched, label="Jul", query="employer")
+    assert "Employer July" in out
     assert "50 000" in out or "50000" in out
 
 
 def test_query_no_match():
     rows = [_income("2026-07-10", 100, "Прочее", "foo")]
-    assert filter_rows_by_query(rows, "итмо") == []
+    assert filter_rows_by_query(rows, "employer") == []
 
 
 def test_query_matches_uses_requested_range_not_first_row():

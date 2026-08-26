@@ -653,7 +653,7 @@ planning:
     add_task_hint: '💬 Just write a task, and I''ll add it!
 
 
-      For example: ''Buy milk'' or ''Prepare for Yandex interview''
+      For example: ''Buy milk'' or ''Prepare for a job interview''
 
       '
     analyzing_task: 🤔 Analyzing the task...

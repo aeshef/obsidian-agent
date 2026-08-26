@@ -71,7 +71,6 @@ def main() -> int:
         action="store_true",
         help="Copy finance_bot/config/badge.yaml.example → badge.yaml if missing",
     )
-    parser.add_argument("--yandex-badge", action="store_true", dest="corporate_badge")
     parser.add_argument("--broker", action="store_true", dest="broker_sync")
     parser.add_argument("--gmail-health", action="store_true", dest="gmail_health_pipeline")
     parser.add_argument("--smoke", action="store_true", help="Run scripts/onboarding_smoke.py after write")
@@ -98,7 +97,6 @@ def main() -> int:
         connectors=connectors or None,
         sync_profile=args.sync_profile,
         only_modules=args.only_modules,
-        yandex_corporate_badge=True if args.corporate_badge else None,
         broker_sync=True if args.broker_sync else None,
         manual_broker=True if getattr(args, "manual_broker_accounts", False) else None,
         apple_health=True if args.apple_health else None,

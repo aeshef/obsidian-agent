@@ -166,9 +166,22 @@ def sync_step_enabled(step: str, profile: Optional[CapabilityProfile] = None) ->
 
 def export_shell_env(profile: Optional[CapabilityProfile] = None) -> str:
     """Emit export CAP_SYNC_* and CAP_MODULE_* for obsidian_sync.sh eval."""
+    from shlex import quote
+
+    allowed = frozenset(
+        {
+            SYNC_PROFILE_FULL,
+            SYNC_PROFILE_FINANCE_ONLY,
+            SYNC_PROFILE_PLANNING_LIGHT,
+            SYNC_PROFILE_PLANNING_KANBAN,
+            SYNC_PROFILE_KNOWLEDGE_ONLY,
+            SYNC_PROFILE_MINIMAL,
+        }
+    )
     prof = profile or get_capabilities()
+    sync_profile = prof.sync_profile if prof.sync_profile in allowed else SYNC_PROFILE_FULL
     lines = [
-        f'export CAPABILITIES_SYNC_PROFILE="{prof.sync_profile}"',
+        f"export CAPABILITIES_SYNC_PROFILE={quote(sync_profile)}",
     ]
     for mod in _ALL_MODULES:
         env_name = _ENV_MODULE[mod]

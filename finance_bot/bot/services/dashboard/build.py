@@ -1020,7 +1020,10 @@ def run_build(args: argparse.Namespace) -> None:
         a
         for a in accounts
         if abs(float(balances_now.get(a["id"], 0) or 0)) >= 1.0
-        or str(a.get("name") or "").startswith("Yandex Badge")
+        or (
+            _badge_acc_name
+            and str(a.get("name") or "") == _badge_acc_name
+        )
     ]
     visible_accounts = sorted(visible_accounts, key=_bal_sort_key)
     hidden_n = len(accounts) - len(visible_accounts)

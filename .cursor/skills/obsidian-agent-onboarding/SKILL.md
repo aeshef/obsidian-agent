@@ -364,7 +364,7 @@ One **AskQuestion** cluster at a time. Flags: `python3 scripts/apply_capabilitie
 
 | Connector | CLI flags | Secret / file |
 |-----------|-----------|---------------|
-| Yandex meal badge | `--corporate-badge` `--setup-badge` | `config/badge.yaml` |
+| Corporate meal badge | `--corporate-badge` `--setup-badge` | `config/badge.yaml` |
 | Broker API | `--broker-sync` | `broker_sync.yaml`, `TINKOFF_API_TOKEN` (tinkoff) |
 | Manual accounts / cards | on with finance; `--no-domestic-bank-cards` to hide | bot UI |
 | Apple Health | `--apple-health` | `health_parse.yaml`, Shortcuts |

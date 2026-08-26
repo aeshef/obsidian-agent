@@ -294,7 +294,8 @@ def _load_cache(path: Path, *, model: str) -> DenseIndex | None:
     if not path.is_file():
         return None
     try:
-        payload = np.load(path, allow_pickle=True)
+        # Never allow_pickle — cache is local but still untrusted if vault is shared.
+        payload = np.load(path, allow_pickle=False)
         cached_model = str(payload["model"][0]) if "model" in payload.files else ""
         if cached_model != model:
             log.info("dense cache model mismatch (%s != %s)", cached_model, model)
@@ -313,12 +314,15 @@ def _load_cache(path: Path, *, model: str) -> DenseIndex | None:
 def _save_cache(index: DenseIndex, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".npz.tmp")
+    # Unicode arrays — no pickle required on load
+    max_path = max((len(p) for p in index.paths), default=1)
+    max_hash = max((len(h) for h in index.hashes), default=1)
     np.savez(
         tmp,
         matrix=index.matrix,
-        paths=np.array(index.paths, dtype=object),
-        hashes=np.array(index.hashes, dtype=object),
-        model=np.array([index.model]),
+        paths=np.array(index.paths, dtype=f"U{max_path}"),
+        hashes=np.array(index.hashes, dtype=f"U{max_hash}"),
+        model=np.array([index.model], dtype=f"U{max(len(index.model), 1)}"),
     )
     tmp.replace(path)
 

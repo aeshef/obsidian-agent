@@ -219,7 +219,12 @@ def load_capabilities() -> CapabilityProfile:
         doc = _default_document()
     else:
         starter = _starter_document()
-        doc = starter if starter else _default_document()
+        # Fail closed: never silently upgrade to full product if starter file is missing.
+        doc = starter if starter else {
+            "modules": {m: False for m in _ALL_MODULES},
+            "connectors": {c: False for c in _ALL_CONNECTORS},
+            "sync": {"profile": SYNC_PROFILE_MINIMAL},
+        }
     base = profile_from_document(doc)
     modules = dict(base.modules)
     connectors = dict(base.connectors)

@@ -50,8 +50,8 @@ def test_only_modules_planning():
     assert doc["sync"]["profile"] == "planning_kanban"
 
 
-def test_builder_yandex_badge():
-    doc = build_capabilities_document(PRESET_FINANCE_ONLY, yandex_corporate_badge=True)
+def test_builder_corporate_badge():
+    doc = build_capabilities_document(PRESET_FINANCE_ONLY, corporate_badge=True)
     assert doc["connectors"][CONNECTOR_CORPORATE_BADGE] is True
 
 

@@ -1,68 +1,36 @@
-# Product capabilities manifest — copy to capabilities.yaml (gitignored).
+# Product capabilities — copy to capabilities.yaml (gitignored).
 # Missing capabilities.yaml:
-#   - OBSIDIAN_AGENT_FULL_INSTALL=1 in .env → full install
-#   - otherwise → OSS starter (knowledge off, sync.profile: planning_light)
+#   - OBSIDIAN_AGENT_FULL_INSTALL=1 in .env → full install (maintainer)
+#   - otherwise → capabilities.starter.yaml.example (OSS default)
 #
-# modules: turn off entire Telegram domains (finance / planning / knowledge).
-# connectors: optional data pipelines; off = no agent tools, no sync steps, no prompts.
-# sync.profile: coarse obsidian_sync.sh profile on Mac.
+# Prefer starting from capabilities.starter.yaml.example, then enable only
+# connectors you use (docs/CAPABILITIES.md). Omitted keys are fail-closed OFF.
 
 modules:
   finance: true
   planning: true
-  knowledge: true
+  knowledge: false
 
 connectors:
-  # Yandex corporate meal badge (also requires finance_bot/config/badge.yaml enabled)
-  corporate_badge: true
-  # Broker portfolio API sync (provider in finance_bot/config/broker_sync.yaml)
-  broker_sync: true
-  # Manual broker/custodian accounts in finance YAML (no API); balances via finance.db
-  manual_broker_accounts: true
-  # Card/wallet balances in finance dashboard (NLU expenses work without broker API)
+  # Workplace meal benefit (needs finance_bot/config/badge.yaml)
+  corporate_badge: false
+  # Broker portfolio API (finance_bot/config/broker_sync.yaml + token in .env)
+  broker_sync: false
+  # Manual broker/custodian accounts in finance YAML (no API)
+  manual_broker_accounts: false
+  # Card/wallet balances in finance dashboard
   domestic_bank_cards: true
-  # Apple Health via IPhone/*.txt snapshots
+  # Apple Health via Shortcuts / IPhone export
   apple_health: true
-  # Gmail IMAP → health shortcuts (requires GMAIL_IMAP_* in .env)
-  gmail_health_pipeline: true
-  # Calendar.txt / JSON / meeting charts
+  # Gmail IMAP health pipeline (GMAIL_IMAP_* in .env)
+  gmail_health_pipeline: false
+  # Apple Calendar export → vault
   apple_calendar: true
-  # Mac focus snapshots (Действия/Mac)
+  # Mac focus / context snapshots
   mac_context: true
-  # Daily random KB note push in Telegram
-  knowledge_serendipity: true
+  # Daily random KB note in Telegram (needs knowledge: true)
+  knowledge_serendipity: false
 
 sync:
-  # full | finance_only | planning_light | minimal
-  profile: full
-
-# Optional fine-grained flags (omit = inherit from modules/connectors above).
-# features:
-#   health_nutrition_chart: true
-#   health_body_metrics: true
-#   broker_regular: true
-#   broker_iis: false
-#   broker_invest_box: true
-#   planning_weekly_review: true
-#   planning_routines: true
-#   planning_daily_checkin: true
-#   planning_goals_alerts: true
-#   planning_deadlines_alerts: true
-#   planning_stuck_alerts: true
-#   planning_task_id_maintenance: true
-
-# --- Стартовый профиль для нового пользователя (скопируйте и раскомментируйте) ---
-# modules:
-#   finance: true
-#   planning: false
-#   knowledge: false
-# connectors:
-#   corporate_badge: false
-#   broker_sync: false
-#   apple_health: false
-#   gmail_health_pipeline: false
-#   apple_calendar: false
-#   mac_context: false
-#   knowledge_serendipity: false
-# sync:
-#   profile: finance_only
+  # full | finance_only | planning_light | planning_kanban | knowledge_only | minimal
+  profile: planning_light

@@ -20,7 +20,7 @@ If the workspace is the parent Obsidian vault, find the agent folder first:
 
 ```bash
 # Prefer generic clone names; author Cyrillic path is last resort.
-for d in "Agent" "obsidian-agent" "800_Automation/Agent" "800_Автоматизация/Agent"; do
+for d in "Agent" "obsidian-agent" "800_Automation/Agent"; do
   test -f "$d/unified_bot/main.py" && export AGENT_ROOT="$(cd "$d" && pwd)" && break
 done
 test -n "${AGENT_ROOT:-}" || { echo "Open the obsidian-agent repo root in Cursor, or clone it."; exit 1; }

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import tempfile
 from pathlib import Path
 
@@ -37,7 +38,9 @@ async def transcribe_voice_message(message: Message) -> str:
     voice = message.voice
     if not voice or not message.bot:
         return ""
-    tmp_path = Path(tempfile.mktemp(suffix=".ogg"))
+    fd, name = tempfile.mkstemp(suffix=".ogg")
+    os.close(fd)
+    tmp_path = Path(name)
     try:
         await download_voice_file(message.bot, voice.file_id, tmp_path)
         async with _get_asr_sem():

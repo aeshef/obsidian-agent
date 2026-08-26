@@ -51,7 +51,7 @@ def _seed_card(conn: sqlite3.Connection) -> int:
     cur = conn.execute(
         """
         INSERT INTO accounts (user_id, name, type, currency, is_external_balance, external_balance)
-        VALUES (1, 'Яндекс Банк', 'card', 'RUB', 0, 1000)
+        VALUES (1, 'Demo Bank', 'card', 'RUB', 0, 1000)
         """
     )
     aid = cur.lastrowid
@@ -76,10 +76,10 @@ def test_required_external_ledger_math():
         txn_net=Decimal("300"),
     ) == Decimal("1700")
     assert required_external(
-        target=Decimal("191513.45"),
+        target=Decimal("5000"),
         is_external_balance=True,
         txn_net=Decimal("999"),
-    ) == Decimal("191513.45")
+    ) == Decimal("5000")
 
 
 def test_build_and_apply_preserves_transactions(tmp_path: Path):
@@ -95,15 +95,15 @@ def test_build_and_apply_preserves_transactions(tmp_path: Path):
     ) == Decimal("1300")
 
     before = count_transactions(conn)
-    plan = build_reinit_plan(conn, [AccountTarget("Яндекс Банк", Decimal("213783"))])
+    plan = build_reinit_plan(conn, [AccountTarget("Demo Bank", Decimal("10000"))])
     assert len(plan) == 1
     assert plan[0].old_current == Decimal("1300")
-    assert plan[0].new_external == Decimal("213483")  # 213783 - 300
+    assert plan[0].new_external == Decimal("9700")  # 10000 - 300
 
     apply_reinit_plan(conn, plan, dry_run=False)
     assert count_transactions(conn) == before
     verified = verify_plan_against_db(conn, plan)
-    assert verified["Яндекс Банк"] == Decimal("213783")
+    assert verified["Demo Bank"] == Decimal("10000")
     conn.close()
 
 
@@ -126,10 +126,10 @@ def test_dry_run_does_not_write(tmp_path: Path):
     conn = sqlite3.connect(db)
     _schema(conn)
     _seed_card(conn)
-    plan = build_reinit_plan(conn, [AccountTarget("Яндекс Банк", Decimal("9999"))])
+    plan = build_reinit_plan(conn, [AccountTarget("Demo Bank", Decimal("9999"))])
     apply_reinit_plan(conn, plan, dry_run=True)
     ext = conn.execute(
-        "SELECT external_balance FROM accounts WHERE name='Яндекс Банк'"
+        "SELECT external_balance FROM accounts WHERE name='Demo Bank'"
     ).fetchone()[0]
     assert Decimal(str(ext)) == Decimal("1000")
     conn.close()
