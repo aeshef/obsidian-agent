@@ -2,6 +2,9 @@
 
 Спасибо, что улучшаете **obsidian-agent**.
 
+**Maintainers:** public-repo cadence (PR → CI → merge, issue triage) is in
+[docs/MAINTAINER.md](docs/MAINTAINER.md).
+
 ---
 
 ## Окружение
@@ -57,6 +60,9 @@ Keep author full install via local gitignored files + `OBSIDIAN_AGENT_FULL_INSTA
 ---
 
 ## Checks перед PR
+
+Open a PR against `main` (do not push straight to `main` unless you are the
+maintainer fixing a broken release and follow [MAINTAINER.md](docs/MAINTAINER.md)).
 
 ```bash
 SMOKE_INSTALL=1 ./scripts/smoke_imports.sh
