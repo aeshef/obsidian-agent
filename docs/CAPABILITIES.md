@@ -161,6 +161,12 @@ python3 scripts/onboarding_smoke.py --golden-planning
 | `broker_sync` + `broker_sync.yaml` `provider` | Portfolio sync (`csv` portable, or optional `tinkoff`) |
 | `manual_broker_accounts` | Broker overview tool without API |
 
+### Apple Calendar
+
+- **CLI flag:** `--apple-calendar`
+- **Environment keys:** none.
+- **Setup:** Create an Apple Shortcut that appends `Calendar.txt` in the vault dashboards data folder.
+
 ## Code map
 
 - `shared/capabilities/profile.py` — load YAML + env
