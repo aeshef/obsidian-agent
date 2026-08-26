@@ -114,10 +114,8 @@ def _line_visible(cap_id: str, profile: CapabilityProfile) -> bool:
     parent = _parent_module(cap_id)
     if parent and not profile.module(parent):
         return False
-    if cap_id == "broker":
-        from shared.capabilities.finance_gates import broker_sync_enabled
-
-        return broker_sync_enabled()
+    # Match <!-- @cap broker -->: connector flag only. UI/API still use
+    # finance_gates.broker_sync_enabled() (connector + provider != none).
     return capability_active(cap_id, profile)
 
 
