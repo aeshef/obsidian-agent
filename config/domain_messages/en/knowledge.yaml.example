@@ -1,0 +1,476 @@
+knowledge_write:
+  disabled: Knowledge writes disabled (set KNOWLEDGE_AGENT_WRITES=1).
+  empty_text: Append text is empty.
+  vault_missing: Vault path is not configured (set VAULT_PATH).
+  bad_path: 'Path not allowed under knowledge root: {path}'
+  missing: 'Note not found: {path}'
+  dry_run: Dry-run append {chars} chars → {path} (pass dry_run=false to write).
+  ok: Appended {chars} chars to {path}.
+knowledge_agent_tools:
+  bad_path: 'Invalid path: {rel}'
+  err_prefix_empty_index: Index is empty
+  err_prefix_empty_question: Empty question
+  err_prefix_not_found: Not found
+  media_hint: '
+
+
+    Attachments ({count}): {names}{extra} — sending to chat.'
+  note_header: '=== {title} ===
+
+    '
+  note_header_full: '=== {title} ===
+
+    Path: {rel}{media_hint}
+
+
+    {body}'
+  note_not_found: Note not found in index ({reason}). Try search_knowledge_base.
+  note_title_required: Specify note title or path.
+  path_line: 'Path: {rel}
+
+    '
+  read_failed: 'Failed to read {rel}: {error}'
+  search_empty: Knowledge base search returned no results (empty pipeline response).
+  search_error: 'Knowledge base search error: {error}'
+  search_kb_prefix: 'KB search: {text}'
+  short_body: 'Note text is too short (template or short ASR). Video/photo — separate message below.{media_hint}
+
+
+    {body}'
+  truncated: '
+
+
+    ... (truncated, full text in vault)'
+  unified_prompt: 'You are an Obsidian vault assistant. Respond in Russian, only based on tool results.
+
+
+    Specific note by title — read_knowledge_note; topic overview — search_knowledge_base.
+
+
+    If search_knowledge_base returns an overview with paths/notes — summarize it, don''t say "nothing found".
+
+
+    The string "KB search:" is a pipeline error, pass it as is.
+
+    '
+knowledge_billing:
+  alert_body: 'Looks like quota is exhausted or provider balance has run out.
+
+
+    Check your account / top up balance.
+
+    '
+  alert_detail: '<i>API response (abbr.):</i>
+
+    <pre>{detail}</pre>'
+  alert_header: '⚠️ <b>API balance or limit</b>
+
+
+    '
+  alert_service: 'Service: <b>{service}</b>
+
+    '
+knowledge_brain_query:
+  answer_generation_error: Error generating response.
+  empty_index: Index is empty — no notes found in {subdir!r}.
+  empty_model_answer: Empty model response.
+  empty_question: Empty question.
+  history_none: (none)
+  history_turn: '[{index}] Question: {question}
+
+    Answer (short): {answer}'
+  no_matching_notes: No suitable notes found.{reason_suffix}
+  notes_unreadable: Selected notes cannot be read from disk.
+  preselect_none: Preselect didn't choose any notes ({count} in index). Rephrase query or specify note title — read_knowledge_note.
+  prompt_all_notes: 'ALL NOTES (format: path|title|tags):
+
+    {catalog}'
+  prompt_candidates: 'CANDIDATES WITH DESCRIPTIONS:
+
+    {catalog}'
+  prompt_full_texts: 'FULL NOTE TEXTS:
+
+
+    '
+  prompt_history: 'DIALOG HISTORY:
+
+    {history}
+
+
+    '
+  prompt_note_count: 'Notes for response: {count}.
+
+
+    '
+  prompt_question: 'QUESTION:
+
+    {question}
+
+
+    '
+  select_truncated_json: 'KB search: LLM returned truncated JSON (increase KNOWLEDGE_QUERY_SELECT_MAX_TOKENS or narrow catalog).
+    Repeat question.'
+knowledge_config:
+  agent_path_fallback_log: AGENT_CONFIG_PATH=%s — no types.yaml, using %s
+knowledge_llm:
+  default_title: Untitled
+  default_type: knowledge
+  type_link: link
+knowledge_maintenance:
+  chart_bar_dup: duplicates MB
+  chart_bar_empty: reprocess deleted empty
+  chart_bar_reprocess: reprocess written
+  chart_daily_title: Daily totals (steps, amount if multiple runs)
+  chart_export_title: Export, MB ("before" snapshot)
+  chart_notes_after: after
+  chart_notes_before: before
+  chart_notes_title: Notes .md in 700_
+  chart_queue_title: Reprocess queue (eligible, before run)
+  chart_suptitle: 700_Database maintenance (daily snapshots)
+  marker_deleted_empty: '[deleted: no content]'
+  marker_saved: '✓ Written:'
+  regex_changed: Modified:\s*(\d+)
+  regex_deleted_line: '^\s*deleted:'
+  dup_delete_marker: 'delete:'
+  regex_dup_freed: Files:\s*(\d+),\s*freed\s*~([0-9.]+)\s*MB
+  regex_refill_total: 'Total refill: affected=(\d+), skipped=(\d+), llm_errors=(\d+)'
+  regex_retag_total: Total:\s*affected=(\d+),\s*skipped=(\d+)(?:,\s*llm_fallback=(\d+))?
+  regex_singleton_count: Notes from which singleton tags will be/were removed:\s*(\d+)
+  regex_export_orphans_summary: EXPORT_ORPHANS_SUMMARY:\s*total=(\d+)\s+bytes=(\d+)\s+referenced=(\d+)\s+export_total=(\d+)
+  regex_export_broken_refs: EXPORT_BROKEN_REFS:\s*count=(\d+)
+  regex_export_rehydrated_total: EXPORT_REHYDRATED_TOTAL:\s*count=(\d+)
+  regex_export_deleted_total: EXPORT_ORPHANS_DELETED_TOTAL:\s*count=(\d+)\s+bytes=(\d+)
+  regex_export_broken_refs_cleaned: EXPORT_BROKEN_REFS_CLEANED_NOTES:\s*count=(\d+)
+  regex_export_broken_body_refs_cleaned: EXPORT_BROKEN_BODY_REFS_CLEANED_NOTES:\s*count=(\d+)
+  report_dynamics_open: '> [!abstract] Dynamics'
+  report_dynamics_hist: '> History in `{history_path}`'
+  report_days_fold: '> [!note]- Last **{days}** days'
+  report_day_line: '> - **{date}** · runs {runs} · Δ {delta} · −dup {dup} · −repr∅ {empty} · retag {retag} · repr✓ {repr_ok}
+    · {ok}'
+  report_chart_pending: '*Chart will appear after ≥1 history entry and with `matplotlib` installed in report generation environment.*'
+  report_intro: 'Snapshot history and step totals (`vault_daily_maintenance`): data in `{history_path}`.
+
+
+    **Multiple runs per day:** "before" snapshot — from first run, "after" — from last;
+
+
+    columns retag / reprocess / duplicates — **sum** per day; `singleton` in `run` — from last run.
+
+    '
+  report_no_history: '*No history records yet — run maintenance at least once.*'
+  report_section: '## 4. Maintenance dynamics'
+  report_table_days: 'Last **{days}** days (newest at bottom):'
+  report_table_header: '| Date | # | Δ .md | −dup | −repr∅ | retag | repr✓ | Export−MB | OK |'
+  report_last_deletions_header: '**Deleted paths (last run, {ts}):**'
+  report_last_deletions_more: … and {count} more (see `.sync/last_maintenance_deleted_paths.json`)
+knowledge_vault_audit:
+  line_sep: ================================================================================
+  line_dash: '--------------------------------------------------------------------------------'
+  report_title: '# Vault audit — {knowledge_dir}'
+  report_updated: 'Updated: {timestamp}'
+  section_tags: '## 1. Tags'
+  section_duplicates: '## 2. Duplicates (_1, _2, _3)'
+  section_maintenance: '## 3. Daily maintenance (vault_daily_maintenance)'
+  tool_missing: 'Maintainer tool not found: {script} ({path})'
+  tool_error: '{script} exited with code {code}'
+  tags_title: TAGS IN {knowledge_dir}
+  tags_summary: 'Total notes: {total} | with tags: {with_tags} | without tags: {without_tags}'
+  tags_untagged_header: 'Notes without tags (fix via retag_untagged or ingest):'
+  tags_untagged_more: '  … and {count} more'
+  tags_unique: 'Unique tags: {count}'
+  tags_domain_header: 'DOMAIN (domain/):'
+  tags_row: '  {name}: {count}'
+  tags_topic_header: 'TOPIC (topic/):'
+  tags_topic_single_header: 'TOPIC with 1–2 notes (candidates for merge or removal):'
+  tags_topic_single_count: 'Count: {count}'
+  tags_topic_single_row: '  topic/{topic}: {count}'
+  tags_domain_single_header: 'DOMAIN with 1–2 notes:'
+  tags_domain_single_count: 'Count: {count}'
+  tags_domain_single_row: '  domain/{domain}: {count}'
+  tags_other_ns_header: 'Other namespaces (excluding legacy priority/language/vibe):'
+  tags_other_ns_row: '  {namespace}/: {count} tags, top: {top}'
+  dups_parse_total: Total notes
+  dups_parse_suffix: suffix _N
+  dups_parse_groups: duplicate groups
+  dups_parse_generic: generic series
+  dups_parse_content: content duplicates
+  dups_none_token: (none)
+  status_ok: ok
+  status_fail: failed
+  maint_run_skipped_marker: ' (day marker written, steps skipped)'
+  maint_run_skipped: '**Last maintenance run**: skipped — `{reason}`{extra}. Re-running the same day does not repeat steps
+    (expected).'
+  maint_run_header: '**Last maintenance run** ({status}), {count} steps:'
+  maint_llm_dns_note: _If DNS failed at midnight, LLM steps are skipped; note counts may rise from VPS ingest between runs
+    — not a rollback of prior cleanup._
+  step_sync_hubs: Hubs (sync_hubs)
+  step_apply_wikilinks: Wikilinks (apply_wikilinks_batch)
+  step_retag: Retag (retag_notes)
+  step_retag_untagged: Untagged retag (retag_untagged)
+  step_reprocess: Reprocess stems (reprocess_notes)
+  step_sanitize_tags: Malformed tag cleanup
+  step_llm_preflight: Network / LLM preflight
+  step_refill_singleton: Refill singleton tags
+  step_dup_dryrun: Duplicates dry-run
+  step_dup_apply: Duplicates apply
+  step_export_orphans: Export orphans (export_orphans)
+  step_unknown: '{step}'
+  step_ok: ok
+  step_fail: fail
+  maint_steps_fold: Run steps ({count})
+  maint_step_ok_line: 🟢 **{label}** — {seconds}s
+  maint_step_fail_line: 🔴 **{label}** — {seconds}s
+  maint_step_detail: '`{snippet}`'
+  maint_step_warn_detail: ⚠️ `{snippet}`
+  maint_step_line: '  - [{status}] **{label}** — {seconds:.1f}s'
+  maint_stdout_line: '    > {line}'
+  maint_stderr_line: '    ! {line}'
+  maint_hubs_header: '**Hubs** (`{knowledge_dir}/{hubs_rel}/`): {count} files'
+  maint_hub_row: '  - `{name}` — {links} links (updated {mtime})'
+  maint_hub_row_short: '  - `{name}` (updated {mtime})'
+  maint_hubs_missing: '**Hubs**: `{hubs_rel}/` not created yet (run `sync_hubs.py --apply`)'
+  maint_hubs_ok_open: '> [!success] Hubs (`{path}/`)'
+  maint_hubs_ok_head: '> ### {count} files'
+  maint_hub_callout_row: '> - `{name}` — **{links}** links · {mtime}'
+  maint_hub_callout_row_short: '> - `{name}` · {mtime}'
+  maint_hubs_warn_open: '> [!warning] Hubs'
+  maint_hubs_warn_body: '> `{hubs_rel}/` missing — `sync_hubs.py --apply`'
+  dups_abstract_open: '> [!abstract] Duplicates'
+  dups_abstract_head: '> ### {groups} duplicate groups'
+  dups_abstract_meta: '> Notes **{total}** · `_N` **{suffix}** · series {generic} · content {content}'
+  dups_clean_open: '> [!success] Clean'
+  dups_clean_body: '> No duplicate groups (≥2).{extra}'
+  dups_clean_suffix_note: ' Lone `_N` names: **{suffix}**.'
+  dups_warn_open: '> [!warning] Duplicate groups'
+  dups_warn_body: '> Series: **{generic}** · content: **{content}**'
+  dups_trash_ok_open: '> [!success] Trash candidates'
+  dups_trash_ok_body: '> No short junk names to delete'
+  maint_deleted_paths_open: '> [!note] Deleted paths · `{ts}`'
+  maint_deleted_paths_more: '> - … plus {count}'
+  report_updated_callout: '> [!info] Updated'
+  report_updated_body: '> _{timestamp}_'
+  maint_reprocess_queue_open: '> [!{kind}] Reprocess queue'
+  maint_reprocess_queue_body: '> Total **{total}** · pending **{eligible}**{skip}'
+  maint_reprocess_row: '> - `{path}`'
+  maint_reprocess_more_callout: '> - … plus {count}'
+  maint_reprocess_empty_open: '> [!success] Reprocess queue'
+  maint_reprocess_empty_body: '> No matches for `reprocess.yaml`'
+  maint_ontology: '**Tag ontology**: {count} mappings in `config/tag_ontology.yaml`'
+  maint_ontology_zero: '> [!success] Tag ontology — ok
+
+    > `0` mappings in `tag_ontology.yaml` is **not a failure**. Stub file: tag aliases are not configured;
+
+    > the vault uses domain/topic from ingest. Fix only if you maintain an ontology on purpose.
+
+    '
+  maint_ontology_ok: '> [!success] Tag ontology
+
+    > **{count}** mappings in `config/tag_ontology.yaml`
+
+    '
+  maint_ontology_error: '**Tag ontology**: config read error'
+  maint_ontology_missing: '**Tag ontology**: config not found'
+  maint_marker: '**Last maintenance date marker**: `{date}`'
+  maint_marker_missing: '**Last maintenance date marker**: not set'
+  maint_deletions_ok: '> [!success] Deletions this run
+
+    > Expected maintenance actions (duplicates / orphan export), not an outage.
+
+    '
+  maint_deletions_header: '**Deleted paths** ({ts}):'
+  hero_open: '> [!abstract] 700_ maintenance'
+  hero_title_ok: '> ### All green'
+  hero_title_warn: '> ### Warnings'
+  hero_title_fail: '> ### Failures'
+  hero_meta: '> Steps ok **{ok}** · fail **{fail}** · deleted **{deleted}**'
+  maint_run_details_missing: '**Run details**: no `.sync/last_vault_maintenance_run.json` and no parseable JSON in `planning_bot/logs/vault_write_maintenance.log`.'
+  maint_reprocess_header: '**Reprocess queue** (`bad_stem_pattern` in `config/reprocess.yaml`): **{total}** total, **{eligible}**
+    without `reprocess_skip`{skipped_suffix}'
+  maint_reprocess_skipped: ' ({count} skipped)'
+  maint_reprocess_more: '  - … and {count} more'
+  maint_reprocess_all_skipped: '  - Queue empty: all matches have `reprocess_skip: true` in frontmatter.'
+  maint_reprocess_empty: '**Reprocess queue**: none matched `config/reprocess.yaml`'
+knowledge_ocr:
+  text_absent: text missing
+  text_absent_bracket: '[text missing]'
+knowledge_render:
+  default_contact_type: contact
+  heading_insights: '
+
+    ## Insights'
+  heading_key_theses: '## Key points'
+  lead_key_theses: '## key points'
+  lead_yt_summary: '## Summary (YouTube)'
+  line_raw_files_prefix: '- Source files:'
+  note_type_video: video
+  section_asr_summary: '
+
+
+    ## Summary (ASR)
+
+
+    {asr_summary}
+
+    '
+  section_files: '
+
+    ## Files
+
+    '
+  section_images: '
+
+    ## Images
+
+    '
+  section_links: '
+
+    ## Links
+
+    '
+  section_raw_text: '
+
+
+    ## Raw Text
+
+
+    {raw_text}
+
+    '
+  section_transcript: '
+
+
+    ## Transcription
+
+
+    {asr_text}
+
+    '
+  section_vision: '
+
+
+    ## Scene Description
+
+
+    {vision_text}
+
+    '
+  section_yt_summary: '
+
+
+    ## Summary (YouTube)
+
+
+    {body_yt}
+
+    '
+knowledge_serendipity:
+  header_fallback: 'Review note: {title}'
+  note_message: 'Check the note: {title}
+
+    `{rel}`'
+knowledge_tags_inventory:
+  cli_namespaces: 'Namespaces: {count}'
+  cli_rebuilt: 'Inventory rebuilt: {total_notes} notes, {notes_with_tags} tagged'
+  cli_unique: 'Unique tags: {count}'
+  empty: 'TAG INVENTORY: empty (system just started).'
+  empty_min_count: 'TAG INVENTORY (only count>=2): empty. Add at least 2 notes with common tags.'
+  existing_strict: 'EXISTING TAGS (use ONLY these, do not create new ones):'
+  existing_tags: 'EXISTING TAGS (use these instead of creating similar ones):'
+  header: 'TAG INVENTORY: Total {total_notes} notes, {notes_with_tags} with tags.'
+  header_min_count: 'TAG INVENTORY (only tags with ≥{min_count} notes — select STRICTLY from this list):'
+  rule: 'RULE: If topic/area is similar to an existing tag — use it. Create a new tag only if it''s truly a new unique topic.
+
+    '
+  rule_strict: 'STRICTLY: select tags ONLY from the list above. Do not invent new tags.
+
+    '
+  tag_line: '  - {namespace}/{value} (used in {count} notes)'
+knowledge_tags_prompt:
+  broker_fee: Broker commission
+  broker_topup: Broker deposit
+  broker_withdraw: Broker withdrawal
+  debt_issue_description: Debt to {counterparty}
+  debt_return_description: Debt repayment from {counterparty}
+  debts_category: Debts
+  default_counterparty: Counterparty
+  json_append: 'Response — **valid JSON only** (no markdown or explanations), object with `tags` key — array of strings:
+
+
+    {"tags": ["domain/...", "topic/..."]}
+
+
+
+    Use only tags from inventory and controlled namespaces; do not invent new topic/* with count=1.
+
+
+    tags_starter: |
+
+
+    # tags.txt — full tag ontology (not committed to git).
+
+
+    # Copy your prompt here: domain/topic rules, few-shot, inventory.
+
+
+    # Minimum for JSON-mode API — block below (word json required).
+
+
+
+    You are an Obsidian note tagging assistant. Given JSON input, suggest tags.
+
+
+
+    finance:'
+  misc: Other
+  transfer_substring: translation
+  uncategorized: Uncategorized
+knowledge_vault_runner:
+  dup_cap_exceeded: '⛔ apply_duplicates: {count} files to delete > limit {max_delete}.
+
+
+    Auto-apply cancelled — run manually:
+
+
+    singleton_regex: ''Tags with 1 note:\s*(\d+)''
+
+
+    singleton_suggestion: |
+
+
+    🏷 <b>Singleton tags</b>: found {count} tags used in only 1 note.
+
+
+    To remove noise from the graph, run:
+
+
+    refill_ok_line: ''^Total refill:|llm_errors\s*=\s*0''
+
+    '
+  dup_delete_marker: 'delete:'
+  llm_offline: 'api.deepseek.com unreachable (DNS/network) — wikilinks/retag/reprocess skipped.
+
+
+    Maintenance continues without LLM (hubs, duplicates, reports).
+
+    '
+  maintenance_warnings_header: '🔧 <b>Vault maintenance</b> finished with warnings:
+
+
+    '
+  more_lines_suffix: '
+
+    … and {n} more lines'
+  slug_skip_substr: Slug still in RE_BAD
+knowledge_vision:
+  author_context_line: 'Consider author''s personality: {context}
+
+
+    '
+  empty_prompt: 'Vision prompt empty: create config/prompts/vision.txt
+
+
+    (copy from vision.example.txt)
+
+
+
+    knowledge_routing:'

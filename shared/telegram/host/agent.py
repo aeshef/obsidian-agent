@@ -1,4 +1,4 @@
-"""Host agent composition and routing (LLM-only domain pick)."""
+"""Host agent composition (unified free text — no legacy domain picker)."""
 from __future__ import annotations
 
 import logging
@@ -7,12 +7,7 @@ from functools import lru_cache
 
 from shared.agent.app import AgentApp, build_app
 from shared.agent.config import load_routing_config
-from shared.agent.llm_classify import (
-    LLMClassificationError,
-    classify_host_domain_llm,
-)
 from shared.llm import LLMClient
-from shared.telegram.host.constants import DOMAIN_GENERAL, DOMAIN_IDS, DOMAIN_UNIFIED
 
 log = logging.getLogger("shared.telegram.host.agent")
 
@@ -93,77 +88,3 @@ def build_host_agent_app(planning_bot=None) -> AgentApp:
         raise RuntimeError("no domain adapters loaded (check config/agent/capabilities.yaml)")
     log.info("host adapters enabled: %s", [a.domain for a in adapters])
     return build_app(llm, *adapters)
-
-
-async def pick_host_domain(
-    text: str,
-    ui_mode: str,
-    fixed: str | None,
-    agent_app: AgentApp,
-    *,
-    chat_id: int | None = None,
-) -> str:
-    """Legacy domain classifier (tests / eval). Live free text uses ``answer_unified``."""
-    enabled = [d for d in ("finance", "planning", "knowledge") if agent_app.has_domain(d)]
-    if not enabled:
-        raise RuntimeError("pick_host_domain: no domain adapters registered")
-
-    prefer: str | None = None
-    if fixed and agent_app.has_domain(fixed):
-        prefer = fixed
-    elif ui_mode in DOMAIN_IDS and agent_app.has_domain(ui_mode):
-        prefer = ui_mode
-
-    # Single-domain install: pin/UI mode is decisive.
-    if prefer and len(enabled) < 2:
-        return prefer
-
-    # Cheap heuristic for unambiguous single-domain phrases (skip LLM).
-    from shared.agent.cheap_router import cheap_route_domain
-
-    cheap = cheap_route_domain(
-        text,
-        enabled=enabled,
-        cross_domain_check=_looks_finance_planning_cross,
-    )
-    if cheap and agent_app.has_domain(cheap) and (not prefer or prefer == cheap):
-        return cheap
-
-    # Multi-domain: classify. A pinned UI mode is a hint (passed as ui_mode),
-    # but "unified" must escape the pin — otherwise food×tasks stuck in finance-only.
-    hint = prefer or ui_mode
-    dom_name = await classify_host_domain_llm(
-        text,
-        enabled=enabled,
-        chat_id=chat_id,
-        ui_mode=hint,
-    )
-
-    if dom_name == "general":
-        return DOMAIN_GENERAL
-    if dom_name == "unified":
-        return DOMAIN_UNIFIED
-
-    # Router sometimes under-selects a single domain for join questions — escalate.
-    if (
-        dom_name in ("finance", "planning")
-        and "finance" in enabled
-        and "planning" in enabled
-        and _looks_finance_planning_cross(text)
-    ):
-        log.info(
-            "host domain escalate %s -> unified (cross finance+planning) text=%.50s",
-            dom_name,
-            text,
-        )
-        return DOMAIN_UNIFIED
-
-    if prefer and dom_name != prefer:
-        # Stay in the pinned single domain unless escalated to unified above.
-        return prefer
-
-    if not agent_app.has_domain(dom_name):
-        raise LLMClassificationError(
-            f"pick_host_domain: domain {dom_name!r} not registered (available: {agent_app.domains()})"
-        )
-    return dom_name

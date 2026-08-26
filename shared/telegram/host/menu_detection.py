@@ -4,6 +4,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+from shared.telegram.host.constants import DOMAIN_FINANCE, DOMAIN_KNOWLEDGE, DOMAIN_PLANNING
 from shared.yaml_config import load_merged_config
 
 _REPO_CONFIG = Path(__file__).resolve().parents[3] / "config"
@@ -39,9 +40,9 @@ def is_finance_menu_text(text: str) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if _enabled("finance", "reply_menu", True) and is_reply_menu_button(t):
+    if _enabled(DOMAIN_FINANCE, "reply_menu", True) and is_reply_menu_button(t):
         return True
-    if _enabled("finance", "nlu_exact", True):
+    if _enabled(DOMAIN_FINANCE, "nlu_exact", True):
         cfg = get_nlu_config()
         return t in nlu_exact_commands(cfg)
     return False
@@ -54,9 +55,9 @@ def is_planning_menu_text(text: str) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if _enabled("planning", "exclude_host_mode_labels", True) and t in L.mode_button_labels():
+    if _enabled(DOMAIN_PLANNING, "exclude_host_mode_labels", True) and t in L.mode_button_labels():
         return False
-    if not _enabled("planning", "planning_menu_labels", True):
+    if not _enabled(DOMAIN_PLANNING, "planning_menu_labels", True):
         return False
     return is_planning_menu_button(t)
 
@@ -67,6 +68,6 @@ def is_knowledge_menu_text(text: str) -> bool:
     t = (text or "").strip()
     if not t:
         return False
-    if not _enabled("knowledge", "knowledge_buttons", True):
+    if not _enabled(DOMAIN_KNOWLEDGE, "knowledge_buttons", True):
         return False
     return is_knowledge_menu_button(t)

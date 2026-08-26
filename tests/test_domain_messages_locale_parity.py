@@ -21,14 +21,33 @@ def _flatten(d: object, prefix: tuple[str, ...] = ()) -> dict[tuple[str, ...], s
     return out
 
 
-def test_domain_en_has_all_ru_keys() -> None:
-    ru = yaml.safe_load((ROOT / "config/domain_messages.ru.yaml.example").read_text(encoding="utf-8"))
-    en = yaml.safe_load((ROOT / "config/domain_messages.en.yaml.example").read_text(encoding="utf-8"))
+def test_domain_packages_match_monolith_and_parity() -> None:
+    """Packages are source of truth; monolith is generated; EN/RU key parity."""
+    order = ("shared", "finance", "planning", "knowledge")
+
+    def load_packages(locale: str) -> dict:
+        merged: dict = {}
+        for name in order:
+            path = ROOT / "config" / "domain_messages" / locale / f"{name}.yaml.example"
+            assert path.is_file(), path
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            merged.update(data)
+        return merged
+
+    for loc in ("en", "ru"):
+        pkgs = load_packages(loc)
+        mono = yaml.safe_load(
+            (ROOT / f"config/domain_messages.{loc}.yaml.example").read_text(encoding="utf-8")
+        )
+        assert set(pkgs) == set(mono), f"{loc} package/monolith top-key drift"
+
+    ru = load_packages("ru")
+    en = load_packages("en")
     fr, fe = set(_flatten(ru)), set(_flatten(en))
     missing = sorted(fr - fe)
     extra = sorted(fe - fr)
-    assert not missing, "EN missing keys:\n" + "\n".join(".".join(k) for k in missing[:30])
-    assert not extra, "EN extra keys:\n" + "\n".join(".".join(k) for k in extra[:30])
+    assert not missing, "EN packages missing keys:\n" + "\n".join(".".join(k) for k in missing[:30])
+    assert not extra, "EN packages extra keys:\n" + "\n".join(".".join(k) for k in extra[:30])
 
 
 def test_domain_en_values_no_cyrillic() -> None:

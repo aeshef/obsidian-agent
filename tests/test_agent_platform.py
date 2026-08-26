@@ -263,22 +263,23 @@ def test_insights_clear_pending_and_confirmed(tmp_path):
     assert store.read_confirmed(2, "planning") == []
 
 
-def test_resolve_domain_multi_fixed(monkeypatch):
+def test_resolve_domain_always_raises(monkeypatch):
     from shared.agent.routing import resolve_domain
-    from shared.agent.types import Domain
 
     monkeypatch.setenv("DEPLOY_MODE", "multi")
     monkeypatch.setenv("AGENT_DOMAIN", "finance")
-    assert resolve_domain("сколько потратил на еду") == Domain.FINANCE
+    with pytest.raises(RuntimeError, match="answer_unified|not used"):
+        resolve_domain("hello")
 
 
-def test_resolve_domain_single_raises(monkeypatch):
-    from shared.agent.routing import resolve_domain
+def test_deploy_mode_forces_single(monkeypatch):
+    from shared.agent.routing import deploy_mode
+    import shared.agent.routing as routing
 
-    monkeypatch.setenv("DEPLOY_MODE", "single")
-    monkeypatch.delenv("AGENT_DOMAIN", raising=False)
-    with pytest.raises(RuntimeError, match="classify_host_domain_llm"):
-        resolve_domain("привет")
+    routing._MULTI_WARNED = False
+    monkeypatch.setenv("DEPLOY_MODE", "multi")
+    with pytest.warns(UserWarning, match="unsupported"):
+        assert deploy_mode() == "single"
 
 
 def test_session_sqlite_persist(tmp_path, monkeypatch):
@@ -408,129 +409,9 @@ def test_finance_reply_menu_covers_nlu_config():
     assert nlu_menu_buttons(cfg) <= set(handlers)
 
 
-def test_pick_host_domain_uses_llm(monkeypatch):
-    from shared.telegram.host import agent as host_agent
-
-    class _App:
-        def has_domain(self, name: str) -> bool:
-            return name in ("finance", "planning")
-
-        def domains(self) -> list[str]:
-            return ["finance", "planning"]
-
-    async def _fake(text, **kwargs):
-        return "planning"
-
-    monkeypatch.setenv("DEPLOY_MODE", "single")
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
-    out = asyncio.run(
-        host_agent.pick_host_domain("привет", "auto", None, _App(), chat_id=1)
-    )
-    assert out == "planning"
 
 
-def test_pick_host_domain_unified(monkeypatch):
-    from shared.telegram.host import agent as host_agent
 
-    class _App:
-        def has_domain(self, name: str) -> bool:
-            return name in ("finance", "planning", "knowledge")
-
-        def domains(self) -> list[str]:
-            return ["finance", "planning", "knowledge"]
-
-    async def _fake(text, **kwargs):
-        return "unified"
-
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
-    out = asyncio.run(
-        host_agent.pick_host_domain(
-            "расходы и шаги за две недели", "auto", None, _App(), chat_id=1
-        )
-    )
-    assert out == "unified"
-
-
-def test_pick_host_domain_pinned_finance_escalates_to_unified(monkeypatch):
-    """Pinned finance UI must not block cross-domain unified answers."""
-    from shared.telegram.host import agent as host_agent
-    from shared.telegram.host.constants import DOMAIN_UNIFIED
-
-    class _App:
-        def has_domain(self, name: str) -> bool:
-            return name in ("finance", "planning")
-
-        def domains(self) -> list[str]:
-            return ["finance", "planning"]
-
-    async def _fake(text, **kwargs):
-        assert kwargs.get("ui_mode") == "finance"
-        return "unified"
-
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
-    out = asyncio.run(
-        host_agent.pick_host_domain(
-            "сколько тратил на еду в дни когда больше всего задач закрыто",
-            "finance",
-            "finance",
-            _App(),
-            chat_id=1,
-        )
-    )
-    assert out == DOMAIN_UNIFIED
-
-
-def test_pick_host_domain_pinned_finance_keeps_finance_for_money_only(monkeypatch):
-    from shared.telegram.host import agent as host_agent
-
-    class _App:
-        def has_domain(self, name: str) -> bool:
-            return name in ("finance", "planning")
-
-        def domains(self) -> list[str]:
-            return ["finance", "planning"]
-
-    async def _fake(text, **kwargs):
-        return "planning"  # would-be misroute; pin wins for single-domain picks
-
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
-    out = asyncio.run(
-        host_agent.pick_host_domain(
-            "сколько потратил на еду вчера",
-            "finance",
-            "finance",
-            _App(),
-            chat_id=1,
-        )
-    )
-    assert out == "finance"
-
-
-def test_pick_host_domain_escalates_finance_to_unified_on_cross_signals(monkeypatch):
-    from shared.telegram.host import agent as host_agent
-    from shared.telegram.host.constants import DOMAIN_UNIFIED
-
-    class _App:
-        def has_domain(self, name: str) -> bool:
-            return name in ("finance", "planning")
-
-        def domains(self) -> list[str]:
-            return ["finance", "planning"]
-
-    async def _fake(text, **kwargs):
-        return "finance"  # classic under-route
-
-    monkeypatch.setattr(host_agent, "classify_host_domain_llm", _fake)
-    out = asyncio.run(
-        host_agent.pick_host_domain(
-            "сколько я тратил на еду в дни когда у меня больше всего задач закрыто",
-            "auto",
-            None,
-            _App(),
-            chat_id=1,
-        )
-    )
-    assert out == DOMAIN_UNIFIED
 
 
 def test_classify_host_domain_unified_in_allowed(monkeypatch):

@@ -106,9 +106,11 @@ def generate_dashboard_month_insight(
         from shared.agent.platform_config import platform_value
 
         raw = platform_value("schedulers", "finance_dashboard_insight", default={}) or {}
-        temp = 0.35
-        if isinstance(raw, dict) and raw.get("temperature") is not None:
-            temp = float(raw["temperature"])
+        if not isinstance(raw, dict) or raw.get("temperature") is None:
+            raise RuntimeError(
+                "schedulers.finance_dashboard_insight.temperature missing in platform.yaml"
+            )
+        temp = float(raw["temperature"])
         text = client.chat_messages(
             [
                 {"role": "system", "content": system},

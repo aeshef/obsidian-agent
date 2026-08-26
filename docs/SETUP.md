@@ -80,7 +80,7 @@ DEPLOY_MODE=single
 TELEGRAM_USER_ID=...          # numeric id для knowledge ingest / алертов
 ```
 
-Legacy (три polling-процесса): `DEPLOY_MODE=multi` и отдельные `TELEGRAM_*_BOT_TOKEN` — см. [ARCHITECTURE.md](ARCHITECTURE.md).
+Legacy (три polling-процесса): **unsupported** — `DEPLOY_MODE` always resolves to `single`.
 
 Узкий профиль продукта (например только финансы): [CAPABILITIES.md](CAPABILITIES.md). Без `capabilities.yaml` — OSS starter; полный продукт только с `OBSIDIAN_AGENT_FULL_INSTALL=1`.
 

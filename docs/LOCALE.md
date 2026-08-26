@@ -19,8 +19,9 @@ python3 scripts/setup/env_tools.py set-locale ru
 |------|------|
 | `config/messages.en.yaml.example` | **Canonical** Telegram UI keys (English) |
 | `config/messages.ru.yaml.example` | Russian UI (same keys, pytest parity) |
-| `config/domain_messages.en.yaml.example` | English tool/agent strings |
-| `config/domain_messages.ru.yaml.example` | Russian tool/agent strings |
+| `config/domain_messages/{en,ru}/*.yaml.example` | Per-domain packages (source of truth); monolith regenerated via `scripts/rebuild_domain_messages.py` |
+| `config/domain_messages.en.yaml.example` | Generated English catalog (compat) |
+| `config/domain_messages.ru.yaml.example` | Generated Russian catalog (compat) |
 | `config/vault_paths.en.yaml.example` | English vault folder/file names (default) |
 | `config/vault_paths.ru.yaml.example` | Russian vault paths |
 | `finance_bot/config/categories_mvp.{en,ru}.yaml.example` | Expense categories by locale |

@@ -1,0 +1,65 @@
+# Machine-readable bootstrap checklist (single onboarding contract).
+# Consumed by: /setup skill, onboarding_wizard.sh, docs, CI smoke.
+# Docker compose is NOT a bootstrap path — run this checklist first, then compose.
+
+version: 1
+id: obsidian-agent-bootstrap
+
+phases:
+  - id: repo_root
+    title: Open agent repo root
+    required: true
+    check: "test -f unified_bot/main.py && test -f scripts/setup.sh"
+
+  - id: setup_sh
+    title: Create venvs
+    required: true
+    command: "./scripts/setup.sh"
+
+  - id: env_file
+    title: Materialize .env
+    required: true
+    check: "test -f .env"
+
+  - id: locale
+    title: Set AGENT_LOCALE (default en)
+    required: true
+    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set-locale en"
+
+  - id: capabilities
+    title: Write capabilities profile (or FULL_INSTALL)
+    required: true
+    notes: >
+      Clones: apply_capabilities_profile.py --write for chosen modules.
+      Author: OBSIDIAN_AGENT_FULL_INSTALL=1 and omit capabilities.yaml.
+      Missing YAML without FULL_INSTALL = OSS starter (not full product).
+
+  - id: vault_paths
+    title: Materialize vault_paths for locale
+    required: true
+    command: "./scripts/oa-python.sh scripts/setup/materialize_locale.py"
+
+  - id: vault_layout
+    title: init_vault_layout (after capabilities + vault_paths)
+    required: true
+    command: "./scripts/oa-python.sh scripts/init_vault_layout.py"
+
+  - id: secrets
+    title: TELEGRAM + LLM keys via env_tools
+    required: true
+
+  - id: smoke
+    title: onboarding_smoke golden path
+    required: true
+    command: "./scripts/oa-python.sh scripts/onboarding_smoke.py --golden-planning"
+
+  - id: run
+    title: Start unified_bot
+    required: true
+    command: "PYTHONPATH=. python -m unified_bot.main"
+
+docker:
+  role: runtime_after_bootstrap
+  note: >
+    docker compose up runs the already-bootstrapped install.
+    It does not replace /setup, the wizard, or this checklist.

@@ -26,7 +26,7 @@ Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required
 | `DEPLOY_MODE` | `single` (default) |
 | `TELEGRAM_USER_ID` | Numeric id владельца (knowledge ingest, алерты) |
 
-**Legacy (`DEPLOY_MODE=multi`):** отдельные `TELEGRAM_PLANNING_BOT_TOKEN`, `TELEGRAM_KNOWLEDGE_BOT_TOKEN`, `TELEGRAM_FINANCE_BOT_TOKEN` или общий `TELEGRAM_BOT_TOKEN`.
+**Legacy (`DEPLOY_MODE=multi`):** unsupported — runtime forces `single`.
 
 ---
 
@@ -111,7 +111,7 @@ Gmail IMAP (planning, Mac only): `GMAIL_IMAP_USER`, `GMAIL_IMAP_APP_PASSWORD`, `
 | Переменная | Назначение |
 |------------|------------|
 | `AGENT_DOMAIN` | `finance` / `planning` / `knowledge` — домен процесса (L1 no-op при 3 ботах) |
-| `DEPLOY_MODE` | `single` (default, unified_bot) или `multi` (legacy три процесса) |
+| `DEPLOY_MODE` | `single` only (unified_bot). Other values are forced to single with a warning. |
 | `AGENT_MAX_ITERS` | Макс. итераций tool-loop (default 6) |
 | `AGENT_SESSION_MAX_TURNS` | Реплик в session memory (default 4 пары) |
 

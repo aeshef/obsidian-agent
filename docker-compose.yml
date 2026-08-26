@@ -1,7 +1,9 @@
-# Run the unified bot in a container.
-#   1) cp .env.example .env  &&  fill VAULT_PATH is handled by the mount below
-#   2) set TELEGRAM_UNIFIED_BOT_TOKEN and DEEPSEEK_API_KEY in .env
-#   3) point ./vault (host) at your Obsidian vault, or edit the volume path
+# Run the unified bot in a container **after** bootstrap
+# (see config/agent/bootstrap_checklist.yaml.example).
+# Docker is runtime only — it does not replace /setup or onboarding_wizard.sh.
+#   1) Complete bootstrap checklist (capabilities, vault_paths, secrets)
+#   2) cp .env.example .env if needed; fill TELEGRAM_UNIFIED_BOT_TOKEN + DEEPSEEK_API_KEY
+#   3) export HOST_VAULT_PATH="/absolute/path/to/your-vault"
 #   4) docker compose up --build
 services:
   unified-bot:

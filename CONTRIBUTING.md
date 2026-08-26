@@ -16,14 +16,15 @@
 
 **Зависимости:** `constraints.txt` — пины для всех venv; `requirements-min.txt` — минимум для CI/smoke; `finance_bot/requirements.txt` (и аналоги) — полный набор домена; `pyproject.toml` — метаданные пакета и dev-tools. Боевые `config/**/*.yaml` в git не коммитятся — только `*.yaml.example`.
 
-### Config loaders (`shared.yaml_config`)
+### Config loaders (`shared.config_policy` / `shared.yaml_config`)
 
 | API | Use for |
 |-----|---------|
-| `load_catalog_config` | UI / domain string catalogs (`messages`, `domain_messages`): **example as base ⊕ local overlay** so stale locals cannot blank new keys |
-| `load_locale_merged_config` | Locale-aware schemas (`kanban_schema`, dashboard templates): prefer `{stem}.{locale}.yaml.example` |
+| `load_catalog_config` | UI / domain string catalogs (`messages`, `domain_messages`): **example as base ⊕ local overlay** |
+| `load_locale_merged_config` | Locale-aware schemas (`kanban_schema`, dashboard templates) |
 | `load_runtime_config` | Local-only overrides that intentionally replace the whole file (rare) |
-| `load_merged_config` | Additive merge for structured configs (`ui_capabilities`, agent platform pieces) |
+| `load_merged_config` | Additive merge for structured configs |
+| `load_by_policy` / `CONFIG_STEM_LOADERS` | Stem registry — register new stems here; see `tests/test_config_policy.py` |
 
 ---
 

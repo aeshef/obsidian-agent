@@ -1,4 +1,8 @@
-"""Non-UI domain strings (tool output, lookup reasons) — config/domain_messages.{locale}.yaml."""
+"""Non-UI domain strings — config/domain_messages/{locale}/*.yaml.example packages.
+
+Legacy monolith ``domain_messages.{locale}.yaml.example`` remains as a fallback
+when packages are absent (older checkouts). Packages win when present.
+"""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -9,6 +13,7 @@ from shared.locale import agent_locale
 from shared.yaml_config import deep_merge, load_yaml
 
 _REPO_CONFIG = Path(__file__).resolve().parent.parent / "config"
+_PACKAGE_ORDER = ("shared", "finance", "planning", "knowledge")
 
 
 def _overlay_yaml(merged: dict, path: Path) -> dict:
@@ -18,24 +23,46 @@ def _overlay_yaml(merged: dict, path: Path) -> dict:
     return deep_merge(merged, over) if over else merged
 
 
-def _ru_domain() -> dict:
-    """RU catalog: .ru.example as base, then legacy yaml, then gitignored .ru.yaml.
+def _load_packages(locale: str) -> dict:
+    """Merge per-domain packages under config/domain_messages/{locale}/."""
+    pkg_dir = _REPO_CONFIG / "domain_messages" / locale
+    if not pkg_dir.is_dir():
+        return {}
+    merged: dict = {}
+    for name in _PACKAGE_ORDER:
+        example = pkg_dir / f"{name}.yaml.example"
+        local = pkg_dir / f"{name}.yaml"
+        if example.is_file():
+            merged = deep_merge(merged, load_yaml(example, default={}))
+        if local.is_file():
+            merged = _overlay_yaml(merged, local)
+    return merged
 
-    Local files still win on overlapping keys (personal overrides). Missing keys
-    fill from the git example so a stale prod snapshot cannot blank new copy
-    (e.g. goals mapping review headings).
-    """
+
+def _load_monolith(locale: str) -> dict:
     base = _REPO_CONFIG
+    if locale.startswith("en"):
+        merged = load_yaml(base / "domain_messages.en.yaml.example", default={})
+        return _overlay_yaml(merged, base / "domain_messages.en.yaml")
     merged = load_yaml(base / "domain_messages.ru.yaml.example", default={})
     merged = _overlay_yaml(merged, base / "domain_messages.yaml")
     return _overlay_yaml(merged, base / "domain_messages.ru.yaml")
 
 
+def _ru_domain() -> dict:
+    packages = _load_packages("ru")
+    if packages:
+        # Local monolith overlays still win for author overrides.
+        packages = _overlay_yaml(packages, _REPO_CONFIG / "domain_messages.yaml")
+        return _overlay_yaml(packages, _REPO_CONFIG / "domain_messages.ru.yaml")
+    return _load_monolith("ru")
+
+
 def _en_domain() -> dict:
-    """EN catalog: .en.example as base + local .en.yaml overlay (same stale-local rule)."""
-    base = _REPO_CONFIG
-    merged = load_yaml(base / "domain_messages.en.yaml.example", default={})
-    return _overlay_yaml(merged, base / "domain_messages.en.yaml")
+    packages = _load_packages("en")
+    if packages:
+        return _overlay_yaml(packages, _REPO_CONFIG / "domain_messages.en.yaml")
+    return _load_monolith("en")
 
 
 @lru_cache(maxsize=2)

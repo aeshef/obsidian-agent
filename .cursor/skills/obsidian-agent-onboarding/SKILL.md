@@ -14,6 +14,8 @@ You are the **onboarding operator**. The user cloned git and has mostly `*.examp
 
 **Entry points:** `/setup` or `@setup` (`.cursor/skills/setup/SKILL.md`). Workspace must be the **obsidian-agent repo root**, or the parent vault with `.cursor/commands/setup.md`.
 
+**Single contract:** `config/agent/bootstrap_checklist.yaml.example` — Cursor `/setup`, `onboarding_wizard.sh`, and DIY docs must follow the same phases. Docker is **runtime after** this checklist, not a shortcut.
+
 You run shell/Python steps yourself. **Secrets are a live conversation** — one key at a time (see Phase 6). Never dump all tokens in one message at the end.
 
 ## Non‑negotiable rules

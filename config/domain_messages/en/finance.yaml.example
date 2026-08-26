@@ -1,0 +1,231 @@
+badge:
+  default_category: Food/Badge
+  dash_none: —
+  day_off: Today is a day off — no daily badge quota.
+  day_over: 'Over limit: {over} RUB'
+  day_remaining: Remaining {remaining} RUB (expires today)
+  day_spent_line: '📊 Today: {spent} / {limit} RUB'
+  input_prompt_fallback: '🍽 Badge spend (account: {account}, category: {category}, limit: {limit} RUB/day)
+
+
+    {prompt}'
+  line_keyword_pattern: badge
+  line_over_limit: 'Over limit: {amount} RUB (will be deducted from salary).'
+  llm_after_spend_user: Advice right after new spend.
+  month_burned: 'Burned quota: {burned} RUB'
+  month_ndfl: 'Estimated income tax on spend: ~{ndfl} RUB'
+  month_over_limit: 'Over daily limit: {over} RUB'
+  month_spent_line: '📅 Month: {spent} / {entitlement} RUB ({pct:.0f}%), burned {burned} RUB'
+  month_spent_total: 'Spent: {spent} RUB of {entitlement} RUB ({pct:.0f}%)'
+  month_title: 🍽 Badge for {month:02d}.{year}
+  month_working_days: 'Working days: {working_days}, with spend: {days_with_spend}'
+  month_zero_days: 'Days without spend (full burn): {days}'
+  post_save_header: ✅ {amount} RUB badge{desc}
+  today_alert_remaining: Remaining {remaining} RUB — quota expires at midnight.
+  today_alert_spent: '🍽 Badge: spent {spent} RUB of {limit} today.'
+budget:
+  large_expenses: 'Major expenses:'
+  no_data: (no data)
+  no_operations: (no transactions)
+  no_transactions: (no operations)
+  no_query_matches: (no operations matching "{query}")
+  query_matches_header: '{label}: {count} matches for "{query}" (income {inc_sum}₽, expenses {exp_sum}₽)'
+  income_categories: 'Income by category:'
+  income_lines: 'Income lines (date | type | amount | category | comment):'
+  recent_header: 'Last {n} operations:'
+  summary: '{label}: operations {count}, expenses {exp_sum}₽, income {inc_sum}₽ (excluding transfers between accounts and
+    broker withdrawals)'
+  top_categories: 'Top spending categories:'
+  truncated: '... {count} more rows'
+  txn_type_expense: expense
+  txn_type_income: income
+  txn_type_transfer: transfer
+finance_agent:
+  balances_header: 'Account balances:'
+  baselines: 'Baselines (median of past months): {baselines}'
+  date_hint: 'Today: {today}. Current month: {month}.'
+  import_badge_account_created: Created account {name} id={id}
+  import_badge_cleared: 'Deleted for {year_month}: {count} rows'
+  import_badge_db_missing: 'DB not found: {path}'
+  import_badge_done: Import ({mode}) {file} -> {db}
+  import_badge_file_missing: 'File not found: {path}'
+  import_badge_inserted: '   Added: {count} ops totaling {total} RUB'
+  import_badge_replaced: '   Period: {year_month}, replaced old rows: {count}'
+  import_badge_skipped: '   Skipped duplicates: {count}'
+  import_badge_transactions: File must contain non-empty transactions list
+  import_badge_yaml_object: Expected YAML object in {path}
+  import_badge_year_month: 'File must contain year_month: YYYY-MM'
+  import_default_account: Primary account
+  import_txn_done: '{db}: added {added}, skipped {skipped}, max_id={max_id}, total={total}'
+  init_accounts_found: 'Accounts in config: {count}'
+  init_config_hint: cp config/initial_accounts.yaml.example config/initial_accounts.yaml and fill in
+  init_config_missing: 'Config not found: {path}'
+  init_created: 'Created: {name} = {balance:,.2f} {currency}'
+  init_created_count: '  Created: {count}'
+  init_done: Done!
+  init_no_accounts: No accounts in config
+  init_no_telegram_id: telegram_id not set in config
+  init_skip_no_name: Skipped account without name
+  init_total: '  Total processed: {count}'
+  init_updated: 'Updated: {name} = {balance:,.2f} {currency} (external={external})'
+  init_updated_count: '  Updated: {count}'
+  init_user_hint: Send /start to the bot first to create the user
+  init_user_missing: User with telegram_id={telegram_id} not found
+  monthly_header: 'Monthly:
+
+    '
+  no_nonzero_accounts: '  (no non-zero accounts)'
+  planned_empty: 'Planned expenses ({status}): (none)'
+  planned_header: 'Planned expenses ({status}):'
+  planned_line: '  {name}: {amount:,.0f} {currency} (due {due})'
+  planned_no_due: no deadline
+  prompt_suffix: 'Always call tools for any amounts, balances, operations and summaries.
+
+
+    Set intervals via from_date/to_date (YYYY-MM-DD) or days.
+
+
+    Do not invent numbers.
+
+
+
+    finance_scripts:
+
+    '
+  range_all_time: all time
+  range_last_days: last {days} days
+  reset_balances: Reset balances for {count} accounts
+  reset_done: Done! All transactions deleted, balances reset.
+  reset_external_hint: External balances (broker accounts) unchanged.
+  reset_start: Starting data cleanup...
+  reset_tx_deleted: 'Deleted transactions: {count}'
+  show_txn_account_header: === All transactions for account «{name}» ===
+  show_txn_account_total: '  Total (income - expense): {total:,.2f}'
+  show_txn_balance_computed: ({base:,.2f} + txn sum {computed:,.2f}) = {total:,.2f}
+  show_txn_balance_external: external_balance = {balance:,.2f} (transactions ignored)
+  show_txn_balances_header: === Account balances ===
+  show_txn_db_missing: 'DB not found: {path}'
+  show_txn_dupes_header: === Possible duplicate transactions ===
+  show_txn_no_dupes: === No duplicates by (date, type, amount, account, description) ===
+  show_txn_recent_header: === Recent transactions ===
+  show_txn_transfers_header: === Transfer transactions ===
+  show_txn_usage: 'Usage: python scripts/show_recent_txns.py [path/to/finance.db]'
+  spending_by_category: Expenses by category ({range})
+  subscription_line: '  {name}: {amount} {currency}/{period}, next {next_charge}'
+  subscriptions_empty: 'Subscriptions: (file empty or not configured)'
+  subscriptions_header: 'Subscriptions (recurring):'
+  summary_label: Summary ({range})
+  transactions_label: Transactions ({range})
+  transfer_category_legacy: Transfers
+  user_not_found: User not found.
+finance_summary:
+  balance_line: 'Balance: {amount:,.0f} RUB'
+  category_line: '- {category}: {amount:,.0f} RUB ({pct:.1f}%)'
+  expense_change: 'Spending change vs previous period: {change:+.1f}%'
+  expense_line: 'Spending (excl. transfers/broker top-ups): {amount:,.0f} RUB'
+  income_line: 'Income (excl. transfers/broker withdraw): {amount:,.0f} RUB'
+  llm_empty: LLM returned empty response for summary.
+  period_user: 'Period: {period}'
+  prompt_period: 'Period: {from_date} - {to_date}'
+  top_categories: 'Top spending categories:'
+  user_not_found: User not found. Tap /start first.
+finance_tinkoff:
+  api_accounts_count: 'API accounts in response: {count}'
+  errors_prefix: 'Errors: {errors}'
+  no_accounts: No accounts from API or all excluded via TINKOFF_IGNORE_ACCOUNT_IDS
+  no_portfolio: No portfolio data.
+  no_portfolio_data: 'No portfolio data. Check TINKOFF_API_TOKEN and API availability. Debug: {keys}'
+  no_positions: (no position data)
+  portfolio_total_rub: 'Portfolio total: {total:,.0f} RUB'
+  token_missing: TINKOFF_API_TOKEN is not set in .env
+  total_fmt: 'Total: {total:,.2f} RUB'
+  total_line: 'Total: {total} RUB'
+finance_txn_core:
+  account_required: Account not specified for transaction
+  broker_fee_default: Broker fee
+  broker_withdraw_default: Broker withdrawal
+  default_wallet: Wallet
+  line_account: '- Account: {account}'
+  line_amount: '- Amount: {amount:,.0f} {currency}'
+  line_category: '- Category: {category}'
+  line_description: '- Description: {description}'
+  line_type: '- Type: {type}'
+  recorded_header: '{emoji} Recorded:'
+finance_txn_query:
+  all_zero: '  (all zeros)'
+  balance_unset: '  {name} ({acct_type}): balance not set'
+  broker_empty: 'Broker/investment accounts: (none)'
+  broker_header: 'Broker and external balances:'
+  debts_empty: 'Debts: (no debt accounts)'
+  debts_header: 'Debts (external_balance on counterparty accounts):'
+  expenses_total: 'Total expenses: {total} RUB'
+  no_expenses_in_period: (no expenses in period)
+  category_filter: filter={category} (parent matches children)
+  by_day_header: 'By day:'
+  by_day_line: '  {day}: {total} ({detail})'
+  payable_line: '  I owe — {name}: {balance} {currency}'
+  receivable_line: '  I''m owed — {name}: {balance} {currency}'
+invest_report:
+  total_line: 'Total: {total} RUB
+
+    '
+finance_analyst:
+  insight_allowed_categories: 'Allowed expense category labels (use verbatim in the insight text):
+
+    {categories}
+
+    '
+  insight_category_rule: 'Do not invent category aliases ("Food delivery", etc.). Use only allowed_categories and pace_facts
+    labels.
+
+    '
+  insight_pace_header: 'Current-month spend pace (facts; baseline = median of past months excluding current):
+
+    '
+  insight_pace_line: '- {category}: {spent} RUB in {days_elapsed} days; baseline {baseline} RUB/mo; projected month-end {projected}
+    RUB ({delta_pct:+.0f}% vs baseline)'
+finance:
+  uncategorized: Uncategorized
+  misc: Other
+  categories_file_missing: 'Categories file not found: {path}'
+  transfer_category: Transfer
+  transfer_out_description: Transfer to {account}
+  transfer_in_description: Transfer from {account}
+  transfer_to_description: Transfer to {account}
+  transfer_from_description: Transfer from {account}
+  transfer_substring: transfer
+  debts_category: Debts
+  default_counterparty: Counterparty
+  unknown_counterparty: Counterparty
+  debt_return_description: Debt repayment from {counterparty}
+  debt_issue_description: Debt to {counterparty}
+  broker_topup: Broker top-up
+  broker_withdraw: Broker withdrawal
+  broker_fee: Broker fee
+  subscriptions_file_invalid: 'Invalid subscriptions.yaml: {type}'
+finance_nlu:
+  accounts_block: 'USER ACCOUNTS (account field — only from this list, exact string):
+
+    {accounts_list}
+
+    '
+  expense_categories_block: 'EXPENSE CATEGORIES (category for type=expense — only from this list, exact string including Group/Subcategory):
+
+    {categories_list}
+
+    '
+  income_categories_block: 'INCOME CATEGORIES (category for type=income — only from this list):
+
+    {categories_list}
+
+    '
+  debts_rules: ''
+  date_today: 'Today: {date} ({weekday})
+
+
+    '
+  batch_hint: 'Transaction batch: part {index} of {total}.
+
+    '
+  empty_llm_txns: 'LLM returned no transactions: {response}'
+  not_list_txns: 'transactions field is not a list: {type_name}'

@@ -119,6 +119,15 @@ if ! typeset -f cap_step_enabled >/dev/null 2>&1; then
   echo "$(sh_msg scripts.obsidian_sync.capabilities_fail_closed)" >&2
 fi
 
+# Python sync plan (shared/sync) — refresh CAP_SYNC_* from capabilities profile.
+if [[ -d "$AGENT_ROOT/shared/sync" ]]; then
+  _SYNC_PLAN="$("$AGENT_ROOT/scripts/oa-python.sh" "$AGENT_ROOT/scripts/run_sync_plan.py" 2>/dev/null || true)"
+  if [[ -n "$_SYNC_PLAN" ]]; then
+    eval "$_SYNC_PLAN"
+  fi
+  unset _SYNC_PLAN
+fi
+
 VAULT_TEST="${AGENT_ROOT}/scripts/obsidian_sync.sh"
 if ! test -r "$VAULT_TEST" 2>/dev/null || ! head -c1 "$VAULT_TEST" >/dev/null 2>/dev/null; then
   echo "$(date '+%Y-%m-%dT%H:%M:%S') pid=$$ $(sh_msg scripts.obsidian_sync.skip_no_vault_fda)" >> "$DEBUG_LOG" 2>/dev/null || true

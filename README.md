@@ -105,6 +105,8 @@ No names. No amounts. No institutions. Your vault, your nouns.
 
 ### Option A — Guided setup in Cursor (recommended)
 
+Follow the single checklist: [`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example).
+
 1. Clone and open **this repo root** in Cursor (`obsidian-agent`, not the parent vault).
 2. In chat: **`/setup`** or **`@setup`**. See [AGENTS.md](AGENTS.md).
 3. Run:
@@ -116,12 +118,14 @@ python -m unified_bot.main
 
 ### Option B — CLI wizard
 
+Same checklist, non-interactive wrapper:
+
 ```bash
 git clone https://github.com/aeshef/obsidian-agent.git
 cd obsidian-agent
 cp .env.example .env
 ./scripts/setup.sh
-./scripts/onboarding_wizard.sh --playbook planning   # or finance / full
+./scripts/onboarding_wizard.sh --playbook planning   # or finance / full / knowledge_only
 python3 scripts/init_vault_layout.py
 python3 scripts/onboarding_smoke.py --golden-planning
 
@@ -129,10 +133,11 @@ export PYTHONPATH=.
 python -m unified_bot.main
 ```
 
-### Option C — Docker
+### Option C — Docker (runtime after bootstrap)
+
+Complete Option A or B first (capabilities, vault paths, secrets). Compose only runs the bot:
 
 ```bash
-cp .env.example .env
 export HOST_VAULT_PATH="/absolute/path/to/your-vault"
 docker compose up --build
 ```

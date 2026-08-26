@@ -1,0 +1,67 @@
+asr:
+  not_installed: 'ASR unavailable: install faster-whisper: pip install faster-whisper'
+  recognition_failed: Failed to recognize speech. Record the message again, a bit longer and clearer.
+log_dump:
+  coverage: 'requested {start}…{end}. full match: n={n} first={match_first} last={match_last}. shown: {shown} first={shown_first}
+    last={shown_last}. Aggregates below cover ALL {n}, not the shown slice.'
+  incomplete_start: 'INCOMPLETE: first={first} after requested start={requested_start}. Do not treat earlier timestamps as
+    missing-from-source.'
+  incomplete_end: 'INCOMPLETE: shown last={last}; full match continues to {requested_end}. Do not treat later timestamps as
+    missing-from-source.'
+  slice_note: 'Raw slice is a {kind}: {shown}/{total} rows. Aggregates above already cover the full match.'
+  shares_header: 'Shares of «{column}» (all {n} points, mode={mode}):'
+  other: other
+memory_insights:
+  domain_header: '## Observations ({domain})'
+  global_header: '## General user observations'
+  prompt_line: '- [{date}] {text}'
+  confirmed_ui_line: • [{domain}, {date}, {kind}] {text}
+  pending_ui_line: '• [{domain}, {date}, {kind}] #{id}: {text} (×{count})'
+memory_layers:
+  global_observations: 'Global observations:'
+  global_prefix: 'Global:'
+  no_confirmed: (no confirmed observations)
+  no_domain_confirmed: (no confirmed observations for {dom})
+  no_global: (no global observations)
+  observations: 'Observations [{dom}]:'
+  pending_header: 'Candidates (not yet in prompt; confirm via Memory menu):'
+  pending_line: '  • [{domain}, {date}, {kind}] {text} (candidate, ×{count})'
+  durable_header: 'Durable observations:'
+  periodic_header: 'Periodic observations (TTL):'
+  core_header: '## Priors (confirmed)'
+  core_line: '- [{domain}/{kind}] {text}'
+  situation_header: '## Now'
+  situation_calendar: 'Calendar today:'
+  situation_wip: 'In work:'
+  situation_wip_none: 'In work: empty'
+  profile_unset: (profile not set)
+  unknown_scope: 'Unknown scope/domain: {scope}. Allowed: current, global, all, finance, planning, knowledge.'
+memory_tools:
+  empty_history: (dialogue history [{dom}] empty)
+  history_from_domain: ' (requested from domain {domain})'
+  history_header: 'Recent messages [{dom}] (up to {count} messages):'
+  unknown_domain: 'Unknown domain: {dom}. Allowed: {allowed}.'
+  capture_empty: Observation text is empty.
+  capture_pending: 'Queued observation id={id} [{domain}] (confirmations={count}): {text}'
+  capture_ready: 'Saved observation id={id} [{domain}]: {text}'
+  pending_empty: No pending observations.
+  pending_header: 'Pending observations ({count}):'
+  pending_item: '  id={id} [{domain}/{kind}] x{count}: {text}'
+  bad_pending_id: Invalid pending_id.
+  confirm_ok: Confirmed observation id={id}.
+  confirm_fail: Could not confirm id={id} (missing or already handled).
+  reject_ok: Rejected observation id={id}.
+  reject_fail: Could not reject id={id} (missing or already handled).
+  working_set_empty: (working set is empty)
+  working_set_pin_empty: Nothing to pin (empty value).
+  working_set_pin_ok: Pinned [{kind}] {value}.
+  working_set_cleared: Working set cleared (kind={kind}, value={value}).
+  profile_append_empty: Profile append text is empty.
+  profile_append_pending: 'Pending profile append id={id}: {text} — call confirm_profile_append to write.'
+  profile_append_ok: Appended to {path} (pending id={id}).
+  profile_append_fail: Could not confirm/reject profile append id={id}.
+  profile_append_rejected: Rejected profile append id={id}.
+  profile_append_bad_id: Invalid profile append pending_id.
+note_lookup:
+  empty_query: empty query or index
+  no_exact_match: no exact match in index

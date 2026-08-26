@@ -51,6 +51,26 @@ jobs:
           mkdir -p "$VAULT_PATH"
           bash scripts/run_tests.sh
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Ruff
+        run: |
+          python -m pip install -q ruff
+          ruff check shared unified_bot --select E9,F63,F7,F82 --ignore E501
+      - name: Shellcheck (scripts)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck -e SC1090,SC1091 scripts/setup.sh scripts/run_tests.sh scripts/onboarding_wizard.sh
+          # Optional: other top-level shell helpers (non-fatal noise suppressed above)
+          find scripts -maxdepth 1 -name '*.sh' ! -name 'setup.sh' ! -name 'run_tests.sh' ! -name 'onboarding_wizard.sh' \
+            -print0 | xargs -0 -r shellcheck -e SC1090,SC1091,SC2034,SC2155,SC2086 || true
+
   capabilities:
     runs-on: ubuntu-latest
     steps:

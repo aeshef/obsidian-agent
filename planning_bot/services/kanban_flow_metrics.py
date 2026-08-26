@@ -16,6 +16,7 @@ from planning_bot.services.action_log_parser import (
     is_completion_event,
 )
 from shared.agent.platform_config import platform_int
+from planning_bot.services.kanban_flow.window import flow_window_days
 from shared.goals.task_segment import (
     ALL_SEGMENTS,
     SEGMENT_DAILY_ROUTINE,
@@ -28,9 +29,7 @@ from shared.goals.task_segment import (
 
 def _flow_cfg() -> dict[str, int]:
     return {
-        "rolling_window_days": max(
-            1, platform_int("planning_kanban_flow", "rolling_window_days", default=7)
-        ),
+        "rolling_window_days": max(1, flow_window_days()),
         "history_max_days": max(
             30, platform_int("planning_kanban_flow", "history_max_days", default=365)
         ),
