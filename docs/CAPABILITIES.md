@@ -152,7 +152,7 @@ python3 scripts/onboarding_smoke.py --golden-planning
 | Connector | Gates |
 |-----------|--------|
 | `gmail_health_pipeline` | Gmail IMAP sync step (independent of `apple_health`) |
-| `apple_health` | Health tools, iPhone sync |
+| `apple_health` / `health_snapshots` | Health tools; vault KV snapshots ([format](connectors/health/FORMAT.md)) — not Apple-API-only |
 | `features.health_body_metrics` | Weight/fat on nutrition chart |
 | `features.health_nutrition_chart` | KBJU chart sync step |
 | `domestic_bank_cards` | Card lines on finance balance chart |

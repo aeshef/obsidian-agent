@@ -16,6 +16,7 @@ from shared.bootstrap import setup_bot
 
 setup_bot("finance_bot")
 from bot.broker_portfolio import BROKER_PORTFOLIO_ACCOUNT_TYPE, is_broker_portfolio_account  # noqa: E402
+from shared.finance.currency import base_currency, is_base_currency  # noqa: E402
 from bot.services.dashboard.assemble import (  # noqa: E402
     HERO_META_PLACEHOLDER,
     assemble_dashboard_markdown,
@@ -161,7 +162,7 @@ def run_build(args: argparse.Namespace) -> None:
 
     total_rub = sum(
         float(b) for aid, b in balances_now.items()
-        if acc_by_id[aid]["currency"] in ("RUB", "RUR")
+        if is_base_currency(acc_by_id[aid]["currency"])
         and not skip_badge_account(aid, acc_by_id, _badge_acc_name)
     )
     total_usd = sum(
@@ -268,7 +269,7 @@ def run_build(args: argparse.Namespace) -> None:
         broker_ids = {
             a["id"]
             for a in accounts
-            if a.get("currency") in ("RUB", "RUR")
+            if is_base_currency(a.get("currency"))
             and is_broker_portfolio_account(a.get("type"), bool(a.get("is_external_balance")))
         }
         broker_rub = sum(float(balances_now.get(aid, 0) or 0) for aid in broker_ids)
@@ -317,7 +318,7 @@ def run_build(args: argparse.Namespace) -> None:
         cards: list[MetricCard] = [
             MetricCard(
                 label=dtpl("sections", "month_plan", "card_spent_label") or "Spent",
-                value=f"{fmt_num(econ.economic_spend, decimals=0)} RUB",
+                value=f"{fmt_num(econ.economic_spend, decimals=0)} {base_currency()}",
                 accent="#e53935",
                 hint=dtpl(
                     "sections",
@@ -332,7 +333,7 @@ def run_build(args: argparse.Namespace) -> None:
             cards.append(
                 MetricCard(
                     label=dtpl("sections", "month_plan", "card_free_label") or "Free",
-                    value=f"{fmt_num(flexible_left, decimals=0)} RUB",
+                    value=f"{fmt_num(flexible_left, decimals=0)} {base_currency()}",
                     accent=free_accent,
                     hint=dtpl(
                         "sections",
@@ -345,8 +346,8 @@ def run_build(args: argparse.Namespace) -> None:
             )
             cards.append(
                 MetricCard(
-                    label=dtpl("sections", "month_plan", "card_daily_label") or "RUB/day",
-                    value=f"{fmt_num(snap.daily_allowance_remaining, decimals=0)} RUB",
+                    label=dtpl("sections", "month_plan", "card_daily_label") or f"{base_currency()}/day",
+                    value=f"{fmt_num(snap.daily_allowance_remaining, decimals=0)} {base_currency()}",
                     accent="#1e88e5",
                     hint=dtpl(
                         "sections",
@@ -500,7 +501,7 @@ def run_build(args: argparse.Namespace) -> None:
     rub_accounts = [
         (acc_by_id[aid]["name"], float(b))
         for aid, b in balances_now.items()
-        if acc_by_id[aid]["currency"] in ("RUB", "RUR")
+        if is_base_currency(acc_by_id[aid]["currency"])
         and float(b) > 0
         and not skip_badge_account(aid, acc_by_id, _badge_acc_name)
     ]
@@ -540,7 +541,7 @@ def run_build(args: argparse.Namespace) -> None:
     for t in transactions:
         if t["type"] != "expense":
             continue
-        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+        if not is_base_currency(acc_by_id.get(t["account_id"], {}).get("currency")):
             continue
         if is_excluded_category(t, exclude_spending_categories):
             occ = parse_datetime(t["occurred_at"])
@@ -604,7 +605,7 @@ def run_build(args: argparse.Namespace) -> None:
         for t in transactions:
             if t["type"] != "income":
                 continue
-            if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+            if not is_base_currency(acc_by_id.get(t["account_id"], {}).get("currency")):
                 continue
             if not is_excluded_category(t, exclude_spending_categories):
                 continue
@@ -696,7 +697,7 @@ def run_build(args: argparse.Namespace) -> None:
             x_labels,
             series,
             title=dtpl("charts", "daily_categories_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=out_png,
             totals_for_labels=day_totals_all,
         )
@@ -732,7 +733,7 @@ def run_build(args: argparse.Namespace) -> None:
             x_labels,
             {dtpl("charts", "oneoff_series"): vals},
             title=dtpl("charts", "oneoff_daily_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=out_png,
         )
         if ok:
@@ -767,7 +768,7 @@ def run_build(args: argparse.Namespace) -> None:
             x_labels,
             {dtpl("charts", "income"): inc_vals, dtpl("charts", "expense"): exp_vals},
             title=dtpl("charts", "flow_daily_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=out_png,
         )
         if ok:
@@ -796,7 +797,7 @@ def run_build(args: argparse.Namespace) -> None:
                 xw,
                 {dtpl("charts", "income"): inc_w, dtpl("charts", "expense"): exp_w},
                 title=dtpl("charts", "flow_weekly_title"),
-                y_label="RUB",
+                y_label=base_currency(),
                 out_path=out_png,
             )
             if ok:
@@ -835,7 +836,7 @@ def run_build(args: argparse.Namespace) -> None:
                 xw,
                 series,
                 title=dtpl("charts", "exp_weekly_title"),
-                y_label="RUB",
+                y_label=base_currency(),
                 out_path=out_png,
                 totals_for_labels=week_totals_labels,
             )
@@ -859,7 +860,7 @@ def run_build(args: argparse.Namespace) -> None:
     # Total balance over time
     balance_data_dates: set[date] = set()
     for t in transactions:
-        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+        if not is_base_currency(acc_by_id.get(t["account_id"], {}).get("currency")):
             continue
         occ = parse_datetime(t.get("occurred_at"))
         if occ:
@@ -876,7 +877,7 @@ def run_build(args: argparse.Namespace) -> None:
     broker_rub_account_ids = [
         aid
         for aid, a in acc_by_id.items()
-        if a.get("currency") in ("RUB", "RUR")
+        if is_base_currency(a.get("currency"))
         and is_broker_portfolio_account(a.get("type"), bool(a.get("is_external_balance")))
     ]
 
@@ -898,7 +899,7 @@ def run_build(args: argparse.Namespace) -> None:
     for t in transactions:
         acc_id = t["account_id"]
         a = acc_by_id.get(acc_id, {})
-        if a.get("currency") not in ("RUB", "RUR"):
+        if not is_base_currency(a.get("currency")):
             continue
         occ = parse_datetime(t.get("occurred_at"))
         if not occ:
@@ -911,7 +912,7 @@ def run_build(args: argparse.Namespace) -> None:
             account_daily_delta[acc_id][d] -= amt
     run_by_account = {}
     for a in accounts:
-        if a.get("currency") not in ("RUB", "RUR"):
+        if not is_base_currency(a.get("currency")):
             continue
         if acc_by_id[a["id"]].get("is_external_balance"):
             continue
@@ -959,7 +960,7 @@ def run_build(args: argparse.Namespace) -> None:
         format_day_labels(days_total),
         balance_series,
         title=dtpl("charts", "balance_daily_title"),
-        y_label="RUB",
+        y_label=base_currency(),
         out_path=out_png,
     )
     if ok:
@@ -994,7 +995,7 @@ def run_build(args: argparse.Namespace) -> None:
         occ = parse_datetime(t["occurred_at"])
         if not occ or occ < month_start:
             continue
-        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
+        if not is_base_currency(acc_by_id.get(t["account_id"], {}).get("currency")):
             continue
         exp_by_account[t.get("account_name") or dtpl("misc", "unknown_account")] += Decimal(
             str(t["amount"])
@@ -1032,7 +1033,7 @@ def run_build(args: argparse.Namespace) -> None:
         if str(a.get("name") or "").startswith(("receivable:", "liability_")):
             continue
         bal = float(balances_now.get(a["id"], 0) or 0)
-        cur = a.get("currency") or "RUB"
+        cur = a.get("currency") or base_currency()
         part_balances.append(
             f"- **{a['name']}**: {fmt_num(bal, decimals=2 if abs(bal) < 100 else 0)} {cur}"
         )
@@ -1144,7 +1145,7 @@ def run_build(args: argparse.Namespace) -> None:
             q_keys,
             {dtpl("charts", "income"): inc_q, dtpl("charts", "expense"): exp_q},
             title=dtpl("charts", "quarterly_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=out_png,
         )
         if ok:
@@ -1181,7 +1182,7 @@ def run_build(args: argparse.Namespace) -> None:
             x_labels,
             {dtpl("charts", "income"): inc_vals, dtpl("charts", "expense"): exp_vals},
             title=dtpl("charts", "monthly_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=out_png,
         )
         if ok:

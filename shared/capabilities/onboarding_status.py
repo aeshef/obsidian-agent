@@ -159,7 +159,13 @@ def collect_status(
         StatusItem("capabilities", cap_path.is_file(), str(cap_path.relative_to(_REPO)) if cap_path.is_file() else "missing — apply playbook"),
         StatusItem("vault_path", _env_ok("VAULT_PATH"), os.environ.get("VAULT_PATH") or "unset"),
         StatusItem("telegram", _env_ok("TELEGRAM_UNIFIED_BOT_TOKEN") or _env_ok("TELEGRAM_BOT_TOKEN"), "set" if (_env_ok("TELEGRAM_UNIFIED_BOT_TOKEN") or _env_ok("TELEGRAM_BOT_TOKEN")) else "missing"),
-        StatusItem("deepseek", _env_ok("DEEPSEEK_API_KEY"), "set" if _env_ok("DEEPSEEK_API_KEY") else "missing"),
+        StatusItem(
+            "llm",
+            _env_ok("LLM_API_KEY") or _env_ok("DEEPSEEK_API_KEY") or _env_ok("DEEPSEEK_API_TOKEN"),
+            "set"
+            if (_env_ok("LLM_API_KEY") or _env_ok("DEEPSEEK_API_KEY") or _env_ok("DEEPSEEK_API_TOKEN"))
+            else "missing (LLM_API_KEY or DEEPSEEK_API_KEY)",
+        ),
     ]
     if prof.module(MODULE_KNOWLEDGE):
         items.append(

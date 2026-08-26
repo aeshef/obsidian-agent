@@ -7,6 +7,9 @@ User-facing docs for **obsidian-agent** clones and contributors. Maintainer-only
 | [SETUP.md](SETUP.md) | First run: venv, `.env`, locale, deploy, Mac sync |
 | [ONBOARDING.md](ONBOARDING.md) | Modules, connectors, prompts, smoke tests |
 | [CAPABILITIES.md](CAPABILITIES.md) | `capabilities.yaml`, sync steps, UI gates, `menu_actions` |
+| [connectors/HOSTING_WITHOUT_MAC.md](connectors/HOSTING_WITHOUT_MAC.md) | VPS / Linux / Windows without Mac LaunchAgent |
+| [connectors/health/FORMAT.md](connectors/health/FORMAT.md) | Portable health KV snapshots (iOS / Android / manual) |
+| [connectors/shortcuts/README.md](connectors/shortcuts/README.md) | Shortcut / Tasker recipes (no binary `.shortcut`) |
 | [PROMPTS_ONBOARDING.md](PROMPTS_ONBOARDING.md) | Prompt tiers and scaffolds |
 | [LOCALE.md](LOCALE.md) | `AGENT_LOCALE` (EN default) |
 | [ENV_REFERENCE.md](ENV_REFERENCE.md) | Environment variables |

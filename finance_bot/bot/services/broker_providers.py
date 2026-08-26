@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 SyncFn = Callable[["AsyncSession", "User"], Awaitable[str]]
 
-_SUPPORTED = frozenset({"none", "tinkoff", "example"})
+_SUPPORTED = frozenset({"none", "tinkoff", "csv", "example"})
 
 
 def supported_broker_providers() -> frozenset[str]:
@@ -25,10 +25,14 @@ async def run_broker_sync(provider: str, session: "AsyncSession", user: "User") 
         from finance_bot.bot.services.tinkoff_integration import sync_tinkoff_account
 
         return await sync_tinkoff_account(session, user)
+    if key == "csv":
+        from finance_bot.bot.services.csv_broker_sync import sync_csv_balances
+
+        return await sync_csv_balances(session, user)
     if key == "example":
         raise ValueError(
-            "broker provider 'example' is a template stub — implement sync in "
-            "shared/finance/broker_providers.py or set provider: tinkoff in broker_sync.yaml"
+            "broker provider 'example' is a template stub — set provider: tinkoff or csv "
+            "in broker_sync.yaml (see finance_bot/config/broker_sync.yaml.example)"
         )
     raise ValueError(
         f"unsupported broker_sync provider: {provider!r} "

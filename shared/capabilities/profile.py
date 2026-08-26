@@ -69,6 +69,8 @@ def _as_bool(val: Any, default: bool = False) -> bool:
 
 _CONNECTOR_YAML_ALIASES: dict[str, str] = {
     "manual_broker_accounts": CONNECTOR_MANUAL_BROKER,
+    # OS-neutral name; canonical id stays apple_health for env/CLI compat.
+    "health_snapshots": CONNECTOR_APPLE_HEALTH,
 }
 
 

@@ -251,11 +251,11 @@ _prompt_secret() {
 }
 _prompt_secret VAULT_PATH "Absolute path to your Obsidian vault"
 _prompt_secret TELEGRAM_UNIFIED_BOT_TOKEN "BotFather → /newbot → paste token"
-_prompt_secret DEEPSEEK_API_KEY "https://platform.deepseek.com → API key"
+_prompt_secret LLM_API_KEY "OpenAI-compatible key (DeepSeek / OpenRouter / Groq / local) — also accepts DEEPSEEK_API_KEY"
 case "$MODULES" in
   *knowledge*) _prompt_secret OPENROUTER_API_KEY "https://openrouter.ai (vision/KB) — optional until ingest" ;;
 esac
-"$PY" scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
+"$PY" scripts/setup/env_tools.py list-missing VAULT_PATH LLM_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
 
 log "OS checklist (you do these — not automated)"
 echo "  - Obsidian: enable community plugins from vault .obsidian/community-plugins.json"

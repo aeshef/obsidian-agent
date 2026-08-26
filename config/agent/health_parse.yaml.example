@@ -1,5 +1,7 @@
-# Парсинг Health/Shortcuts → снапшот IPhone/*.txt
-# Скопируйте в health_parse.yaml (файл в git не коммитится).
+# Health / device snapshot parsing → vault *.txt (KV format).
+# Portable: iPhone Shortcuts, Android Tasker, or manual paste.
+# Spec + samples: docs/connectors/health/FORMAT.md
+# Copy to health_parse.yaml (gitignored).
 
 shortcut_aliases:
   weight: weight_kg

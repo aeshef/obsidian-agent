@@ -6,6 +6,7 @@ from typing import Sequence
 
 from bot.dashboard_templates import dtpl
 from bot.services.dashboard.format import fmt_num
+from shared.finance.currency import base_currency
 
 
 HERO_META_PLACEHOLDER = "__FINANCE_HERO_META__"
@@ -27,7 +28,7 @@ def fill_summary_hero(
     hero_cards = [
         MetricCard(
             label=dtpl("sections", "summary", "card_total_label") or "Total",
-            value=f"{fmt_num(total_rub, decimals=0)} RUB",
+            value=f"{fmt_num(total_rub, decimals=0)} {base_currency()}",
             accent="#1e88e5",
             hint=dtpl("sections", "summary", "card_total_hint") or "cash + broker",
         ),

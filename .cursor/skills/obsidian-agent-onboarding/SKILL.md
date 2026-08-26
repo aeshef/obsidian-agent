@@ -54,10 +54,10 @@ User pastes a token in chat → you write it atomically (no echoing the value ba
 ```bash
 python3 scripts/setup/env_tools.py set VAULT_PATH '/absolute/path/to/vault'
 python3 scripts/setup/env_tools.py set TELEGRAM_UNIFIED_BOT_TOKEN '...'
-python3 scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'
+python3 scripts/setup/env_tools.py set LLM_API_KEY 'sk-...'
 python3 scripts/setup/env_tools.py append-hints          # after capabilities.yaml exists
 python3 scripts/setup/env_tools.py status
-python3 scripts/setup/env_tools.py list-missing VAULT_PATH DEEPSEEK_API_KEY
+python3 scripts/setup/env_tools.py list-missing VAULT_PATH LLM_API_KEY
 ```
 
 Same hints as `python3 scripts/apply_capabilities_profile.py ... --patch-env` (`shared/setup/env_patch.py`).
@@ -71,7 +71,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 | Step | Command / action |
 |------|------------------|
 | Profile | `python3 scripts/apply_capabilities_profile.py --preset planning_only --write --patch-env` |
-| Core env | `env_tools.py set` → `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN` (or `TELEGRAM_BOT_TOKEN`), `DEEPSEEK_API_KEY` |
+| Core env | `env_tools.py set` → `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN` (or `TELEGRAM_BOT_TOKEN`), `LLM_API_KEY` (or legacy `DEEPSEEK_API_KEY`) |
 | Layout | `python3 scripts/init_vault_layout.py` → `./scripts/setup.sh` → `bash scripts/setup_agent_config.sh` |
 | Prompts | `bash scripts/ensure_bot_prompts.sh` — personalize planning `*.txt` only |
 | Smoke | `python3 scripts/onboarding_smoke.py --verify-all --golden-planning` |
@@ -85,7 +85,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 | Step | Command / action |
 |------|------------------|
 | Profile | `python3 scripts/apply_capabilities_profile.py --preset finance_only --write --patch-env` |
-| Core env | `VAULT_PATH`, Telegram token, `DEEPSEEK_API_KEY` |
+| Core env | `VAULT_PATH`, Telegram token, `LLM_API_KEY` |
 | Finance config | `cp finance_bot/config/broker_sync.yaml.example` only if user wants **API** broker later; default preset uses manual accounts + cards |
 | Prompts | Finance personalized prompts (`nlu_prompt`, `query_prompt`, …) — **no broker brand names in prompt logic**; localized labels live in `messages.ru.yaml` |
 | Smoke | `python3 scripts/onboarding_smoke.py --verify-all --golden-finance` |
@@ -110,7 +110,7 @@ flowchart TD
   D --> E[Interview intro via onboarding_interview.py]
   E --> F[init_vault_layout + setup.sh]
   F --> G[ensure_bot_prompts + scaffold]
-  G --> H[Secrets: Telegram + DeepSeek]
+  G --> H[Secrets: Telegram + LLM key]
   H --> I[Interview: balances + telegram_id]
   I --> J[apply_initial_accounts + scaffold]
   J --> K[onboarding_smoke --complete]
@@ -211,14 +211,14 @@ bash scripts/ensure_bot_prompts.sh --warn-stubs
 
 Enhance finance/planning prod `*.txt` from slots + `user_profile.md` (do not overwrite good existing text).
 
-### 7 — Secrets (one per turn — **never skip DeepSeek**)
+### 7 — Secrets (one per turn — **never skip LLM key**)
 
 Even if `env_tools.py status` shows DEEPSEEK “set”, it may still be `sk-...` from `.env.example`. **Always ask** and validate.
 
 | Order | Key | User action |
 |-------|-----|-------------|
 | 1 | `TELEGRAM_UNIFIED_BOT_TOKEN` | BotFather `/newbot` |
-| 2 | `DEEPSEEK_API_KEY` | [platform.deepseek.com](https://platform.deepseek.com/) → API keys → create key |
+| 2 | `LLM_API_KEY` | Any OpenAI-compatible host: [DeepSeek](https://platform.deepseek.com/), OpenRouter, Groq, local vLLM. Optional: `LLM_BASE_URL`, `LLM_MODEL`. Legacy: `DEEPSEEK_API_KEY` |
 | 3 | `OPENROUTER_API_KEY` | Only if **knowledge** module enabled — [openrouter.ai](https://openrouter.ai/) |
 
 After each paste:
@@ -268,7 +268,7 @@ When user confirms it works:
 ./scripts/oa-python.sh scripts/onboarding_interview.py confirm-bot
 ```
 
-If LLM 401 in logs → go back to step 7 (DeepSeek key).
+If LLM 401 in logs → go back to step 7 (LLM key / LLM_BASE_URL).
 
 ### 10 — Finalize deploy (required; after `confirm-bot`)
 
@@ -309,7 +309,7 @@ Never paste or request VPS root passwords. SSH keys only.
 ```
 ✓ capabilities.yaml for chosen playbook
 ✓ VAULT_PATH + real Telegram token (not placeholder)
-✓ DEEPSEEK_API_KEY validated (--ping-deepseek OK)
+✓ LLM_API_KEY validated (--ping-deepseek OK)
 ✓ Interview intro + after_secrets + finalize answered
 ✓ initial_accounts.yaml + DB seeded (finance)
 ✓ User confirmed live bot test (confirm-bot)
@@ -478,7 +478,7 @@ Example prod blocks (see `health_tools.example.txt`, `context_tools.example.txt`
 |------|---------------|---------|
 | 1 | Absolute path to their Obsidian vault folder | `VAULT_PATH` |
 | 2 | [BotFather](https://t.me/BotFather) → `/newbot` → copy token | `TELEGRAM_UNIFIED_BOT_TOKEN` |
-| 3 | [DeepSeek](https://platform.deepseek.com/) API key | `DEEPSEEK_API_KEY` |
+| 3 | OpenAI-compatible LLM key | `LLM_API_KEY` (+ optional `LLM_BASE_URL` / `LLM_MODEL`) |
 
 ### Optional (only if connector enabled — one per turn)
 

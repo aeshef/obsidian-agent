@@ -8,11 +8,13 @@ from typing import Callable, Mapping, Optional, Sequence
 
 from bot.services.dashboard.filters import is_badge_expense, is_excluded_category
 
+from shared.finance.currency import is_base_currency
+
 ParseDatetime = Callable[[object], Optional[object]]
 
 
-def _is_rub(acc_by_id: Mapping, account_id: object) -> bool:
-    return acc_by_id.get(account_id, {}).get("currency") in ("RUB", "RUR")
+def _is_base_ccy(acc_by_id: Mapping, account_id: object) -> bool:
+    return is_base_currency(acc_by_id.get(account_id, {}).get("currency"))
 
 
 def accumulate_daily_spending(
@@ -40,7 +42,7 @@ def accumulate_daily_spending(
         occ = parse_datetime(t["occurred_at"])
         if not occ:
             continue
-        if not _is_rub(acc_by_id, t["account_id"]):
+        if not _is_base_ccy(acc_by_id, t["account_id"]):
             continue
         if is_excluded_category(t, exclude_categories):
             continue
@@ -81,7 +83,7 @@ def accumulate_daily_flow(
         occ = parse_datetime(t["occurred_at"])
         if not occ:
             continue
-        if not _is_rub(acc_by_id, t["account_id"]):
+        if not _is_base_ccy(acc_by_id, t["account_id"]):
             continue
         if is_excluded_category(t, exclude_categories):
             continue
@@ -106,7 +108,7 @@ def accumulate_weekly_flow(
     """Return week_start (Monday) -> {income, expense}. Badge expenses are included."""
     week_flow: dict[date, dict[str, Decimal]] = defaultdict(lambda: defaultdict(Decimal))
     for t in transactions:
-        if not _is_rub(acc_by_id, t["account_id"]):
+        if not _is_base_ccy(acc_by_id, t["account_id"]):
             continue
         if is_excluded_category(t, exclude_categories):
             continue
@@ -138,7 +140,7 @@ def accumulate_weekly_regular_spending(
     for t in transactions:
         if t["type"] != "expense":
             continue
-        if not _is_rub(acc_by_id, t["account_id"]):
+        if not _is_base_ccy(acc_by_id, t["account_id"]):
             continue
         if is_excluded_category(t, exclude_categories):
             continue

@@ -42,6 +42,7 @@ _CAP_ALIASES: dict[str, str] = {
     "manual_broker_accounts": CONNECTOR_MANUAL_BROKER,
     "apple_health": CONNECTOR_APPLE_HEALTH,
     "health": CONNECTOR_APPLE_HEALTH,
+    "health_snapshots": CONNECTOR_APPLE_HEALTH,
     "gmail": CONNECTOR_GMAIL_HEALTH,
     "gmail_health": CONNECTOR_GMAIL_HEALTH,
     "gmail_health_pipeline": CONNECTOR_GMAIL_HEALTH,

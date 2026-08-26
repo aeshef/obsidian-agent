@@ -114,7 +114,14 @@ def set_env_value(
 
 def list_missing(path: Path, keys: Iterable[str]) -> list[str]:
     have = parse_env_keys(path)
-    return [k for k in keys if not (have.get(k) or "").strip()]
+    llm_set = any((have.get(k) or "").strip() for k in ("LLM_API_KEY", "DEEPSEEK_API_KEY", "DEEPSEEK_API_TOKEN"))
+    missing: list[str] = []
+    for k in keys:
+        if k in ("LLM_API_KEY", "DEEPSEEK_API_KEY", "DEEPSEEK_API_TOKEN") and llm_set:
+            continue
+        if not (have.get(k) or "").strip():
+            missing.append(k)
+    return missing
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -204,9 +211,18 @@ def main(argv: list[str] | None = None) -> int:
         clear_capabilities_cache()
         prof = get_capabilities()
         have = parse_env_keys(ep)
-        core = ("VAULT_PATH", "TELEGRAM_UNIFIED_BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "DEEPSEEK_API_KEY")
+        core = ("VAULT_PATH", "TELEGRAM_UNIFIED_BOT_TOKEN", "TELEGRAM_BOT_TOKEN", "LLM_API_KEY")
         print("=== core ===")
         for k in core:
+            if k == "LLM_API_KEY":
+                v = (
+                    have.get("LLM_API_KEY")
+                    or have.get("DEEPSEEK_API_KEY")
+                    or have.get("DEEPSEEK_API_TOKEN")
+                    or ""
+                )
+                print(f"LLM_API_KEY (or DEEPSEEK_*): {'set' if v.strip() else 'MISSING'}")
+                continue
             v = have.get(k, "")
             print(f"{k}: {'set' if v.strip() else 'MISSING'}")
         print("=== enabled connectors ===")

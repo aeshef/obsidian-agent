@@ -1,0 +1,7 @@
+ts: 2026-08-26T08:05:00
+source: android_tasker
+steps: 1204
+weight_kg: 72.5
+resting_hr_bpm: 61
+active_calories_kcal: 80
+note: minimal morning dump

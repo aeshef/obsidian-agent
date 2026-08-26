@@ -20,14 +20,15 @@ connectors:
   manual_broker_accounts: false
   # Card/wallet balances in finance dashboard
   domestic_bank_cards: true
-  # Apple Health via Shortcuts / IPhone export
-  apple_health: true
-  # Gmail IMAP health pipeline (GMAIL_IMAP_* in .env)
+  # Health KV snapshots in vault (iPhone Shortcuts, Android Tasker, or manual).
+  # Alias: health_snapshots: true  (same connector)
+  apple_health: false
+  # Gmail IMAP health pipeline (GMAIL_IMAP_* in .env) — optional delivery path
   gmail_health_pipeline: false
-  # Apple Calendar export → vault
-  apple_calendar: true
-  # Mac focus / context snapshots
-  mac_context: true
+  # Calendar export → vault (Apple Shortcut or any writer of the same file)
+  apple_calendar: false
+  # Mac focus / context snapshots (skip on Linux/Windows)
+  mac_context: false
   # Daily random KB note in Telegram (needs knowledge: true)
   knowledge_serendipity: false
 

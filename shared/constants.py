@@ -27,12 +27,35 @@ def timezone_name(*, override: str | None = None) -> str:
     return (os.environ.get("TIMEZONE") or DEFAULT_TIMEZONE).strip()
 
 
+def llm_api_key(*, override: str | None = None) -> str | None:
+    """Chat LLM key: LLM_API_KEY, then legacy DEEPSEEK_API_KEY / DEEPSEEK_API_TOKEN."""
+    raw = (
+        override
+        or os.environ.get("LLM_API_KEY")
+        or os.environ.get("DEEPSEEK_API_KEY")
+        or os.environ.get("DEEPSEEK_API_TOKEN")
+        or ""
+    ).strip()
+    return raw or None
+
+
 def deepseek_base_url(*, override: str | None = None) -> str:
-    raw = (override or os.environ.get("DEEPSEEK_BASE_URL") or DEFAULT_DEEPSEEK_BASE_URL).strip()
+    """OpenAI-compatible chat base URL (LLM_BASE_URL or legacy DEEPSEEK_BASE_URL)."""
+    raw = (
+        override
+        or os.environ.get("LLM_BASE_URL")
+        or os.environ.get("DEEPSEEK_BASE_URL")
+        or DEFAULT_DEEPSEEK_BASE_URL
+    ).strip()
     base = raw.rstrip("/")
     if base.endswith("/chat/completions"):
         base = base[: -len("/chat/completions")].rstrip("/")
     return base
+
+
+def llm_base_url(*, override: str | None = None) -> str:
+    """Alias for deepseek_base_url — any OpenAI-compatible host."""
+    return deepseek_base_url(override=override)
 
 
 def deepseek_chat_completions_url(*, override: str | None = None) -> str:
@@ -43,11 +66,25 @@ def deepseek_chat_completions_url(*, override: str | None = None) -> str:
 
 
 def deepseek_model(*, override: str | None = None) -> str:
-    return (override or os.environ.get("DEEPSEEK_MODEL") or DEFAULT_DEEPSEEK_MODEL).strip()
+    return (
+        override
+        or os.environ.get("LLM_MODEL")
+        or os.environ.get("DEEPSEEK_MODEL")
+        or DEFAULT_DEEPSEEK_MODEL
+    ).strip()
+
+
+def llm_model(*, override: str | None = None) -> str:
+    return deepseek_model(override=override)
 
 
 def openrouter_base_url(*, override: str | None = None) -> str:
-    raw = (override or os.environ.get("OPENROUTER_BASE_URL") or DEFAULT_OPENROUTER_BASE_URL).strip()
+    raw = (
+        override
+        or os.environ.get("OPENROUTER_BASE_URL")
+        or os.environ.get("VISION_BASE_URL")
+        or DEFAULT_OPENROUTER_BASE_URL
+    ).strip()
     return raw.rstrip("/")
 
 

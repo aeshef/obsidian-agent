@@ -1,0 +1,22 @@
+# /etc/systemd/system/obsidian-agent.service
+# Copy, edit paths/User, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now obsidian-agent
+
+[Unit]
+Description=obsidian-agent unified Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=/opt/obsidian-agent
+EnvironmentFile=/opt/obsidian-agent/.env
+Environment=PYTHONPATH=/opt/obsidian-agent
+ExecStart=/opt/obsidian-agent/scripts/run_unified_bot.sh
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

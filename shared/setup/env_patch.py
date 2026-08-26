@@ -19,7 +19,7 @@ _CONNECTOR_ENV_HINTS: dict[str, tuple[str, ...]] = {
 _CORE_HINTS = (
     "VAULT_PATH=",
     "TELEGRAM_UNIFIED_BOT_TOKEN=",
-    "DEEPSEEK_API_KEY=",
+    "LLM_API_KEY=",
 )
 
 _MODULE_ENV_HINTS: dict[str, tuple[str, ...]] = {

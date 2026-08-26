@@ -1,9 +1,18 @@
 # cp broker_sync.yaml.example broker_sync.yaml
-# provider: tinkoff | example | none — none disables API sync even if broker_sync connector is on
+# provider: tinkoff | csv | example | none
+#   tinkoff — T-Invest API (needs TINKOFF_API_TOKEN)
+#   csv     — update external balances from a CSV (any broker / country)
+#   none    — disable API sync even if broker_sync connector is on
 # Rename labels.* to match your broker account names in the finance DB.
 
-# Implemented: tinkoff. Template stub: example. Extend in shared/finance/broker_providers.py
-provider: tinkoff
+provider: none
+
+# CSV sync (provider: csv). Path relative to finance_bot/config/ or absolute.
+# csv:
+#   path: ./broker_balances.csv
+# Sample CSV:
+#   name,balance,currency
+#   Broker (regular),125000.50,USD
 
 accounts:
   regular: true

@@ -70,10 +70,11 @@ PLAYBOOKS: tuple[ConnectorPlaybook, ...] = (
         cli_flag="--apple-health",
         env_keys=(),
         user_steps=(
-            "Configure health_parse.yaml field aliases for your Shortcuts",
-            "Optional: IPhone/*.txt export into vault",
+            "Copy docs/connectors/health/samples/*.txt into your vault health folder",
+            "Configure health_parse.yaml aliases if your exporter uses different keys",
+            "Optional: iOS/Android Shortcuts or Tasker — docs/connectors/shortcuts/",
         ),
-        smoke_hint="apple_health connector",
+        smoke_hint="health_snapshots / apple_health connector",
     ),
     ConnectorPlaybook(
         id=CONNECTOR_GMAIL_HEALTH,

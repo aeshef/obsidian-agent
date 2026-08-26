@@ -50,7 +50,7 @@ Dumb recorder — **you** interpret the user; pass structured flags:
 ./scripts/oa-python.sh scripts/onboarding_interview.py answer QUESTION_ID 'exact value'
 ./scripts/oa-python.sh scripts/onboarding_interview.py answer user_tone --choice 0
 ./scripts/oa-python.sh scripts/onboarding_interview.py answer finance_categories --mvp
-./scripts/oa-python.sh scripts/setup/env_tools.py set DEEPSEEK_API_KEY 'sk-...'
+./scripts/oa-python.sh scripts/setup/env_tools.py set LLM_API_KEY 'sk-...'
 ./scripts/oa-python.sh scripts/onboarding_validate_secrets.py --ping-deepseek
 ./scripts/oa-python.sh finance_bot/scripts/apply_initial_accounts.py
 ./scripts/run_unified_bot.sh

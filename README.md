@@ -7,15 +7,15 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](pyproject.toml)
 [![Obsidian](https://img.shields.io/badge/Obsidian-PKM-7c3aed)](https://obsidian.md)
 [![Telegram](https://img.shields.io/badge/Telegram-bot-26A5E4?logo=telegram&logoColor=white)](https://core.telegram.org/bots)
-[![DeepSeek](https://img.shields.io/badge/LLM-DeepSeek-000000)](https://platform.deepseek.com/)
+[![LLM](https://img.shields.io/badge/LLM-OpenAI--compatible-000000)](docs/ENV_REFERENCE.md)
 [![Locale](https://img.shields.io/badge/locale-en%20%7C%20ru-green)](config/agent/)
 [![GitHub stars](https://img.shields.io/github/stars/aeshef/obsidian-agent?style=social)](https://github.com/aeshef/obsidian-agent/stargazers)
 
 Open-source **Obsidian + Telegram** personal assistant: capture from chat (text, voice, photos), write into markdown / SQLite in the vault, answer with a tool-using LLM — not a chat that forgets.
 
-> Vault-native, **fail-closed modules** (planning / knowledge / finance). If a capability is off, it is gone from UI, tools, prompts, and Mac sync.
+> Vault-native, **fail-closed modules** (planning / knowledge / finance). If a capability is off, it is gone from UI, tools, prompts, and sync. **Mac is optional** — see [docs/connectors/HOSTING_WITHOUT_MAC.md](docs/connectors/HOSTING_WITHOUT_MAC.md).
 
-Edit in Obsidian whenever you want. Optional Mac↔VPS sync keeps the vault alive when you are away from the desk.
+Edit in Obsidian whenever you want. Optional VPS keeps capture 24/7; optional Mac sync is one way to mirror the vault — Syncthing / Obsidian Sync work too.
 
 ![obsidian-agent](assets/banner.png)
 
@@ -35,7 +35,7 @@ You do **not** need to learn this monorepo. Open the project in an AI coding cha
 1. Clone and open **this repo root** in Cursor (the folder that contains `unified_bot/` and `scripts/` — not your Obsidian vault as the only root).
 2. In chat type **`/setup`** (or `@setup` if slash commands are empty).
 3. Answer a few questions: which modules (planning / finance / knowledge / full), language (`en` / `ru`), path to your vault.
-4. When it asks — paste tokens one at a time: [BotFather](https://t.me/BotFather) bot token, [DeepSeek](https://platform.deepseek.com/) API key.
+4. When it asks — paste tokens one at a time: [BotFather](https://t.me/BotFather) bot token, then an **OpenAI-compatible** LLM key ([DeepSeek](https://platform.deepseek.com/), OpenRouter, Groq, local vLLM, … — set `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`).
 5. When it says the bot is ready: `./scripts/run_unified_bot.sh`, open Telegram, send `/start`.
 
 The chat agent follows a fixed playbook (venvs, capabilities, vault folders, prompts). You only decide modules and paste secrets.
@@ -58,7 +58,7 @@ cd obsidian-agent
 
 Then set secrets with `./scripts/oa-python.sh scripts/setup/env_tools.py set KEY 'value'` and start the bot (see [Quick start](#quick-start) below).
 
-You need: Python **3.10–3.12**, an Obsidian vault path, Telegram token, DeepSeek key.
+You need: Python **3.10–3.12**, an Obsidian vault path, Telegram token, LLM API key (any OpenAI-compatible host).
 
 ---
 
@@ -132,14 +132,16 @@ Cheap intents skip the heavy model; ambiguous or cross-domain ones escalate. Cha
 ### Split-brain hosting
 
 ```
-You  →  Telegram  →  unified_bot (VPS, optional 24/7)
+You  →  Telegram  →  unified_bot (VPS or laptop, optional 24/7)
                          ↓
               vault markdown / JSON / SQLite
                          ↑
-You  →  Obsidian.app  ←  Mac: rsync + matplotlib charts + maintenance
+You  →  Obsidian.app  ←  Syncthing / Obsidian Sync / optional Mac rsync
 ```
 
-Bots and long-running jobs can live on a server. The vault and the graphs can live where you actually edit. Sync copies **only folders the manifest enabled**.
+Bots and long-running jobs can live on a server. The vault can live where you edit.
+**No Mac required** — [HOSTING_WITHOUT_MAC](docs/connectors/HOSTING_WITHOUT_MAC.md).
+Health metrics are **text snapshots** ([format](docs/connectors/health/FORMAT.md)), not Apple-only APIs.
 
 ![Architecture](assets/architecture.svg)
 
@@ -185,7 +187,7 @@ docker compose up --build
 ```
 
 Checklist contract: [`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example).  
-Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
+Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [HOSTING_WITHOUT_MAC](docs/connectors/HOSTING_WITHOUT_MAC.md) · [Health format](docs/connectors/health/FORMAT.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
 
 ---
 

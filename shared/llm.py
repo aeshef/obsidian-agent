@@ -1,18 +1,14 @@
-"""Unified LLM client (DeepSeek-compatible) for all monorepo bots.
+"""Unified LLM client (OpenAI-compatible) for all monorepo bots.
 
-Merges three historical versions:
-  - planning_bot/core/llm.py   (env: DEEPSEEK_API_TOKEN, hardcoded URL)
-  - knowledge_bot/core/llm.py  (env: DEEPSEEK_API_KEY, DEEPSEEK_BASE_URL, fallback)
-  - finance_bot/bot/llm.py     (config from llm_config.yaml)
+Any OpenAI-style chat/completions host works: DeepSeek, OpenRouter, Groq,
+vLLM, Ollama OpenAI shim, Azure-compatible proxies, etc.
 
-Unification:
-  - api_key: explicit arg → DEEPSEEK_API_KEY → DEEPSEEK_API_TOKEN (both names)
-  - base_url: explicit arg → DEEPSEEK_BASE_URL → https://api.deepseek.com/v1
-  - chat_json (JSON-mode) and chat (plain text) with graceful fallback
-  - is_reachable() — DNS preflight (from shared.llm_reachable)
+Env resolution (first wins):
+  - api_key: arg → LLM_API_KEY → DEEPSEEK_API_KEY → DEEPSEEK_API_TOKEN
+  - base_url: arg → LLM_BASE_URL → DEEPSEEK_BASE_URL → api.deepseek.com/v1
+  - model: arg → LLM_MODEL → DEEPSEEK_MODEL → deepseek-chat
 
-Domain business logic (note fallback routing etc.) is NOT moved here —
-stays in bots. Fallback here is maximally neutral.
+Legacy DEEPSEEK_* names stay supported. Domain business logic stays in bots.
 """
 from __future__ import annotations
 
@@ -24,7 +20,12 @@ from typing import Any, Callable, Iterator, Optional
 
 import requests
 
-from shared.constants import deepseek_base_url, deepseek_chat_completions_url, deepseek_model
+from shared.constants import (
+    deepseek_base_url,
+    deepseek_chat_completions_url,
+    deepseek_model,
+    llm_api_key,
+)
 from shared.json_parse import LLMJsonParseError, parse_json_object
 from shared.llm_defaults import role_temperature, role_timeout_sec, role_tool_choice
 from shared.llm_reachable import deepseek_api_reachable
@@ -68,11 +69,7 @@ class LLMResponse:
 
 
 def _resolve_api_key(explicit: str | None) -> str | None:
-    return (
-        explicit
-        or os.environ.get("DEEPSEEK_API_KEY")
-        or os.environ.get("DEEPSEEK_API_TOKEN")
-    )
+    return llm_api_key(override=explicit)
 
 
 def _resolve_base_url(explicit: str | None) -> str:

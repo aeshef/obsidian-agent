@@ -185,7 +185,9 @@ def _vision_openrouter(images_b64: list[str], *, context_label: str) -> str:
     model = os.environ.get("VISION_MODEL") or os.environ.get(
         "VISION_FALLBACK_MODEL", "google/gemini-2.5-flash"
     )
-    base_url = "https://openrouter.ai/api/v1"
+    from shared.constants import openrouter_base_url
+
+    base_url = openrouter_base_url()
     from knowledge_bot.services.openrouter_rate_limit import openrouter_post
     from shared.platform_timeouts import (
         knowledge_vision_api_timeout_sec,

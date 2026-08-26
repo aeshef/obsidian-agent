@@ -11,6 +11,7 @@ from bot.dashboard_templates import dtpl
 from bot.services.badge_tracker import BadgeTracker
 from bot.services.dashboard.charts import plot_stacked_bar_categories_png
 from bot.services.dashboard.format import fmt_num
+from shared.finance.currency import base_currency
 
 
 def build_badge_section(
@@ -72,7 +73,7 @@ def build_badge_section(
             x_labels,
             {dtpl("badge", "chart_spent"): spent_vals, dtpl("badge", "chart_burned"): burned_vals},
             title=dtpl("badge", "chart_title"),
-            y_label="RUB",
+            y_label=base_currency(),
             out_path=badge_png,
             show_total_labels=True,
             totals_for_labels=[float(d.limit) for d in wdays],

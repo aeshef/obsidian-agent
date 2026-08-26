@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from bot.broker_portfolio import is_broker_portfolio_account
+from shared.finance.currency import is_base_currency
 
 def ensure_account_balance_snapshots_table(conn: sqlite3.Connection) -> None:
     """Legacy DB without migration: create snapshots table."""
@@ -56,7 +57,7 @@ def external_rub_non_portfolio_total(
     s = Decimal(0)
     for aid, bal in balances_now.items():
         a = acc_by_id.get(aid)
-        if not a or a.get("currency") not in ("RUB", "RUR"):
+        if not a or not is_base_currency(a.get("currency")):
             continue
         if not a.get("is_external_balance"):
             continue

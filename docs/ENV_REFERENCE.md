@@ -2,7 +2,7 @@
 
 ## English
 
-Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required for prod: `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN`, LLM keys (`DEEPSEEK_API_KEY` and/or `OPENROUTER_API_KEY`). Locale: `AGENT_LOCALE=en|ru` (default `en`). Validate: `./scripts/check_env.sh all`. Full tables below (Russian).
+Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required for prod: `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN`, LLM key (`LLM_API_KEY` or legacy `DEEPSEEK_API_KEY`). Locale: `AGENT_LOCALE=en|ru` (default `en`). Validate: `./scripts/check_env.sh all`. Full tables below (Russian).
 
 ---
 
@@ -21,7 +21,7 @@ Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required
 | Переменная | Описание |
 |------------|----------|
 | `VAULT_PATH` | Путь к Obsidian vault |
-| `DEEPSEEK_API_KEY` или `DEEPSEEK_API_TOKEN` | LLM (planning, finance, agent) |
+| `LLM_API_KEY` (или `DEEPSEEK_API_KEY` / `DEEPSEEK_API_TOKEN`) | Chat LLM (OpenAI-compatible) |
 | `TELEGRAM_UNIFIED_BOT_TOKEN` | Один бот [@BotFather](https://t.me/BotFather) |
 | `DEPLOY_MODE` | `single` (default) |
 | `TELEGRAM_USER_ID` | Numeric id владельца (knowledge ingest, алерты) |
@@ -36,8 +36,11 @@ Single **`.env`** at repo root (see [`.env.example`](../.env.example)). Required
 |------------|-------------------|
 | `TIMEZONE` | UTC; для MSK: `Europe/Moscow` |
 | `OBSIDIAN_VAULT_PATH` | алиас `VAULT_PATH` |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com/v1` |
-| `DEEPSEEK_MODEL` | `deepseek-chat` |
+| `LLM_BASE_URL` / `DEEPSEEK_BASE_URL` | OpenAI-compatible base (default DeepSeek) |
+| `LLM_MODEL` / `DEEPSEEK_MODEL` | chat model id |
+| `LLM_API_KEY` / `DEEPSEEK_API_KEY` | chat API key |
+| `OPENROUTER_BASE_URL` / `VISION_BASE_URL` | vision + embeddings host |
+| `BASE_CURRENCY` | ledger/dashboard filter currency (default `RUB`) |
 | `GOALS_YEAR` | текущий год |
 | `LOG_LEVEL` | уровень логирования |
 
