@@ -119,9 +119,9 @@ DEPLOY_VERIFY_PATHS=(
   shared/agent/app.py
   shared/agent/router.py
   shared/telegram/kb_media.py
-  shared/telegram/host/constants.py
-  shared/telegram/host/knowledge_dispatch.py
-  shared/telegram/host/wire.py
+  unified_bot/host/constants.py
+  unified_bot/host/knowledge_dispatch.py
+  unified_bot/host/wire.py
   knowledge_bot/app/register_handlers.py
   finance_bot/bot/services/transactions/core.py
   finance_bot/bot/services/nlu_parser.py

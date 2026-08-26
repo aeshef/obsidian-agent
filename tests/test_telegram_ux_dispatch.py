@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from shared.telegram.host.domain_dispatch import try_dispatch_domain_text
-from shared.telegram.host.auto_dispatch import (
+from unified_bot.host.domain_dispatch import try_dispatch_domain_text
+from unified_bot.host.auto_dispatch import (
     _looks_like_txn_batch,
     _looks_like_txn_candidate,
     dispatch_auto_free_text,
@@ -73,15 +73,15 @@ def test_txn_batch_skips_intent_llm(monkeypatch):
         _llm,
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch.deliver_agent_answer",
+        "unified_bot.host.auto_dispatch.deliver_agent_answer",
         AsyncMock(),
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch._try_knowledge_save",
+        "unified_bot.host.auto_dispatch._try_knowledge_save",
         AsyncMock(return_value=False),
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch.keyboard_for_mode",
+        "unified_bot.host.auto_dispatch.keyboard_for_mode",
         lambda *a, **k: None,
     )
 
@@ -113,17 +113,17 @@ def test_domain_dispatch_ignores_pinned_free_text(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.DOMAIN_HANDLERS",
+        "unified_bot.host.domain_dispatch.DOMAIN_HANDLERS",
         {"finance": _boom, "planning": _boom, "knowledge": _boom},
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_finance_menu", lambda t: False
+        "unified_bot.host.domain_dispatch.is_finance_menu", lambda t: False
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_planning_menu", lambda t: False
+        "unified_bot.host.domain_dispatch.is_planning_menu", lambda t: False
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_knowledge_menu", lambda t: False
+        "unified_bot.host.domain_dispatch.is_knowledge_menu", lambda t: False
     )
 
     msg = MagicMock()
@@ -142,21 +142,21 @@ def test_domain_dispatch_handles_menu_when_pinned(monkeypatch):
         return True
 
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.DOMAIN_HANDLERS",
+        "unified_bot.host.domain_dispatch.DOMAIN_HANDLERS",
         {"finance": _ok},
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_finance_menu",
+        "unified_bot.host.domain_dispatch.is_finance_menu",
         lambda t: t == "MENU_FIN",
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_planning_menu", lambda t: False
+        "unified_bot.host.domain_dispatch.is_planning_menu", lambda t: False
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.is_knowledge_menu", lambda t: False
+        "unified_bot.host.domain_dispatch.is_knowledge_menu", lambda t: False
     )
     monkeypatch.setattr(
-        "shared.telegram.host.domain_dispatch.domain_routing_order",
+        "unified_bot.host.domain_dispatch.domain_routing_order",
         lambda: ("finance",),
     )
 
@@ -177,18 +177,18 @@ def test_free_text_goes_unified(monkeypatch):
         return MagicMock()
 
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch.deliver_agent_answer", _deliver
+        "unified_bot.host.auto_dispatch.deliver_agent_answer", _deliver
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch._try_finance_transaction",
+        "unified_bot.host.auto_dispatch._try_finance_transaction",
         AsyncMock(return_value=False),
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch._try_knowledge_save",
+        "unified_bot.host.auto_dispatch._try_knowledge_save",
         AsyncMock(return_value=False),
     )
     monkeypatch.setattr(
-        "shared.telegram.host.auto_dispatch.keyboard_for_mode",
+        "unified_bot.host.auto_dispatch.keyboard_for_mode",
         lambda *a, **k: None,
     )
 
@@ -274,7 +274,7 @@ def test_push_policy_defaults(monkeypatch, tmp_path):
 def test_root_keyboard_hides_auto_by_default(monkeypatch, tmp_path):
     from shared.agent import platform_config as pc
     from shared.capabilities.profile import clear_capabilities_cache
-    from shared.telegram.host.keyboards import root_keyboard
+    from unified_bot.host.keyboards import root_keyboard
     from shared.telegram.host import labels as L
 
     cfg = tmp_path / "platform.yaml"

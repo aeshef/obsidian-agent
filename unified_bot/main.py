@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 
 from shared.setup.load_env import load_repo_env
-from shared.telegram.host.bootstrap import run_host_bot
+from unified_bot.host.bootstrap import run_host_bot
 
 
 def main() -> None:

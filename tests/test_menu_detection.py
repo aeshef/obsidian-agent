@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 from shared.capabilities.profile import clear_capabilities_cache
-from shared.telegram.host.keyboards import root_keyboard
-from shared.telegram.host.menu_detection import clear_menu_detection_cache, is_finance_menu_text
+from unified_bot.host.keyboards import root_keyboard
+from unified_bot.host.menu_detection import clear_menu_detection_cache, is_finance_menu_text
 
 
 def test_finance_menu_uses_reply_menu(monkeypatch):

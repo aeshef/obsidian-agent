@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from shared.finance.category_match import category_matches, normalize_category_query
-from shared.finance.txn_query import format_spending_by_category
+from finance_bot.bot.services.txn_query import format_spending_by_category
 
 
 def test_normalize_strips_glob_suffixes():

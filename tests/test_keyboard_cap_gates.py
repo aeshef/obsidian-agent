@@ -8,7 +8,7 @@ from planning_bot.core.pdmsg import pdmsg
 from shared.capabilities.profile import clear_capabilities_cache
 from shared.capabilities.ui_bindings import clear_ui_bindings_cache
 from shared.i18n import clear_messages_cache
-from shared.telegram.host.keyboards import knowledge_keyboard, root_keyboard
+from unified_bot.host.keyboards import knowledge_keyboard, root_keyboard
 
 
 def _clear_caches() -> None:
@@ -47,7 +47,7 @@ def test_knowledge_keyboard_hidden_when_module_off(monkeypatch):
 
     assert kb_lbl.bulk_on() == ""
     assert kb_lbl.query_button() == ""
-    from shared.telegram.host import labels as host_lbl
+    from unified_bot.host import labels as host_lbl
 
     assert labels == {host_lbl.back_home()}
     _clear_caches()
@@ -60,7 +60,7 @@ def test_root_keyboard_omits_disabled_modules(monkeypatch):
     _clear_caches()
     kb = root_keyboard()
     labels = {btn.text for row in kb.keyboard for btn in row}
-    from shared.telegram.host import labels as L
+    from unified_bot.host import labels as L
 
     assert L.mode_planning() in labels
     assert L.mode_finance() not in labels

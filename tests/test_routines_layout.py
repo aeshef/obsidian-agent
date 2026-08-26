@@ -74,7 +74,7 @@ def test_migrate_routines_layout(vault_env):
 
 
 def test_routines_scaffold_dataviewjs_has_no_markdown_artifacts(vault_env):
-    from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+    from planning_bot.services.vault_routines_scaffold import scaffold_vault_routines
     from shared.routines_paths import routines_stats_path, signals_stats_path
 
     written = scaffold_vault_routines(vault_root=vault_env, force=True, locale="en")

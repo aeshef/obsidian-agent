@@ -111,7 +111,7 @@ def _migrate_signals_yaml_to_md(vault_root: Path | None = None) -> bool:
         md_path.write_text(body, encoding="utf-8")
         return True
 
-    from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+    from planning_bot.services.vault_routines_scaffold import scaffold_vault_routines
 
     scaffold_vault_routines(vault_root=vault_root)
     return md_path.is_file() and _has_yaml_block(md_path)
@@ -159,7 +159,7 @@ def ensure_routines_layout(vault_root: Path | None = None, *, scaffold_stats: bo
         actions.append("created signals history")
 
     if scaffold_stats:
-        from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+        from planning_bot.services.vault_routines_scaffold import scaffold_vault_routines
 
         for path in scaffold_vault_routines(vault_root=vault_root):
             actions.append(f"scaffold: {path}")

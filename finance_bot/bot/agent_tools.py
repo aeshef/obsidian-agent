@@ -18,7 +18,7 @@ from shared.agent.budget import (
 from shared.agent.tools import ToolRegistry, tool
 from shared.agent.types import AgentContext, ModelRole
 from shared.domain_messages import dmsg
-from shared.finance.txn_query import (
+from finance_bot.bot.services.txn_query import (
     fetch_transaction_rows,
     format_broker_overview,
     format_debts_summary,

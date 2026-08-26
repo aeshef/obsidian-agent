@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 
-from shared.finance.broker_portfolio_sync import sync_broker_portfolio_api
+from finance_bot.bot.services.broker_portfolio_sync import sync_broker_portfolio_api
 from ..db import AsyncSessionLocal
 from sqlalchemy import select
 from ..models import User, Account, Transaction

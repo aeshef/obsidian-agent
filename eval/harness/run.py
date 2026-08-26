@@ -70,7 +70,7 @@ def _run_case(case: dict[str, Any]) -> None:
         return
 
     if kind == "period_compare_format":
-        from shared.finance.txn_query import format_period_compare
+        from finance_bot.bot.services.txn_query import format_period_compare
 
         text = format_period_compare(
             label_a=str(inp.get("label_a") or ""),

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from shared.finance.broker_providers import run_broker_sync
+from finance_bot.bot.services.broker_providers import run_broker_sync
 from shared.finance.broker_sync_config import broker_sync_provider
 
 if TYPE_CHECKING:

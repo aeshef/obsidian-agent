@@ -71,13 +71,8 @@ def filter_tools(
 
 
 def corporate_badge_runtime_enabled() -> bool:
-    """Alias for finance is_badge_enabled() when finance package is importable."""
-    try:
-        from bot.config_loader import is_badge_enabled
-
-        return is_badge_enabled()
-    except Exception:
-        return get_capabilities().connector(CONNECTOR_CORPORATE_BADGE)
+    """True when corporate_badge connector is on (capabilities.yaml / CAP_*)."""
+    return get_capabilities().connector(CONNECTOR_CORPORATE_BADGE)
 
 
 def _badge_runtime_ok(_prof: CapabilityProfile, _tool: Any) -> bool:

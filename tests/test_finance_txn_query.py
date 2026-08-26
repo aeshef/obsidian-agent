@@ -1,7 +1,7 @@
 """Expense aggregation semantics (consumption filter)."""
 from __future__ import annotations
 
-from shared.finance.txn_query import format_spending_by_category
+from finance_bot.bot.services.txn_query import format_spending_by_category
 
 
 def test_spending_by_category_excludes_transfer_like_expense():

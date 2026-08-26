@@ -9,7 +9,7 @@ import pytz
 from sqlalchemy import select
 
 from .services.subscriptions import load_subscriptions, format_subscription_line, is_due_within
-from shared.finance.broker_portfolio_sync import sync_broker_portfolio_api
+from finance_bot.bot.services.broker_portfolio_sync import sync_broker_portfolio_api
 from .services.financial_analyst import FinancialAnalyst
 from .services.badge_tracker import BadgeTracker
 from .config_loader import get_badge_config, is_badge_enabled

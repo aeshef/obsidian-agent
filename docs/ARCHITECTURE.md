@@ -16,7 +16,7 @@ Monorepo map: **unified_bot** hosts finance/planning/knowledge in one Telegram p
 
 1. **Vault — источник правды для контента.** Боты читают и пишут markdown/JSON/SQLite в Obsidian; Telegram — только интерфейс. Имена папок и файлов — в `config/vault_paths.yaml` (см. `vault_paths.yaml.example`), не в `.py` и не в shell-хардкоде.
 2. **Один конфиг.** Корневой `.env`; per-bot дубли не обязательны.
-3. **Shared without domain business logic** except documented composition zones: `shared/telegram/host`, `shared/memory`, and the frozen allowlist in `tests/test_host_import_boundary.py`. New bot imports in `shared/` outside that list fail CI.
+3. **Shared without domain business logic.** Telegram composition root is **`unified_bot/host/`** (not `shared/`). `shared/memory` may import bots; new bot imports elsewhere in `shared/` fail CI (`tests/test_host_import_boundary.py`).
 4. **Разделение Mac / VPS.** Боты и тяжёлый maintenance — на VPS; rsync и matplotlib-графики — на Mac.
 
 ---
@@ -59,7 +59,7 @@ flowchart TB
 
 | Слой | Роль |
 |------|------|
-| `unified_bot/` | Единая точка входа prod: `shared/telegram/host/bootstrap.py`, `DEPLOY_MODE=single` |
+| `unified_bot/` | Prod entry + composition root: `unified_bot/host/`, `DEPLOY_MODE=single` |
 | `shared/agent/` | AgentApp, tool loop, LLM routing, session memory |
 | `shared/telegram/` | Host dispatch, voice, `deliver_agent_answer`, progress UI |
 | `scripts/` | Deploy (`--prod` рестартит только unified), obsidian_sync, CI |
@@ -109,7 +109,7 @@ New planning code should call `shared.llm.LLMClient` (or agent router), not exte
 
 ### Host menu detection and reply dispatch
 
-- **Domain routing:** `domain_routing` + `menu_detection` in `config/ui_capabilities.yaml.example` → `shared/telegram/host/domain_dispatch.py`, `menu_detection.py`.
+- **Domain routing:** `domain_routing` + `menu_detection` in `config/ui_capabilities.yaml.example` → `unified_bot/host/domain_dispatch.py`, `menu_detection.py`.
 - **UI string gates:** same file (`strings` / `patterns`) → `shared/capabilities/ui_bindings.py` (`msg()` / `dmsg()` return empty when capability is off).
 - **Reply keyboard actions:** `menu_actions` in the same YAML → `shared/capabilities/menu_actions_config.py` → `{bot}/menu_action_handlers.py` via `shared/telegram/reply_menu_dispatch.py`.
 

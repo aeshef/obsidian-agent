@@ -3,7 +3,7 @@ from shared.agent import platform_config as pc
 from shared.capabilities.profile import clear_capabilities_cache
 from shared.capabilities.ui_bindings import clear_ui_bindings_cache
 from shared.i18n import clear_messages_cache
-from shared.telegram.host.keyboards import knowledge_keyboard
+from unified_bot.host.keyboards import knowledge_keyboard
 
 
 def _enable_knowledge(monkeypatch) -> None:

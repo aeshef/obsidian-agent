@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCAN_DIRS = ("shared/telegram", "finance_bot/bot", "planning_bot/app", "knowledge_bot/app")
 ALLOW_FILES = {
-    ROOT / "shared/telegram/host/wire.py",
+    ROOT / "unified_bot/host/wire.py",
 }
 _CYRILLIC = re.compile(f"[{chr(0x400)}-{chr(0x4FF)}]")
 _REPLY_METHODS = frozenset({

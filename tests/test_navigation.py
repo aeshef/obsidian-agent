@@ -1,5 +1,5 @@
 from shared.telegram.navigation import is_host_navigation
-from shared.telegram.host import labels as L
+from unified_bot.host import labels as L
 
 
 def test_host_navigation_rejects_main_menu_button():

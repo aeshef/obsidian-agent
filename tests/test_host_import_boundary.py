@@ -1,8 +1,10 @@
 """Host composition-root import boundary (OSS audit F12).
 
-Preferred composition root: ``shared/telegram/host`` + ``shared/memory``.
-Other ``shared/`` modules that still import bots are frozen below — new
-bot imports outside this allowlist fail CI (shrink over time; do not grow).
+Composition root: ``unified_bot/host`` (outside ``shared/``).
+``shared/memory`` may still import bots. Other ``shared/`` bot imports are
+frozen in ``KNOWN_BOT_IMPORT_FILES`` — shrink only, never grow.
+Shims under ``shared/telegram/host`` re-export ``unified_bot.host`` and must
+not import bots directly (except temporary domain shims listed below).
 """
 from __future__ import annotations
 
@@ -12,23 +14,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SHARED = ROOT / "shared"
 ALLOWED_REL_DIRS = {
-    Path("shared/telegram/host"),
     Path("shared/memory"),
 }
-# Frozen debt — do not add paths. Prefer moving call sites into host/domains.
-KNOWN_BOT_IMPORT_FILES = frozenset(
-    {
-        "shared/routines_paths.py",
-        "shared/kanban_paths.py",
-        "shared/capabilities/registry.py",
-        "shared/capabilities/vault_routines_scaffold.py",
-        "shared/capabilities/onboarding_verify.py",
-        "shared/finance/txn_query.py",
-        "shared/finance/broker_portfolio_sync.py",
-        "shared/finance/broker_providers.py",
-        "shared/analytics/daily_panel.py",
-    }
-)
+# Frozen debt — shrink only. Prefer domain packages; temporary shims listed.
+KNOWN_BOT_IMPORT_FILES = frozenset()
+
 BOT_ROOTS = frozenset({"planning_bot", "finance_bot", "knowledge_bot", "bot"})
 
 
@@ -78,3 +68,12 @@ def test_known_bot_import_files_still_exist():
     assert not missing, "allowlist paths removed — drop from KNOWN_BOT_IMPORT_FILES: " + str(
         missing
     )
+
+
+def test_unified_bot_host_is_composition_root():
+    host = ROOT / "unified_bot" / "host" / "bootstrap.py"
+    assert host.is_file()
+    shim = ROOT / "shared" / "telegram" / "host" / "bootstrap.py"
+    text = shim.read_text(encoding="utf-8")
+    assert "unified_bot.host.bootstrap" in text
+    assert "planning_bot" not in text and "finance_bot" not in text

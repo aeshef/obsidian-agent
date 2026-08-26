@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 
 from planning_bot.core.pdmsg import pdmsg
-from shared.analytics.daily_panel import (
+from planning_bot.services.daily_panel import (
     build_master_panel,
     panel_to_arrays,
     write_panel_csv,

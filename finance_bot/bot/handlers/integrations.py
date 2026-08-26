@@ -10,7 +10,7 @@ from ..db import AsyncSessionLocal
 from ..models import User, Account
 from ..broker_portfolio import is_broker_portfolio_account
 from ..services.tinkoff_integration import tinkoff_debug_text
-from shared.finance.broker_portfolio_sync import sync_broker_portfolio_api
+from finance_bot.bot.services.broker_portfolio_sync import sync_broker_portfolio_api
 from bot.ui import fmsg
 from shared.i18n import msg
 from shared.ui import common

@@ -1,7 +1,7 @@
 """MessageWithText proxy lives under host.message_proxy (auto_routing removed)."""
 from __future__ import annotations
 
-from shared.telegram.host.message_proxy import MessageWithText
+from unified_bot.host.message_proxy import MessageWithText
 
 
 def test_message_with_text_hides_voice():

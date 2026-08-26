@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from shared.i18n import clear_messages_cache, msg
-from shared.telegram.host import labels as L
+from unified_bot.host import labels as L
 
 
 def test_host_labels_non_empty() -> None:

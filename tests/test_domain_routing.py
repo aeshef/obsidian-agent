@@ -1,7 +1,7 @@
 """Config-driven domain dispatch order."""
 from __future__ import annotations
 
-from shared.telegram.host.domain_routing import (
+from unified_bot.host.domain_routing import (
     auto_menu_match_enabled,
     clear_domain_routing_cache,
     domain_routing_order,

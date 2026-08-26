@@ -14,13 +14,12 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Optional
 
 from shared.bootstrap import setup_bot
 
 setup_bot("finance_bot")
 from bot.broker_portfolio import BROKER_PORTFOLIO_ACCOUNT_TYPE, is_broker_portfolio_account  # noqa: E402
-from bot.config_loader import get_badge_config, is_badge_enabled  # noqa: E402
 from bot.services.dashboard import (
     acc_balance,
     build_badge_section,
@@ -33,6 +32,31 @@ from bot.services.dashboard import (
     plot_lines_png,
     plot_stacked_bar_categories_png,
     safe_comment,
+)
+from bot.services.dashboard.filters import (
+    is_badge_expense,
+    is_excluded_category,
+    resolve_badge_account_name,
+    resolve_badge_category,
+    resolve_exclude_spending_categories,
+    skip_badge_account,
+)
+from bot.services.dashboard.series import (
+    accumulate_daily_flow,
+    accumulate_daily_spending,
+    accumulate_weekly_flow,
+    accumulate_weekly_regular_spending,
+    ordered_top_categories,
+    stacked_category_series,
+    top_cats_by_total,
+)
+from bot.services.dashboard.windows import (
+    chart_window_int,
+    day_range,
+    format_day_labels,
+    series_floor,
+    spending_axis_end,
+    week_range,
 )
 from bot.dashboard_templates import dtpl, dtpl_raw  # noqa: E402
 from bot.vault_paths import VaultPaths  # noqa: E402
@@ -134,18 +158,12 @@ def main() -> None:
     for a in accounts:
         balances_now[a["id"]] = acc_balance(cur, a["id"], bool(a["is_external_balance"]), a["external_balance"])
 
-    _badge_acc_name = (
-        str(get_badge_config().get("account_name", "Meal Badge")) if is_badge_enabled() else ""
-    )
-
-    def _skip_badge_account(aid: int) -> bool:
-        if not _badge_acc_name:
-            return False
-        return acc_by_id.get(aid, {}).get("name") == _badge_acc_name
+    _badge_acc_name = resolve_badge_account_name()
 
     total_rub = sum(
         float(b) for aid, b in balances_now.items()
-        if acc_by_id[aid]["currency"] in ("RUB", "RUR") and not _skip_badge_account(aid)
+        if acc_by_id[aid]["currency"] in ("RUB", "RUR")
+        and not skip_badge_account(aid, acc_by_id, _badge_acc_name)
     )
     total_usd = sum(
         float(b) for aid, b in balances_now.items()
@@ -483,7 +501,9 @@ def main() -> None:
     rub_accounts = [
         (acc_by_id[aid]["name"], float(b))
         for aid, b in balances_now.items()
-        if acc_by_id[aid]["currency"] in ("RUB", "RUR") and float(b) > 0 and not _skip_badge_account(aid)
+        if acc_by_id[aid]["currency"] in ("RUB", "RUR")
+        and float(b) > 0
+        and not skip_badge_account(aid, acc_by_id, _badge_acc_name)
     ]
     rub_accounts.sort(key=lambda x: -x[1])
     if rub_accounts:
@@ -508,23 +528,8 @@ def main() -> None:
     # Categories excluded from spending/income analytics
     # Internal transfers excluded from spending
     # Override: FIN_EXCLUDE_FROM_SPENDING_CATEGORIES
-    exclude_cats_raw = os.environ.get("FIN_EXCLUDE_FROM_SPENDING_CATEGORIES", "")
-    if not exclude_cats_raw.strip():
-        from shared.finance_classification import exclude_spending_categories as _excl
-
-        exclude_spending_categories = set(_excl())
-    else:
-        exclude_spending_categories = {c.strip() for c in exclude_cats_raw.split(",") if c.strip()}
-    badge_category = (
-        str(get_badge_config().get('category') or '') if is_badge_enabled() else None
-    )
-
-    def _is_excluded_category(txn: dict) -> bool:
-        cat = (txn.get("category") or "").strip()
-        return bool(cat) and cat in exclude_spending_categories
-
-    def _is_badge_expense(txn: dict) -> bool:
-        return bool(badge_category) and (txn.get("category") or "") == badge_category
+    exclude_spending_categories = resolve_exclude_spending_categories()
+    badge_category = resolve_badge_category()
 
     moves_out_month_total = Decimal(0)
     moves_in_month_total = Decimal(0)
@@ -538,7 +543,7 @@ def main() -> None:
             continue
         if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
             continue
-        if _is_excluded_category(t):
+        if is_excluded_category(t, exclude_spending_categories):
             occ = parse_datetime(t["occurred_at"])
             if occ and occ >= month_start:
                 amt = Decimal(str(t["amount"]))
@@ -547,7 +552,7 @@ def main() -> None:
             moves_recent.append(("→", t.get("account_name") or dtpl("misc", "unknown_account"), t.get("category"), float(amt), date_str, t.get("description") or ""))
             continue
         cat = t["category"] or misc_category_label()
-        if _is_badge_expense(t):
+        if is_badge_expense(t, badge_category):
             continue
         amt = Decimal(str(t["amount"]))
         exp_all[cat] += amt
@@ -602,7 +607,7 @@ def main() -> None:
                 continue
             if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
                 continue
-            if not _is_excluded_category(t):
+            if not is_excluded_category(t, exclude_spending_categories):
                 continue
             occ = parse_datetime(t["occurred_at"])
             if not occ or occ < month_start:
@@ -630,120 +635,48 @@ def main() -> None:
 
     # Daily spending: regular vs one-off
     # One-off = expense >= threshold
-    day_exp_regular = defaultdict(lambda: defaultdict(Decimal))
-    day_exp_oneoff_total = defaultdict(Decimal)
-    oneoff_txns = []  # (account_name, category, amount, date_str, description)
-    for t in transactions:
-        if t["type"] != "expense":
-            continue
-        occ = parse_datetime(t["occurred_at"])
-        if not occ:
-            continue
-        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
-            continue
-        if _is_excluded_category(t):
-            continue
-        if _is_badge_expense(t):
-            continue
-        amt = Decimal(str(t["amount"]))
-        cat = t["category"] or misc_category_label()
-        if float(amt) >= oneoff_threshold_rub:
-            day_exp_oneoff_total[occ.date()] += amt
-            date_str = t["occurred_at"][:10] if len(t["occurred_at"]) >= 10 else t["occurred_at"]
-            oneoff_txns.append((t.get("account_name") or dtpl("misc", "unknown_account"), cat, float(amt), date_str, t.get("description") or ""))
-        else:
-            day_exp_regular[occ.date()][cat] += amt
+    day_exp_regular, day_exp_oneoff_total, oneoff_txns = accumulate_daily_spending(
+        transactions,
+        acc_by_id=acc_by_id,
+        exclude_categories=exclude_spending_categories,
+        badge_category=badge_category,
+        oneoff_threshold_rub=oneoff_threshold_rub,
+        misc_label=misc_category_label(),
+        parse_datetime=parse_datetime,
+        unknown_account_label=dtpl("misc", "unknown_account"),
+    )
 
-    def _series_floor(dates: Iterable[date], *, fallback: date) -> date:
-        dated = list(dates)
-        return min(dated) if dated else fallback
-
-    def _chart_window_int(key: str, env_key: str, legacy: int) -> int:
-        cw = dtpl_raw("chart_windows")
-        if isinstance(cw, dict) and key in cw and cw[key] is not None:
-            try:
-                return int(cw[key])
-            except (TypeError, ValueError):
-                pass
-        env_raw = os.environ.get(env_key, "").strip()
-        if env_raw:
-            try:
-                return int(env_raw)
-            except ValueError:
-                pass
-        return legacy
-
-    def _day_range(end: date, floor: date, window_days: int) -> list[date]:
-        if window_days > 0:
-            start = max(floor, end - timedelta(days=window_days - 1))
-        else:
-            start = floor
-        if start > end:
-            return [end]
-        span = (end - start).days + 1
-        return [start + timedelta(days=i) for i in range(span)]
-
-    def _week_range(week_end: date, floor: date, max_weeks: int) -> list[date]:
-        weeks: list[date] = []
-        cur = week_end
-        while cur >= floor:
-            weeks.append(cur)
-            if max_weeks > 0 and len(weeks) >= max_weeks:
-                break
-            cur = cur - timedelta(days=7)
-        weeks.reverse()
-        return weeks
-
-    def _format_day_labels(days: list[date]) -> list[str]:
-        if len(days) > 120:
-            return [d.strftime("%m.%y") if d.day == 1 else "" for d in days]
-        if len(days) > 60:
-            return [d.strftime("%d.%m.%y") for d in days]
-        return [d.strftime("%d.%m") for d in days]
-
-    def _spending_axis_end(spending_dates: set[date]) -> date:
-        """Spending chart axis end: last day with data (+ up to 3 days to today)."""
-        if not spending_dates:
-            return now.date()
-        last = max(spending_dates)
-        if last < now.date() and (now.date() - last).days <= 3:
-            return now.date()
-        return last
-
-    spending_daily_window = _chart_window_int(
+    today = now.date()
+    spending_daily_window = chart_window_int(
         "daily_spending_days", "FIN_SPENDING_DAILY_WINDOW_DAYS", 0
     )
-    oneoff_daily_window = _chart_window_int("daily_oneoff_days", "FIN_ONEOFF_DAILY_WINDOW_DAYS", 0)
-    flow_daily_window = _chart_window_int("daily_flow_days", "FIN_FLOW_DAILY_WINDOW_DAYS", 0)
-    balance_daily_window = _chart_window_int("balance_days", "FIN_BALANCE_DAILY_WINDOW_DAYS", 0)
-    weekly_flow_weeks = _chart_window_int("weekly_flow_weeks", "FIN_FLOW_WEEKLY_WINDOW_WEEKS", 0)
-    weekly_spending_weeks = _chart_window_int(
+    oneoff_daily_window = chart_window_int("daily_oneoff_days", "FIN_ONEOFF_DAILY_WINDOW_DAYS", 0)
+    flow_daily_window = chart_window_int("daily_flow_days", "FIN_FLOW_DAILY_WINDOW_DAYS", 0)
+    balance_daily_window = chart_window_int("balance_days", "FIN_BALANCE_DAILY_WINDOW_DAYS", 0)
+    weekly_flow_weeks = chart_window_int("weekly_flow_weeks", "FIN_FLOW_WEEKLY_WINDOW_WEEKS", 0)
+    weekly_spending_weeks = chart_window_int(
         "weekly_spending_weeks", "FIN_SPENDING_WEEKLY_WINDOW_WEEKS", 0
     )
     last_spend_date = max(day_exp_regular.keys()) if day_exp_regular else None
 
     if day_exp_regular:
         regular_dates = set(day_exp_regular.keys())
-        regular_end = _spending_axis_end(regular_dates)
-        regular_floor = _series_floor(regular_dates, fallback=dashboard_start_date)
-        days_sorted = _day_range(regular_end, regular_floor, spending_daily_window)
+        regular_end = spending_axis_end(regular_dates, today=today)
+        regular_floor = series_floor(regular_dates, fallback=dashboard_start_date)
+        days_sorted = day_range(regular_end, regular_floor, spending_daily_window)
         all_cats = set()
         for d in day_exp_regular:
             all_cats.update(day_exp_regular[d].keys())
-        cat_order = list(dtpl_raw('category_order') or [])
-        sorted_cats = [c for c in cat_order if c in all_cats]
-        sorted_cats += sorted(all_cats - set(sorted_cats))
-        top8 = sorted_cats[:8]
-        series = {cat: [float(day_exp_regular[d].get(cat, 0)) for d in days_sorted] for cat in top8}
-        rest_vals = []
-        for d in days_sorted:
-            total_d = sum(day_exp_regular[d].values())
-            in_top = sum(day_exp_regular[d].get(c, 0) for c in top8)
-            rest_vals.append(float(total_d - in_top))
-        if any(v > 0.5 for v in rest_vals):
-            series[dtpl("misc", "rest_category")] = rest_vals
-        day_totals_all = [float(sum(day_exp_regular[d].values())) for d in days_sorted]
-        x_labels = _format_day_labels(days_sorted)
+        top8 = ordered_top_categories(
+            all_cats, category_order=list(dtpl_raw("category_order") or []), top_n=8
+        )
+        series, day_totals_all = stacked_category_series(
+            day_exp_regular,
+            days_sorted,
+            top8,
+            rest_label=dtpl("misc", "rest_category"),
+        )
+        x_labels = format_day_labels(days_sorted)
         part_day_regular.extend([
             dtpl("sections", "daily_regular", "heading"),
             "",
@@ -752,7 +685,7 @@ def main() -> None:
         if badge_category:
             part_day_regular.append(dtpl("sections", "daily_regular", "badge_note", category=badge_category))
         if last_spend_date:
-            gap = (now.date() - last_spend_date).days
+            gap = (today - last_spend_date).days
             part_day_regular.append(
                 dtpl("sections", "daily_regular", "last_spend_gap", date=last_spend_date.strftime("%d.%m.%Y"), gap=gap)
                 if gap > 0
@@ -784,10 +717,10 @@ def main() -> None:
     # One-off large expenses by day
     if day_exp_oneoff_total:
         oneoff_dates = set(day_exp_oneoff_total.keys())
-        oneoff_end = _spending_axis_end(oneoff_dates)
-        oneoff_floor = _series_floor(oneoff_dates, fallback=dashboard_start_date)
-        days_sorted_oneoff = _day_range(oneoff_end, oneoff_floor, oneoff_daily_window)
-        x_labels = _format_day_labels(days_sorted_oneoff)
+        oneoff_end = spending_axis_end(oneoff_dates, today=today)
+        oneoff_floor = series_floor(oneoff_dates, fallback=dashboard_start_date)
+        days_sorted_oneoff = day_range(oneoff_end, oneoff_floor, oneoff_daily_window)
+        x_labels = format_day_labels(days_sorted_oneoff)
         vals = [float(day_exp_oneoff_total.get(d, 0)) for d in days_sorted_oneoff]
         part_day_oneoff.extend([
             dtpl("sections", "daily_oneoff", "heading"),
@@ -810,32 +743,22 @@ def main() -> None:
         part_day_oneoff.extend(["", ""])
 
     # Daily income vs expense
-    day_flow = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
-    for t in transactions:
-        occ = parse_datetime(t["occurred_at"])
-        if not occ:
-            continue
-        if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
-            continue
-        if _is_excluded_category(t):
-            continue
-        if _is_badge_expense(t):
-            continue
-        dday = occ.date()
-        amt = Decimal(str(t["amount"]))
-        if t["type"] == "income":
-            day_flow[dday]["income"] += amt
-        elif t["type"] == "expense":
-            day_flow[dday]["expense"] += amt
+    day_flow = accumulate_daily_flow(
+        transactions,
+        acc_by_id=acc_by_id,
+        exclude_categories=exclude_spending_categories,
+        badge_category=badge_category,
+        parse_datetime=parse_datetime,
+    )
 
     if day_flow:
         flow_dates = set(day_flow.keys())
-        flow_end_date = _spending_axis_end(flow_dates)
-        flow_floor = _series_floor(flow_dates, fallback=dashboard_start_date)
-        days_sorted_flow = _day_range(flow_end_date, flow_floor, flow_daily_window)
+        flow_end_date = spending_axis_end(flow_dates, today=today)
+        flow_floor = series_floor(flow_dates, fallback=dashboard_start_date)
+        days_sorted_flow = day_range(flow_end_date, flow_floor, flow_daily_window)
         inc_vals = [float(day_flow.get(d, {}).get("income", 0)) for d in days_sorted_flow]
         exp_vals = [float(day_flow.get(d, {}).get("expense", 0)) for d in days_sorted_flow]
-        x_labels = _format_day_labels(days_sorted_flow)
+        x_labels = format_day_labels(days_sorted_flow)
         part_day_flow.extend([
             dtpl("sections", "daily_flow", "heading"),
             "",
@@ -855,30 +778,17 @@ def main() -> None:
         part_day_flow.extend(["", ""])
 
         # Weekly charts
-        week_flow = defaultdict(lambda: defaultdict(Decimal))  # week_start_date -> {"income"/"expense" -> Decimal}
-        last_occ_date = None
-        for t in transactions:
-            if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
-                continue
-            if _is_excluded_category(t):
-                continue
-            occ = parse_datetime(t.get("occurred_at"))
-            if not occ:
-                continue
-            dday = occ.date()
-            if last_occ_date is None or dday > last_occ_date:
-                last_occ_date = dday
-            week_start = dday - timedelta(days=dday.weekday())  # Monday
-            amt = Decimal(str(t["amount"]))
-            if t["type"] == "income":
-                week_flow[week_start]["income"] += amt
-            elif t["type"] == "expense":
-                week_flow[week_start]["expense"] += amt
+        week_flow = accumulate_weekly_flow(
+            transactions,
+            acc_by_id=acc_by_id,
+            exclude_categories=exclude_spending_categories,
+            parse_datetime=parse_datetime,
+        )
 
         if week_flow:
             week_end = max(week_flow.keys())
             week_floor = min(week_flow.keys())
-            weeks_sorted = _week_range(week_end, week_floor, weekly_flow_weeks)
+            weeks_sorted = week_range(week_end, week_floor, weekly_flow_weeks)
             xw = [w.strftime("%d.%m") for w in weeks_sorted]
             inc_w = [float(week_flow.get(w, {}).get("income", 0)) for w in weeks_sorted]
             exp_w = [float(week_flow.get(w, {}).get("expense", 0)) for w in weeks_sorted]
@@ -899,47 +809,27 @@ def main() -> None:
                 ])
 
         # Weekly spending by category
-        week_exp_regular = defaultdict(lambda: defaultdict(Decimal))  # week_start -> cat -> amt
-        for t in transactions:
-            if t["type"] != "expense":
-                continue
-            if acc_by_id.get(t["account_id"], {}).get("currency") not in ("RUB", "RUR"):
-                continue
-            if _is_excluded_category(t):
-                continue
-            if _is_badge_expense(t):
-                continue
-            occ = parse_datetime(t.get("occurred_at"))
-            if not occ:
-                continue
-            amt = Decimal(str(t["amount"]))
-            if float(amt) >= oneoff_threshold_rub:
-                continue
-            cat = t["category"] or misc_category_label()
-            dday = occ.date()
-            week_start = dday - timedelta(days=dday.weekday())
-            week_exp_regular[week_start][cat] += amt
+        week_exp_regular = accumulate_weekly_regular_spending(
+            transactions,
+            acc_by_id=acc_by_id,
+            exclude_categories=exclude_spending_categories,
+            badge_category=badge_category,
+            oneoff_threshold_rub=oneoff_threshold_rub,
+            misc_label=misc_category_label(),
+            parse_datetime=parse_datetime,
+        )
 
         if week_exp_regular:
             week_end = max(week_exp_regular.keys())
             week_floor = min(week_exp_regular.keys())
-            weeks_sorted = _week_range(week_end, week_floor, weekly_spending_weeks)
-
-            # top categories by spend
-            total_by_cat = defaultdict(Decimal)
-            for w in weeks_sorted:
-                for cat, v in week_exp_regular.get(w, {}).items():
-                    total_by_cat[cat] += v
-            top_cats = [c for c, _ in sorted(total_by_cat.items(), key=lambda x: -x[1])[:8]]
-            series = {cat: [float(week_exp_regular.get(w, {}).get(cat, 0)) for w in weeks_sorted] for cat in top_cats}
-            rest_w = []
-            for w in weeks_sorted:
-                total_w = sum(week_exp_regular.get(w, {}).values())
-                in_top = sum(week_exp_regular.get(w, {}).get(c, 0) for c in top_cats)
-                rest_w.append(float(total_w - in_top))
-            if any(v > 0.5 for v in rest_w):
-                series[dtpl("misc", "rest_category")] = rest_w
-            week_totals_labels = [float(sum(week_exp_regular.get(w, {}).values())) for w in weeks_sorted]
+            weeks_sorted = week_range(week_end, week_floor, weekly_spending_weeks)
+            top_cats = top_cats_by_total(week_exp_regular, weeks_sorted, top_n=8)
+            series, week_totals_labels = stacked_category_series(
+                week_exp_regular,
+                weeks_sorted,
+                top_cats,
+                rest_label=dtpl("misc", "rest_category"),
+            )
             xw = [w.strftime("%d.%m") for w in weeks_sorted]
             out_png = charts_dir / dtpl("charts", "exp_weekly_file")
             ok = plot_stacked_bar_categories_png(
@@ -978,12 +868,12 @@ def main() -> None:
     for snapshots in broker_snapshots.values():
         for snap_date, _ in snapshots:
             balance_data_dates.add(snap_date)
-    balance_floor = _series_floor(balance_data_dates, fallback=dashboard_start_date)
+    balance_floor = series_floor(balance_data_dates, fallback=dashboard_start_date)
     balance_chart_end = max(
-        _spending_axis_end(balance_data_dates) if balance_data_dates else now.date(),
-        now.date(),
+        spending_axis_end(balance_data_dates, today=today) if balance_data_dates else today,
+        today,
     )
-    days_total = _day_range(balance_chart_end, balance_floor, balance_daily_window)
+    days_total = day_range(balance_chart_end, balance_floor, balance_daily_window)
     broker_rub_account_ids = [
         aid
         for aid, a in acc_by_id.items()
@@ -1067,7 +957,7 @@ def main() -> None:
     if show_broker:
         balance_series[dtpl("charts", "broker_rub")] = broker_by_day
     ok = plot_lines_png(
-        _format_day_labels(days_total),
+        format_day_labels(days_total),
         balance_series,
         title=dtpl("charts", "balance_daily_title"),
         y_label="RUB",
@@ -1100,7 +990,7 @@ def main() -> None:
     # Spending by account — current month only (list, not lifetime dump pie)
     exp_by_account = defaultdict(Decimal)
     for t in transactions:
-        if t["type"] != "expense" or _is_excluded_category(t) or _is_badge_expense(t):
+        if t["type"] != "expense" or is_excluded_category(t, exclude_spending_categories) or is_badge_expense(t, badge_category):
             continue
         occ = parse_datetime(t["occurred_at"])
         if not occ or occ < month_start:
@@ -1174,9 +1064,9 @@ def main() -> None:
     for t in transactions:
         if t["type"] != "expense":
             continue
-        if _is_excluded_category(t):
+        if is_excluded_category(t, exclude_spending_categories):
             continue
-        if _is_badge_expense(t):
+        if is_badge_expense(t, badge_category):
             continue
         occ = parse_datetime(t["occurred_at"])
         if not occ or occ < cutoff:
@@ -1205,9 +1095,9 @@ def main() -> None:
             continue
         if t.get("type") not in ("income", "expense"):
             continue
-        if _is_excluded_category(t):
+        if is_excluded_category(t, exclude_spending_categories):
             continue
-        if _is_badge_expense(t):
+        if is_badge_expense(t, badge_category):
             continue
         key = occ.strftime("%Y-%m")
         amt = Decimal(str(t["amount"]))
@@ -1254,9 +1144,9 @@ def main() -> None:
             continue
         if t.get("type") not in ("income", "expense"):
             continue
-        if _is_excluded_category(t):
+        if is_excluded_category(t, exclude_spending_categories):
             continue
-        if _is_badge_expense(t):
+        if is_badge_expense(t, badge_category):
             continue
         q = (occ.month - 1) // 3 + 1
         key = f"{occ.year}Q{q}"

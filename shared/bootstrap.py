@@ -31,7 +31,7 @@ def setup_bot(component: str) -> None:
 
 def __getattr__(name: str) -> Any:
     if name in ("run_host_bot", "resolve_host_token"):
-        from shared.telegram.host.bootstrap import resolve_host_token, run_host_bot
+        from unified_bot.host.bootstrap import resolve_host_token, run_host_bot
 
         globals()["resolve_host_token"] = resolve_host_token
         globals()["run_host_bot"] = run_host_bot

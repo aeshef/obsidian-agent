@@ -12,9 +12,7 @@ def _vault_root() -> Path:
     root = vault_root_optional()
     if root is not None:
         return root
-    from planning_bot.core.config import VAULT_PATH
-
-    return VAULT_PATH
+    raise RuntimeError("VAULT_PATH is not configured (set env or vault_paths.yaml)")
 
 
 def routines_root(vault_root: Path | None = None) -> Path:

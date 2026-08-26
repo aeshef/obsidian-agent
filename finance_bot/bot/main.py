@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from shared.telegram.host.bootstrap import run_host_bot
+from unified_bot.host.bootstrap import run_host_bot
 
 
 def _resolve_token() -> str:

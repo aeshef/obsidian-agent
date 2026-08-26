@@ -12,7 +12,7 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from shared.capabilities.profile import clear_capabilities_cache, load_capabilities
-from shared.capabilities.vault_routines_scaffold import scaffold_vault_routines
+from planning_bot.services.vault_routines_scaffold import scaffold_vault_routines
 from shared.paths import vault_root_optional
 from shared.setup.load_env import load_repo_env
 

@@ -115,11 +115,15 @@ def verify_enabled_connectors(
 
 def agent_registry_sanity(doc: dict) -> list[str]:
     """Planning-only profile must expose kanban tools, not health/broker tools."""
+    import importlib
+
     errors: list[str] = []
     with temporary_capabilities_document(doc) as prof:
         if not prof.module("planning"):
             return ["agent_sanity: document must enable planning module"]
-        from planning_bot.app.agent_tools import build_planning_registry
+        build_planning_registry = importlib.import_module(
+            "planning_bot.app.agent_tools"
+        ).build_planning_registry
 
         names = set(build_planning_registry().names())
         required = {"get_kanban", "search_tasks", "apply_kanban_task", "get_action_log"}
@@ -134,6 +138,8 @@ def agent_registry_sanity(doc: dict) -> list[str]:
 
 
 def finance_registry_sanity(doc: dict) -> list[str]:
+    import importlib
+
     errors: list[str] = []
     with temporary_capabilities_document(doc) as prof:
         if not prof.module("finance"):
@@ -144,7 +150,9 @@ def finance_registry_sanity(doc: dict) -> list[str]:
         if fb_root not in sys.path:
             sys.path.insert(0, fb_root)
         try:
-            from finance_bot.bot.agent_tools import build_finance_registry
+            build_finance_registry = importlib.import_module(
+                "finance_bot.bot.agent_tools"
+            ).build_finance_registry
         except ImportError as e:
             return [f"agent_sanity finance: import failed: {e}"]
         names = set(build_finance_registry().names())

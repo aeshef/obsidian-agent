@@ -23,7 +23,7 @@ def action_log_now(monkeypatch):
     """log_action names files by datetime.now() — pin month so tests are calendar-stable."""
     fake_dt = MagicMock(wraps=datetime)
     fake_dt.now.return_value = _FIXED_NOW
-    monkeypatch.setattr("planning_bot.services.action_logger.datetime", fake_dt)
+    monkeypatch.setattr("planning_bot.services.action_log.write.datetime", fake_dt)
 
 
 def _type_label() -> str:
