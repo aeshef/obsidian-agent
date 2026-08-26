@@ -10,6 +10,7 @@ import yaml
 from shared.capabilities.profile import (
     CONNECTOR_BROKER_SYNC,
     CONNECTOR_APPLE_HEALTH,
+    CONNECTOR_MAC_CONTEXT,
     MODULE_FINANCE,
     MODULE_KNOWLEDGE,
     MODULE_PLANNING,
@@ -67,6 +68,8 @@ def test_missing_manifest_uses_oss_starter(monkeypatch, tmp_path: Path):
     assert prof.module(MODULE_PLANNING)
     assert not prof.module(MODULE_KNOWLEDGE)
     assert not prof.connector(CONNECTOR_BROKER_SYNC)
+    assert not prof.connector(CONNECTOR_APPLE_HEALTH)
+    assert not prof.connector(CONNECTOR_MAC_CONTEXT)
     assert prof.sync_profile == "planning_light"
 
 

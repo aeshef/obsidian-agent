@@ -32,10 +32,27 @@
 
 - **Не коммитьте:** `.env`, боевые промпты, личные yaml, `capabilities.yaml`.
 - **Capabilities:** missing YAML = OSS starter unless `OBSIDIAN_AGENT_FULL_INSTALL=1`; present YAML is fail-closed.
+- **Core vs connectors:** [docs/CONNECTORS.md](docs/CONNECTORS.md) — first run is modules + LLM only.
 - **UI-строки** — `config/messages.*.yaml.example` + local overlay; Default `AGENT_LOCALE=en`.
 - **Bot YAML** — в git `*.yaml.example`; pick the loader above by stem.
 - **Числа и лимиты** — `config/agent/platform.yaml` / `models.yaml`, не magic numbers в коде.
 - **Промпты LLM** — `*.txt` / `config/agent/prompts/`, не строки в `.py`.
+
+### Personal overlay — push checklist
+
+Public `main` is not your life OS. Before every `git push`:
+
+```bash
+git status
+git diff --cached --name-only
+# Must NOT include:
+#   .env  config/agent/capabilities.yaml  config/agent/user_profile.md
+#   finance_bot/config/badge.yaml  finance_bot/config/broker_sync.yaml
+#   **/prompts/*.txt (prod)  *opening_balances*  real vault paths with your name
+git check-ignore -v .env config/agent/capabilities.yaml finance_bot/config/badge.yaml
+```
+
+Keep author full install via local gitignored files + `OBSIDIAN_AGENT_FULL_INSTALL=1` if needed — not a public `personal` branch.
 
 ---
 

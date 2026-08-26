@@ -13,9 +13,9 @@
 
 Open-source **Obsidian + Telegram** personal assistant: capture from chat (text, voice, photos), write into markdown / SQLite in the vault, answer with a tool-using LLM — not a chat that forgets.
 
-> Vault-native, **fail-closed modules** (planning / knowledge / finance). If a capability is off, it is gone from UI, tools, prompts, and sync. **Mac is optional** — see [docs/connectors/HOSTING_WITHOUT_MAC.md](docs/connectors/HOSTING_WITHOUT_MAC.md).
+> Vault-native, **fail-closed modules** (planning / knowledge / finance). If a capability is off, it is gone from UI, tools, prompts, and sync. **Core = Telegram + vault + LLM**; Mac, broker APIs, health pipes are optional [connectors](docs/CONNECTORS.md).
 
-Edit in Obsidian whenever you want. Optional VPS keeps capture 24/7; optional Mac sync is one way to mirror the vault — Syncthing / Obsidian Sync work too.
+Edit in Obsidian whenever you want. Optional VPS for 24/7 capture. Vault sync = Obsidian Sync, Syncthing, or optional desktop scripts — [no Mac required](docs/connectors/HOSTING_WITHOUT_MAC.md).
 
 ![obsidian-agent](assets/banner.png)
 
@@ -34,7 +34,7 @@ You do **not** need to learn this monorepo. Open the project in an AI coding cha
 
 1. Clone and open **this repo root** in Cursor (the folder that contains `unified_bot/` and `scripts/` — not your Obsidian vault as the only root).
 2. In chat type **`/setup`** (or `@setup` if slash commands are empty).
-3. Answer a few questions: which modules (planning / finance / knowledge / full), language (`en` / `ru`), path to your vault.
+3. Answer a few questions: which **modules** (planning / finance / knowledge / full), language (`en` / `ru`), path to your vault. Connectors (broker, health, Mac, …) stay off unless you ask.
 4. When it asks — paste tokens one at a time: [BotFather](https://t.me/BotFather) bot token, then an **OpenAI-compatible** LLM key ([DeepSeek](https://platform.deepseek.com/), OpenRouter, Groq, local vLLM, … — set `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`).
 5. When it says the bot is ready: `./scripts/run_unified_bot.sh`, open Telegram, send `/start`.
 
@@ -70,15 +70,15 @@ Most “AI + notes” stacks are a chat window glued to a folder. This repo is t
 |-----------|------|
 | Answers live in the thread / cloud index | Answers are grounded in markdown / JSON / SQLite **in the vault** |
 | One mega-prompt or opaque workspace AI | Three domains (`planning`, `knowledge`, `finance`) behind one process |
-| Features you cannot turn off | **Capabilities manifest** — off means gone from UI, tools, prompts, and Mac sync |
-| Cloud is the database | Your laptop’s Obsidian tree is canonical; a VPS is optional 24/7 capture |
+| Features you cannot turn off | **Capabilities manifest** — off means gone from UI, tools, prompts, and sync |
+| Cloud is the database | Your Obsidian tree is canonical; a VPS is optional 24/7 capture |
 
 ### Why not X?
 
 | Tool | Gap this fills |
 |------|----------------|
 | **Notion AI** | Vendor lock-in; your graph is not a local markdown vault you own |
-| **Khoj / Mem / similar** | Great retrieval chat — weak as a **life OS** (kanban + ledger + fail-closed connectors + Mac sync) |
+| **Khoj / Mem / similar** | Great retrieval chat — weak as a **life OS** (kanban + ledger + fail-closed connectors) |
 | **Plain Telegram bots** | No vault as system of record; history dies in the chat |
 
 If a module is disabled, it does not leak into keyboards, LLM hints, or rsync. Fail-closed, not “hidden in a menu.”
@@ -187,7 +187,7 @@ docker compose up --build
 ```
 
 Checklist contract: [`config/agent/bootstrap_checklist.yaml.example`](config/agent/bootstrap_checklist.yaml.example).  
-Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [HOSTING_WITHOUT_MAC](docs/connectors/HOSTING_WITHOUT_MAC.md) · [Health format](docs/connectors/health/FORMAT.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
+Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [CONNECTORS](docs/CONNECTORS.md) · [HOSTING_WITHOUT_MAC](docs/connectors/HOSTING_WITHOUT_MAC.md) · [Health format](docs/connectors/health/FORMAT.md) · [SECURITY](SECURITY.md) · [CHANGELOG](CHANGELOG.md)
 
 ---
 
@@ -199,7 +199,7 @@ Docs: [SETUP](docs/SETUP.md) · [ONBOARDING](docs/ONBOARDING.md) · [HOSTING_WIT
 | **knowledge** | Ingest, tags, links, search; optional serendipity & corpus maintenance |
 | **finance** | Ledger, dashboards, debts, plans; optional broker / cards / benefits |
 
-Connectors and sync steps: [docs/CAPABILITIES.md](docs/CAPABILITIES.md).  
+Connectors and sync steps: [docs/CONNECTORS.md](docs/CONNECTORS.md) · [docs/CAPABILITIES.md](docs/CAPABILITIES.md).  
 Agent loop (route → tools → verify): [docs/AGENT_PLATFORM.md](docs/AGENT_PLATFORM.md).
 
 Pin a domain on the reply keyboard, or leave **Auto**.
@@ -230,8 +230,9 @@ Copy lives in YAML. Python stays locale-agnostic. Default `AGENT_LOCALE=en`; Rus
 |-----|--------|
 | [SECURITY.md](SECURITY.md) | Tokens, vault, reporting |
 | [CHANGELOG.md](CHANGELOG.md) | Releases |
-| [docs/SETUP.md](docs/SETUP.md) | Install, deploy, Mac ↔ server sync |
+| [docs/SETUP.md](docs/SETUP.md) | Install, deploy, optional desktop sync |
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | Modules, connectors, smoke |
+| [docs/CONNECTORS.md](docs/CONNECTORS.md) | Core vs connectors contract |
 | [docs/CAPABILITIES.md](docs/CAPABILITIES.md) | Manifest, sync gates, UI |
 | [docs/PROMPTS_ONBOARDING.md](docs/PROMPTS_ONBOARDING.md) | Prompt tiers |
 | [docs/LOCALE.md](docs/LOCALE.md) | EN / RU |
@@ -255,7 +256,7 @@ MIT — [LICENSE](LICENSE).
 
 ## Русский
 
-**obsidian-agent** — операционка вокруг Obsidian: Telegram как вход, vault как канон. Задачи, знания, деньги, календарь и опциональные коннекторы (здоровье, брокер, карты, контекст с машины) включаются манифестом. Выключенное не торчит в меню, тулах и rsync.
+**obsidian-agent** — операционка вокруг Obsidian: Telegram как вход, vault как канон. Ядро = бот + vault + LLM. Задачи, знания, деньги и опциональные коннекторы включаются манифестом. Выключенное не торчит в меню, тулах и sync.
 
 Не чат с амнезией, а цикл инструментов по **вашим** файлам. День из голоса, скрина и одной фразы про трату собирается в markdown и SQLite, которые вы потом открываете в Obsidian.
 

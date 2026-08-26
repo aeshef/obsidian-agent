@@ -1,6 +1,8 @@
 # Capabilities manifest
 
-Declarative product profile: which Telegram domains, data connectors, and Mac sync steps are active.
+Declarative product profile: which Telegram domains, optional connectors, and sync steps are active.
+
+**Contract:** [CONNECTORS.md](CONNECTORS.md) — core = bot + vault + LLM; connectors are fail-closed add-ons.
 
 | Situation | Runtime profile |
 |-----------|-----------------|

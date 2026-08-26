@@ -1,5 +1,8 @@
 # OSS starter profile — copied to capabilities.yaml by setup_agent_config.sh when missing.
 # Author full install: set OBSIDIAN_AGENT_FULL_INSTALL=1 in .env and omit capabilities.yaml.
+#
+# First-run contract: modules only + domestic cards. All other connectors OFF
+# (docs/CONNECTORS.md). Enable later via apply_capabilities_profile / --ask-connectors.
 
 modules:
   finance: true
@@ -11,10 +14,10 @@ connectors:
   broker_sync: false
   manual_broker_accounts: false
   domestic_bank_cards: true
-  apple_health: true
+  apple_health: false
   gmail_health_pipeline: false
-  apple_calendar: true
-  mac_context: true
+  apple_calendar: false
+  mac_context: false
   knowledge_serendipity: false
 
 sync:

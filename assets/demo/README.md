@@ -14,7 +14,7 @@ Telegram → confirm → Obsidian file → dashboard chart
 | `storyboard.svg` | Source vector |
 | `demo.gif` | Optional — add after you capture (see docs) |
 
-Until `demo.gif` exists, README links this folder + [docs/DEMO_CAPTURE.md](../../docs/DEMO_CAPTURE.md).
+Until `demo.gif` exists, do **not** invent a placeholder GIF. README can link this folder + [docs/DEMO_CAPTURE.md](../../docs/DEMO_CAPTURE.md). Launch posts may ship without a GIF (repo + gold only).
 
 ## Rules
 

@@ -137,7 +137,7 @@ Set `AGENT_ROOT` in `.env` if the repo lives inside the vault (`obsidian-agent/`
 
 Playbook + locale. Map: finance → `--preset finance_only`, planning → `--preset planning_only`, full → `--preset full`.
 
-Optional connectors only if user asks (see Phase 2 table).
+Optional connectors only if user asks (`--ask-connectors` / explicit flags). Default = core modules only — see docs/CONNECTORS.md.
 
 ### 2 — VAULT_PATH (first secret)
 

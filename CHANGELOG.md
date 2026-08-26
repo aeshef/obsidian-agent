@@ -12,9 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Shortcut / Tasker recipes (`docs/connectors/shortcuts/`)
 - Hosting without Mac + systemd unit example
 - Broker provider `csv` (balance file sync)
-- OSS-neutral finance defaults: `BASE_CURRENCY=USD`, `TIMEZONE=UTC`, broker `provider: none|csv` first; Tinkoff optional
-- Meal badge example without NDFL; `show_ndfl_estimate` defaults off
-- EN/RU UI strings: generic “broker” / account names (no bank brands)
+- `docs/CONNECTORS.md` — core vs connectors contract; wizard `--ask-connectors`
+- OSS starter: health / calendar / Mac connectors off by default
+- CONTRIBUTING personal-overlay push checklist
+- README: Mac no longer centered; first-run = modules + LLM
 - Capabilities YAML alias `health_snapshots` → `apple_health`
 
 ### Changed

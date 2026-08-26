@@ -17,6 +17,7 @@ AGENT_LOCALE="${AGENT_LOCALE:-en}"
 PLAYBOOK=""
 MODULES=""
 CONNECTOR_FLAGS=()
+ASK_CONNECTORS=0
 DRY_RUN=0
 SKIP_PROMPTS=0
 SKIP_SMOKE=0
@@ -32,6 +33,7 @@ Options:
   --playbook planning|finance|knowledge|full   Golden path (default: prompt if TTY)
   --modules "planning finance"         Space-separated modules (overrides playbook modules)
   --connectors FLAGS                 Extra apply_capabilities_profile flags (repeatable)
+  --ask-connectors                   TTY: offer optional connectors (default: skip — core only)
   --locale en|ru                     Default: en
   --dry-run                          apply_capabilities_profile --dry-run only
   --skip-prompts                     Skip ensure_bot_prompts / scaffold
@@ -42,8 +44,8 @@ Options:
 Examples:
   ./scripts/onboarding_wizard.sh --playbook planning
   ./scripts/onboarding_wizard.sh --playbook finance --connectors --broker-sync
+  ./scripts/onboarding_wizard.sh --playbook planning --ask-connectors
   ./scripts/onboarding_wizard.sh --playbook knowledge
-  ./scripts/onboarding_wizard.sh --modules knowledge --connectors --knowledge-serendipity
 
 Secrets: wizard prompts on TTY, or set via scripts/setup/env_tools.py.
 Status anytime: ./scripts/oa-python.sh scripts/onboarding_status.py
@@ -55,6 +57,7 @@ while [[ $# -gt 0 ]]; do
     --playbook) PLAYBOOK="${2:-}"; shift 2 ;;
     --modules) MODULES="${2:-}"; shift 2 ;;
     --connectors) CONNECTOR_FLAGS+=("${2:-}"); shift 2 ;;
+    --ask-connectors) ASK_CONNECTORS=1; shift ;;
     --locale) AGENT_LOCALE="${2:-}"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --skip-prompts) SKIP_PROMPTS=1; shift ;;
@@ -125,8 +128,9 @@ if [[ -z "$MODULES" ]]; then
   esac
 fi
 
-# Optional connectors (TTY) — full preset starts connectors OFF
-if [[ -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
+# Optional connectors — off by default (docs/CONNECTORS.md). Pass --ask-connectors or --connectors …
+if [[ "$ASK_CONNECTORS" -eq 1 && -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
+  log "Optional connectors (Enter = No for each)"
   _ask_conn() {
     local flag="$1" prompt="$2"
     read -r -p "$prompt [y/N]: " ans
@@ -140,9 +144,9 @@ if [[ -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
   esac
   case "$MODULES" in
     *planning*)
-      _ask_conn --apple-health "Enable Apple Health / Shortcuts?"
+      _ask_conn --apple-health "Enable health snapshots (phone file / Shortcuts)?"
       _ask_conn --gmail-health-pipeline "Enable Gmail health email pipeline?"
-      _ask_conn --apple-calendar "Enable Apple Calendar export?"
+      _ask_conn --apple-calendar "Enable calendar export into vault?"
       _ask_conn --mac-context "Enable Mac context snapshots?"
       ;;
   esac
@@ -151,6 +155,8 @@ if [[ -t 0 && ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
       _ask_conn --knowledge-serendipity "Enable knowledge serendipity?"
       ;;
   esac
+elif [[ ${#CONNECTOR_FLAGS[@]} -eq 0 ]]; then
+  log "Core only — connectors off (use --ask-connectors or --connectors FLAG)"
 fi
 
 GOLDEN_FLAGS=()
