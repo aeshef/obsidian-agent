@@ -1,36 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="280" viewBox="0 0 960 280" role="img" aria-label="obsidian-agent demo storyboard">
   <rect width="960" height="280" fill="#0f1419"/>
-  <text x="24" y="36" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14">obsidian-agent · 15s demo (no PII)</text>
-  <!-- panel 1 -->
+  <text x="24" y="36" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="14">obsidian-agent - 15s demo (no PII)</text>
   <rect x="24" y="56" width="200" height="180" rx="12" fill="#1a2332" stroke="#2d3a4d"/>
-  <text x="40" y="88" fill="#26A5E4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" font-weight="600">1. Telegram</text>
-  <text x="40" y="120" fill="#e7ecf3" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13">coffee 4.50</text>
-  <text x="40" y="148" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">voice / photo / text</text>
-  <text x="40" y="176" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">confirm-in-chat</text>
-  <!-- arrow -->
-  <path d="M236 146 L268 146" stroke="#7c3aed" stroke-width="3" marker-end="url(#arr)"/>
-  <!-- panel 2 -->
+  <text x="40" y="88" fill="#26A5E4" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700">1. Telegram</text>
+  <text x="40" y="120" fill="#e7ecf3" font-family="Helvetica,Arial,sans-serif" font-size="13">coffee 4.50</text>
+  <text x="40" y="148" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">voice / photo / text</text>
+  <text x="40" y="176" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">confirm-in-chat</text>
+  <path d="M236 146 L268 146" stroke="#7c3aed" stroke-width="3"/>
+  <polygon points="268,140 280,146 268,152" fill="#7c3aed"/>
   <rect x="280" y="56" width="200" height="180" rx="12" fill="#1a2332" stroke="#2d3a4d"/>
-  <text x="296" y="88" fill="#7c3aed" font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" font-weight="600">2. Agent</text>
-  <text x="296" y="120" fill="#e7ecf3" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13">tool loop</text>
-  <text x="296" y="148" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">NLU ’ ledger row</text>
-  <text x="296" y="176" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">or kanban / note</text>
+  <text x="296" y="88" fill="#7c3aed" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700">2. Agent</text>
+  <text x="296" y="120" fill="#e7ecf3" font-family="Helvetica,Arial,sans-serif" font-size="13">tool loop</text>
+  <text x="296" y="148" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">NLU to ledger row</text>
+  <text x="296" y="176" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">or kanban / note</text>
   <path d="M492 146 L524 146" stroke="#7c3aed" stroke-width="3"/>
-  <!-- panel 3 -->
+  <polygon points="524,140 536,146 524,152" fill="#7c3aed"/>
   <rect x="536" y="56" width="200" height="180" rx="12" fill="#1a2332" stroke="#2d3a4d"/>
-  <text x="552" y="88" fill="#a78bfa" font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" font-weight="600">3. Obsidian</text>
-  <text x="552" y="120" fill="#e7ecf3" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13">markdown / sqlite</text>
-  <text x="552" y="148" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">vault = source of truth</text>
-  <text x="552" y="176" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">edit anytime</text>
+  <text x="552" y="88" fill="#a78bfa" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700">3. Obsidian</text>
+  <text x="552" y="120" fill="#e7ecf3" font-family="Helvetica,Arial,sans-serif" font-size="13">markdown / sqlite</text>
+  <text x="552" y="148" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">vault = source of truth</text>
+  <text x="552" y="176" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">edit anytime</text>
   <path d="M748 146 L780 146" stroke="#7c3aed" stroke-width="3"/>
-  <!-- panel 4 -->
+  <polygon points="780,140 792,146 780,152" fill="#7c3aed"/>
   <rect x="792" y="56" width="144" height="180" rx="12" fill="#1a2332" stroke="#2d3a4d"/>
-  <text x="808" y="88" fill="#43a047" font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" font-weight="600">4. Charts</text>
-  <text x="808" y="120" fill="#e7ecf3" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13">dashboard</text>
-  <text x="808" y="148" fill="#8b9bb4" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12">PNG in vault</text>
-  <defs>
-    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#7c3aed"/>
-    </marker>
-  </defs>
+  <text x="808" y="88" fill="#43a047" font-family="Helvetica,Arial,sans-serif" font-size="16" font-weight="700">4. Charts</text>
+  <text x="808" y="120" fill="#e7ecf3" font-family="Helvetica,Arial,sans-serif" font-size="13">dashboard</text>
+  <text x="808" y="148" fill="#8b9bb4" font-family="Helvetica,Arial,sans-serif" font-size="12">PNG in vault</text>
 </svg>

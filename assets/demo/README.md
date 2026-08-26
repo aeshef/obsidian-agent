@@ -10,7 +10,8 @@ Telegram → confirm → Obsidian file → dashboard chart
 
 | File | Role |
 |------|------|
-| `storyboard.svg` | Static storyboard (safe to commit; no PII) |
+| `storyboard.png` | README image (GitHub-safe) |
+| `storyboard.svg` | Source vector |
 | `demo.gif` | Optional — add after you capture (see docs) |
 
 Until `demo.gif` exists, README links this folder + [docs/DEMO_CAPTURE.md](../../docs/DEMO_CAPTURE.md).

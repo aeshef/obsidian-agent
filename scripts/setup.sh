@@ -64,15 +64,14 @@ fi
 echo ""
 sh_msg scripts.setup.section_bot_configs
 # Always-safe shared configs
-for pair in \
-  "config/agent/platform.yaml:config/agent/platform.yaml.example"; do
-  target="${pair%%:*}"
-  example="${pair##*:}"
+_copy_from_example() {
+  local target="$1" example="$2"
   if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
     cp "$ROOT/$example" "$ROOT/$target"
     sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
   fi
-done
+}
+_copy_from_example "config/agent/platform.yaml" "config/agent/platform.yaml.example"
 # Module-gated
 if [ -f "$ROOT/config/agent/capabilities.yaml" ]; then
   _has_fin="$("$OA_PY" -c "from shared.capabilities.profile import get_capabilities,MODULE_FINANCE; import sys; sys.exit(0 if get_capabilities().module(MODULE_FINANCE) else 1)" && echo 1 || echo 0)"
@@ -82,24 +81,14 @@ else
   _has_fin=0; _has_kb=0; _has_pl=0
 fi
 if [ "$_has_fin" = 1 ]; then
-  for pair in \
-    "finance_bot/config/nlu_config.yaml:finance_bot/config/nlu_config.yaml.example"; do
-    target="${pair%%:*}"; example="${pair##*:}"
-    if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
-      cp "$ROOT/$example" "$ROOT/$target"
-      sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
-    fi
-  done
+  _copy_from_example "finance_bot/config/nlu_config.yaml" "finance_bot/config/nlu_config.yaml.example"
 fi
 if [ "$_has_kb" = 1 ]; then
   for pair in \
     "knowledge_bot/config/media_extensions.yaml:knowledge_bot/config/media_extensions.yaml.example" \
     "knowledge_bot/config/hubs_registry.yaml:knowledge_bot/config/hubs_registry.yaml.example"; do
     target="${pair%%:*}"; example="${pair##*:}"
-    if [ ! -f "$ROOT/$target" ] && [ -f "$ROOT/$example" ]; then
-      cp "$ROOT/$example" "$ROOT/$target"
-      sh_msgf scripts.setup.created_from_example "{\"target\":\"$target\"}"
-    fi
+    _copy_from_example "$target" "$example"
   done
 fi
 
