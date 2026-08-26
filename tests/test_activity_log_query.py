@@ -6,7 +6,7 @@ from datetime import date
 import pytest
 
 from planning_bot.core.config import ACTION_LOGS_DIR
-from planning_bot.services.action_logger import ActionLogger
+from planning_bot.services.action_log import ActionLogger
 from planning_bot.services.activity_log_query import (
     clamp_activity_limit,
     fetch_activity_events,

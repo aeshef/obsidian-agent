@@ -12,7 +12,7 @@ from planning_bot.core.config import ACTION_LOG_PREFIX
 from planning_bot.core.pdmsg import pdmsg
 from planning_bot.services.action_log_format import content_for_parse, format_log_entry, needs_repair
 from planning_bot.services.action_log_parser import parse_log_content
-from planning_bot.services.action_logger import ActionLogger
+from planning_bot.services.action_log import ActionLogger
 
 _LOG_MONTH = "2026-06"
 _FIXED_NOW = datetime(2026, 6, 15, 12, 0, 0)

@@ -42,7 +42,7 @@ def test_sleep_debt_freezes_on_missing_days():
 
 def test_deadline_blitz_uses_task_id_not_timeline_key():
     from datetime import datetime
-    from planning_bot.services.kanban_flow_metrics import deadline_blitz_stats
+    from planning_bot.services.kanban_flow import deadline_blitz_stats
 
     timelines = {
         "id:abcd1234": {

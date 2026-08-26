@@ -109,7 +109,7 @@ def _domain_messages_merge_example(monkeypatch):
     dm.clear_domain_messages_cache()
     try:
         from planning_bot.services import action_log_parser as alp
-        from planning_bot.services import action_logger as al
+        from planning_bot.services import action_log as al
         from planning_bot.services.action_log_format import _glued_type_re, _loose_json_block_re
         from planning_bot.services.iphone_snapshot_names import clear_kontext_prefix_cache
 

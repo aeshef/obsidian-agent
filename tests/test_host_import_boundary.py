@@ -1,10 +1,8 @@
 """Host composition-root import boundary (OSS audit F12).
 
 Composition root: ``unified_bot/host`` (outside ``shared/``).
-``shared/memory`` may still import bots. Other ``shared/`` bot imports are
-frozen in ``KNOWN_BOT_IMPORT_FILES`` — shrink only, never grow.
-Shims under ``shared/telegram/host`` re-export ``unified_bot.host`` and must
-not import bots directly (except temporary domain shims listed below).
+``shared/memory`` may still import bots. New bot imports elsewhere in
+``shared/`` fail CI. Host shims under ``shared/telegram/host`` are removed.
 """
 from __future__ import annotations
 
@@ -16,9 +14,7 @@ SHARED = ROOT / "shared"
 ALLOWED_REL_DIRS = {
     Path("shared/memory"),
 }
-# Frozen debt — shrink only. Prefer domain packages; temporary shims listed.
 KNOWN_BOT_IMPORT_FILES = frozenset()
-
 BOT_ROOTS = frozenset({"planning_bot", "finance_bot", "knowledge_bot", "bot"})
 
 
@@ -63,17 +59,8 @@ def test_shared_bot_imports_only_in_documented_zones():
     )
 
 
-def test_known_bot_import_files_still_exist():
-    missing = [p for p in sorted(KNOWN_BOT_IMPORT_FILES) if not (ROOT / p).is_file()]
-    assert not missing, "allowlist paths removed — drop from KNOWN_BOT_IMPORT_FILES: " + str(
-        missing
-    )
-
-
 def test_unified_bot_host_is_composition_root():
     host = ROOT / "unified_bot" / "host" / "bootstrap.py"
     assert host.is_file()
-    shim = ROOT / "shared" / "telegram" / "host" / "bootstrap.py"
-    text = shim.read_text(encoding="utf-8")
-    assert "unified_bot.host.bootstrap" in text
-    assert "planning_bot" not in text and "finance_bot" not in text
+    shim_py = list((ROOT / "shared" / "telegram" / "host").glob("*.py"))
+    assert not shim_py, f"host shims must be deleted, found: {shim_py}"

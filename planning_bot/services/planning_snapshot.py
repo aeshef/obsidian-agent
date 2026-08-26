@@ -7,7 +7,7 @@ from planning_bot.core.pdmsg import pdmsg
 from planning_bot.core.config import KANBAN_COLUMNS
 
 if TYPE_CHECKING:
-    from planning_bot.services.action_logger import ActionLogger
+    from planning_bot.services.action_log import ActionLogger
     from planning_bot.services.goals import GoalsManager
     from planning_bot.services.kanban import KanbanBoard
 

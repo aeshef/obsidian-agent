@@ -23,7 +23,7 @@ from planning_bot.services.kanban_flow_charts import (
     chart_transitions_heatmap,
     chart_wip_goal_segments,
 )
-from planning_bot.services.kanban_flow_metrics import compute_kanban_flow_metrics
+from planning_bot.services.kanban_flow import compute_kanban_flow_metrics
 from shared.agent.platform_config import platform_int
 from shared.chart_paths import chart_path, chart_wikilink_png, charts_root, ensure_parent
 from shared.goals.task_segment import ALL_SEGMENTS

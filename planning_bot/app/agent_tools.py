@@ -489,7 +489,7 @@ async def get_kanban_flow(ctx: AgentContext) -> str:
     import json
 
     from planning_bot.core.config import VAULT_PATH
-    from planning_bot.services.kanban_flow_metrics import format_kanban_flow_for_agent
+    from planning_bot.services.kanban_flow import format_kanban_flow_for_agent
     from shared.chart_paths import chart_path
 
     path = chart_path(VAULT_PATH, "kanban_flow_metrics_json")

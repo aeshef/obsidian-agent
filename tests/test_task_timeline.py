@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from planning_bot.core.config import ACTION_LOG_PREFIX
 from planning_bot.services.action_log_format import format_log_entry
-from planning_bot.services.action_logger import ActionLogger
+from planning_bot.services.action_log import ActionLogger
 from planning_bot.services.kanban import KanbanBoard
 from planning_bot.services.task_timeline_query import format_task_timeline
 from tests.kanban_test_data import kanban_fixture

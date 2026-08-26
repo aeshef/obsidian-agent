@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from planning_bot.services.action_log_parser import is_completion_event
-from planning_bot.services.kanban_flow_metrics import (
+from planning_bot.services.kanban_flow import (
     build_task_timelines,
     compute_lead_cycle_stats,
     daily_flow_series,

@@ -107,8 +107,8 @@ def clear_all_message_caches() -> None:
     from shared.domain_messages import clear_domain_messages_cache
 
     clear_domain_messages_cache()
-    from shared.telegram.host.domain_routing import clear_domain_routing_cache
-    from shared.telegram.host.menu_detection import clear_menu_detection_cache
+    from unified_bot.host.domain_routing import clear_domain_routing_cache
+    from unified_bot.host.menu_detection import clear_menu_detection_cache
 
     clear_domain_routing_cache()
     clear_menu_detection_cache()

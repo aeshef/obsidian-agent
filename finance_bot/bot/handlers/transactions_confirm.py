@@ -525,9 +525,9 @@ async def set_category_text_cb(callback: types.CallbackQuery, state: FSMContext)
 @router.message(ConfirmTransactionsState.transactions)
 async def handle_transaction_field_input(message: types.Message, state: FSMContext) -> None:
     """Handle text input for missing transaction fields."""
-    from shared.telegram.host import labels as host_labels
-    from shared.telegram.host.keyboards import root_keyboard
-    from shared.telegram.host.menus import is_finance_menu, mode_from_button
+    from unified_bot.host import labels as host_labels
+    from unified_bot.host.keyboards import root_keyboard
+    from unified_bot.host.menus import is_finance_menu, mode_from_button
     from shared.telegram.navigation import is_host_navigation
     from shared.i18n import msg
 
@@ -541,7 +541,7 @@ async def handle_transaction_field_input(message: types.Message, state: FSMConte
     if new_mode:
         await state.clear()
         await state.update_data(ui_mode=new_mode, fixed_domain=new_mode)
-        from shared.telegram.host.dispatch import switch_mode
+        from unified_bot.host.dispatch import switch_mode
 
         await switch_mode(message, state, new_mode)
         return

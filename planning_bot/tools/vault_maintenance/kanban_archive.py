@@ -88,7 +88,7 @@ def _ensure_archive_skeleton() -> Path:
 
 def _completion_dates_from_logs() -> Dict[str, date]:
     from planning_bot.core.config import ACTION_LOG_PREFIX
-    from planning_bot.services.action_logger import ActionLogger
+    from planning_bot.services.action_log import ActionLogger
 
     logger = ActionLogger(logs_dir=ACTION_LOGS_DIR)
     out: Dict[str, date] = {}

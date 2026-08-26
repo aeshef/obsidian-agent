@@ -68,7 +68,7 @@ async def collect_finance_context(user_id: int) -> str:
 async def collect_planning_context(user_id: int) -> str:
     """Planning snapshot (log, goals, kanban) + recent dialogue from shared session."""
     try:
-        from shared.telegram.host.agent import get_host_planning_bot
+        from unified_bot.host.agent import get_host_planning_bot
 
         bot = get_host_planning_bot()
         if bot is None:

@@ -21,10 +21,13 @@ from shared.bootstrap import setup_bot
 setup_bot("finance_bot")
 from bot.broker_portfolio import BROKER_PORTFOLIO_ACCOUNT_TYPE, is_broker_portfolio_account  # noqa: E402
 from bot.services.dashboard import (
+    HERO_META_PLACEHOLDER,
     acc_balance,
+    assemble_dashboard_markdown,
     build_badge_section,
     ensure_account_balance_snapshots_table,
     external_rub_non_portfolio_total,
+    fill_summary_hero,
     fmt_num,
     load_data,
     parse_datetime,
@@ -32,6 +35,7 @@ from bot.services.dashboard import (
     plot_lines_png,
     plot_stacked_bar_categories_png,
     safe_comment,
+    write_dashboard_md,
 )
 from bot.services.dashboard.filters import (
     is_badge_expense,
@@ -101,8 +105,7 @@ def main() -> None:
     if not db_path.exists():
         rel_db = db_path.relative_to(vault) if vault in db_path.parents else db_path
         body = dtpl("errors", "db_not_found", db_path=rel_db)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(body, encoding="utf-8")
+        write_dashboard_md(out_path, body)
         print(dtpl("errors", "db_not_found_log", out_path=out_path))
         return
 
@@ -203,7 +206,7 @@ def main() -> None:
     _hero_open = dtpl("sections", "summary", "hero_open")
     if _hero_open.strip():
         # Numbers as metric cards — filled after month-plan cushion is known
-        part_summary.append("__FINANCE_HERO_META__")
+        part_summary.append(HERO_META_PLACEHOLDER)
         part_summary.append(f"_{_summary_mtime}_")
         part_summary.append("")
     else:
@@ -1104,37 +1107,12 @@ def main() -> None:
         monthly[key][t["type"]] += amt
 
     # Hero: metric cards (same visual language as cockpit signals)
-    if "__FINANCE_HERO_META__" in part_summary:
-        from shared.obsidian_metric_cards import MetricCard, metric_cards_lines
-
-        hero_cards = [
-            MetricCard(
-                label=dtpl("sections", "summary", "card_total_label") or "Total",
-                value=f"{fmt_num(total_rub, decimals=0)} RUB",
-                accent="#1e88e5",
-                hint=dtpl("sections", "summary", "card_total_hint") or "cash + broker",
-            ),
-        ]
-        if total_usd != 0:
-            hero_cards.append(
-                MetricCard(
-                    label="USD",
-                    value=f"${fmt_num(total_usd, decimals=0)}",
-                    accent="#43a047",
-                )
-            )
-        if cushion_runway_str:
-            hero_cards.append(
-                MetricCard(
-                    label=dtpl("sections", "summary", "card_cushion_label") or "Cushion",
-                    value=dtpl("sections", "summary", "card_cushion_value", months=cushion_runway_str)
-                    or f"{cushion_runway_str} mo",
-                    accent="#7e57c2",
-                    hint=dtpl("sections", "summary", "card_cushion_hint") or "cash / essentials",
-                )
-            )
-        _idx = part_summary.index("__FINANCE_HERO_META__")
-        part_summary[_idx:_idx + 1] = metric_cards_lines(hero_cards)
+    fill_summary_hero(
+        part_summary,
+        total_rub=total_rub,
+        total_usd=total_usd,
+        cushion_runway_str=cushion_runway_str,
+    )
 
     # Quarterly dynamics
     quarterly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
@@ -1228,47 +1206,25 @@ def main() -> None:
 
     conn.close()
 
-    def _sep() -> list:
-        return ["---", ""]
-
-    def _wrap_callout(title: str, *content_parts: list) -> list:
-        """Foldable section; tables/embeds use <details> (callouts break them)."""
-        from shared.obsidian_fold import fold_section
-
-        return fold_section(title, *content_parts, collapsed=True)
-
-    # Assemble dashboard sections
-    footer = [
-        dtpl("footer", "refresh").strip(),
-        "",
-    ]
-    sections = (
-        part_summary
-        + part_structure
-        + part_planned
-        + _sep()
-        + part_exp_pies
-        + _sep()
-        + part_day_flow
-        + _sep()
-        + part_total_balance
-        + part_monthly
-        + part_quarterly
-        + _sep()
-        + part_day_regular
-        + _sep()
-        + _wrap_callout(dtpl("callouts", "badge"), part_badge)
-        + _wrap_callout(dtpl("callouts", "day_oneoff"), part_day_oneoff, part_oneoff_list)
-        + _wrap_callout(dtpl("callouts", "account_details"), part_moves, part_exp_by_account, part_balances)
-        + _wrap_callout(dtpl("callouts", "top_expenses"), part_top_exp)
-        + footer
+    body = assemble_dashboard_markdown(
+        part_summary=part_summary,
+        part_structure=part_structure,
+        part_planned=part_planned,
+        part_exp_pies=part_exp_pies,
+        part_day_flow=part_day_flow,
+        part_total_balance=part_total_balance,
+        part_monthly=part_monthly,
+        part_quarterly=part_quarterly,
+        part_day_regular=part_day_regular,
+        part_badge=part_badge,
+        part_day_oneoff=part_day_oneoff,
+        part_oneoff_list=part_oneoff_list,
+        part_moves=part_moves,
+        part_exp_by_account=part_exp_by_account,
+        part_balances=part_balances,
+        part_top_exp=part_top_exp,
     )
-
-    nav = dtpl("nav_callout")
-    nav_block = f"\n\n{nav}\n\n---" if nav.strip() else ""
-    body = dtpl("title") + nav_block + "\n\n" + "\n".join(sections)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(body, encoding="utf-8")
+    write_dashboard_md(out_path, body)
     print(dtpl("logs", "written", out_path=out_path))
 
 

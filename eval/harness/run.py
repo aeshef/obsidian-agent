@@ -47,7 +47,7 @@ def _run_case(case: dict[str, Any]) -> None:
 
     if kind == "cheap_router":
         from shared.agent.cheap_router import cheap_route_domain, clear_cheap_router_cache
-        from shared.telegram.host.agent import _looks_finance_planning_cross
+        from unified_bot.host.agent import _looks_finance_planning_cross
 
         clear_cheap_router_cache()
         got = cheap_route_domain(
@@ -61,7 +61,7 @@ def _run_case(case: dict[str, Any]) -> None:
         return
 
     if kind == "cross_domain":
-        from shared.telegram.host.agent import _looks_finance_planning_cross
+        from unified_bot.host.agent import _looks_finance_planning_cross
 
         got = bool(_looks_finance_planning_cross(str(inp.get("text") or "")))
         want = bool(expect.get("looks_cross"))

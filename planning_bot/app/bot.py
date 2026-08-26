@@ -19,7 +19,7 @@ from planning_bot.app.handlers import (
 from planning_bot.core.config import ACTION_LOGS_DIR, CHAT_ID_FILE, LOG_DIR
 from planning_bot.core.llm import DeepSeekClient
 from planning_bot.core.settings import get_config_path
-from planning_bot.services.action_logger import ActionLogger
+from planning_bot.services.action_log import ActionLogger
 from planning_bot.services.goals import GoalsManager
 from planning_bot.services.goals_analyzer import GoalsAnalyzer
 from planning_bot.services.goals_mapper import GoalsMapper

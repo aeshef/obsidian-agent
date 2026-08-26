@@ -2,14 +2,14 @@
 
 ## English
 
-Free-text Telegram path: **routing → intent → tool loop → reply**. Code: `shared/agent/`, `shared/memory/`, `shared/telegram/host/`, `config/agent/`. Prod: `python -m unified_bot.main` with `DEPLOY_MODE=single`. Russian details and diagrams below.
+Free-text Telegram path: **routing → intent → tool loop → reply**. Code: `shared/agent/`, `shared/memory/`, `unified_bot/host/`, `config/agent/`. Prod: `python -m unified_bot.main` with `DEPLOY_MODE=single`. Russian details and diagrams below.
 
 ---
 
 ## Русский (текущее состояние)
 
 Единый слой для свободного текста в Telegram: **роутинг → intent → tool loop → ответ**.  
-Код: `shared/agent/`, `shared/memory/`, `shared/telegram/host/`, `config/agent/`.
+Код: `shared/agent/`, `shared/memory/`, `unified_bot/host/`, `config/agent/`.
 
 Prod: **`python -m unified_bot.main`**, `DEPLOY_MODE=single` — один процесс, три домена.
 

@@ -117,7 +117,7 @@ def run_all() -> bool:
     
     # (comment)
     try:
-        from planning_bot.services.action_logger import ActionLogger
+        from planning_bot.services.action_log import ActionLogger
         logger = ActionLogger(logs_dir=ACTION_LOGS_DIR)
         log_task_movements(logger, previous_state, current_state_before)
     except Exception as e:

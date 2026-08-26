@@ -7,7 +7,7 @@ from planning_bot.core.pdmsg import pdmsg
 from shared.query.agent_interval import IntervalMode, resolve_agent_interval
 
 if TYPE_CHECKING:
-    from planning_bot.services.action_logger import ActionLogger
+    from planning_bot.services.action_log import ActionLogger
 
 
 def format_action_log(

@@ -58,7 +58,7 @@ async def handle_smart_text(
     chat_id = message.chat.id
 
     # Multi-line money dumps → confirm queue; do not ask intent LLM / agent.
-    from shared.telegram.host.auto_dispatch import _looks_like_txn_batch
+    from unified_bot.host.auto_dispatch import _looks_like_txn_batch
 
     if _looks_like_txn_batch(text):
         from .transactions import _process_transactions

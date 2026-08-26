@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from shared.telegram.host import labels as host_labels
+from unified_bot.host import labels as host_labels
 
 
 @lru_cache(maxsize=1)

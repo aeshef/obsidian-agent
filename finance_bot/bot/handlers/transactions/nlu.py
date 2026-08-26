@@ -1,4 +1,4 @@
-"""NLU handlers (voice via shared.telegram.host.wire.include_host_voice)."""
+"""NLU handlers (voice via unified_bot.host.wire.include_host_voice)."""
 from __future__ import annotations
 
 import logging
@@ -42,7 +42,7 @@ async def process_transactions(
     text = (text or "").strip()
     if is_host_navigation(text):
         await state.clear()
-        from shared.telegram.host.keyboards import root_keyboard
+        from unified_bot.host.keyboards import root_keyboard
 
         await message.answer(msg("host", "main_menu"), reply_markup=root_keyboard())
         return
@@ -73,8 +73,8 @@ async def process_transactions(
     if current_state and str(current_state).startswith("ConfirmTransactionsState"):
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
         from bot.config_loader import nlu_cancel_texts
-        from shared.telegram.host import labels as host_labels
-        from shared.telegram.host.keyboards import root_keyboard
+        from unified_bot.host import labels as host_labels
+        from unified_bot.host.keyboards import root_keyboard
         from shared.i18n import msg as host_msg
         from shared.ui import common
 

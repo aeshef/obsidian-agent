@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Dict, Optional
 from planning_bot.core.config import KANBAN_FILE, LOGS_DIR, ACTION_LOGS_DIR, DONE_COLUMN
 from planning_bot.services.kanban import KanbanBoard
-from planning_bot.services.action_logger import ActionLogger
+from planning_bot.services.action_log import ActionLogger
 
 
 class KanbanMonitor:

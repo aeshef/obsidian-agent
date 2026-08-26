@@ -24,8 +24,8 @@ async def enable_bulk_ingest(
     uid = message.from_user.id if message.from_user else 0
     set_bulk_ingest(uid, True)
     if state is not None:
-        from shared.telegram.host.constants import DOMAIN_KNOWLEDGE
-        from shared.telegram.host.keyboards import knowledge_keyboard
+        from unified_bot.host.constants import DOMAIN_KNOWLEDGE
+        from unified_bot.host.keyboards import knowledge_keyboard
 
         await state.update_data(bulk_ingest=True, ui_mode=DOMAIN_KNOWLEDGE)
         kb = knowledge_keyboard(bulk_active=True)
@@ -42,8 +42,8 @@ async def disable_bulk_ingest(
     uid = message.from_user.id if message.from_user else 0
     stats = set_bulk_ingest(uid, False)
     if state is not None:
-        from shared.telegram.host.constants import DOMAIN_IDS, DOMAIN_KNOWLEDGE
-        from shared.telegram.host.keyboards import keyboard_for_mode
+        from unified_bot.host.constants import DOMAIN_IDS, DOMAIN_KNOWLEDGE
+        from unified_bot.host.keyboards import keyboard_for_mode
 
         await state.update_data(bulk_ingest=False)
         data = await state.get_data()

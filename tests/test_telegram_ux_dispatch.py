@@ -275,7 +275,7 @@ def test_root_keyboard_hides_auto_by_default(monkeypatch, tmp_path):
     from shared.agent import platform_config as pc
     from shared.capabilities.profile import clear_capabilities_cache
     from unified_bot.host.keyboards import root_keyboard
-    from shared.telegram.host import labels as L
+    from unified_bot.host import labels as L
 
     cfg = tmp_path / "platform.yaml"
     cfg.write_text("host_ui:\n  show_auto_mode_button: 0\n", encoding="utf-8")

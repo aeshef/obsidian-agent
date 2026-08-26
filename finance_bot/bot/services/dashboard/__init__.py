@@ -1,4 +1,10 @@
 """Finance dashboard helpers (re-export split modules)."""
+from bot.services.dashboard.assemble import (
+    HERO_META_PLACEHOLDER,
+    assemble_dashboard_markdown,
+    fill_summary_hero,
+    write_dashboard_md,
+)
 from bot.services.dashboard.badge import build_badge_section
 from bot.services.dashboard.charts import plot_lines_png, plot_stacked_bar_categories_png
 from bot.services.dashboard.data import (
@@ -36,16 +42,19 @@ from bot.services.dashboard.windows import (
 )
 
 __all__ = [
+    "HERO_META_PLACEHOLDER",
     "acc_balance",
     "accumulate_daily_flow",
     "accumulate_daily_spending",
     "accumulate_weekly_flow",
     "accumulate_weekly_regular_spending",
+    "assemble_dashboard_markdown",
     "build_badge_section",
     "chart_window_int",
     "day_range",
     "ensure_account_balance_snapshots_table",
     "external_rub_non_portfolio_total",
+    "fill_summary_hero",
     "fmt_num",
     "format_day_labels",
     "is_badge_expense",
@@ -66,4 +75,5 @@ __all__ = [
     "stacked_category_series",
     "top_cats_by_total",
     "week_range",
+    "write_dashboard_md",
 ]
