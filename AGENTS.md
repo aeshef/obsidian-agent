@@ -33,3 +33,11 @@ This repo is the result of multi-iteration hardening. Treat these as hard constr
 - Prefer extending YAML / prompts / capabilities over new Python branches.
 - After config or path changes: consider deploy/rsync impact and both locales.
 - Never commit `.env`, `capabilities.yaml`, prod prompts, `badge.yaml`, real vault data.
+
+## Public GitHub workflow
+
+`main` is public — see **[docs/MAINTAINER.md](docs/MAINTAINER.md)**.
+
+- Land changes via **branch + Pull Request + CI**, not direct pushes to `main` (unless the user explicitly requests an emergency hotfix).
+- Squash-merge preferred; PR body must pass the personal-overlay checklist.
+- When asked about Issues/PRs: triage with `gh`, ack community work quickly, never paste personal secrets into public threads.

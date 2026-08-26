@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - CONTRIBUTING personal-overlay push checklist
 - README: Mac no longer centered; first-run = modules + LLM
 - Capabilities YAML alias `health_snapshots` → `apple_health`
+- Maintainer protocol for public `main` (`docs/MAINTAINER.md`)
 
 ### Changed
 - Vision uses `OPENROUTER_BASE_URL` / `VISION_BASE_URL` (no hardcoded host)

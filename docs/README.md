@@ -8,6 +8,7 @@ User-facing docs for **obsidian-agent** clones and contributors. Maintainer-only
 | [ONBOARDING.md](ONBOARDING.md) | Modules, connectors, prompts, smoke tests |
 | [CAPABILITIES.md](CAPABILITIES.md) | `capabilities.yaml`, sync steps, UI gates, `menu_actions` |
 | [CONNECTORS.md](CONNECTORS.md) | Core vs connectors contract; first-run happy path |
+| [MAINTAINER.md](MAINTAINER.md) | Public-repo protocol: PRs, issue triage, community |
 | [connectors/HOSTING_WITHOUT_MAC.md](connectors/HOSTING_WITHOUT_MAC.md) | VPS / Linux / Windows without Mac LaunchAgent |
 | [connectors/health/FORMAT.md](connectors/health/FORMAT.md) | Portable health KV snapshots (iOS / Android / manual) |
 | [connectors/shortcuts/README.md](connectors/shortcuts/README.md) | Shortcut / Tasker recipes (no binary `.shortcut`) |

@@ -1,0 +1,25 @@
+---
+description: Public GitHub workflow — PRs, issues, no direct main pushes
+alwaysApply: true
+---
+
+# Public repo workflow
+
+This repository is **public**. Follow `docs/MAINTAINER.md`.
+
+## Commits / branches
+
+- Do **not** push routine work straight to `main`.
+- Create a topic branch, open a **Pull Request**, wait for CI, then squash-merge (or ask the user to merge).
+- Exception only if the user explicitly orders an emergency push to `main`.
+
+## Before every commit destined for GitHub
+
+- No `.env`, prod `*.txt` prompts, `capabilities.yaml`, badge/broker secrets, personal vault paths, identity, employer, or real balances.
+- Commit messages stay OSS-anonymous (no private life details).
+
+## Issues & community PRs
+
+- When the user asks about GitHub activity, use `gh issue` / `gh pr` and triage per `docs/MAINTAINER.md`.
+- Prefer acknowledging external PRs quickly; thank contributors; avoid blocking on pure style.
+- Link related docs (`CONNECTORS.md`, `docs/connectors/shortcuts/`) when relevant.
