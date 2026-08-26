@@ -42,13 +42,13 @@ the user asks. Wizard default is core-only; pass explicit `--connectors …` or
 | `manual_broker_accounts` | finance | off | YAML broker accounts, no API |
 | `broker_sync` | finance | off | `provider: csv` (any country) or optional `tinkoff` |
 | `corporate_badge` | finance | off | Workplace meal benefit; tax/NDFL is config |
-| `apple_health` / `health_snapshots` | planning | off | Vault KV files — [health/FORMAT.md](connectors/health/FORMAT.md) |
+| `apple_health` / `health_snapshots` | planning | off | Vault KV files — [health/FORMAT.md](connectors/health/FORMAT.md); starter Shortcut: [iPhone context](https://www.icloud.com/shortcuts/0baed2509a444f4d91d6047f6750fbe2) |
 | `gmail_health_pipeline` | planning | off | Optional email delivery of the same snapshots |
-| `apple_calendar` | planning | off | Calendar file in vault |
-| `mac_context` | planning | off | Desktop context snapshots (Mac-oriented) |
+| `apple_calendar` | planning | off | Calendar file in vault; starter: [Calendar (Obsidian)](https://www.icloud.com/shortcuts/b8f0b1fc20d34903897c4bf95fa89be0) |
+| `mac_context` | planning | off | Desktop context snapshots; starter: [Mac Context](https://www.icloud.com/shortcuts/034abdffeb82457395ea6a482a841133) |
 | `knowledge_serendipity` | knowledge | off | Scheduled random note |
 
-Recipes (Shortcuts / Tasker): [connectors/shortcuts/README.md](connectors/shortcuts/README.md).
+Recipes + iCloud templates: [connectors/shortcuts/README.md](connectors/shortcuts/README.md).
 
 ## Personal overlay (not in git)
 

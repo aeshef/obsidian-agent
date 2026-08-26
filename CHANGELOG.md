@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` (DeepSeek env names remain aliases)
 - Portable health snapshot spec + samples (`docs/connectors/health/`)
-- Shortcut / Tasker recipes (`docs/connectors/shortcuts/`)
+- Shortcut / Tasker recipes (`docs/connectors/shortcuts/`) + optional iCloud starter links (Mac context, iPhone context, Calendar)
 - Hosting without Mac + systemd unit example
 - Broker provider `csv` (balance file sync)
 - `docs/CONNECTORS.md` — core vs connectors contract; wizard `--ask-connectors`
