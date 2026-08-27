@@ -10,11 +10,11 @@ Telegram → confirm → Obsidian file → dashboard chart
 
 | File | Role |
 |------|------|
-| `storyboard.png` | README image (GitHub-safe) |
+| `demo.gif` | README hero loop (Telegram demo) |
+| `storyboard.png` | Fallback still (GitHub-safe) |
 | `storyboard.svg` | Source vector |
-| `demo.gif` | Optional — add after you capture (see docs) |
 
-Until `demo.gif` exists, do **not** invent a placeholder GIF. README can link this folder + [docs/DEMO_CAPTURE.md](../../docs/DEMO_CAPTURE.md). Launch posts may ship without a GIF (repo + gold only).
+`demo.gif` is compressed for GitHub (~8MB, 720p). Source capture may live outside the repo; see [docs/DEMO_CAPTURE.md](../../docs/DEMO_CAPTURE.md).
 
 ## Rules
 
