@@ -5,6 +5,9 @@
 **Maintainers:** public-repo cadence (PR → CI → merge, issue triage) is in
 [docs/MAINTAINER.md](docs/MAINTAINER.md).
 
+By participating, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md)
+(Contributor Covenant 2.1).
+
 ---
 
 ## Окружение
