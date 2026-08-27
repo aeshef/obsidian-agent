@@ -229,6 +229,7 @@ Copy lives in YAML. Python stays locale-agnostic. Default `AGENT_LOCALE=en`; Rus
 | Doc | Topic |
 |-----|--------|
 | [SECURITY.md](SECURITY.md) | Tokens, vault, reporting |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | Contributor Covenant |
 | [CHANGELOG.md](CHANGELOG.md) | Releases |
 | [docs/SETUP.md](docs/SETUP.md) | Install, deploy, optional desktop sync |
 | [docs/ONBOARDING.md](docs/ONBOARDING.md) | Modules, connectors, smoke |
