@@ -21,3 +21,83 @@ input:
   enabled: [finance, planning, knowledge]
 expect:
   domain: null
+---
+id: cheap-router-en-balance
+kind: cheap_router
+input:
+  text: "What's my current balance?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: finance
+---
+id: cheap-router-en-subscription
+kind: cheap_router
+input:
+  text: "How much did I spend on subscriptions this month?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: finance
+---
+id: cheap-router-en-kanban
+kind: cheap_router
+input:
+  text: "Show me the kanban board"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: planning
+---
+id: cheap-router-en-tasks
+kind: cheap_router
+input:
+  text: "What are my tasks for today?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: planning
+---
+id: cheap-router-en-notes
+kind: cheap_router
+input:
+  text: "Search my notes for the trip plan"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: knowledge
+---
+id: cheap-router-en-mixed-abstain
+kind: cheap_router
+input:
+  text: "Check my balance and my notes"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: null
+---
+id: cheap-router-en-noop-abstain
+kind: cheap_router
+input:
+  text: "What's the weather today?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: null
+---
+id: cheap-router-ru-debt
+kind: cheap_router
+input:
+  text: "Какой у меня сейчас долг?"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: finance
+---
+id: cheap-router-ru-routine
+kind: cheap_router
+input:
+  text: "Покажи мою рутину на завтра"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: planning
+---
+id: cheap-router-ru-note-balance-abstain
+kind: cheap_router
+input:
+  text: "Найди заметки и покажи баланс"
+  enabled: [finance, planning, knowledge]
+expect:
+  domain: null
