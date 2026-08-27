@@ -50,13 +50,15 @@ Facade: `shared.agent.budget_caps.AgentContextBudget`.
 PYTHONPATH=. ./scripts/oa-python.sh scripts/calibrate_agent_budgets.py --days 21
 PYTHONPATH=. ./scripts/oa-python.sh scripts/calibrate_agent_budgets.py --write
 PYTHONPATH=. ./scripts/oa-python.sh scripts/mine_session_basket.py
-PYTHONPATH=. ./scripts/oa-python.sh scripts/score_agent_basket.py --only-labeled
+PYTHONPATH=. ./scripts/oa-python.sh scripts/score_agent_basket.py --only-frozen --require-pass
+PYTHONPATH=. ./scripts/oa-python.sh scripts/sweep_budget_pareto.py --days 21
 PYTHONPATH=. ./scripts/oa-python.sh -m eval.harness.run
 ```
 
-## Review basket
+## Quality gate (Level 2)
 
-- Public patterns: `eval/gold/basket_draft.example.yaml`
-- Personal labels: `eval/gold/local_basket.yaml` (gitignored; from mine script)
-- Attach `expected_facts` / `forbidden_facts` and score with `score_agent_basket.py`
-- Context-sensitive rows need frozen `expected_facts` or will drift with the vault.
+- Gold pack: `eval/gold/public_budget_quality_v0.yaml` (`label: frozen` scored in CI harness)
+- Scorer: `scripts/score_agent_basket.py --only-frozen --require-pass`
+- Pareto sweep from traces: `scripts/sweep_budget_pareto.py --days 21`
+
+Do not tune cascade temperature while clip/coverage are red.
