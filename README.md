@@ -17,7 +17,7 @@ Open-source **Obsidian + Telegram** personal assistant: capture from chat (text,
 
 Edit in Obsidian whenever you want. Optional VPS for 24/7 capture. Vault sync = Obsidian Sync, Syncthing, or optional desktop scripts — [no Mac required](docs/connectors/HOSTING_WITHOUT_MAC.md).
 
-![obsidian-agent](assets/banner.png)
+![demo](assets/demo/demo.gif)
 
 ## Who this is for
 
