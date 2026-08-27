@@ -130,6 +130,11 @@ series_tools:
   skip_as_tally_source:
     - align_day_series
     - tally_event_shares
+  align_limit_default: 60
+  align_limit_max: 120
+  tally_top_n_default: 12
+  tally_top_n_min: 3
+  tally_top_n_max: 40
 
 planning_mac:
   snapshots_limit_default: 120
@@ -269,13 +274,6 @@ agent_budgets:
   ceiling_chars: 48000
   # Optional path; default config/agent/budget_stats.json (gitignored).
   stats_path: ""
-
-series_tools:
-  align_limit_default: 60
-  align_limit_max: 120
-  tally_top_n_default: 12
-  tally_top_n_min: 3
-  tally_top_n_max: 40
 
 planning_health:
   series_fields_max: 16

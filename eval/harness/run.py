@@ -159,6 +159,21 @@ def _run_case(case: dict[str, Any]) -> None:
             raise AssertionError(f"expected positive limit, got {got}")
         return
 
+    if kind == "activity_summary_policy":
+        from datetime import date
+
+        from planning_bot.services.activity_log_query import resolve_activity_summary
+
+        got = resolve_activity_summary(
+            requested=str(inp.get("requested") or "auto"),
+            from_date=date.fromisoformat(str(inp["from_date"])),
+            to_date=date.fromisoformat(str(inp["to_date"])),
+        )
+        want = str(expect.get("summary") or "")
+        if got != want:
+            raise AssertionError(f"summary={got!r}, expected {want!r}")
+        return
+
     if kind == "recommend_cap":
         from shared.agent.budget_caps import recommend_cap
 

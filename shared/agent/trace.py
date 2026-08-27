@@ -72,11 +72,25 @@ class AgentRunTrace:
     cascade_escalate_reasons: list[str] = field(default_factory=list)
     verify_ok: bool | None = None
     verify_rewrote: bool | None = None
+    session_messages: int = 0
+    working_set_items: int = 0
+    core_priors_lines: int = 0
 
     def note_context(self, *, messages_chars: int, tools_schema_chars: int = 0) -> None:
         self.context_chars_iters.append(int(messages_chars))
         if tools_schema_chars:
             self.tools_schema_chars = max(self.tools_schema_chars, int(tools_schema_chars))
+
+    def note_memory_sizes(
+        self,
+        *,
+        session_messages: int = 0,
+        working_set_items: int = 0,
+        core_priors_lines: int = 0,
+    ) -> None:
+        self.session_messages = max(0, int(session_messages or 0))
+        self.working_set_items = max(0, int(working_set_items or 0))
+        self.core_priors_lines = max(0, int(core_priors_lines or 0))
 
     def note_tool_clip(self, *, tool: str, stats: dict[str, Any]) -> None:
         row = {"tool": str(tool or ""), **dict(stats or {})}
@@ -194,6 +208,9 @@ class AgentRunTrace:
             "cascade_escalate_reasons": list(self.cascade_escalate_reasons),
             "verify_ok": self.verify_ok,
             "verify_rewrote": self.verify_rewrote,
+            "session_messages": self.session_messages,
+            "working_set_items": self.working_set_items,
+            "core_priors_lines": self.core_priors_lines,
         }
         path = _trace_path()
         try:

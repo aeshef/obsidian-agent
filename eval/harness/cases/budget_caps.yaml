@@ -39,6 +39,24 @@ expect:
   # Matches platform default (example: 200); assert > 0 and not full-window.
   limit_positive: true
 ---
+id: activity-summary-unique-auto
+kind: activity_summary_policy
+input:
+  requested: auto
+  from_date: "2026-01-15"
+  to_date: "2026-01-15"
+expect:
+  summary: unique
+---
+id: activity-summary-range-full
+kind: activity_summary_policy
+input:
+  requested: auto
+  from_date: "2026-01-01"
+  to_date: "2026-01-31"
+expect:
+  summary: full
+---
 id: recommend-cap-quantile
 kind: recommend_cap
 input:
@@ -48,6 +66,5 @@ input:
   floor: 1000
   ceiling: 100000
 expect:
-  # max * 1.2 = 19200
   min: 19000
   max: 19400

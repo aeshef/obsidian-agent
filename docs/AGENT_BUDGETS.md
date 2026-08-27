@@ -30,7 +30,19 @@ Numbers that change answer quality live in YAML, not call sites. Prefer
 
 - `tool_clip_ratio`, `tool_raw_chars_sum`, `tool_llm_chars_sum`, `tool_clipped_count`
 - `cascade_escalate_reasons`, `verify_ok`, `verify_rewrote`
+- `session_messages`, `working_set_items`, `core_priors_lines`
 - existing: `end_reason`, `context_chars_peak`, `est_cost_usd`
+
+Weekly rollup (`trace_analytics`) also surfaces avg clip ratio, max_iters / tool_budget rates.
+
+## Compact activity dumps
+
+`get_activity_events(summary=auto|unique|full|raw)`:
+
+- `auto` → `unique` on a single calendar day, else `full`
+- `unique` → unique completions + counts (no moved spam)
+
+Facade: `shared.agent.budget_caps.AgentContextBudget`.
 
 ## Commands
 
@@ -38,6 +50,7 @@ Numbers that change answer quality live in YAML, not call sites. Prefer
 PYTHONPATH=. ./scripts/oa-python.sh scripts/calibrate_agent_budgets.py --days 21
 PYTHONPATH=. ./scripts/oa-python.sh scripts/calibrate_agent_budgets.py --write
 PYTHONPATH=. ./scripts/oa-python.sh scripts/mine_session_basket.py
+PYTHONPATH=. ./scripts/oa-python.sh scripts/score_agent_basket.py --only-labeled
 PYTHONPATH=. ./scripts/oa-python.sh -m eval.harness.run
 ```
 
@@ -45,4 +58,5 @@ PYTHONPATH=. ./scripts/oa-python.sh -m eval.harness.run
 
 - Public patterns: `eval/gold/basket_draft.example.yaml`
 - Personal labels: `eval/gold/local_basket.yaml` (gitignored; from mine script)
+- Attach `expected_facts` / `forbidden_facts` and score with `score_agent_basket.py`
 - Context-sensitive rows need frozen `expected_facts` or will drift with the vault.

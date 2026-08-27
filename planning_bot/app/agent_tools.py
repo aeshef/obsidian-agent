@@ -431,11 +431,13 @@ async def get_activity_events(
     task_id: str = "",
     task_title: str = "",
     limit: int = -1,
+    summary: str = "auto",
 ) -> str:
-    """Action log: ISO timestamps. event_type=completed|created|moved. limit=-1 auto (single day=full), 0=full window, >0=tail cap."""
+    """Action log. limit=-1 auto (single day=full). summary=auto|unique|full|raw (auto→unique on one day)."""
     from planning_bot.services.activity_log_query import (
         fetch_activity_events,
         format_activity_events_block,
+        resolve_activity_summary,
     )
     from shared.agent.budget_caps import resolve_activity_limit
     from shared.query.agent_interval import IntervalMode, resolve_agent_interval
@@ -458,6 +460,11 @@ async def get_activity_events(
 
     lim = resolve_activity_limit(
         requested=int(limit),
+        from_date=dr.start,
+        to_date=dr.end,
+    )
+    mode = resolve_activity_summary(
+        requested=summary,
         from_date=dr.start,
         to_date=dr.end,
     )
@@ -485,6 +492,7 @@ async def get_activity_events(
         filtered_type=filtered_label,
         period_start=dr.start,
         period_end=dr.end,
+        summary=mode,
     )
 
 

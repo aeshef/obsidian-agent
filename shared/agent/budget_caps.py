@@ -152,3 +152,34 @@ def recommend_cap(
 
 def clear_budget_caches() -> None:
     _load_budget_stats.cache_clear()
+
+
+class AgentContextBudget:
+    """Thin facade over the high-leverage harness caps (one place to read)."""
+
+    @property
+    def tool_result_chars(self) -> int:
+        return tool_result_max_chars()
+
+    @property
+    def verify_excerpt_chars(self) -> int:
+        return verify_excerpt_max_chars()
+
+    @property
+    def activity_default_limit(self) -> int:
+        return activity_events_default_limit()
+
+    @property
+    def activity_single_day_limit(self) -> int:
+        return activity_events_single_day_limit()
+
+    def activity_limit_for(
+        self,
+        *,
+        requested: int,
+        from_date: Optional[date],
+        to_date: Optional[date],
+    ) -> int:
+        return resolve_activity_limit(
+            requested=requested, from_date=from_date, to_date=to_date
+        )

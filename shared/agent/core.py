@@ -259,6 +259,32 @@ async def run_agent(
     trace = start_run(user_id=ctx.user_id, domain=ctx.domain, question=ctx.question or "")
     if trace is not None:
         trace.selected_tools = list(selected)
+        try:
+            from shared.memory.session import get_history
+            from shared.memory.working_set import get_working_set
+
+            hist = get_history(ctx.user_id, ctx.domain)
+            ws = get_working_set(ctx.user_id, ctx.domain)
+            ws_n = (
+                len(ws.categories)
+                + len(ws.dates)
+                + len(ws.notes)
+                + len(ws.entities)
+            )
+            priors_n = 0
+            try:
+                from shared.memory.core_priors import collect_core_prior_lines
+
+                priors_n = len(collect_core_prior_lines(ctx.user_id))
+            except Exception:
+                priors_n = 0
+            trace.note_memory_sizes(
+                session_messages=len(hist or []),
+                working_set_items=ws_n,
+                core_priors_lines=priors_n,
+            )
+        except Exception:
+            log.debug("trace memory sizes skipped", exc_info=True)
 
     api_messages: list[dict[str, Any]] = [
         {"role": "system", "content": ctx.system_prompt},

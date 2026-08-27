@@ -4,7 +4,11 @@
 Traces store no message bodies by design. Session messages appear only when
 MEMORY_SESSION_PERSIST=1 and the bot wrote to AGENT_MEMORY_DB.
 
+Prod bot usually writes on the VPS — use ``--ssh obsidian-server`` (or
+``SYNC_SERVER_HOST``) to read ``/root/bots/memory.db`` remotely.
+
   PYTHONPATH=. ./scripts/oa-python.sh scripts/mine_session_basket.py
+  PYTHONPATH=. ./scripts/oa-python.sh scripts/mine_session_basket.py --ssh obsidian-server
   PYTHONPATH=. ./scripts/oa-python.sh scripts/mine_session_basket.py --out eval/gold/local_basket.yaml
 
 Output is gitignored (local_basket.yaml). Fill ``label:`` (good|bad|ok|skip) yourself.
@@ -14,9 +18,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sqlite3
+import subprocess
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 
@@ -27,18 +34,34 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 _CONTEXTISH = re.compile(
-    r"(?i)\b(вчера|сегодня|завтра|this week|yesterday|today|сейчас|в работе|WIP)\b"
+    r"(?i)\b(вчерашн\w*|вчера|сегодня|завтра|this week|yesterday|today|"
+    r"сейчас|в работе|WIP|закрой|эту задачу)\b"
 )
 
 
 def _db_path() -> Path:
-    import os
-
     raw = (os.environ.get("AGENT_MEMORY_DB") or "").strip()
     return Path(raw) if raw else ROOT / "memory.db"
 
 
-def _mine_sessions(db: Path, *, limit: int) -> list[dict]:
+def _ssh_host(explicit: str) -> str:
+    if (explicit or "").strip():
+        return explicit.strip()
+    env = (os.environ.get("SYNC_SERVER_HOST") or "").strip()
+    # root@host → prefer SSH config alias when present
+    if env.startswith("root@") and Path.home().joinpath(".ssh/config").is_file():
+        return "obsidian-server"
+    return env or ""
+
+
+def _fetch_remote_db(ssh_host: str, remote_path: str) -> Path:
+    dest = Path(tempfile.mkstemp(prefix="oa_memory_", suffix=".db")[1])
+    cmd = ["scp", "-o", "BatchMode=yes", f"{ssh_host}:{remote_path}", str(dest)]
+    subprocess.check_call(cmd)
+    return dest
+
+
+def _mine_sessions(db: Path, *, limit: int, source: str = "session") -> list[dict]:
     if not db.is_file():
         return []
     conn = sqlite3.connect(str(db))
@@ -48,30 +71,81 @@ def _mine_sessions(db: Path, *, limit: int) -> list[dict]:
             return []
         rows = conn.execute(
             """
-            SELECT domain, role, content, ts FROM session_messages
-            WHERE role='user'
-            ORDER BY id DESC
-            LIMIT ?
-            """,
-            (limit,),
+            SELECT id, domain, role, content, ts FROM session_messages
+            ORDER BY id ASC
+            """
         ).fetchall()
     finally:
         conn.close()
+
+    messages = [
+        {
+            "id": sid,
+            "domain": domain,
+            "role": role,
+            "content": content or "",
+            "ts": ts,
+        }
+        for sid, domain, role, content, ts in rows
+    ]
+    user_idxs = [i for i, m in enumerate(messages) if m["role"] == "user"]
+    if limit > 0:
+        user_idxs = user_idxs[-limit:]
+
     out: list[dict] = []
-    for domain, _role, content, ts in rows:
-        text = (content or "").strip()
-        if len(text) < 8:
+    seen: set[str] = set()
+    for i in user_idxs:
+        m = messages[i]
+        text = (m["content"] or "").strip()
+        if len(text) < 3 or text in seen:
             continue
+        seen.add(text)
+
+        answer = None
+        answer_ts = None
+        for j in range(i + 1, len(messages)):
+            if messages[j]["domain"] != m["domain"]:
+                continue
+            if messages[j]["role"] == "assistant":
+                answer = messages[j]["content"]
+                answer_ts = messages[j]["ts"]
+                break
+            if messages[j]["role"] == "user":
+                break
+
+        prior: list[dict] = []
+        for j in range(i - 1, -1, -1):
+            if messages[j]["domain"] != m["domain"]:
+                continue
+            prior.append(messages[j])
+            if len(prior) >= 4:
+                break
+        prior.reverse()
+        dialogue = [
+            {"role": p["role"], "ts": p["ts"], "text": (p["content"] or "")[:2000]}
+            for p in prior
+        ]
+        dialogue.append({"role": "user", "ts": m["ts"], "text": text[:2000]})
+        if answer is not None:
+            dialogue.append(
+                {"role": "assistant", "ts": answer_ts, "text": (answer or "")[:4000]}
+            )
+
         out.append(
             {
-                "id": f"session-{ts}-{len(out)}",
-                "source": "session",
-                "domain": domain,
-                "question": text[:500],
-                "ts": ts,
+                "id": f"{source}-{m['id']}",
+                "source": source,
+                "domain": m["domain"],
+                "ts": m["ts"],
+                "question": text[:800],
+                "answer": (answer or "")[:4000] if answer is not None else None,
+                "answered": answer is not None,
+                "dialogue": dialogue,
                 "context_sensitive": bool(_CONTEXTISH.search(text)),
                 "label": "pending",
-                "notes": "",
+                "notes": ""
+                if answer is not None
+                else "no assistant reply stored after this user turn",
             }
         )
     return out
@@ -93,7 +167,6 @@ def _mine_traces(path: Path, *, limit: int) -> list[dict]:
     for r in rows:
         for t in r.get("selected_tools") or []:
             tools[t] += 1
-    # Synthetic prompts by dominant tool clusters (OSS-safe, no user text).
     templates = {
         "get_activity_events": "How many tasks did I close yesterday? List unique completions.",
         "get_action_log": "Summarize my task action log for yesterday.",
@@ -145,24 +218,62 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--session-limit", type=int, default=80)
     ap.add_argument("--trace-limit", type=int, default=200)
     ap.add_argument("--traces", type=Path, default=ROOT / "logs" / "agent_traces.jsonl")
+    ap.add_argument(
+        "--ssh",
+        nargs="?",
+        const="obsidian-server",
+        default="",
+        help="SCP memory.db from host (default alias: obsidian-server)",
+    )
+    ap.add_argument(
+        "--remote-db",
+        default="/root/bots/memory.db",
+        help="Remote path when using --ssh",
+    )
+    ap.add_argument(
+        "--with-trace-patterns",
+        action="store_true",
+        help="Also append synthetic prompts from local agent_traces.jsonl",
+    )
     args = ap.parse_args(argv)
 
-    items = _mine_sessions(_db_path(), limit=args.session_limit)
-    items.extend(_mine_traces(args.traces, limit=args.trace_limit))
+    tmp: Path | None = None
+    source = "session"
+    try:
+        host = _ssh_host(args.ssh)
+        if host:
+            tmp = _fetch_remote_db(host, args.remote_db)
+            db = tmp
+            source = "server_session"
+            print(f"fetched {host}:{args.remote_db} -> {db}")
+        else:
+            db = _db_path()
+        items = _mine_sessions(db, limit=args.session_limit, source=source)
+        if args.with_trace_patterns or not items:
+            items.extend(_mine_traces(args.traces, limit=args.trace_limit))
+    finally:
+        if tmp is not None:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+
     doc = {
-        "version": 1,
+        "version": 2,
         "instruction": (
-            "Set label to good|bad|ok|skip. Context-sensitive rows need a frozen "
-            "expected_facts block or will drift as the vault changes."
+            "Score the assistant turn: label=good|bad|ok|skip. "
+            "Use dialogue[] for follow-ups; answer may be null if missing in DB."
         ),
         "items": items,
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
-        yaml.safe_dump(doc, allow_unicode=True, sort_keys=False),
+        yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=100),
         encoding="utf-8",
     )
-    print(f"wrote {args.out} items={len(items)} (session={sum(1 for i in items if i.get('source')=='session')})")
+    n_sess = sum(1 for i in items if str(i.get("source", "")).endswith("session"))
+    n_ans = sum(1 for i in items if i.get("answered"))
+    print(f"wrote {args.out} items={len(items)} (session={n_sess}, answered={n_ans})")
     return 0
 
 
