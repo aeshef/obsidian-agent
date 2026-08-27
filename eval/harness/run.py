@@ -188,6 +188,73 @@ def _run_case(case: dict[str, Any]) -> None:
             raise AssertionError(f"recommend_cap={got} not in [{expect.get('min')}, {expect.get('max')}]")
         return
 
+    if kind == "fact_coverage":
+        import yaml
+
+        from shared.agent.fact_coverage import score_facts
+
+        basket_name = str(inp.get("basket") or "public_budget_quality_v0.yaml")
+        doc = yaml.safe_load((ROOT / "eval" / "gold" / basket_name).read_text(encoding="utf-8")) or {}
+        item_id = str(inp.get("item_id") or "")
+        item = next((x for x in (doc.get("items") or []) if str(x.get("id")) == item_id), None)
+        if item is None:
+            raise AssertionError(f"missing basket item {item_id!r}")
+        got = score_facts(
+            str(item.get("answer") or ""),
+            expected_facts=list(item.get("expected_facts") or []),
+            forbidden_facts=list(item.get("forbidden_facts") or []),
+        )
+        if expect.get("expect_fail") or item.get("expect_fail"):
+            if not (got["miss"] or got["forbidden_hit"]):
+                raise AssertionError(f"expected fail for {item_id}, got {got}")
+            return
+        cov = got["coverage"]
+        if cov is not None and cov < float(expect.get("coverage_min") or 1.0):
+            raise AssertionError(f"coverage={cov} < min for {item_id}; miss={got['miss']}")
+        max_bad = int(expect.get("forbidden_hits_max") or 0)
+        if len(got["forbidden_hit"]) > max_bad:
+            raise AssertionError(f"forbidden hits {got['forbidden_hit']}")
+        return
+
+    if kind == "fact_coverage_pack":
+        import yaml
+
+        from shared.agent.fact_coverage import score_facts
+
+        basket_name = str(inp.get("basket") or "public_budget_quality_v0.yaml")
+        label = str(inp.get("label") or "frozen")
+        doc = yaml.safe_load((ROOT / "eval" / "gold" / basket_name).read_text(encoding="utf-8")) or {}
+        items = [
+            x
+            for x in (doc.get("items") or [])
+            if str(x.get("label") or "") == label
+            and (x.get("expected_facts") or x.get("forbidden_facts"))
+        ]
+        if len(items) < int(expect.get("min_items") or 1):
+            raise AssertionError(f"only {len(items)} {label} items")
+        covs: list[float] = []
+        for item in items:
+            got = score_facts(
+                str(item.get("answer") or ""),
+                expected_facts=list(item.get("expected_facts") or []),
+                forbidden_facts=list(item.get("forbidden_facts") or []),
+            )
+            if item.get("expect_fail"):
+                if not (got["miss"] or got["forbidden_hit"]):
+                    raise AssertionError(f"negative control passed: {item.get('id')}")
+                continue
+            if got["forbidden_hit"]:
+                raise AssertionError(f"forbidden in {item.get('id')}: {got['forbidden_hit']}")
+            if got["coverage"] is not None:
+                covs.append(float(got["coverage"]))
+                if got["coverage"] < 1.0 - 1e-9:
+                    raise AssertionError(f"incomplete coverage {item.get('id')}: {got['miss']}")
+        if covs:
+            avg = sum(covs) / len(covs)
+            if avg < float(expect.get("min_avg_coverage") or 0.95):
+                raise AssertionError(f"avg_coverage={avg}")
+        return
+
     raise AssertionError(f"unknown kind: {kind}")
 
 

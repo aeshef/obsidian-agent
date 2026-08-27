@@ -1,0 +1,235 @@
+# OSS-safe gold pack for budget / planning / finance / knowledge fact checks.
+# Context-sensitive rows need a frozen vault snapshot before live scoring.
+# CI scores items with label=frozen via scripts/score_agent_basket.py + harness.
+
+version: 1
+instruction: >
+  Deterministic fact coverage. Prefer expected_facts over free-form judgment.
+  label=frozen means answer is committed for CI; pending = human/live later.
+
+items:
+  # --- planning / day-review (fixture-backed) ---
+  - id: day-unique-en
+    domain: planning
+    question: How many unique tasks did I complete on 2026-01-15? List titles.
+    label: frozen
+    expected_facts: ["5", "Ship docs", "Open issue"]
+    forbidden_facts: ["Noise A"]
+    answer: >
+      Unique completions: 5. Titles include Ship docs, Open issue, and three more.
+    notes: Pair with eval/fixtures/activity_day_dump.txt
+
+  - id: day-unique-ru
+    domain: planning
+    question: Сколько уникальных задач я закрыл 2026-01-15?
+    label: frozen
+    expected_facts: ["5", "Ship docs"]
+    forbidden_facts: ["4 задач"]
+    answer: "Уникальных завершённых задач: 5. Среди них Ship docs."
+
+  - id: day-undercount-regression
+    domain: planning
+    question: Что закрыл вчера?
+    label: frozen
+    expected_facts: ["17"]
+    forbidden_facts: ["4 задач"]
+    answer: "Вчера уникальных завершений: 17."
+    notes: Seed for undercount bug class
+
+  - id: day-bad-undercount
+    domain: planning
+    question: Что закрыл вчера?
+    label: frozen
+    expect_fail: true
+    expected_facts: ["17"]
+    forbidden_facts: ["4 задач"]
+    answer: "Вчера закрыл 4 задач."
+    notes: Negative control — scorer must flag miss + forbidden
+
+  - id: wip-titles
+    domain: planning
+    question: What is currently in WIP?
+    label: frozen
+    expected_facts: ["Rewrite docs", "Fix CI"]
+    answer: "WIP: Rewrite docs; Fix CI."
+
+  - id: done-week
+    domain: planning
+    question: What moved to Done this week?
+    label: frozen
+    expected_facts: ["Ship docs"]
+    answer: "Done this week includes Ship docs."
+
+  - id: calendar-today
+    domain: planning
+    question: What is on my calendar today?
+    label: frozen
+    expected_facts: ["1:1", "standup"]
+    answer: "Today: standup at 10:00, 1:1 at 15:00."
+
+  - id: activity-unique-mode
+    domain: planning
+    question: Summarize yesterday without listing every board move.
+    label: frozen
+    expected_facts: ["unique"]
+    forbidden_facts: ["Noise A"]
+    answer: "Use unique completions summary; count unique closes, omit noisy board moves."
+
+  - id: health-sleep
+    domain: planning
+    question: How was my sleep this week?
+    label: pending
+    context_sensitive: true
+    suggested_tools: [get_health_summary]
+
+  - id: mac-focus
+    domain: planning
+    question: Which apps ate focus time yesterday?
+    label: pending
+    context_sensitive: true
+    suggested_tools: [get_mac_activity]
+
+  # --- finance ---
+  - id: spend-food-week
+    domain: finance
+    question: How much did I spend on food last week?
+    label: frozen
+    expected_facts: ["2100"]
+    answer: "Food last week: 2100."
+
+  - id: spend-top-cats
+    domain: finance
+    question: Top spending categories last week?
+    label: frozen
+    expected_facts: ["food", "transport"]
+    answer: "Top: food, transport."
+
+  - id: balance-now
+    domain: finance
+    question: What is my current balance?
+    label: frozen
+    expected_facts: ["15230"]
+    answer: "Balance: 15230."
+
+  - id: transfers-not-spend
+    domain: finance
+    question: Did I spend 50000 yesterday?
+    label: frozen
+    expected_facts: ["transfer"]
+    forbidden_facts: ["spent 50000"]
+    answer: "That 50000 looks like a transfer, not spend."
+
+  - id: period-compare
+    domain: finance
+    question: Compare this week vs last week spend.
+    label: frozen
+    expected_facts: ["+", "%"]
+    answer: "This week is +12% vs last week."
+
+  - id: merchant-coffee
+    domain: finance
+    question: How much at coffee shops this month?
+    label: pending
+    context_sensitive: true
+    suggested_tools: [get_transactions, get_spending_by_category]
+
+  - id: align-series
+    domain: finance
+    question: Join spend series with task completions by day.
+    label: frozen
+    expected_facts: ["2026-08-12", "2100"]
+    answer: "2026-08-12 | spend 2100 | completions 1"
+
+  # --- knowledge ---
+  - id: kb-budgets
+    domain: knowledge
+    question: Find notes about agent budgets or harness calibration.
+    label: frozen
+    expected_facts: ["budget", "clip"]
+    answer: "Notes mention budget caps and clip_ratio calibration."
+
+  - id: kb-missing
+    domain: knowledge
+    question: Find a note titled ZZZ-does-not-exist-xyz
+    label: frozen
+    expected_facts: ["not found"]
+    forbidden_facts: ["here is the full text"]
+    answer: "Note not found."
+
+  - id: kb-recall-path
+    domain: knowledge
+    question: Open the AGENT_BUDGETS doc path if present.
+    label: pending
+    context_sensitive: true
+    suggested_tools: [search_knowledge_base, read_note]
+
+  # --- memory / follow-up ---
+  - id: followup-said
+    domain: unified
+    question: What did I just ask about?
+    label: frozen
+    expected_facts: ["food"]
+    answer: "You asked about food spend."
+
+  - id: followup-entity
+    domain: unified
+    question: Remind me which merchant we discussed.
+    label: frozen
+    expected_facts: ["Coffee"]
+    answer: "We discussed Coffee."
+
+  # --- harness / reliability phrasing ---
+  - id: no-fake-tool
+    domain: planning
+    question: Close the task titled Demo
+    label: frozen
+    forbidden_facts: ["нет инструмента", "no such tool"]
+    expected_facts: ["Demo"]
+    answer: "Closing Demo via move_task / complete."
+
+  - id: verify-number
+    domain: planning
+    question: Confirm unique closes equals tool dump.
+    label: frozen
+    expected_facts: ["5"]
+    answer: "Confirmed unique closes = 5 from the activity dump."
+
+  - id: clip-safe-answer
+    domain: planning
+    question: List all unique completions from the dump.
+    label: frozen
+    expected_facts: ["Ship docs", "Open issue"]
+    answer: "Ship docs; Open issue; plus three others (5 unique)."
+
+  # --- more planning templates (pending / live) ---
+  - id: aging-wip
+    domain: planning
+    question: Which WIP tasks are aging?
+    label: pending
+    context_sensitive: true
+    suggested_tools: [get_kanban, get_activity_events]
+
+  - id: created-today
+    domain: planning
+    question: What tasks did I create today?
+    label: pending
+    context_sensitive: true
+
+  - id: moved-not-done
+    domain: planning
+    question: What did I move but not complete yesterday?
+    label: pending
+    context_sensitive: true
+
+  - id: focus-blocks
+    domain: planning
+    question: Any focus blocks on the calendar tomorrow?
+    label: pending
+    context_sensitive: true
+
+  - id: cross-domain-food-tasks
+    domain: unified
+    question: Any food spend linked to tasks yesterday?
+    label: pending
+    context_sensitive: true
+    suggested_tools: [align_day_series, get_activity_events, get_spending_by_category]

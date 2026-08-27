@@ -1,0 +1,25 @@
+id: fact-day-unique-frozen
+kind: fact_coverage
+input:
+  basket: public_budget_quality_v0.yaml
+  item_id: day-unique-en
+expect:
+  coverage_min: 1.0
+  forbidden_hits_max: 0
+---
+id: fact-undercount-negative
+kind: fact_coverage
+input:
+  basket: public_budget_quality_v0.yaml
+  item_id: day-bad-undercount
+expect:
+  expect_fail: true
+---
+id: fact-frozen-pack-smoke
+kind: fact_coverage_pack
+input:
+  basket: public_budget_quality_v0.yaml
+  label: frozen
+expect:
+  min_items: 15
+  min_avg_coverage: 0.95
