@@ -30,11 +30,12 @@ agent:
   # Mark catalog entries older than this many hours as stale (0 = disable).
   chart_stale_hours: 48
   # Truncate tool text copied into the LLM messages (full body kept for verify/join).
-  tool_result_max_chars: 4000
+  # Calibrate via scripts/calibrate_agent_budgets.py (p95 day dumps × headroom).
+  tool_result_max_chars: 16000
   # Prior-turn tool facts injected into the next system prompt (0 = no cap).
-  tool_facts_max_chars: 2500
+  tool_facts_max_chars: 6000
   # User+assistant pairs kept in the LLM messages array (env AGENT_SESSION_MAX_TURNS wins).
-  session_max_turns: 12
+  session_max_turns: 20
 
 # Прогресс agent loop в Telegram: имена tools (без вывода tools). AGENT_PROGRESS=0 отключает.
 agent_progress:
@@ -68,6 +69,9 @@ llm_classify:
   timeout_sec: 25
   temperature: 0.0
   dialogue_hint_per_domain: 2
+  dialogue_hint_chars: 160
+  dialogue_hint_max_lines: 12
+  tool_select_history_turns: 6
   # Calendar activity types (batch classify on sync; no keyword fallback)
   calendar_activity_batch: 40
   calendar_activity_timeout_sec: 60
@@ -126,6 +130,11 @@ series_tools:
   skip_as_tally_source:
     - align_day_series
     - tally_event_shares
+  align_limit_default: 60
+  align_limit_max: 120
+  tally_top_n_default: 12
+  tally_top_n_min: 3
+  tally_top_n_max: 40
 
 planning_mac:
   snapshots_limit_default: 120
@@ -135,7 +144,7 @@ planning_mac:
   share_daily_top: 5
 
 planning_calendar:
-  tool_max_chars: 4000
+  tool_max_chars: 8000
   chat_upcoming_hours: 72
   week_summary_days_ahead: 7
   default_hours_ahead: 48
@@ -251,9 +260,25 @@ planning_action_log:
   chain_hours: 48
   chain_max_events: 0
   safety_max_events: 10000
-  activity_events_limit_default: 40
-  activity_events_limit_max: 1000
+  activity_events_limit_default: 200
+  activity_events_limit_max: 2000
+  # When from_date == to_date and tool limit=-1 (auto): 0 = full day window.
+  activity_events_single_day_limit: 0
   task_history_months_max: 0
+
+# Spec-driven floors for tool/verify clips (see docs/AGENT_BUDGETS.md).
+agent_budgets:
+  quantile: 0.95
+  headroom: 1.2
+  floor_chars: 8000
+  ceiling_chars: 48000
+  # Optional path; default config/agent/budget_stats.json (gitignored).
+  stats_path: ""
+
+planning_health:
+  series_fields_max: 16
+  anomaly_lookback_days: 30
+  anomaly_z_threshold: 1.8
 
 planning_kanban_search:
   limit_max: 100

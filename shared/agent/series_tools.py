@@ -45,7 +45,11 @@ async def align_day_series(
         if lb == "b":
             lb = auto_b
     try:
-        lim = max(1, min(int(limit or 60), 120))
+        from shared.agent.platform_config import platform_int
+
+        default_lim = platform_int("series_tools", "align_limit_default", default=60)
+        max_lim = platform_int("series_tools", "align_limit_max", default=120)
+        lim = max(1, min(int(limit or default_lim), max_lim))
     except (TypeError, ValueError):
         lim = 60
     _series, body = align_two_texts(
@@ -81,7 +85,12 @@ async def tally_event_shares(
     if len(events) < 2:
         return dmsg(*_NS, "tally_empty")
     try:
-        n = max(3, min(int(top_n or 12), 40))
+        from shared.agent.platform_config import platform_int
+
+        default_n = platform_int("series_tools", "tally_top_n_default", default=12)
+        max_n = platform_int("series_tools", "tally_top_n_max", default=40)
+        min_n = platform_int("series_tools", "tally_top_n_min", default=3)
+        n = max(min_n, min(int(top_n or default_n), max_n))
     except (TypeError, ValueError):
         n = 12
     result = tally_events(events, column=used)

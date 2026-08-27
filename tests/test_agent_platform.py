@@ -462,7 +462,7 @@ def test_build_memory_layers_order(tmp_path, monkeypatch):
     from shared.memory.base import build_system_prompt
     from shared.memory.layers import build_memory_layers
     from shared.memory.constants import GLOBAL_DOMAIN
-    from shared.memory.insights import InsightsStore
+    from shared.memory.insights import InsightsStore, get_store
 
     agent_dir = tmp_path / "config" / "agent"
     agent_dir.mkdir(parents=True)
@@ -476,6 +476,7 @@ def test_build_memory_layers_order(tmp_path, monkeypatch):
     from shared.memory import config as mem_cfg
 
     mem_cfg.load_memory_config.cache_clear()
+    get_store.cache_clear()
     mem_cfg.load_memory_config()
 
     store = InsightsStore(tmp_path / "mem.db")

@@ -430,21 +430,22 @@ async def get_activity_events(
     event_type: str = "",
     task_id: str = "",
     task_title: str = "",
-    limit: int = 40,
+    limit: int = -1,
+    summary: str = "auto",
 ) -> str:
-    """Action log: ISO timestamp per line. event_type=completed|created|moved; limit=0 full window, else ≤1000 (default 40)."""
+    """Action log. limit=-1 auto (single day=full). summary=auto|unique|full|raw (auto→unique on one day)."""
     from planning_bot.services.activity_log_query import (
-        clamp_activity_limit,
         fetch_activity_events,
         format_activity_events_block,
+        resolve_activity_summary,
     )
+    from shared.agent.budget_caps import resolve_activity_limit
     from shared.query.agent_interval import IntervalMode, resolve_agent_interval
 
     bot = _bot(ctx)
     if bot.logger is None:
         return pdmsg("agent_action_log_unavailable")
 
-    lim = clamp_activity_limit(limit)
     interval = resolve_agent_interval(
         from_date=from_date,
         to_date=to_date,
@@ -456,6 +457,17 @@ async def get_activity_events(
         from shared.parsing.date_range import resolve_date_range
 
         dr = resolve_date_range(default_days=30)
+
+    lim = resolve_activity_limit(
+        requested=int(limit),
+        from_date=dr.start,
+        to_date=dr.end,
+    )
+    mode = resolve_activity_summary(
+        requested=summary,
+        from_date=dr.start,
+        to_date=dr.end,
+    )
     et_raw = (event_type or "").strip().lower()
     event_types = {et_raw if et_raw.startswith("task_") else f"task_{et_raw}"} if et_raw else None
     filtered_label = next(iter(event_types)) if event_types else None
@@ -480,6 +492,7 @@ async def get_activity_events(
         filtered_type=filtered_label,
         period_start=dr.start,
         period_end=dr.end,
+        summary=mode,
     )
 
 

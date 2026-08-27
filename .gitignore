@@ -248,4 +248,7 @@ eval/data/
 # Private retrieval gold (personal queries / vault paths); OSS uses public_*.yaml
 eval/gold/*.yaml
 !eval/gold/public_*.yaml
+!eval/gold/basket_draft.example.yaml
+eval/gold/local_basket.yaml
+config/agent/budget_stats.json
 

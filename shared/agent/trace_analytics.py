@@ -131,6 +131,10 @@ class TraceSummary:
     avg_rounds: float = 0.0
     avg_selected_tools: float = 0.0
     avg_context_peak: float = 0.0
+    avg_tool_clip_ratio: float = 0.0
+    runs_with_clip: int = 0
+    max_iters_rate: float = 0.0
+    tool_budget_rate: float = 0.0
     rounds_missing_usage: int = 0
     llm_rounds_total: int = 0
     end_reasons: dict[str, int] = field(default_factory=dict)
@@ -155,6 +159,10 @@ class TraceSummary:
             "avg_rounds": round(self.avg_rounds, 2),
             "avg_selected_tools": round(self.avg_selected_tools, 2),
             "avg_context_peak": round(self.avg_context_peak, 1),
+            "avg_tool_clip_ratio": round(self.avg_tool_clip_ratio, 4),
+            "runs_with_clip": self.runs_with_clip,
+            "max_iters_rate": round(self.max_iters_rate, 4),
+            "tool_budget_rate": round(self.tool_budget_rate, 4),
             "rounds_missing_usage": self.rounds_missing_usage,
             "llm_rounds_total": self.llm_rounds_total,
             "usage_coverage_pct": round(
@@ -190,6 +198,8 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
     rounds_list: list[int] = []
     selected_list: list[int] = []
     ctx_list: list[int] = []
+    clip_ratios: list[float] = []
+    runs_with_clip = 0
     reasons: Counter[str] = Counter()
     domains: Counter[str] = Counter()
     tools: Counter[str] = Counter()
@@ -231,6 +241,14 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
         ctx = int(row.get("context_chars_peak") or 0)
         if ctx:
             ctx_list.append(ctx)
+        cr = row.get("tool_clip_ratio")
+        if cr is not None:
+            try:
+                clip_ratios.append(float(cr))
+            except (TypeError, ValueError):
+                pass
+        if int(row.get("tool_clipped_count") or 0) > 0:
+            runs_with_clip += 1
         reasons[str(row.get("end_reason") or "?")] += 1
         dom = str(row.get("domain") or "?")
         domains[dom] += 1
@@ -256,7 +274,11 @@ def summarize_traces(rows: list[dict[str, Any]], *, days: int) -> TraceSummary:
     s.avg_rounds = sum(rounds_list) / len(rounds_list)
     s.avg_selected_tools = sum(selected_list) / len(selected_list) if selected_list else 0
     s.avg_context_peak = sum(ctx_list) / len(ctx_list) if ctx_list else 0
+    s.avg_tool_clip_ratio = sum(clip_ratios) / len(clip_ratios) if clip_ratios else 0.0
+    s.runs_with_clip = runs_with_clip
     s.end_reasons = dict(reasons.most_common())
+    s.max_iters_rate = (reasons.get("max_iters") or 0) / max(s.runs, 1)
+    s.tool_budget_rate = (reasons.get("tool_budget") or 0) / max(s.runs, 1)
     s.domains = dict(domains.most_common())
     # Prefer executed-tool counts in top list: recount from tool_iters only for ranking
     exec_tools: Counter[str] = Counter()
@@ -344,6 +366,27 @@ def _build_insights(s: TraceSummary) -> list[str]:
                 "trace_insight_tool_budget",
                 default="{n} run(s) hit tool_budget — answers may be truncated.",
                 n=budget,
+            )
+        )
+    if s.avg_tool_clip_ratio > 0.05 or s.runs_with_clip:
+        out.append(
+            dmsg(
+                "trace_insight_clip_ratio",
+                default=(
+                    "Avg tool_clip_ratio={ratio:.2f} ({n}/{runs} runs clipped) — "
+                    "raise tool_result_max_chars or use summary=unique dumps."
+                ),
+                ratio=s.avg_tool_clip_ratio,
+                n=s.runs_with_clip,
+                runs=s.runs,
+            )
+        )
+    if s.max_iters_rate > 0.05:
+        out.append(
+            dmsg(
+                "trace_insight_max_iters",
+                default="{pct:.0f}% runs hit max_iters — raise agent.max_iters or fix tool-select.",
+                pct=100.0 * s.max_iters_rate,
             )
         )
     if s.est_cost_usd > 0 and s.runs:

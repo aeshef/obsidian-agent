@@ -21,7 +21,7 @@ cascade:
 
 verify:
   enabled: true
-  tools_excerpt_max_chars: 4000
+  tools_excerpt_max_chars: 12000
   # Drop verifier rewrites that narrate the check instead of answering.
   rewrite_meta_markers:
     - "данных инструментов"

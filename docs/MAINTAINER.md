@@ -68,5 +68,6 @@ If API/plan limits block automation, keep the same discipline manually.
 
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — contributor checks + personal-overlay push checklist  
 - [AGENTS.md](../AGENTS.md) — architecture invariants + this workflow for agents  
+- [AGENT_BUDGETS.md](AGENT_BUDGETS.md) — context/dump knobs, owners, calibrate scripts  
 - [SECURITY.md](../SECURITY.md) — vulnerability reporting  
 - [CONNECTORS.md](CONNECTORS.md) — fail-closed connectors contract  

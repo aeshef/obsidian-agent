@@ -1,0 +1,70 @@
+id: budget-clip-unique-line
+kind: budget_clip_coverage
+input:
+  fixture: activity_day_dump.txt
+  # Old default clip — unique completions line must still survive (coverage-first dumps).
+  clip_chars: 4000
+expect:
+  contains_any:
+    - "Уникальных завершённых задач: 5"
+    - "уникальных завершений=5"
+  # Under a tiny clip that cuts mid-header, we still require the marker prefix.
+---
+id: budget-clip-raised
+kind: budget_clip_coverage
+input:
+  fixture: activity_day_dump.txt
+  clip_chars: 16000
+expect:
+  contains_any:
+    - "Ship docs"
+    - "Open issue"
+---
+id: activity-limit-single-day-auto
+kind: activity_limit_policy
+input:
+  requested: -1
+  from_date: "2026-01-15"
+  to_date: "2026-01-15"
+expect:
+  limit: 0
+---
+id: activity-limit-range-auto
+kind: activity_limit_policy
+input:
+  requested: -1
+  from_date: "2026-01-01"
+  to_date: "2026-01-31"
+expect:
+  # Matches platform default (example: 200); assert > 0 and not full-window.
+  limit_positive: true
+---
+id: activity-summary-unique-auto
+kind: activity_summary_policy
+input:
+  requested: auto
+  from_date: "2026-01-15"
+  to_date: "2026-01-15"
+expect:
+  summary: unique
+---
+id: activity-summary-range-full
+kind: activity_summary_policy
+input:
+  requested: auto
+  from_date: "2026-01-01"
+  to_date: "2026-01-31"
+expect:
+  summary: full
+---
+id: recommend-cap-quantile
+kind: recommend_cap
+input:
+  samples: [1000, 2000, 4000, 8000, 16000, 16000]
+  quantile: 1.0
+  headroom: 1.2
+  floor: 1000
+  ceiling: 100000
+expect:
+  min: 19000
+  max: 19400
