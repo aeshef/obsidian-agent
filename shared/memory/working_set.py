@@ -23,7 +23,7 @@ log = logging.getLogger("shared.memory.working_set")
 _ISO = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
 _lock = threading.Lock()
 _store: dict[tuple[int, str], "WorkingSet"] = {}
-_sqlite_ready = False
+_sqlite_ready_path: str | None = None
 
 _KINDS = frozenset({"categories", "dates", "notes", "entities"})
 
@@ -141,15 +141,18 @@ def clear_working_set_pattern_cache() -> None:
 
 
 def _ensure_sqlite() -> None:
-    global _sqlite_ready
-    if _sqlite_ready or not _persist_enabled():
+    global _sqlite_ready_path
+    if not _persist_enabled():
         return
     path = _db_path()
+    key = str(path.resolve()) if path.is_absolute() else str(path)
+    if _sqlite_ready_path == key:
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(path)) as conn:
         conn.executescript(_SCHEMA)
         conn.commit()
-    _sqlite_ready = True
+    _sqlite_ready_path = key
 
 
 def _now() -> str:

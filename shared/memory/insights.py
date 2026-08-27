@@ -327,9 +327,17 @@ class InsightsStore:
         return removed
 
 
-@lru_cache(maxsize=1)
+@lru_cache(maxsize=8)
+def _store_for(path: str) -> InsightsStore:
+    return InsightsStore(Path(path))
+
+
 def get_store() -> InsightsStore:
-    return InsightsStore()
+    """Return the process InsightsStore for the current AGENT_MEMORY_DB path."""
+    return _store_for(str(memory_db_path().resolve()))
+
+
+get_store.cache_clear = _store_for.cache_clear  # type: ignore[attr-defined]
 
 
 class GlobalInsightsMemory:

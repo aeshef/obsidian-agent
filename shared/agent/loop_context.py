@@ -93,13 +93,16 @@ def pick_join_series(
     return a[2], b[2], a[1], b[1]
 
 
+_DEFAULT_SKIP_AS_TALLY_SOURCE = frozenset({"align_day_series", "tally_event_shares"})
+
+
 def _skip_as_tally_source() -> frozenset[str]:
     from shared.agent.platform_config import platform_value
 
     raw = platform_value("series_tools", "skip_as_tally_source", default=None)
     if isinstance(raw, list) and raw:
         return frozenset(str(x) for x in raw if str(x).strip())
-    return frozenset()
+    return _DEFAULT_SKIP_AS_TALLY_SOURCE
 
 
 def pick_tally_source(
