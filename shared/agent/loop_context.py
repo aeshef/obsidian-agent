@@ -17,11 +17,24 @@ def clip_text(text: str, max_chars: int) -> str:
     return body[:cut].rstrip() + "…"
 
 
-def llm_tool_content(full: str) -> str:
-    from shared.agent.platform_config import platform_int
+def clip_tool_result(full: str) -> tuple[str, dict]:
+    """Return (text_for_llm, clip_stats). Full body stays elsewhere for verify/join."""
+    from shared.agent.budget_caps import tool_result_max_chars
 
-    cap = platform_int("agent", "tool_result_max_chars", default=0)
-    return clip_text(full, cap)
+    raw = full or ""
+    cap = tool_result_max_chars()
+    clipped = clip_text(raw, cap)
+    return clipped, {
+        "raw_chars": len(raw),
+        "llm_chars": len(clipped),
+        "cap": int(cap or 0),
+        "clipped": bool(cap and len(raw) > len(clipped)),
+    }
+
+
+def llm_tool_content(full: str) -> str:
+    text, _stats = clip_tool_result(full)
+    return text
 
 
 def splice_working_set_block(system: str, block: str) -> str:
@@ -80,13 +93,16 @@ def pick_join_series(
     return a[2], b[2], a[1], b[1]
 
 
+_DEFAULT_SKIP_AS_TALLY_SOURCE = frozenset({"align_day_series", "tally_event_shares"})
+
+
 def _skip_as_tally_source() -> frozenset[str]:
     from shared.agent.platform_config import platform_value
 
     raw = platform_value("series_tools", "skip_as_tally_source", default=None)
     if isinstance(raw, list) and raw:
         return frozenset(str(x) for x in raw if str(x).strip())
-    return frozenset()
+    return _DEFAULT_SKIP_AS_TALLY_SOURCE
 
 
 def pick_tally_source(

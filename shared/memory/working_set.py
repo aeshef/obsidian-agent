@@ -21,12 +21,41 @@ from shared.agent.types import AgentContext, AgentMessage
 log = logging.getLogger("shared.memory.working_set")
 
 _ISO = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
-_MAX_ITEMS = 12
 _lock = threading.Lock()
 _store: dict[tuple[int, str], "WorkingSet"] = {}
-_sqlite_ready = False
+_sqlite_ready_path: str | None = None
 
 _KINDS = frozenset({"categories", "dates", "notes", "entities"})
+
+
+def _max_items() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("max_items", 12)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 12
+
+
+def _format_notes_n() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("format_notes", 4)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 4
+
+
+def _format_entities_n() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("format_entities", 6)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 6
 
 _DEFAULT_CATEGORY_PATTERNS = (
     r"\bfood\b",
@@ -112,15 +141,18 @@ def clear_working_set_pattern_cache() -> None:
 
 
 def _ensure_sqlite() -> None:
-    global _sqlite_ready
-    if _sqlite_ready or not _persist_enabled():
+    global _sqlite_ready_path
+    if not _persist_enabled():
         return
     path = _db_path()
+    key = str(path.resolve()) if path.is_absolute() else str(path)
+    if _sqlite_ready_path == key:
+        return
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(path)) as conn:
         conn.executescript(_SCHEMA)
         conn.commit()
-    _sqlite_ready = True
+    _sqlite_ready_path = key
 
 
 def _now() -> str:
@@ -151,7 +183,7 @@ class WorkingSet:
             return
         bucket.pop(key, None)
         bucket[key] = None
-        while len(bucket) > _MAX_ITEMS:
+        while len(bucket) > _max_items():
             bucket.popitem(last=False)
 
     def touch_category(self, name: str) -> None:
@@ -179,9 +211,14 @@ class WorkingSet:
         if self.dates:
             parts.append("dates: " + ", ".join(self.dates.keys()))
         if self.notes:
-            parts.append("notes: " + ", ".join(list(self.notes.keys())[-4:]))
+            parts.append(
+                "notes: " + ", ".join(list(self.notes.keys())[-_format_notes_n():])
+            )
         if self.entities:
-            parts.append("entities: " + ", ".join(list(self.entities.keys())[-6:]))
+            parts.append(
+                "entities: "
+                + ", ".join(list(self.entities.keys())[-_format_entities_n():])
+            )
         if not parts:
             return ""
         return "Working set (recent context):\n" + "\n".join(f"- {p}" for p in parts)
@@ -232,7 +269,7 @@ def _upsert_sqlite(user_id: int, domain: str, kind: str, value: str) -> None:
                   LIMIT -1 OFFSET ?
                 )
                 """,
-                (user_id, domain, kind, _MAX_ITEMS),
+                (user_id, domain, kind, _max_items()),
             )
             conn.commit()
     except sqlite3.Error as e:

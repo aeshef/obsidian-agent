@@ -57,9 +57,14 @@ def tools_excerpt(tool_bodies: list[str], *, max_chars: int | None = None) -> st
     blob = blob.strip()
     if max_chars is None:
         try:
-            max_chars = int(_verify_block().get("tools_excerpt_max_chars") or 0)
-        except (TypeError, ValueError):
-            max_chars = 0
+            from shared.agent.budget_caps import verify_excerpt_max_chars
+
+            max_chars = verify_excerpt_max_chars()
+        except Exception:
+            try:
+                max_chars = int(_verify_block().get("tools_excerpt_max_chars") or 0)
+            except (TypeError, ValueError):
+                max_chars = 0
     if not max_chars or len(blob) <= max_chars:
         return blob
     return blob[: max_chars - 1].rstrip() + "…"

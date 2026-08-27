@@ -36,8 +36,11 @@ def _require_may_12_activity_fixture():
     return logger
 
 
-def test_clamp_limit_max_1000():
-    assert clamp_activity_limit(5000) == 1000
+def test_clamp_limit_respects_platform_max():
+    from shared.agent import budget_caps as bc
+
+    max_lim = bc.activity_events_max_limit()
+    assert clamp_activity_limit(max_lim + 5000) == max_lim
     assert clamp_activity_limit(0) == 0
 
 

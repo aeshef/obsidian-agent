@@ -17,6 +17,12 @@ insights:
 core:
   max_lines: 8
 
+# Short-lived follow-up entities (shared/memory/working_set.py).
+working_set:
+  max_items: 12
+  format_notes: 4
+  format_entities: 6
+
 # Live HUD: calendar today + kanban in-work. Cached; fail open.
 situation:
   cache_sec: 60

@@ -1,0 +1,16 @@
+Период лога: 2026-01-15 … 2026-01-15
+Уникальных завершённых задач: 5. Список: Ship docs; Fix clip ratio; Add budget caps; Mine basket; Open issue
+Считай только уникальные завершения выше; одно закрытие даёт и task_moved→Сделано, и task_completed.
+Лог задач: строк 12/12. По типам: completed=5, moved=5, created=2, уникальных завершений=5.
+2026-01-15 09:00:00 | task_completed | "Ship docs"
+2026-01-15 10:00:00 | task_completed | "Fix clip ratio"
+2026-01-15 11:00:00 | task_completed | "Add budget caps"
+2026-01-15 12:00:00 | task_completed | "Mine basket"
+2026-01-15 13:00:00 | task_completed | "Open issue"
+2026-01-15 14:00:00 | task_moved | "Noise A" | 🔄 В работе → 📋 Бэклог
+2026-01-15 15:00:00 | task_moved | "Noise B" | 📋 Бэклог → 🔄 В работе
+2026-01-15 16:00:00 | task_created | "Later" | infra / low
+2026-01-15 17:00:00 | task_created | "Later 2" | infra / low
+2026-01-15 18:00:00 | task_moved | "Noise C" | 🔄 В работе → 🚫 Заблокировано
+2026-01-15 19:00:00 | task_moved | "Noise D" | 🚫 Заблокировано → 📋 Бэклог
+2026-01-15 20:00:00 | task_moved | "Noise E" | 📋 Бэклог → 🔄 В работе

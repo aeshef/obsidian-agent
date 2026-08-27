@@ -16,23 +16,21 @@ from shared.query.ts import parse_iso_dt
 
 
 def activity_events_limits() -> tuple[int, int]:
-    from shared.agent.platform_config import platform_int
+    from shared.agent.budget_caps import (
+        activity_events_default_limit,
+        activity_events_max_limit,
+    )
 
-    default_lim = platform_int(
-        "planning_action_log", "activity_events_limit_default", default=40
-    )
-    max_lim = platform_int(
-        "planning_action_log", "activity_events_limit_max", default=1000
-    )
-    return max(1, default_lim), max(default_lim, max_lim)
+    default_lim = activity_events_default_limit()
+    max_lim = activity_events_max_limit()
+    return default_lim, max_lim
 
 
 def clamp_activity_limit(limit: int) -> int:
     """0 = no tail cap (full window up to safety_max); else clamp to [1, max]."""
-    default_lim, max_lim = activity_events_limits()
-    if limit == 0:
-        return 0
-    return max(1, min(int(limit or default_lim), max_lim))
+    from shared.agent.budget_caps import clamp_activity_limit as _clamp
+
+    return _clamp(limit)
 
 
 def fetch_activity_events(
@@ -175,7 +173,17 @@ def format_activity_events_block(
     filtered_type: Optional[str],
     period_start: Optional[date] = None,
     period_end: Optional[date] = None,
+    summary: str = "full",
 ) -> str:
+    """summary: full (aggregates+rows) | unique (completions only) | raw (rows only)."""
+    mode = (summary or "full").strip().lower()
+    if mode in ("unique", "unique_only", "completions"):
+        mode = "unique"
+    elif mode == "raw":
+        mode = "raw"
+    else:
+        mode = "full"
+
     extras: List[str] = []
     unique = unique_completions(all_entries)
     if unique:
@@ -189,25 +197,27 @@ def format_activity_events_block(
                 titles=titles,
             )
         )
-        extras.append(pdmsg("agent_action_log_completion_note"))
+        if mode != "raw":
+            extras.append(pdmsg("agent_action_log_completion_note"))
 
     if filtered_type:
         extras.append(
             pdmsg(
                 "agent_action_log_summary_filtered",
-                shown=len(entries),
+                shown=len(entries) if mode != "unique" else len(unique),
                 total=n_raw,
                 event_type=filtered_type,
             )
         )
-        hist = format_completion_hour_histogram(all_entries)
-        if hist:
-            extras.append(hist)
+        if mode == "full":
+            hist = format_completion_hour_histogram(all_entries)
+            if hist:
+                extras.append(hist)
     else:
         extras.append(
             pdmsg(
                 "agent_action_log_summary",
-                shown=len(entries),
+                shown=len(entries) if mode != "unique" else len(unique),
                 total=n_raw,
                 completed=type_counts.get("task_completed", 0),
                 moved=type_counts.get("task_moved", 0),
@@ -225,13 +235,53 @@ def format_activity_events_block(
             start=period_start.isoformat(),
             end=period_end.isoformat(),
         )
+
+    if mode == "unique":
+        # Compact day-review dump: coverage + unique list + counts, no moved spam.
+        from shared.query.log_dump import assemble_log_dump, coverage_of
+
+        cov = coverage_of(
+            requested_start=req_start,
+            requested_end=req_end,
+            matched_ts=[_entry_ts(e) for e in all_entries],
+            shown_ts=[_entry_ts(e) for e in unique],
+            slice_kind="all",
+            n_matched=n_raw,
+        )
+        rows = [format_task_event_line(e) for e in unique]
+        return assemble_log_dump(
+            title=title,
+            coverage=cov,
+            extras=extras,
+            shares="",
+            rows=rows,
+        )
+
+    display = entries if mode == "full" else entries
+    if mode == "raw":
+        extras = []
     return format_task_event_dump(
-        entries,
+        display,
         all_entries,
         requested_start=req_start,
         requested_end=req_end,
         title=title,
         extras=extras,
-        slice_kind="tail" if len(entries) < n_raw else "all",
+        slice_kind="tail" if len(display) < n_raw else "all",
         n_matched=n_raw,
     )
+
+
+def resolve_activity_summary(
+    *,
+    requested: str,
+    from_date: Optional[date],
+    to_date: Optional[date],
+) -> str:
+    """auto → unique on a single calendar day, else full."""
+    raw = (requested or "auto").strip().lower() or "auto"
+    if raw in ("unique", "unique_only", "completions", "full", "raw"):
+        return "unique" if raw in ("unique_only", "completions") else raw
+    if from_date is not None and to_date is not None and from_date == to_date:
+        return "unique"
+    return "full"

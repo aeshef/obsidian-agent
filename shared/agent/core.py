@@ -112,9 +112,16 @@ def _verify_retry_hint(tool_bodies: list[str]) -> str:
     return msgf("agent", "verify_retry_hint", facts=facts)
 
 
-async def _verified_answer(text: str, tool_bodies: list[str]) -> tuple[str, bool]:
+async def _verified_answer(
+    text: str,
+    tool_bodies: list[str],
+    *,
+    trace: Any | None = None,
+) -> tuple[str, bool]:
     """Ground draft via LLM. Returns (text, needs_retry). Never a user-facing refuse."""
     verdict = await verify_draft(text, tool_bodies)
+    if trace is not None:
+        trace.note_verify(ok=bool(verdict.ok), rewrote=bool((verdict.rewrite or "").strip()))
     if verdict.ok:
         return strip_injected_history_clock(text), False
     if verdict.rewrite:
@@ -252,6 +259,32 @@ async def run_agent(
     trace = start_run(user_id=ctx.user_id, domain=ctx.domain, question=ctx.question or "")
     if trace is not None:
         trace.selected_tools = list(selected)
+        try:
+            from shared.memory.session import get_history
+            from shared.memory.working_set import get_working_set
+
+            hist = get_history(ctx.user_id, ctx.domain)
+            ws = get_working_set(ctx.user_id, ctx.domain)
+            ws_n = (
+                len(ws.categories)
+                + len(ws.dates)
+                + len(ws.notes)
+                + len(ws.entities)
+            )
+            priors_n = 0
+            try:
+                from shared.memory.core_priors import collect_core_prior_lines
+
+                priors_n = len(collect_core_prior_lines(ctx.user_id))
+            except Exception:
+                priors_n = 0
+            trace.note_memory_sizes(
+                session_messages=len(hist or []),
+                working_set_items=ws_n,
+                core_priors_lines=priors_n,
+            )
+        except Exception:
+            log.debug("trace memory sizes skipped", exc_info=True)
 
     api_messages: list[dict[str, Any]] = [
         {"role": "system", "content": ctx.system_prompt},
@@ -389,6 +422,8 @@ async def run_agent(
                     if not escalated and can_retry:
                         escalated = True
                         loop_role = strong_role()
+                        if trace is not None:
+                            trace.note_cascade("stripped_narration")
                         log.warning(
                             "cascade escalate -> %s reason=stripped_narration iter=%s",
                             loop_role.value,
@@ -402,10 +437,12 @@ async def run_agent(
                         trace.finish(reason="no_answer", answer=out)
                     return out
                 can_retry = iteration < limit - 1
-                final, needs_retry = await _verified_answer(final, tool_bodies)
+                final, needs_retry = await _verified_answer(final, tool_bodies, trace=trace)
                 if needs_retry and not escalated and can_retry and escalate_ungrounded_claims():
                     escalated = True
                     loop_role = strong_role()
+                    if trace is not None:
+                        trace.note_cascade("verify")
                     log.info("cascade escalate -> %s reason=verify", loop_role.value)
                     api_messages.append(
                         {"role": "user", "content": _verify_retry_hint(tool_bodies)}
@@ -423,6 +460,8 @@ async def run_agent(
                 ):
                     escalated = True
                     loop_role = strong_role()
+                    if trace is not None:
+                        trace.note_cascade("skipped_tools")
                     log.info("cascade escalate -> %s reason=skipped_tools", loop_role.value)
                     continue
                 if trace is not None:
@@ -431,6 +470,8 @@ async def run_agent(
             if not escalated and iteration < limit - 1:
                 escalated = True
                 loop_role = strong_role()
+                if trace is not None:
+                    trace.note_cascade("empty_response")
                 log.warning(
                     "cascade escalate -> %s reason=empty_response iter=%s",
                     loop_role.value,
@@ -494,15 +535,18 @@ async def run_agent(
                 )
         await _flush_parallel()
         tool_calls_used += len(calls)
-        from shared.agent.loop_context import llm_tool_content, refresh_system_working_set
+        from shared.agent.loop_context import clip_tool_result, refresh_system_working_set
 
-        for tr in results:
+        for tr, tc in zip(results, calls):
+            clipped, stats = clip_tool_result(tr.content or "")
+            if trace is not None:
+                trace.note_tool_clip(tool=tc.name, stats=stats)
             tool_bodies.append(tr.content or "")
             api_messages.append(
                 {
                     "role": "tool",
                     "tool_call_id": tr.id,
-                    "content": llm_tool_content(tr.content or ""),
+                    "content": clipped,
                 }
             )
         refresh_system_working_set(

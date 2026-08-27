@@ -68,11 +68,42 @@ class AgentRunTrace:
     # Context / schema sizes observed before each LLM call (chars).
     context_chars_iters: list[int] = field(default_factory=list)
     tools_schema_chars: int = 0
+    tool_clips: list[dict[str, Any]] = field(default_factory=list)
+    cascade_escalate_reasons: list[str] = field(default_factory=list)
+    verify_ok: bool | None = None
+    verify_rewrote: bool | None = None
+    session_messages: int = 0
+    working_set_items: int = 0
+    core_priors_lines: int = 0
 
     def note_context(self, *, messages_chars: int, tools_schema_chars: int = 0) -> None:
         self.context_chars_iters.append(int(messages_chars))
         if tools_schema_chars:
             self.tools_schema_chars = max(self.tools_schema_chars, int(tools_schema_chars))
+
+    def note_memory_sizes(
+        self,
+        *,
+        session_messages: int = 0,
+        working_set_items: int = 0,
+        core_priors_lines: int = 0,
+    ) -> None:
+        self.session_messages = max(0, int(session_messages or 0))
+        self.working_set_items = max(0, int(working_set_items or 0))
+        self.core_priors_lines = max(0, int(core_priors_lines or 0))
+
+    def note_tool_clip(self, *, tool: str, stats: dict[str, Any]) -> None:
+        row = {"tool": str(tool or ""), **dict(stats or {})}
+        self.tool_clips.append(row)
+
+    def note_cascade(self, reason: str) -> None:
+        r = str(reason or "").strip()
+        if r:
+            self.cascade_escalate_reasons.append(r)
+
+    def note_verify(self, *, ok: bool, rewrote: bool) -> None:
+        self.verify_ok = bool(ok)
+        self.verify_rewrote = bool(rewrote)
 
     def add_llm(
         self,
@@ -140,6 +171,11 @@ class AgentRunTrace:
             model=model,
         )
         ctx_peak = max(self.context_chars_iters) if self.context_chars_iters else 0
+        clip_n = len(self.tool_clips)
+        clipped_n = sum(1 for c in self.tool_clips if c.get("clipped"))
+        raw_sum = sum(int(c.get("raw_chars") or 0) for c in self.tool_clips)
+        llm_sum = sum(int(c.get("llm_chars") or 0) for c in self.tool_clips)
+        clip_ratio = (1.0 - (llm_sum / raw_sum)) if raw_sum > 0 else 0.0
         payload = {
             "ts": self.started_iso,
             "user_id": self.user_id,
@@ -164,6 +200,17 @@ class AgentRunTrace:
             "tools_schema_chars": self.tools_schema_chars,
             "rounds_missing_usage": rounds_missing_usage,
             "rounds_tokens_estimated": rounds_estimated,
+            "tool_clip_count": clip_n,
+            "tool_clipped_count": clipped_n,
+            "tool_clip_ratio": round(clip_ratio, 4),
+            "tool_raw_chars_sum": raw_sum,
+            "tool_llm_chars_sum": llm_sum,
+            "cascade_escalate_reasons": list(self.cascade_escalate_reasons),
+            "verify_ok": self.verify_ok,
+            "verify_rewrote": self.verify_rewrote,
+            "session_messages": self.session_messages,
+            "working_set_items": self.working_set_items,
+            "core_priors_lines": self.core_priors_lines,
         }
         path = _trace_path()
         try:

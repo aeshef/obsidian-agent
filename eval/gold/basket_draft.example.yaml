@@ -1,0 +1,42 @@
+# Public review-basket template (OSS-safe). Copy to local_basket.yaml and label.
+# Context-sensitive items need frozen expected_facts or will drift.
+
+version: 1
+instruction: >
+  Set label to good|bad|ok|skip after trying the agent. Prefer expected_facts
+  checks over free-form judgment when possible.
+
+items:
+  - id: day-completions-en
+    domain: planning
+    question: How many unique tasks did I complete on 2026-01-15? List titles.
+    context_sensitive: true
+    suggested_tools: [get_activity_events, get_action_log]
+    expected_facts:
+      - "5"
+      - "Ship docs"
+      - "Open issue"
+    label: pending
+    notes: Pair with eval/fixtures/activity_day_dump.txt offline clip test.
+
+  - id: wip-snapshot
+    domain: planning
+    question: What is currently in progress on my board?
+    context_sensitive: true
+    suggested_tools: [get_kanban]
+    label: pending
+    notes: Freeze board snapshot before scoring.
+
+  - id: spend-week
+    domain: finance
+    question: How much did I spend last week by top categories?
+    context_sensitive: true
+    suggested_tools: [get_spending_by_category, get_transactions]
+    label: pending
+
+  - id: knowledge-find
+    domain: knowledge
+    question: Find notes about agent budgets or harness calibration.
+    context_sensitive: false
+    suggested_tools: [search_knowledge_base]
+    label: pending
