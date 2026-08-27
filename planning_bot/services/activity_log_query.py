@@ -16,23 +16,21 @@ from shared.query.ts import parse_iso_dt
 
 
 def activity_events_limits() -> tuple[int, int]:
-    from shared.agent.platform_config import platform_int
+    from shared.agent.budget_caps import (
+        activity_events_default_limit,
+        activity_events_max_limit,
+    )
 
-    default_lim = platform_int(
-        "planning_action_log", "activity_events_limit_default", default=40
-    )
-    max_lim = platform_int(
-        "planning_action_log", "activity_events_limit_max", default=1000
-    )
-    return max(1, default_lim), max(default_lim, max_lim)
+    default_lim = activity_events_default_limit()
+    max_lim = activity_events_max_limit()
+    return default_lim, max_lim
 
 
 def clamp_activity_limit(limit: int) -> int:
     """0 = no tail cap (full window up to safety_max); else clamp to [1, max]."""
-    default_lim, max_lim = activity_events_limits()
-    if limit == 0:
-        return 0
-    return max(1, min(int(limit or default_lim), max_lim))
+    from shared.agent.budget_caps import clamp_activity_limit as _clamp
+
+    return _clamp(limit)
 
 
 def fetch_activity_events(

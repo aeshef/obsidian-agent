@@ -89,6 +89,8 @@ def dialogue_hint(
         per_domain = platform_int(
             "llm_classify", "dialogue_hint_per_domain", default=2
         )
+    clip = platform_int("llm_classify", "dialogue_hint_chars", default=160)
+    max_lines = platform_int("llm_classify", "dialogue_hint_max_lines", default=12)
     if chat_id is None:
         return ""
     from shared.memory.session import get_history
@@ -97,11 +99,14 @@ def dialogue_hint(
     for dom in domains:
         for m in get_history(chat_id, dom)[-per_domain:]:
             ts = m.ts or "time_unknown"
-            lines.append(f"[{dom}][{ts}] {m.role}: {(m.content or '')[:160]}")
-    return "\n".join(lines[-12:])
+            lines.append(f"[{dom}][{ts}] {m.role}: {(m.content or '')[:clip]}")
+    return "\n".join(lines[-max_lines:])
 
 
-def _tool_select_history_hint(history: list | None, *, n: int = 6) -> str:
+def _tool_select_history_hint(history: list | None, *, n: int | None = None) -> str:
+    if n is None:
+        n = platform_int("llm_classify", "tool_select_history_turns", default=6)
+    clip = platform_int("llm_classify", "dialogue_hint_chars", default=160)
     if not history:
         return ""
     lines: list[str] = []
@@ -109,7 +114,7 @@ def _tool_select_history_hint(history: list | None, *, n: int = 6) -> str:
         role = str(getattr(m, "role", "") or "")
         if role not in ("user", "assistant"):
             continue
-        text = str(getattr(m, "content", "") or "")[:160]
+        text = str(getattr(m, "content", "") or "")[:clip]
         if text:
             lines.append(f"{role}: {text}")
     return "\n".join(lines)

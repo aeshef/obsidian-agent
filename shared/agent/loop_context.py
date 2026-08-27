@@ -17,11 +17,24 @@ def clip_text(text: str, max_chars: int) -> str:
     return body[:cut].rstrip() + "…"
 
 
-def llm_tool_content(full: str) -> str:
-    from shared.agent.platform_config import platform_int
+def clip_tool_result(full: str) -> tuple[str, dict]:
+    """Return (text_for_llm, clip_stats). Full body stays elsewhere for verify/join."""
+    from shared.agent.budget_caps import tool_result_max_chars
 
-    cap = platform_int("agent", "tool_result_max_chars", default=0)
-    return clip_text(full, cap)
+    raw = full or ""
+    cap = tool_result_max_chars()
+    clipped = clip_text(raw, cap)
+    return clipped, {
+        "raw_chars": len(raw),
+        "llm_chars": len(clipped),
+        "cap": int(cap or 0),
+        "clipped": bool(cap and len(raw) > len(clipped)),
+    }
+
+
+def llm_tool_content(full: str) -> str:
+    text, _stats = clip_tool_result(full)
+    return text
 
 
 def splice_working_set_block(system: str, block: str) -> str:

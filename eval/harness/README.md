@@ -37,5 +37,8 @@ Supported `kind` values:
 | `cross_domain` | finance×planning escalation patterns |
 | `period_compare_format` | compare helper formatting |
 | `conversation_contract` | host_query prompt contains contract markers |
+| `budget_clip_coverage` | unique-completion markers survive tool clip |
+| `activity_limit_policy` | single-day auto limit → full window |
+| `recommend_cap` | quantile × headroom formula |
 
 Add new goldens here before wiring LLM-backed evals.

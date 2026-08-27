@@ -127,6 +127,52 @@ def _run_case(case: dict[str, Any]) -> None:
             )
         return
 
+    if kind == "budget_clip_coverage":
+        from shared.agent.loop_context import clip_text
+
+        fix_name = str(inp.get("fixture") or "activity_day_dump.txt")
+        fixture = ROOT / "eval" / "fixtures" / fix_name
+        body = fixture.read_text(encoding="utf-8")
+        clipped = clip_text(body, int(inp.get("clip_chars") or 4000))
+        markers = expect.get("contains_any") or expect.get("contains") or []
+        if not any(str(m) in clipped for m in markers):
+            raise AssertionError(
+                f"clipped dump missing any of {markers}; head={clipped[:200]!r}"
+            )
+        return
+
+    if kind == "activity_limit_policy":
+        from datetime import date
+
+        from shared.agent.budget_caps import resolve_activity_limit
+
+        start = date.fromisoformat(str(inp["from_date"]))
+        end = date.fromisoformat(str(inp["to_date"]))
+        got = resolve_activity_limit(
+            requested=int(inp.get("requested", -1)),
+            from_date=start,
+            to_date=end,
+        )
+        if "limit" in expect and got != int(expect["limit"]):
+            raise AssertionError(f"limit={got}, expected {expect['limit']}")
+        if expect.get("limit_positive") and got <= 0:
+            raise AssertionError(f"expected positive limit, got {got}")
+        return
+
+    if kind == "recommend_cap":
+        from shared.agent.budget_caps import recommend_cap
+
+        got = recommend_cap(
+            list(inp.get("samples") or []),
+            q=float(inp.get("quantile") or 0.95),
+            headroom=float(inp.get("headroom") or 1.2),
+            floor=int(inp.get("floor") or 0),
+            ceiling=int(inp.get("ceiling") or 10**9),
+        )
+        if got < int(expect.get("min") or 0) or got > int(expect.get("max") or 10**9):
+            raise AssertionError(f"recommend_cap={got} not in [{expect.get('min')}, {expect.get('max')}]")
+        return
+
     raise AssertionError(f"unknown kind: {kind}")
 
 

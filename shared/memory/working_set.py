@@ -21,12 +21,41 @@ from shared.agent.types import AgentContext, AgentMessage
 log = logging.getLogger("shared.memory.working_set")
 
 _ISO = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
-_MAX_ITEMS = 12
 _lock = threading.Lock()
 _store: dict[tuple[int, str], "WorkingSet"] = {}
 _sqlite_ready = False
 
 _KINDS = frozenset({"categories", "dates", "notes", "entities"})
+
+
+def _max_items() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("max_items", 12)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 12
+
+
+def _format_notes_n() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("format_notes", 4)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 4
+
+
+def _format_entities_n() -> int:
+    from shared.memory.config import load_memory_config
+
+    raw = (load_memory_config().get("working_set") or {}).get("format_entities", 6)
+    try:
+        return max(1, int(raw))
+    except (TypeError, ValueError):
+        return 6
 
 _DEFAULT_CATEGORY_PATTERNS = (
     r"\bfood\b",
@@ -151,7 +180,7 @@ class WorkingSet:
             return
         bucket.pop(key, None)
         bucket[key] = None
-        while len(bucket) > _MAX_ITEMS:
+        while len(bucket) > _max_items():
             bucket.popitem(last=False)
 
     def touch_category(self, name: str) -> None:
@@ -179,9 +208,14 @@ class WorkingSet:
         if self.dates:
             parts.append("dates: " + ", ".join(self.dates.keys()))
         if self.notes:
-            parts.append("notes: " + ", ".join(list(self.notes.keys())[-4:]))
+            parts.append(
+                "notes: " + ", ".join(list(self.notes.keys())[-_format_notes_n():])
+            )
         if self.entities:
-            parts.append("entities: " + ", ".join(list(self.entities.keys())[-6:]))
+            parts.append(
+                "entities: "
+                + ", ".join(list(self.entities.keys())[-_format_entities_n():])
+            )
         if not parts:
             return ""
         return "Working set (recent context):\n" + "\n".join(f"- {p}" for p in parts)
@@ -232,7 +266,7 @@ def _upsert_sqlite(user_id: int, domain: str, kind: str, value: str) -> None:
                   LIMIT -1 OFFSET ?
                 )
                 """,
-                (user_id, domain, kind, _MAX_ITEMS),
+                (user_id, domain, kind, _max_items()),
             )
             conn.commit()
     except sqlite3.Error as e:

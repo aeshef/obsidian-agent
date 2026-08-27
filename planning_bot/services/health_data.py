@@ -28,21 +28,35 @@ from planning_bot.services.snapshot_query import (
     snap_calendar_day,
 )
 
+def _health_series_fields_max() -> int:
+    from shared.agent.platform_config import platform_int
+
+    return max(1, platform_int("planning_health", "series_fields_max", default=16))
+
+
+def _health_anomaly_defaults() -> tuple[int, float]:
+    from shared.agent.platform_config import platform_float, platform_int
+
+    days = max(7, platform_int("planning_health", "anomaly_lookback_days", default=30))
+    z = platform_float("planning_health", "anomaly_z_threshold", default=1.8)
+    return days, float(z)
+
+
 def _select_series_fields(
     daily: Dict[date, Dict[str, Any]],
     fields: Optional[List[str]],
 ) -> tuple[List[str], Optional[str]]:
-    'Operation implementation.'
     snaps = list(daily.values())
     available = discover_numeric_keys(snaps)
+    cap = _health_series_fields_max()
     if not fields:
-        return available[:16], None
+        return available[:cap], None
     requested = [f.strip() for f in fields if f and f.strip()]
     matched = [f for f in requested if any(f in s for s in snaps)]
     if matched:
         return matched, None
     suffix = "…" if len(available) > 10 else ""
-    return available[:16], pdmsg(
+    return available[:cap], pdmsg(
         "health_columns_not_found",
         requested=requested,
         available=f"{', '.join(available[:10])}{suffix}",
@@ -186,8 +200,14 @@ def _zscore(value: float, mean: float, stdev: float) -> float:
     return (value - mean) / stdev
 
 
-def format_health_anomalies(*, lookback_days: int = 30, z_threshold: float = 1.8) -> str:
-    lookback_days = max(7, min(lookback_days, 365))
+def format_health_anomalies(*, lookback_days: int | None = None, z_threshold: float | None = None) -> str:
+    default_days, default_z = _health_anomaly_defaults()
+    if lookback_days is None:
+        lookback_days = default_days
+    if z_threshold is None:
+        z_threshold = default_z
+    lookback_days = max(7, min(int(lookback_days), 365))
+    z_threshold = float(z_threshold)
     snaps = load_health_snapshots(max_days=lookback_days + 5)
     daily = latest_per_calendar_day(snaps)
     if len(daily) < 5:
