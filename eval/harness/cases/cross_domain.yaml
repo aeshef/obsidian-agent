@@ -11,3 +11,73 @@ input:
   text: "покажи баланс карт"
 expect:
   looks_cross: false
+---
+id: cross-domain-en-spend-tasks
+kind: cross_domain
+input:
+  text: "How much did I spend and what tasks are due this week?"
+expect:
+  looks_cross: true
+---
+id: cross-domain-en-food-health
+kind: cross_domain
+input:
+  text: "Track my food budget against my health goals"
+expect:
+  looks_cross: true
+---
+id: cross-domain-en-expense-tasks
+kind: cross_domain
+input:
+  text: "Summarize my expenses and daily tasks for the month"
+expect:
+  looks_cross: true
+---
+id: cross-domain-en-finance-completion
+kind: cross_domain
+input:
+  text: "finance report and task completion status"
+expect:
+  looks_cross: true
+---
+id: cross-domain-en-balance-only
+kind: cross_domain
+input:
+  text: "What is my current balance?"
+expect:
+  looks_cross: false
+---
+id: cross-domain-en-kanban-tasks
+kind: cross_domain
+input:
+  text: "List my kanban tasks for today"
+expect:
+  looks_cross: false
+---
+id: cross-domain-en-spend-groceries
+kind: cross_domain
+input:
+  text: "How much did I spend on groceries last month?"
+expect:
+  looks_cross: false
+---
+id: cross-domain-ru-spend-tasks
+kind: cross_domain
+input:
+  text: "сколько потратил на еду и какие задачи на неделю"
+expect:
+  looks_cross: true
+---
+id: cross-domain-ru-expense-calendar
+kind: cross_domain
+input:
+  text: "расходы и календарь мероприятий"
+expect:
+  looks_cross: true
+---
+id: cross-domain-ru-balance-only
+kind: cross_domain
+input:
+  text: "сколько денег на счету"
+expect:
+  looks_cross: false
