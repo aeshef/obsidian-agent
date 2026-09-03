@@ -252,3 +252,7 @@ eval/gold/*.yaml
 eval/gold/local_basket.yaml
 config/agent/budget_stats.json
 
+
+# Demo capture sources (merged outputs obsidian-demo.* are committed)
+assets/demo/clips/
+assets/demo/build/
