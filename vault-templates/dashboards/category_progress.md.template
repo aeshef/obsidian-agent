@@ -1,13 +1,12 @@
 {{category_progress_heading}}
 
 ```dataviewjs
+(async () => {
 const TAG_GOAL = "{{tag_goal}}";
 const kanbanPages = ["{{kanban_page}}"]
   .concat("{{kanban_archive_page}}" ? ["{{kanban_archive_page}}"] : [])
   .filter(Boolean);
 const categories = {{categories_json}};
-const DAY_MS = 86400000;
-const cutoff = Date.now() - 30 * DAY_MS;
 const catEmoji = {{category_emojis_json}};
 
 const allTasks = [];
@@ -18,29 +17,119 @@ for (const pagePath of kanbanPages) {
   }
 }
 
-/** Completion time: never use file mtime (archive mtime makes done30≈doneAll). */
-function completionTs(task) {
+const COMPLETIONS_JSON = "{{dashboards_folder}}/{{data_subdir}}/task_completions.json";
+const DAY_MS = 86400000;
+const cutoff = Date.now() - 30 * DAY_MS;
+const DONE_COL = "{{done_column}}";
+
+async function readVaultFile(path) {
+  try { return await dv.io.load(path) } catch (_) {}
+  try {
+    const f = app.vault.getAbstractFileByPath(path);
+    if (f) return await app.vault.read(f);
+  } catch (_) {}
+  return null;
+}
+
+async function loadCompletionByTaskId() {
+  const map = {};
+  const put = (tid, ts) => {
+    if (!tid || ts == null || Number.isNaN(ts)) return;
+    const k = String(tid).toLowerCase();
+    if (!map[k] || ts > map[k]) map[k] = ts;
+  };
+  try {
+    const rawText = await readVaultFile(COMPLETIONS_JSON);
+    if (rawText) {
+      const payload = JSON.parse(rawText);
+      const raw = payload.completions || payload;
+      for (const [tid, iso] of Object.entries(raw)) {
+        put(tid, Date.parse(String(iso).replace(" ", "T")));
+      }
+      if (Object.keys(map).length) return map;
+    }
+  } catch (_) {}
+  const LOG_DIR = "{{dashboards_folder}}/{{logs_subdir}}";
+  const LOG_PREFIX = "{{action_log_prefix}}";
+  const entryRe = /^## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*\n+\*\*(?:Тип|Type):\*\* (.+?)\s*\n+\*\*(?:Данные|Data):\*\*\s*\n```json\n([\s\S]*?)\n```/gm;
+  const now = new Date();
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const path = `${LOG_DIR}/${LOG_PREFIX}${ym}.md`;
+    const content = await readVaultFile(path);
+    if (!content) continue;
+    let m;
+    while ((m = entryRe.exec(content)) !== null) {
+      const typ = m[2].trim();
+      let data;
+      try { data = JSON.parse(m[3]); } catch { continue; }
+      const ts = Date.parse(m[1].replace(" ", "T"));
+      const tid = data.task_id;
+      if (typ === "task_completed") put(tid, ts);
+      else if (typ === "task_moved" && data.to === DONE_COL) put(tid, ts);
+    }
+  }
+  return map;
+}
+
+async function buildLineCache(tasks) {
+  const cache = {};
+  const paths = [...new Set(tasks.map(t => t.path).filter(Boolean))];
+  for (const path of paths) {
+    const content = await readVaultFile(path);
+    if (content) cache[path] = content.split("\n");
+  }
+  return cache;
+}
+
+function goalCategory(task) {
+  const text = task.text || "";
+  const m = text.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`));
+  if (m) return m[1];
+  const prefix = `${TAG_GOAL}/`;
+  for (const tag of (task.tags || [])) {
+    const t = String(tag);
+    if (t.startsWith(prefix)) return t.slice(prefix.length);
+  }
+  return null;
+}
+
+function taskIdFrom(task, lineCache) {
+  const m = (task.text || "").match(/🆔\s*ID[:\s]+([a-f0-9]{8})/i);
+  if (m) return m[1].toLowerCase();
+  const lines = lineCache[task.path];
+  if (!lines) return null;
+  const start = Math.max(0, (task.line || 1) - 1);
+  for (let i = start; i < Math.min(lines.length, start + 12); i++) {
+    const mm = lines[i].match(/🆔\s*ID[:\s]+([a-f0-9]{8})/i);
+    if (mm) return mm[1].toLowerCase();
+  }
+  return null;
+}
+
+function completionTs(task, completionById, lineCache) {
   if (task.completion) {
-    const t = task.completion.ts || Date.parse(task.completion)
-    if (t && !Number.isNaN(t)) return t
+    const t = task.completion.ts ?? Date.parse(task.completion);
+    if (t && !Number.isNaN(t)) return t;
   }
-  const text = task.text || ""
-  const mark = text.match(/✅\s*(\d{4}-\d{2}-\d{2})/)
+  const text = task.text || "";
+  const mark = text.match(/✅\s*(\d{4}-\d{2}-\d{2})/);
   if (mark) {
-    const t = Date.parse(mark[1])
-    if (t && !Number.isNaN(t)) return t
+    const t = Date.parse(mark[1]);
+    if (t && !Number.isNaN(t)) return t;
   }
-  // Archive sections: "## ✅ Сделано · 2026-05"
-  const sec = task.section
-  const secStr = sec ? (sec.subpath || sec.path || String(sec)) : ""
-  const ym = String(secStr).match(/(\d{4})-(\d{2})/)
+  const tid = taskIdFrom(task, lineCache);
+  if (tid && completionById[tid]) return completionById[tid];
+  const sec = task.section;
+  const secStr = sec ? (sec.subpath || sec.path || String(sec)) : "";
+  const ym = String(secStr).match(/(\d{4})-(\d{2})/);
   if (ym) {
-    const y = parseInt(ym[1], 10)
-    const m = parseInt(ym[2], 10)
-    // last day of month m
-    return Date.UTC(y, m, 0)
+    const y = parseInt(ym[1], 10);
+    const mo = parseInt(ym[2], 10);
+    return Date.UTC(y, mo - 1, 15);
   }
-  return null
+  return null;
 }
 
 function node(tag, style, text) {
@@ -112,16 +201,17 @@ function numCell(n) {
 if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0])) {
   dv.paragraph("{{kanban_not_found}}")
 } else {
+  const completionById = await loadCompletionByTaskId();
+  const lineCache = await buildLineCache(allTasks);
   const categoryStats = {}
   categories.forEach(cat => { categoryStats[cat] = { open: 0, done30: 0, doneAll: 0 } })
 
   allTasks.forEach(task => {
-    const match = task.text?.match(new RegExp(`#${TAG_GOAL}/([^\\s#]+)`))
-    const category = match ? match[1] : null
+    const category = goalCategory(task)
     if (!category || !categoryStats[category]) return
     if (task.completed) {
       categoryStats[category].doneAll++
-      const ts = completionTs(task)
+      const ts = completionTs(task, completionById, lineCache)
       if (ts != null && ts >= cutoff) categoryStats[category].done30++
     } else {
       categoryStats[category].open++
@@ -171,4 +261,5 @@ if (kanbanPages.length === 0 || allTasks.length === 0 && !dv.page(kanbanPages[0]
     dv.paragraph("{{no_categorized_tasks}}")
   }
 }
+})();
 ```
