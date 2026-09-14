@@ -245,3 +245,68 @@ def test_apply_create_logs_priority(monkeypatch):
     logger.log_task_created.assert_called_once_with(
         title, normalize_category(personal), low, task_id="deadbeef"
     )
+
+
+def test_create_with_deadline_round_trips_and_logs(monkeypatch, tmp_path):
+    from unittest.mock import MagicMock
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.kanban_agent import apply_kanban_action
+
+    monkeypatch.setenv("KANBAN_AGENT_WRITES", "1")
+    board_file = tmp_path / "board.md"
+    board_file.write_text(f"## {BACKLOG_COLUMN}\n\n", encoding="utf-8")
+    board = KanbanBoard(board_file)
+    logger = MagicMock()
+    out = apply_kanban_action(
+        board, action="create", title="Submit report", deadline="2026-09-25", logger=logger
+    )
+    assert "deadline=2026-09-25" in out
+    from planning_bot.services.kanban_parse import metadata_from_block
+    raw = board_file.read_text(encoding="utf-8")
+    meta = metadata_from_block(raw)
+    assert meta["deadline"] == "2026-09-25"
+    assert "#дедлайн/2026-09-25" in raw
+    logger.log_task_created.assert_called_once_with(
+        "Submit report", meta["category"], meta["priority"],
+        task_id=meta["task_id"], deadline="2026-09-25",
+    )
+
+
+def test_create_without_deadline_does_not_add_tag(monkeypatch, tmp_path):
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.kanban_agent import apply_kanban_action
+
+    monkeypatch.setenv("KANBAN_AGENT_WRITES", "1")
+    board_file = tmp_path / "board.md"
+    board_file.write_text(f"## {BACKLOG_COLUMN}\n\n", encoding="utf-8")
+    board = KanbanBoard(board_file)
+    out = apply_kanban_action(board, action="create", title="Untimed")
+    assert "deadline=" not in out
+    assert "#дедлайн/" not in board_file.read_text(encoding="utf-8")
+
+
+def test_create_invalid_deadline_rejected_before_write(monkeypatch, tmp_path):
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.kanban_agent import apply_kanban_action
+
+    monkeypatch.setenv("KANBAN_AGENT_WRITES", "1")
+    board_file = tmp_path / "board.md"
+    original = f"## {BACKLOG_COLUMN}\n\n"
+    board_file.write_text(original, encoding="utf-8")
+    board = KanbanBoard(board_file)
+    for invalid in ("2026-02-30", "2026-09-25T10:00"):
+        out = apply_kanban_action(board, action="create", title="Bad", deadline=invalid)
+        assert invalid in out
+        assert board_file.read_text(encoding="utf-8") == original
+
+
+def test_batch_create_with_deadline(monkeypatch, tmp_path):
+    from planning_bot.services.kanban import KanbanBoard
+    from planning_bot.services.kanban_agent import apply_kanban_action
+
+    monkeypatch.setenv("KANBAN_AGENT_WRITES", "1")
+    board_file = tmp_path / "board.md"
+    board_file.write_text(f"## {BACKLOG_COLUMN}\n\n", encoding="utf-8")
+    board = KanbanBoard(board_file)
+    apply_kanban_action(board, action="create", titles=["One", "Two"], deadline="2026-09-25")
+    assert board_file.read_text(encoding="utf-8").count("#дедлайн/2026-09-25") == 2

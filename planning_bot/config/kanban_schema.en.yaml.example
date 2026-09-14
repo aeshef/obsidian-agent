@@ -61,6 +61,7 @@ tag_prefixes:
 
 task_meta_template: "\t#goal/{category} #priority/{priority}"
 task_created_template: "\t📅 Created: {created_date}"
+task_deadline_template: "\t#deadline/{deadline}"
 tag_goal_regex: '#goal/([^\s#]+)'
 tag_priority_regex: '#priority/(high|medium|low)'
 tag_deadline_regex: '#deadline/(\d{4}-\d{2}-\d{2})'

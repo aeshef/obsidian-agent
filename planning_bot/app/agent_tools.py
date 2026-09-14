@@ -311,10 +311,11 @@ async def apply_kanban_task(
     titles: Optional[List[str]] = None,
     category: str = DEFAULT_CATEGORY,
     priority: str = DEFAULT_PRIORITY,
+    deadline: str = "",
     column: str = "",
     all_matching: bool = False,
 ) -> str:
-    """Board mutation: create | move | complete | delete (KANBAN_AGENT_WRITES=1). delete = intentional remove + task_deleted log. For many new tasks use titles=[...] in one call."""
+    """Board mutation: create | move | complete | delete (KANBAN_AGENT_WRITES=1). On create, pass deadline=YYYY-MM-DD only when the user requested a due date; otherwise leave it empty. delete = intentional remove + task_deleted log. For many new tasks use titles=[...] in one call."""
     from planning_bot.services.kanban_agent import apply_kanban_action
 
     bot = _bot(ctx)
@@ -328,6 +329,7 @@ async def apply_kanban_task(
         titles=titles,
         category=category,
         priority=priority,
+        deadline=deadline,
         column=column,
         all_matching=all_matching,
         logger=logger,
@@ -559,6 +561,12 @@ def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
         "apply_kanban_tool_hint",
         categories=", ".join(cats) if cats else DEFAULT_CATEGORY,
         priorities=", ".join(prios) if prios else DEFAULT_PRIORITY,
+    )
+    # Keep this invariant in code: production may intentionally preserve a local
+    # prompt catalog instead of replacing it from repository examples on deploy.
+    t.description += (
+        " On create, pass deadline=YYYY-MM-DD only when the user requested a due date;"
+        " otherwise leave deadline empty. Resolve relative dates from as_of_today."
     )
     props = dict(t.parameters.get("properties") or {})
     if cats:

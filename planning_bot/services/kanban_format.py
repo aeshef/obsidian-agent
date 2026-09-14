@@ -66,6 +66,17 @@ def task_created_line(created_date: str) -> str:
     return pdmsg("auto_90845dcdf6", default="", created_date=created_date)
 
 
+def task_deadline_line(deadline: str) -> str:
+    """Render an optional ISO deadline using the locale-specific kanban schema."""
+    if not (deadline or "").strip():
+        return ""
+    line = _format_from_schema("task_deadline_template", deadline=deadline.strip())
+    if line:
+        return line
+    prefix = (_kanban_schema().get("tag_prefixes") or {}).get("deadline", "deadline")
+    return f"\t#{prefix}/{deadline.strip()}"
+
+
 def tag_goal_regex() -> re.Pattern[str]:
     raw = _kanban_schema().get("tag_goal_regex")
     if isinstance(raw, str) and raw.strip():
