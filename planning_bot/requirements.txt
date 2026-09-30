@@ -1,6 +1,6 @@
 aiogram==3.13.1
 APScheduler==3.10.4
-requests==2.32.5
+requests==2.34.2
 pytz==2025.2
 matplotlib>=3.8,<4
 scipy>=1.11.0
