@@ -6,6 +6,10 @@
 # (any tracked *.example.txt not in generic_en → personalized)
 
 generic_en:
+  - config/agent/prompts/architecture_contract.example.txt
+  - config/agent/prompts/interaction_contract.example.txt
+  - config/agent/prompts/message_style.example.txt
+  - finance_bot/config/prompts/import_patch.example.txt
   - config/agent/prompts/host_query.example.txt
   - config/agent/prompts/host_domain_router.example.txt
   - config/agent/prompts/finance_intent_router.example.txt
