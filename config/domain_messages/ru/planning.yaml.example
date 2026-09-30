@@ -45,6 +45,9 @@ planning_forecast:
   forecast_failed: Could not generate forecast.
   month_names: ',,January,February,March,April,May,June,July,August,September,October,November,December'
 planning:
+  calendar_freshness_unknown: 'Свежесть календаря неизвестна. Отсутствие событий не подтверждает свободное время.'
+  calendar_freshness_ok: 'Календарь получен: {captured}; полное покрытие: с {start} до {end} (не включительно). За пределами периода данные неизвестны.'
+  calendar_freshness_stale: 'Календарь УСТАРЕЛ: получен {captured}; покрытие с {start} до {end}. Не подтверждай свободное время по устаревшим данным.'
   routines_problematic_line: '• {task} ({section}): отказ {fail_rate}%'
   routines_no_problematic: Проблемных рутин не найдено.
   routines_uncompleted_morning: '🌅 Утро (не сделано): {tasks}'
@@ -104,7 +107,16 @@ planning:
   agent_action_log_unique_completions: 'Уникальных завершённых задач: {count}. Список: {titles}'
   agent_action_log_completion_note: Считай только уникальные завершения выше; одно закрытие даёт и task_moved→Сделано, и task_completed.
   apply_kanban_tool_hint: 'Канбан: create|move|complete|delete. delete — намеренное удаление (пишет task_deleted, не автовосстанавливать).
-    При create передавай deadline=YYYY-MM-DD, только если пользователь назвал срок; иначе оставь deadline пустым. Относительные даты разрешай от as_of_today. Несколько задач — один create с titles=[...]. category (#цель): {categories}. priority: {priorities}.'
+    При create передавай deadline=YYYY-MM-DD, только если пользователь назвал срок; иначе оставь deadline пустым. Относительные даты разрешай от as_of_today.     Для задачи, уже показанной get_kanban/search_tasks, используй точный task_id, а не переписанное название.
+    При промахе изучи кандидатов или поищи на доске; повтори по ID, если задача однозначно определена из контекста.
+    Спрашивай пользователя только при оставшейся неоднозначности. Пустой ответ не означает успех или отсутствие задачи.
+    Несколько задач — один create с titles=[...]. category (#цель): {categories}. priority: {priorities}.'
+  kanban_task_not_found: 'Точного совпадения для «{ref}» нет. Изменения не внесены.'
+  kanban_unknown_action: 'Неизвестное действие: {action}. Допустимы create, move, complete, delete. Изменения не внесены.'
+  kanban_unknown_column: 'Неизвестная колонка: {column}. Допустимы: {allowed}. Изменения не внесены.'
+  kanban_candidates: 'Возможные совпадения (автоматически не выбраны). Используй ID после проверки контекста; при неоднозначности уточни: {candidates}'
+  kanban_candidate_row: '[{task_id}] {title} | {column}'
+  kanban_reference_recovery_hint: 'Для уже показанной задачи используй точный task_id из get_kanban/search_tasks, не переписывай название. При промахе проверь кандидатов или поищи и повтори по ID, если контекст однозначен; уточняй только при оставшейся неоднозначности. Пустой ответ не доказывает ни успех, ни отсутствие задачи.'
   kanban_task_created: 'Создана задача id={task_id}: {title} | #цель/{category} #приоритет/{priority}'
   kanban_invalid_deadline: 'Некорректный дедлайн «{deadline}»: используй YYYY-MM-DD.'
   kanban_task_deleted: 'Удалена задача id={task_id}: {title}'
@@ -562,8 +574,8 @@ planning:
 
     '
   auto_75c42fc423: '   iphone_context_sync: сегодня {_p1} снапш. / неделя {_p3} → iphone_today.json, iphone_week.json'
-  auto_9c3e1a7b42: '   iphone_context_sync: удалено {_p1} невалидных IPhone/*.txt'
-  auto_8b2d0f6a91: 'iphone_context_sync: удалён невалидный снапшот %s'
+  auto_9c3e1a7b42: '   iphone_context_sync: сохранено в карантине {_p1} невалидных IPhone/*.txt'
+  auto_8b2d0f6a91: 'iphone_context_sync: невалидный снапшот сохранён в карантине %s'
   auto_7a1c9e5b80: 'iphone_context_sync: не удалось удалить %s: %s'
   auto_6f0b8d4c71: 'iphone_mail_sync: отклонено письмо без Health %s'
   auto_5e9a7c3b62: 'iphone_mail_sync: отклонено (не Health): {_p1}'
@@ -4389,7 +4401,8 @@ planning:
   health_hero_empty: '> [!info] Нет строк в master_daily_panel — жди health sync.'
   system_hero_open: '> [!abstract] Агент'
   system_hero_title: '> ### ${cost}'
-  system_hero_meta: '> Прогонов **{runs}** · usage **{usage}%**'
+  system_hero_meta: '> Прогонов **{runs}** · usage **{usage}%** · только agent traces, без фоновых вызовов'
+  system_hero_scope: '> Учтены только трассы диалогового агента; фоновые вызовы и общий биллинг провайдера сюда не входят.'
   system_hero_empty: '> [!info] Сводка стоимости агента ещё не собрана.'
   analytics_hint_body: '> [!note] Вес и состав тела — тренд важнее дневного шума (смотри 7d MA на графике).
 
@@ -4728,3 +4741,12 @@ planning:
   kanban_flow_agent_goal_segment: 'За неделю завершений: доминирует={dominant}; к целям={goal_share}; быт={daily_share}; без
     цели={unmapped_share}'
   kanban_flow_agent_coverage: 'покрытие task_id в логах: {pct}%'
+
+  health_source_unavailable: "> [!warning] Health: источник недоступен · агрегировано {aggregated_at}"
+  health_source_empty: "> [!warning] Health: данных нет · агрегировано {aggregated_at}"
+  health_unknown: "неизвестно"
+  health_freshness: "> [!info] Health: измерение **{measured}** · захвачено **{captured_s}** · агрегировано **{aggregated_at}**\n> Покрытие 14 дней: **{covered}/14** · {group_s}"
+  health_data_marker: "> \\[!info\\] Данные:[^\\n]*"
+  cost_runs_pattern: "\\| (?:Runs|Запуски|Прогонов) \\| (\\d+) \\|"
+  cost_usage_pattern: "(?:Usage coverage|Покрытие usage) \\| ([0-9.]+)%"
+  health_dashboard_hub: "# 🏥 Здоровье\n\n> [!info] Данные: снимки iPhone · обновлено {updated}\n\n---\n"

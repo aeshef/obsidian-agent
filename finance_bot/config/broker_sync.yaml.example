@@ -6,6 +6,7 @@
 # Rename labels.* to match your broker account names in the finance DB.
 
 provider: none
+stale_seconds: 172800
 
 # CSV sync (provider: csv). Path relative to finance_bot/config/ or absolute.
 # csv:

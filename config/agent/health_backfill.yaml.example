@@ -1,0 +1,20 @@
+schema_version: 2
+daily_nutrition_days: 14
+daily_health_days: 7
+weekly_reconcile_days: 90
+days_per_run: 4
+groups:
+  nutrition: [calories_kcal, proteins_g, fats_g, carbs_g, water_ml, weight_kg, sugar_g, lean_mass_kg, bmi, fat_pct]
+  activity: [steps, active_calories_kcal, resting_calories_kcal, exercise_min, run_walk_km, floors_climbed, double_support_pct, walking_asymmetry_pct, walking_stability_pct, step_length_m, standing_min, stairs_up_speed, stairs_down_speed, walk_speed_kmh, handwash_events]
+  vitals: [resting_hr_bpm, hrv_ms, pulse_bpm, blood_oxygen_pct, respiratory_rate, body_temp_c, wrist_temp_c]
+  sleep: [sleep_interval, sleep_detail]
+queue_bridge:
+  enabled: false
+  directory: ''
+  batch_size: 250
+  timeout_seconds: 90
+  local_timeout_seconds: 120
+
+mail:
+  # Remove Inbox label only after a validated metrics snapshot is stored.
+  archive_successful: false

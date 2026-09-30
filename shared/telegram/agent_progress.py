@@ -159,7 +159,7 @@ class TelegramAgentProgress:
                     return
                 log.info("rich finalize failed — plain fallback")
 
-            full = strip_telegram_markdown(raw)
+            full = raw
             if not full:
                 return
             chunks = split_message(full, max_len=max_message_chars())

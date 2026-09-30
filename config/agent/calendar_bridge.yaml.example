@@ -1,0 +1,17 @@
+# Apple Calendar is authoritative. The Mac worker exports complete snapshots.
+enabled: false
+write_enabled: false
+default_calendar: Assistant
+poll_seconds: 60
+refresh_seconds: 300
+stale_seconds: 900
+past_days: 90
+future_days: 90
+lease_seconds: 180
+native_timeout_seconds: 90
+max_duration_days: 14
+max_title_length: 300
+max_notes_length: 4000
+max_pending: 100
+classify_per_refresh: 40
+iphone_stale_seconds: 93600

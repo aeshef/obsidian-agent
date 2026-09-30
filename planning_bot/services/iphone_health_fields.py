@@ -8,7 +8,8 @@ from shared.agent.config import load_health_parse_config
 from shared.parsing.datetime_parse import parse_datetime
 from shared.parsing.snapshot_kv import extract_kv_fields, safe_float
 
-META_KEYS = frozenset({"ts", "source"})
+from planning_bot.services.health_backfill import META as BACKFILL_META
+META_KEYS = frozenset({"ts", "source"}) | BACKFILL_META
 
 # Keys produced when clipboard/HTML/CSS or email footers are parsed as key: value
 _SPAM_FIELD_KEYS = frozenset({
@@ -102,6 +103,9 @@ def is_valid_health_snapshot(snap: Mapping[str, Any] | None) -> bool:
     """True only for real Shortcuts/Health exports (not CSS, URLs, mail footers)."""
     if not snap:
         return False
+    if "schema_version" in snap:
+        from planning_bot.services.health_backfill import validate
+        return validate(snap)
 
     keys = {str(k).lower() for k in snap.keys()}
     if keys & _SPAM_FIELD_KEYS:
@@ -178,6 +182,12 @@ def normalize_raw_fields(
         "ts": ts.strftime("%d.%m.%Y, %H:%M"),
         "source": "iphone",
     }
+    if fields.get("measurement_day"):
+        try:
+            measured = datetime.strptime(fields["measurement_day"], "%Y-%m-%d")
+            result["ts"] = measured.strftime("%d.%m.%Y, %H:%M")
+        except ValueError:
+            return None
 
     sleep_raw = (fields.get("sleep") or "").strip()
     if sleep_raw:

@@ -114,6 +114,9 @@ class InsightsStore:
                 conn.execute(
                     f"ALTER TABLE {table} ADD COLUMN kind TEXT NOT NULL DEFAULT '{KIND_DURABLE}'"
                 )
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(insights)")}
+        for name, definition in {"evidence": "TEXT NOT NULL DEFAULT ''", "status": "TEXT NOT NULL DEFAULT 'active'", "supersedes": "INTEGER", "valid_until": "TEXT NOT NULL DEFAULT ''"}.items():
+            if name not in columns: conn.execute(f"ALTER TABLE insights ADD COLUMN {name} {definition}")
         conn.commit()
 
     def _periodic_cutoff(self) -> str:
@@ -130,8 +133,9 @@ class InsightsStore:
         try:
             with self._conn() as conn:
                 rows = conn.execute(
-                    "SELECT pattern_text, confirmed_at, kind FROM insights "
-                    "WHERE user_id=? AND domain=? "
+                    "SELECT id, pattern_text, confirmed_at, kind, evidence, status, valid_until FROM insights "
+                    "WHERE user_id=? AND domain=? AND status='active' "
+                    "AND (valid_until='' OR julianday(valid_until)>julianday('now')) "
                     "AND (kind != 'periodic' OR confirmed_at >= ?) "
                     "ORDER BY confirmed_at DESC LIMIT ?",
                     (user_id, domain, cutoff, limit),
@@ -234,16 +238,16 @@ class InsightsStore:
         try:
             with self._conn() as conn:
                 row = conn.execute(
-                    "SELECT user_id, domain, pattern_text, kind FROM pending_insights WHERE id=?",
+                    "SELECT user_id, domain, pattern_text, kind, evidence FROM pending_insights WHERE id=? AND status='pending'",
                     (pending_id,),
                 ).fetchone()
                 if not row:
                     return False
                 kind = normalize_kind(row["kind"] if "kind" in row.keys() else KIND_DURABLE)
                 conn.execute(
-                    "INSERT INTO insights (user_id, domain, pattern_text, confirmed_at, kind) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (row["user_id"], row["domain"], row["pattern_text"], now, kind),
+                    "INSERT INTO insights (user_id, domain, pattern_text, confirmed_at, kind, evidence) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (row["user_id"], row["domain"], row["pattern_text"], now, kind, row["evidence"]),
                 )
                 conn.execute(
                     "UPDATE pending_insights SET status='confirmed' WHERE id=?", (pending_id,)
@@ -253,6 +257,16 @@ class InsightsStore:
         except sqlite3.Error as e:
             log.warning("confirm failed: %s", e)
             return False
+
+    def revise(self, user_id: int, insight_id: int, replacement: str, evidence: str, valid_until: str = "") -> int:
+        """Owner-scoped replacement; preserve the old version for audit."""
+        with self._conn() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            row = conn.execute("SELECT * FROM insights WHERE user_id=? AND id=? AND status='active'", (user_id, insight_id)).fetchone()
+            if not row: raise ValueError("unknown_active_insight")
+            conn.execute("UPDATE insights SET status='superseded' WHERE id=?", (insight_id,))
+            cur = conn.execute("INSERT INTO insights(user_id,domain,pattern_text,confirmed_at,kind,evidence,status,supersedes,valid_until) VALUES(?,?,?,?,?,?,'active',?,?)", (user_id,row['domain'],replacement,_now_iso(),row['kind'],evidence,insight_id,valid_until))
+            return cur.lastrowid
 
     def reject(self, pending_id: int) -> bool:
         try:

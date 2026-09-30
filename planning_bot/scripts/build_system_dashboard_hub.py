@@ -61,6 +61,8 @@ def main() -> int:
     ts = now_in_tz().strftime("%Y-%m-%d %H:%M")
     body = render_system_hub(vault, ts=ts, msg=pdmsg)
     hub = vault / folder("dashboards") / vault_file("system_hub_md")
+    from shared.obsidian_ui.layout import present_dashboard
+    body = present_dashboard(body, vault, "system")
     hub.parent.mkdir(parents=True, exist_ok=True)
     hub.write_text(body, encoding="utf-8")
     print(f"OK: {hub}")

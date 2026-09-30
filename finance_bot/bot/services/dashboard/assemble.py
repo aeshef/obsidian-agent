@@ -55,30 +55,13 @@ def fill_summary_hero(
     part_summary[idx : idx + 1] = metric_cards_lines(hero_cards)
 
 
-def _sep() -> list[str]:
-    return ["---", ""]
-
-
-def _wrap_callout(title: str, *content_parts: Sequence[str]) -> list[str]:
-    """Foldable section; tables/embeds use <details> (callouts break them)."""
-    from shared.obsidian_fold import fold_section
-
-    return fold_section(title, *content_parts, collapsed=True)
-
-
 def assemble_dashboard_markdown(
     *,
     part_summary: Sequence[str],
     part_structure: Sequence[str],
     part_planned: Sequence[str],
     part_exp_pies: Sequence[str],
-    part_day_flow: Sequence[str],
-    part_total_balance: Sequence[str],
-    part_monthly: Sequence[str],
-    part_quarterly: Sequence[str],
-    part_day_regular: Sequence[str],
     part_badge: Sequence[str],
-    part_day_oneoff: Sequence[str],
     part_oneoff_list: Sequence[str],
     part_moves: Sequence[str],
     part_exp_by_account: Sequence[str],
@@ -86,36 +69,7 @@ def assemble_dashboard_markdown(
     part_top_exp: Sequence[str],
 ) -> str:
     """Join pre-built section line lists into the final dashboard markdown body."""
-    footer = [
-        dtpl("footer", "refresh").strip(),
-        "",
-    ]
-    sections = (
-        list(part_summary)
-        + list(part_structure)
-        + list(part_planned)
-        + _sep()
-        + list(part_exp_pies)
-        + _sep()
-        + list(part_day_flow)
-        + _sep()
-        + list(part_total_balance)
-        + list(part_monthly)
-        + list(part_quarterly)
-        + _sep()
-        + list(part_day_regular)
-        + _sep()
-        + _wrap_callout(dtpl("callouts", "badge"), part_badge)
-        + _wrap_callout(dtpl("callouts", "day_oneoff"), part_day_oneoff, part_oneoff_list)
-        + _wrap_callout(
-            dtpl("callouts", "account_details"),
-            part_moves,
-            part_exp_by_account,
-            part_balances,
-        )
-        + _wrap_callout(dtpl("callouts", "top_expenses"), part_top_exp)
-        + footer
-    )
+    sections = list(part_summary) + list(part_planned)
 
     nav = dtpl("nav_callout")
     nav_block = f"\n\n{nav}\n\n---" if nav.strip() else ""

@@ -76,10 +76,24 @@ def openrouter_post(
     base_backoff = _env_float("OPENROUTER_429_BACKOFF_SECONDS", 8.0)
     retryable = frozenset({429, 503})
 
+    from shared.openrouter_proxy import openrouter_requests_proxies
+
+    proxies = openrouter_requests_proxies()
+    session = requests_mod.Session()
+    session.trust_env = False
+    if proxies:
+        log.debug("OpenRouter request via proxy host=%s", (proxies.get("https") or "").split("@")[-1][:80])
+
     last: Any = None
     for attempt in range(max_retries + 1):
         wait_before_openrouter_request()
-        last = requests_mod.post(url, headers=headers, json=json_payload, timeout=timeout)
+        last = session.post(
+            url,
+            headers=headers,
+            json=json_payload,
+            timeout=timeout,
+            proxies=proxies,
+        )
         if last.status_code not in retryable:
             return last
         if attempt >= max_retries:

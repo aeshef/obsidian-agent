@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import requests
 from typing import Any
 
 from bot.config import get_settings
@@ -13,6 +14,11 @@ from shared.llm import LLMClient as _SharedLLMClient
 
 
 class LLMClient(_SharedLLMClient):
+    def _post(self, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        cfg = get_llm_config().get("timeout", {})
+        connect = float(cfg.get("connect", 10.0))
+        return super()._post(payload, (connect, timeout))
+
     def __init__(self) -> None:
         settings = get_settings()
         llm_cfg = get_llm_config()
@@ -42,4 +48,17 @@ class LLMClient(_SharedLLMClient):
         mt = llm_max_tokens("nlu")
         if mt is not None:
             kwargs.setdefault("max_tokens", mt)
-        return await asyncio.to_thread(self.chat_json_messages, messages, **kwargs)
+        # Preserve transport errors; {} must never disguise a failed request.
+        kwargs["raise_on_error"] = True
+        retry = get_llm_config().get("retry", {})
+        attempts = max(1, int(retry.get("json_attempts", 2)))
+        delay = max(0.0, float(retry.get("backoff_seconds", 1.0)))
+        for attempt in range(attempts):
+            try:
+                return await asyncio.to_thread(self.chat_json_messages, messages, **kwargs)
+            except requests.RequestException as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                transient = isinstance(exc, (requests.Timeout, requests.ConnectionError)) or status == 429 or (status is not None and status >= 500)
+                if not transient or attempt + 1 >= attempts:
+                    raise
+                await asyncio.sleep(delay * (attempt + 1))

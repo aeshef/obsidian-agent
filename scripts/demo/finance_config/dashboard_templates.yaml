@@ -1,0 +1,259 @@
+# cp via scripts/setup/materialize_locale.py (AGENT_LOCALE=en)
+
+title: "# 📊 Finance"
+
+nav_callout: |
+  > [!abstract] Dashboards
+  > [[🏥 Health|Health]] · [[🛠 System|System]]
+
+callouts:
+  badge: "🍽 Food badge"
+  day_oneoff: "🏔 Large one-off spends"
+  account_details: "💳 Account details"
+  top_expenses: "🏷️ Top spends (30 days)"
+
+errors:
+  db_not_found: |
+    # 📊 Finance
+
+    ⚠️ Database not found: `{db_path}`
+
+    Run sync:
+    ```bash
+    cd /path/to/finance_bot && ./scripts/sync_finance_db.sh
+    ./scripts/run_finance_dashboard.sh
+    ```
+  db_not_found_log: "DB not found. Wrote stub: {out_path}"
+
+logs:
+  loaded: "Loaded: {accounts} accounts, {transactions} txns, {planned} plans"
+  written: "Written: {out_path}"
+
+misc:
+  no_due_date: "no due date"
+  unknown_account: "Unknown"
+  dash: "—"
+  other_category: "Other"
+  rest_category: "Rest"
+
+sections:
+  summary:
+    heading: "## 💰 Summary"
+    db_updated: "_Data · {mtime}_"
+    stale_data: |
+      > [!warning] Stale data (DB from {mtime}). Run `./scripts/sync_finance_db.sh` then rebuild.
+    total_rub: "**{amount}** $"
+    total_usd: "**${amount}**"
+    runway_months: "Runway **{months}** mo"
+    hero_open: >
+      > [!abstract] Now
+    hero_rub: "> ### {amount} $"
+    hero_meta: "> {meta}"
+    hero_updated: "> _{mtime}_"
+    card_total_label: Total
+    card_total_hint: cash + broker
+    card_cushion_label: Cushion
+    card_cushion_value: "{months} mo"
+    card_cushion_hint: cash / essentials
+
+  planned:
+    heading: "### 📋 Planned expenses"
+    line: "- **{name}**: {amount} {currency} (due {due})"
+    hint: "_Add plans in the bot: 📋 Plan → ➕ Add plan_"
+
+  month_plan:
+    heading: "### 📅 Month plan"
+    gauges_note: "> USD/day is from salary only. Cash = cushion/runway · broker = capital."
+    free_open: "> [!{kind}] Flexible living (from salary)"
+    free_title: "> ### {amount} $"
+    free_meta: "> Pool **{pool}** · already from pool **{spent}** ({burn}%) · ≈ **{daily}** $/day · {days} d"
+    buffer_open: "> [!{kind}] Savings (pay yourself first)"
+    buffer_title: "> ### {progress} / {goal} $"
+    buffer_meta: "> **{rate}%** of salary = **{goal}** · to broker **{invest}** · **{status}**"
+    safety_open: "> [!{kind}] Cushion (cash, not broker)"
+    safety_title: "> ### {runway} mo runway"
+    safety_meta: "> Cash **{cash}** · broker **{broker}** · essentials **{essentials}**/mo · after one-offs **{after}** · target **{target}** mo → gap **{gap}**"
+    income_callout_open: "> [!success] Flexible pool (from salary)"
+    income_callout_title: "> ### {amount} $ this month"
+    income: "- Expected income: **{amount}** $"
+    commitment: "- Commitments (recurring + plans + buffer): **{amount}** $"
+    flexible: "- Flexible pool: **{amount}** $"
+    spent: "- Already spent from flexible: **{amount}** $ ({burn}%)"
+    daily: "- Today ≈ **{amount}** $/day (remaining / days left)"
+    fair_daily: "- Fair daily share: **{amount}** $"
+    specifics_heading: "**This month (one-off plans):**"
+    specifics_line: "- {name}: {amount} {currency}"
+    upcoming_heading: "**Later:**"
+    upcoming_line: "- {name}: {amount} {currency} (due {due})"
+    hint: "_One place: bot 📋 Plan (one-offs) + `month_plan.yaml` (income/buffer). Past-month plans auto-expire._"
+    skip_income_zero: "_Set `income_expected_rub` in month_plan.yaml to unlock daily allowance._"
+    card_spent_label: Spent
+    card_spent_hint: "gross {gross} − reimbursed {reimb}"
+    card_free_label: Free
+    card_free_hint: "pool {pool} · {burn}% spent"
+    card_daily_label: USD/day
+    card_daily_hint: "from salary · {days} d"
+    card_buffer_label: Savings
+    card_buffer_hint: "{rate}% salary · {status}"
+    card_cushion_label: Cushion
+    card_cushion_value: "{months} mo"
+    card_cushion_hint: "cash {cash} · broker {broker}"
+
+  structure:
+    heading: "### Balance structure (USD)"
+    pie_title: "Where money sits (USD)"
+    pie_label: "{name} — {amount}"
+
+  expenses:
+    month_heading: "### Spending by category (current month, incl. one-offs)"
+    month_pie_title: "Spending {month}"
+    regular_heading: "### Regular spending by category (current month)"
+    regular_pie_title: "Regular spending {month} (under {threshold:,} USD)"
+    all_heading: "### Spending by category (all time)"
+    all_pie_title: "Spending (all time)"
+    empty_heading: "### Spending by category"
+    empty_hint: "_No expenses yet. Log them in the bot — charts appear here._"
+
+  moves:
+    heading: "### ↔️ Transfers (not spending)"
+    excluded_cats: "_Categories excluded from income/expense: {cats}._"
+    out_month: "- **Transferred out (month):** {amount} USD"
+    in_month: "- **Transferred in (month):** {amount} USD"
+    net: "- **Net (control):** {amount} USD"
+    recent_header: "Recent transfers (control):"
+    table_header: "| Dir. | Account | Category | Amount | Date | Comment |"
+    table_sep: "|------|---------|----------|--------|------|---------|"
+
+  daily_regular:
+    heading: "### Daily spending (categories)"
+    threshold_note: "_One-off threshold: ≥ {threshold:,} USD (excluded from this chart)._"
+    badge_note: "_Badge ({category}) is in its own section below — not shown here._"
+    last_spend: "_Last regular expense in DB: **{date}**."
+    last_spend_gap: "_Last regular expense: **{date}** ({gap} days ago — trailing zeros mean no bot entries, not a bug)._"
+    no_data: "_Not enough data for chart._"
+    empty_heading: "### Daily spending"
+    empty_hint: "_Add expenses via the bot — chart builds automatically._"
+
+  daily_oneoff:
+    heading: "### Large one-off expenses (by day)"
+    threshold_note: "_Threshold: ≥ {threshold:,} USD._"
+
+  daily_flow:
+    heading: "### Daily income and expense (USD)"
+    empty_heading: "### Daily income and expense"
+    empty_hint: "_No transactions in range — chart appears after bot entries._"
+    weekly_heading: "### Weekly income and expense (USD)"
+    weekly_exp_heading: "### Weekly spending (categories, regular)"
+
+  balance:
+    heading: "### End-of-day balance (USD)"
+    description: |
+      _**Cards and wallets** — internal USD accounts (DB + daily txns). **Broker** — portfolio snapshots. **Total** — cards + broker + other external USD without daily history (flat at current balance); last «Total» point matches header «Total balance (USD)»._
+    axis_note: "_Axis: {from_date} → {to_date} ({days} d) · last day: **total {total}** USD (cards {cards}, broker {broker}) · built: {built_at}_"
+    no_data: "_Not enough data._"
+
+  by_account:
+    heading: "### Spending by account"
+    pie_title: "Where we spend (all time)"
+    month_list_heading: "**Spend by account (month):**"
+
+  balances_table:
+    heading: "### Balances by account"
+    header: "| Account | Balance | Currency |"
+    sep: "|---------|---------|----------|"
+    list_heading: "**Balances:**"
+    receivable_kind: owed to me
+    liability_kind: I owe
+    debts_line: "- Debts/owed: {bits}"
+    hidden_zero: "_{n} zero-balance accounts hidden_"
+
+  top_expenses:
+    heading: "### Top expenses (30 days)"
+    header: "| Account | Category | Amount | Date | Comment |"
+    sep: "|---------|----------|--------|------|---------|"
+
+  quarterly:
+    heading: "### Quarterly income/expense"
+    hint: "_Quarterly totals — for seasonal planning._"
+
+  oneoff_list:
+    heading: "### 🧱 Large one-offs (list)"
+    hint: "_Expenses ≥ {threshold:,} USD. Excluded from regular charts above._"
+    header: "| Account | Category | Amount | Date | Comment |"
+    sep: "|---------|----------|--------|------|---------|"
+
+  monthly:
+    heading: "### Monthly income and expense"
+    empty_hint: "_No transactions — log in the bot to see the chart._"
+
+footer:
+  refresh: |
+    ---
+
+    **Force refresh:** from `finance_bot` run `./scripts/run_finance_dashboard_daily.sh`.
+
+charts:
+  daily_categories_file: "Spending_by_day_category.png"
+  daily_categories_title: "Regular daily spending by category"
+  oneoff_daily_file: "Large_oneoff_by_day.png"
+  oneoff_daily_title: "Large one-off expenses by day"
+  oneoff_series: "One-offs"
+  flow_daily_file: "Income_expense_by_day.png"
+  flow_daily_title: "Daily income and expense"
+  flow_weekly_file: "Income_expense_by_week.png"
+  flow_weekly_title: "Weekly income and expense"
+  exp_weekly_file: "Spending_by_week_category.png"
+  exp_weekly_title: "Regular weekly spending by category"
+  balance_daily_file: "Total_balance_by_day.png"
+  balance_daily_title: "End-of-day balance: cards, broker, total"
+  quarterly_file: "Income_expense_by_quarter.png"
+  quarterly_title: "Quarterly income and expense"
+  monthly_file: "Income_expense_by_month.png"
+  monthly_title: "Monthly income and expense"
+  period_xlabel: "Period"
+  income: "Income"
+  expense: "Expense"
+  cards_rub: "Cards and wallets (USD)"
+  broker_rub: "Broker (USD)"
+  total_rub: "Total (USD)"
+
+# 0 = full history from first data point on each chart; >0 = rolling window in days/weeks
+chart_windows:
+  daily_spending_days: 0
+  daily_oneoff_days: 0
+  daily_flow_days: 0
+  balance_days: 0
+  weekly_flow_weeks: 0
+  weekly_spending_weeks: 0
+
+category_order:
+  - "Food/Groceries"
+  - "Food/Eating out"
+  - "Food/Badge"
+  - "Transport/Taxi"
+  - "Transport/Transit"
+  - "Home/Utilities"
+  - "Home/Household"
+  - "Health"
+  - "Clothing"
+  - "IT"
+  - "Learning"
+  - "Entertainment"
+  - "Gifts"
+  - "Subscriptions"
+  - "Other"
+
+badge:
+  idle_month: "_Badge unused this month — quota burned._"
+  no_account: "_Badge account not created — log first meal in the bot (🍽 Badge)._"
+  working_days: "- **Working days:** {days}"
+  spent: "- **Spent:** {spent} $ of {entitlement} $ ({pct:.0f}%)"
+  burned: "- **Quota burned:** {amount} $"
+  ndfl: "- **Estimated tax on spend:** ~{amount} $"
+  zero_days: "- **Days with full quota burn:** {days}"
+  over_limit: "- **Over daily limit:** {amount} $"
+  chart_file: "Badge_utilization_by_day.png"
+  chart_spent: "Spent"
+  chart_burned: "Burned"
+  chart_title: "Badge: spent vs burned quota by working day"
+  default_title: "🍽 Meal badge"

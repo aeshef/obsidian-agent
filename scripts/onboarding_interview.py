@@ -511,6 +511,39 @@ def cmd_deploy_hint(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_apply_intro_defaults(args: argparse.Namespace) -> int:
+    from shared.capabilities.onboarding_defaults import intro_default_for
+    from shared.capabilities.onboarding_deploy import iter_visible_questions
+
+    clear_capabilities_cache()
+    loc = _resolve_locale(args.locale)
+    prof = get_capabilities()
+    state = _load_state()
+    done = set(state.get("completed") or [])
+    applied: list[str] = []
+    for q in iter_visible_questions(prof, phase="intro", locale=loc, state=state):
+        if q.id in done:
+            continue
+        spec = intro_default_for(q.id, loc, prof)
+        if spec is None:
+            continue
+        _apply_answer(
+            state,
+            q.id,
+            spec.get("text", ""),
+            loc,
+            choice_index=spec.get("choice_index"),
+            use_mvp=bool(spec.get("use_mvp")),
+        )
+        applied.append(q.id)
+    _save_state(state)
+    if applied:
+        print("applied intro defaults: " + ", ".join(applied))
+    else:
+        print("intro defaults: nothing to apply (already complete or no catalog entry)")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--locale", default=None)
@@ -555,6 +588,11 @@ def main() -> int:
 
     sub.add_parser("deploy-hint", help="Print deploy checklist from onboarding state")
 
+    sub.add_parser(
+        "apply-intro-defaults",
+        help="Fill intro-phase answers with sensible defaults (stranger fast path)",
+    )
+
     args = ap.parse_args()
     if args.cmd == "check":
         args.strict = True
@@ -567,6 +605,7 @@ def main() -> int:
         "next": cmd_next,
         "confirm-bot": cmd_confirm_bot,
         "deploy-hint": cmd_deploy_hint,
+        "apply-intro-defaults": cmd_apply_intro_defaults,
     }
     return handlers[args.cmd](args)
 

@@ -54,15 +54,32 @@ Seed `good first issue` tasks stay open until a PR references them (`Fixes #N`).
 3. After merge: comment thanks + link docs if they missed a related page.
 4. Close related issues with `Fixes #…` when applicable.
 
-## Branch protection (recommended)
+## Branch protection
 
-In GitHub → Settings → Branches (or Rulesets) for `main`:
+`main` is protected on GitHub (required CI: `lint`, `capabilities`, `smoke (3.12, en)`; no force-push).
+
+If you fork or lose settings, re-apply in **Settings → Branches** for `main`:
 
 - Require a pull request before merging
 - Require status checks to pass (CI workflow)
 - Do not allow force pushes
 
-If API/plan limits block automation, keep the same discipline manually.
+## GitHub hygiene (repo + settings)
+
+| Item | Status | Notes |
+|------|--------|--------|
+| LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY | ✅ in tree | Community health 100% when templates wired |
+| PR template | ✅ `.github/PULL_REQUEST_TEMPLATE.md` | |
+| Issue templates + chooser | ✅ `.github/ISSUE_TEMPLATE/*` + `config.yml` | `blank_issues: false`; questions → Discussions |
+| SUPPORT.md | ✅ root | Entry point for help |
+| Dependabot | ✅ `.github/dependabot.yml` | After merge: enable **Dependabot security updates** in Settings → Code security |
+| Topics + description | ✅ on GitHub | `gh repo edit` if drift |
+| Release tag | ✅ `v0.1.0` | Bump when README/demo/onboarding land on `main` |
+| Good first issues | ✅ open backlog | Label `good first issue`; close via `Fixes #N` |
+| Branch protection + CI | ✅ on `main` | |
+| Discussions | ✅ enabled | Prefer over drive-by issues |
+| Secret scanning / push protection | ⚙️ GitHub Settings | Org/plan — enable manually if available |
+| Launch posts (HN, Reddit, Discord) | 📝 maintainer only | Draft in gitignored `docs/_maintainer/LAUNCH_POST.md` — not in public tree |
 
 ## Related
 

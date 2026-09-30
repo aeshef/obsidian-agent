@@ -186,4 +186,11 @@ async def run_host_bot(
         include_knowledge_ingest(dp)
 
     log.info("host bot started, domains=%s", agent_app.domains())
-    await dp.start_polling(bot)
+    from shared.agent_runtime.worker import run as run_followups
+    import asyncio
+    followups_task = asyncio.create_task(run_followups(agent_app, bot))
+    try:
+        await dp.start_polling(bot)
+    finally:
+        followups_task.cancel()
+        await asyncio.gather(followups_task, return_exceptions=True)

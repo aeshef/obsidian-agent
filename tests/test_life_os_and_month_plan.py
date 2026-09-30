@@ -89,6 +89,13 @@ def test_life_os_daily_runs():
     assert out[-1]["regime"] in ("flow", "charge", "overreach", "recovery")
 
 
+def test_life_os_empty_day_is_not_fabricated_as_neutral():
+    out = compute_life_os_daily([{"date": "2026-08-01"}])
+    assert out[0]["regime"] == "insufficient_data"
+    assert out[0]["capacity"] is None
+    assert out[0]["coverage"]["complete"] is False
+
+
 def test_month_plan_daily_allowance():
     snap = build_month_plan(
         ym="2026-08",

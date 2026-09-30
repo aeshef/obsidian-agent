@@ -35,9 +35,9 @@ def run_all() -> bool:
     print(pdmsg("auto_c27a77b356"))
     print("=" * 50)
     print()
-    
+
     results = []
-    
+
     # (comment)
     state_file = LOGS_DIR / "kanban_state.json"
     previous_state = {}
@@ -45,18 +45,18 @@ def run_all() -> bool:
         try:
             with open(state_file, 'r', encoding='utf-8') as f:
                 previous_state = json.load(f)
-            
+
             # (comment)
             # (comment)
             if previous_state and any('|' in key or (not key.startswith('h') and len(key) > 8) for key in previous_state.keys()):
                 # (comment)
                 current_state_temp = get_kanban_state()
                 migrated_state = {}
-                
+
                 # (comment)
                 with open(KANBAN_FILE, 'r', encoding='utf-8') as f:
                     kanban_content = f.read()
-                
+
                 for old_key, old_column in previous_state.items():
                     # (comment)
                     if len(old_key) == 8 and all(c in '0123456789abcdef' for c in old_key):
@@ -71,7 +71,7 @@ def run_all() -> bool:
                                 migrated_state[task_id] = old_column
                                 found = True
                                 break
-                        
+
                         if not found:
                             # (comment)
                             hash_str = f"{date}|{old_name}"
@@ -86,23 +86,23 @@ def run_all() -> bool:
                                 migrated_state[task_id] = old_column
                                 found = True
                                 break
-                        
+
                         if not found:
                             # (comment)
                             task_id = hashlib.md5(old_key.encode('utf-8')).hexdigest()[:8]
                             migrated_state[task_id] = old_column
-                
+
                 previous_state = migrated_state
         except Exception as e:
             print(pdmsg("auto_6d89225ebc", e={e}))
             previous_state = {}
-    
+
     current_state_before = get_kanban_state()
-    
+
     # (comment)
     results.append((pdmsg("auto_bfafe7b122"), add_ids_to_tasks()))
     print()
-    
+
     results.append((pdmsg("auto_28dd89327d"), sort_kanban_tasks()))
     print()
 
@@ -114,7 +114,7 @@ def run_all() -> bool:
         print(pdmsg("kanban_archive_step_fail", e=e))
         results.append((pdmsg("kanban_archive_step_name"), False))
     print()
-    
+
     # (comment)
     try:
         from planning_bot.services.action_log import ActionLogger
@@ -122,7 +122,7 @@ def run_all() -> bool:
         log_task_movements(logger, previous_state, current_state_before)
     except Exception as e:
         print(pdmsg("auto_a38eb0d300", e={e}))
-    
+
     # (comment)
     try:
         current_state_after = get_kanban_state()  # (comment)
@@ -130,7 +130,7 @@ def run_all() -> bool:
             json.dump(current_state_after, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(pdmsg("auto_ee4a301644", e={e}))
-    
+
     # (comment)
     # (comment)
     pass
@@ -173,7 +173,7 @@ def run_all() -> bool:
                 + (f" errors={res.get('errors')}" if res.get("errors") else ""),
                 flush=True,
             )
-            results.append(("iPhone mail sync", ok or written == 0))
+            results.append(("iPhone mail sync", ok))
         except Exception as e:
             print(pdmsg("auto_a9432c09f4", e={e}))
             results.append(("iPhone mail sync", False))
@@ -195,17 +195,17 @@ def run_all() -> bool:
     print("=" * 50)
     print(pdmsg("auto_04198f3dd8"))
     print("=" * 50)
-    
+
     success_count = sum(1 for _, success in results if success)
     total_count = len(results)
-    
+
     for name, success in results:
         status = "✅" if success else "❌"
         print(f"{status} {name}")
-    
+
     print()
     print(pdmsg("auto_a7bcafbceb", success_count={success_count}, total_count={total_count}))
-    
+
     return success_count == total_count
 
 

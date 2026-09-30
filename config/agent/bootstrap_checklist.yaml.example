@@ -1,6 +1,8 @@
 # Machine-readable bootstrap checklist (single onboarding contract).
 # Consumed by: /setup skill, onboarding_wizard.sh, docs, CI smoke.
 # Docker compose is NOT a bootstrap path — run this checklist first, then compose.
+#
+# Order matches the working stranger path (~30 min). See docs/ONBOARDING_STRANGER.md.
 
 version: 1
 id: obsidian-agent-bootstrap
@@ -10,6 +12,19 @@ phases:
     title: Open agent repo root
     required: true
     check: "test -f unified_bot/main.py && test -f scripts/setup.sh"
+    minutes: 1
+
+  - id: env_file
+    title: Materialize .env
+    required: true
+    check: "test -f .env"
+    minutes: 1
+
+  - id: venv_bootstrap
+    title: Minimal venv (finance_bot) for PyYAML / oa-python.sh
+    required: true
+    command: "./scripts/setup.sh"
+    notes: Run once before apply_capabilities if no .venv yet.
 
   - id: playbook
     title: Choose playbook (planning|finance|knowledge|full) + locale
@@ -18,62 +33,70 @@ phases:
       AskQuestion in /setup, or ./scripts/onboarding_wizard.sh --playbook …
       full = all modules, connectors OFF until asked.
 
+  - id: vault_path
+    title: Set VAULT_PATH (before init_vault_layout)
+    required: true
+    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set VAULT_PATH '/absolute/path'"
+    notes: Must be set before init_vault_layout.py — wizard and /setup ask this early.
+
   - id: capabilities
     title: Write capabilities profile (or FULL_INSTALL)
     required: true
     command: "./scripts/oa-python.sh scripts/apply_capabilities_profile.py --preset <name> --write --patch-env"
 
-  - id: setup_sh
-    title: Create scoped venvs + gated configs
-    required: true
-    command: "./scripts/setup.sh"
-    notes: After capabilities.yaml so only enabled bots/configs are created.
-
-  - id: env_file
-    title: Materialize .env
-    required: true
-    check: "test -f .env"
-
   - id: locale
-    title: Set AGENT_LOCALE (default en)
+    title: Set AGENT_LOCALE (default en) + materialize vault_paths
     required: true
-    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set-locale en --refresh-vault-paths"
-
-  - id: vault_paths
-    title: Materialize vault_paths for locale
-    required: true
-    command: "./scripts/oa-python.sh scripts/setup/materialize_locale.py"
+    command: "./scripts/oa-python.sh scripts/setup/env_tools.py set-locale en --refresh-vault-paths && ./scripts/oa-python.sh scripts/setup/materialize_locale.py"
 
   - id: interview_intro
-    title: Personal interview (skill interprets; CLI records)
+    title: Personal interview intro (skill interprets; CLI records)
     required: true
     notes: >
       onboarding_interview.py next / answer --choice N / answer --mvp
+      Fast path: onboarding_interview.py apply-intro-defaults
       No fuzzy skip NLP in CLI.
 
   - id: vault_layout
-    title: init_vault_layout (after capabilities + vault_paths)
+    title: init_vault_layout (after capabilities + vault_paths + VAULT_PATH)
     required: true
     command: "./scripts/oa-python.sh scripts/init_vault_layout.py"
+
+  - id: setup_sh
+    title: Scoped venvs + gated configs (module-aware)
+    required: true
+    command: "./scripts/setup.sh"
+    notes: After capabilities.yaml so planning/knowledge venvs are created.
 
   - id: secrets
     title: TELEGRAM + LLM keys via env_tools (wizard TTY or /setup)
     required: true
+
+  - id: interview_after
+    title: after_secrets interview (balances, telegram_id, openrouter)
+    required: true
+    notes: Finance/knowledge only — skip for planning-only.
 
   - id: smoke
     title: onboarding_smoke golden path for enabled modules
     required: true
     command: "./scripts/oa-python.sh scripts/onboarding_smoke.py --verify-all --golden-*"
 
+  - id: bot_live
+    title: Run unified_bot + confirm-bot Telegram smoke
+    required: true
+    command: "./scripts/run_unified_bot.sh"
+    notes: User /start → test message → onboarding_interview.py confirm-bot
+
   - id: status
-    title: onboarding_status
+    title: onboarding_status + progress
     required: true
     command: "./scripts/oa-python.sh scripts/onboarding_status.py"
 
-  - id: run
-    title: Start unified_bot + confirm-bot + finalize deploy
+  - id: finalize
+    title: Deploy target + onboarding_smoke --complete
     required: true
-    command: "./scripts/run_unified_bot.sh"
+    notes: deploy_target interview → VPS or local ack → --complete gate
 
 docker:
   role: runtime_after_bootstrap

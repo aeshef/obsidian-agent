@@ -100,37 +100,19 @@ dashboards:
   main:
     file_key: main_dashboard_md
     blocks:
-      - nav_callout
-      - preamble
-      - cockpit_signals
-      - section_goals
-      - goals_quarter_focus
-      - goals_quarter_progress
-      - section_progress
-      - goals_mapping
-      - category_progress
-      - cockpit_links
+      - home_overview
   progress_year:
     file_key: progress_year_dashboard_md
     blocks:
       - nav_callout
       - category_progress_year
-      - chart_daily_activity
-      - chart_completions
-      - chart_open_pipeline
-      - chart_deadlines
-      - chart_kanban_flow_arrivals
-      - chart_kanban_flow_cfd
-      - chart_kanban_flow_lead_cycle
-      - chart_kanban_flow_aging
-      - chart_kanban_flow_transitions
-      - chart_kanban_flow_goal_mapping
-      - chart_kanban_flow_wip_segments
       - goals_quarter_progress
-      - goals_priorities
       - progress_year_footer
 
 blocks:
+  home_overview:
+    template: home_overview.md.template
+    modules: []
   nav_callout:
     template: nav_callout.md.template
     modules: []
@@ -160,78 +142,6 @@ blocks:
     template: section_heading.md.template
     modules: [planning]
     heading_key: section_progress
-  chart_daily_activity:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_activity_title
-    body_key: chart_activity_body
-    chart_md_key: chart_daily_activity_md
-  chart_completions:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_completions_title
-    body_key: chart_completions_body
-    chart_md_key: chart_completions_by_category_md
-  chart_open_pipeline:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_pipeline_title
-    body_key: chart_pipeline_body
-    chart_md_key: chart_open_pipeline_md
-  chart_kanban_flow:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_title
-    body_key: chart_kanban_flow_body
-    chart_md_key: chart_kanban_flow_hub_md
-  chart_kanban_flow_arrivals:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_arrivals_title
-    body_key: chart_kanban_flow_arrivals_body
-    chart_md_key: chart_kanban_flow_arrivals_md
-  chart_kanban_flow_cfd:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_cfd_title
-    body_key: chart_kanban_flow_cfd_body
-    chart_md_key: chart_kanban_flow_cfd_md
-  chart_kanban_flow_lead_cycle:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_lead_cycle_title
-    body_key: chart_kanban_flow_lead_cycle_body
-    chart_md_key: chart_kanban_flow_lead_cycle_md
-  chart_kanban_flow_aging:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_aging_title
-    body_key: chart_kanban_flow_aging_body
-    chart_md_key: chart_kanban_flow_aging_md
-  chart_kanban_flow_transitions:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_transitions_title
-    body_key: chart_kanban_flow_transitions_body
-    chart_md_key: chart_kanban_flow_transitions_md
-  chart_kanban_flow_goal_mapping:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_goal_mapping_title
-    body_key: chart_kanban_flow_goal_mapping_body
-    chart_md_key: chart_kanban_flow_goal_mapping_md
-  chart_kanban_flow_wip_segments:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_kanban_flow_wip_segments_title
-    body_key: chart_kanban_flow_wip_segments_body
-    chart_md_key: chart_kanban_flow_wip_segments_md
-  chart_deadlines:
-    template: chart_embed.md.template
-    modules: [planning]
-    title_key: chart_deadlines_title
-    body_key: chart_deadlines_body
-    chart_md_key: chart_deadline_horizon_md
   chart_nutrition:
     template: chart_embed.md.template
     modules: [planning]

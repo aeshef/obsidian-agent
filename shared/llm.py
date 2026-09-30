@@ -37,6 +37,23 @@ _JSON_MODE_HINT = (
 )
 
 
+def _disable_thinking_for_tools(payload: dict[str, Any]) -> None:
+    """DeepSeek V4 defaults to thinking mode, which 400s on tool_choice=required/named.
+
+    See: https://github.com/deepseek-ai/DeepSeek-V3/issues/1376
+    """
+    if not payload.get("tools"):
+        return
+    model = str(payload.get("model") or "").lower()
+    if "v4" not in model and "reasoner" not in model:
+        return
+    thinking = payload.get("thinking")
+    if isinstance(thinking, dict) and thinking.get("type") == "disabled":
+        return
+    payload["thinking"] = {"type": "disabled"}
+
+
+
 def _requests_session() -> requests.Session:
     """Session that ignores HTTP(S)_PROXY from the environment.
 
@@ -302,6 +319,7 @@ class LLMClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = tool_choice
+        _disable_thinking_for_tools(payload)
         try:
             data = self._post(payload, timeout)
             choice = (data.get("choices") or [{}])[0]
@@ -357,6 +375,7 @@ class LLMClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = tool_choice
+        _disable_thinking_for_tools(payload)
         try:
             text, tool_calls, meta = self._stream_chat_completion(
                 payload, timeout, on_text_delta=on_text_delta
@@ -385,6 +404,8 @@ class LLMClient:
         on_text_delta: Callable[[str], None] | None,
     ) -> tuple[str | None, list[dict[str, Any]], dict[str, Any]]:
         url = deepseek_chat_completions_url(override=self.base_url)
+        from shared import llm_payment_guard
+        llm_payment_guard.check(url, self.api_key)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -397,6 +418,7 @@ class LLMClient:
             timeout=timeout,
             stream=True,
         )
+        llm_payment_guard.record(url, self.api_key, resp.status_code)
         if not resp.ok:
             if self._http_error_hook is not None:
                 try:
@@ -487,6 +509,8 @@ class LLMClient:
     # ── Internal ──────────────────────────────────────────────────────────────
     def _post(self, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
         url = deepseek_chat_completions_url(override=self.base_url)
+        from shared import llm_payment_guard
+        llm_payment_guard.check(url, self.api_key)
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -498,6 +522,7 @@ class LLMClient:
             data=json.dumps(payload),
             timeout=timeout,
         )
+        llm_payment_guard.record(url, self.api_key, resp.status_code)
         if not resp.ok:
             if self._http_error_hook is not None:
                 try:

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from shared.chart_paths import data_path
+from shared.domain_messages import dmsg
 from shared.vault_paths_config import folder
 
 
@@ -57,6 +58,25 @@ def load_panel_last(vault: Path) -> dict[str, str] | None:
     return rows[-1] if rows else None
 
 
+def load_panel_last_health(vault: Path) -> dict[str, str] | None:
+    path = data_path(vault, "master_daily_panel_csv")
+    if not path.is_file():
+        return None
+    try:
+        with path.open(encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+    except OSError:
+        return None
+    health_keys = (
+        "iphone_steps", "iphone_active_calories_kcal", "iphone_weight_kg",
+        "iphone_sleep_hours", "steps", "kcal",
+    )
+    for row in reversed(rows):
+        if any(str(row.get(key) or "").strip() for key in health_keys):
+            return row
+    return None
+
+
 def _parse_agent_cost_md(vault: Path) -> dict[str, str]:
     """Best-effort scrape from generated agent cost companion note."""
     from shared.chart_paths import chart_path
@@ -88,10 +108,10 @@ def _parse_agent_cost_md(vault: Path) -> dict[str, str]:
         out["cost_usd"] = m.group(1)
     m = re.search(r"Runs\s+\*\*(\d+)\*\*", text, re.I)
     if not m:
-        m = re.search(r"\| Runs \| (\d+) \|", text)
+        m = re.search(dmsg("planning", "cost_runs_pattern"), text)
     if m:
         out["runs"] = m.group(1)
-    m = re.search(r"Usage coverage \| ([0-9.]+)%", text, re.I)
+    m = re.search(dmsg("planning", "cost_usage_pattern"), text, re.I)
     if m:
         out["usage_pct"] = m.group(1)
     return out
@@ -133,7 +153,7 @@ def render_analytics_hero(vault: Path, msg: Callable[..., str]) -> str:
 
 
 def render_health_hero(vault: Path, msg: Callable[..., str]) -> str:
-    row = load_panel_last(vault)
+    row = load_panel_last_health(vault)
     if not row:
         empty = _safe_msg(msg, "health_hero_empty")
         return empty + "\n" if empty else ""
@@ -187,5 +207,6 @@ def render_system_hero(vault: Path, msg: Callable[..., str]) -> str:
         _safe_msg(msg, "system_hero_title", cost=cost) or f"> ### ${cost}",
         _safe_msg(msg, "system_hero_meta", runs=runs, usage=usage)
         or f"> Runs **{runs}** · usage **{usage}%**",
+        _safe_msg(msg, "system_hero_scope"),
     ]
     return "\n".join(x for x in lines if x) + "\n"

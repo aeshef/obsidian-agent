@@ -190,6 +190,13 @@ def get_history(user_id: int, domain: str) -> list[AgentMessage]:
 
 
 def append_turn(user_id: int, domain: str, role: str, content: str) -> None:
+    from shared.agent_runtime.config import enabled
+    if enabled():
+        try:
+            from shared.agent_runtime.memory import archive
+            archive(user_id,domain,role,content)
+        except Exception:
+            log.exception("episode archive failed")
     key = (user_id, domain)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     if key not in _store:

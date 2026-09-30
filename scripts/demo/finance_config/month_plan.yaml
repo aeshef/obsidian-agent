@@ -1,0 +1,27 @@
+# Synthetic month plan for demo-vault-en (USD, no personal data).
+# Field name income_expected_rub is legacy; amounts follow BASE_CURRENCY=USD.
+
+income_expected_rub: 8500
+savings_rate_pct: 20
+emergency_months_target: 3
+
+soft_caps_rub:
+  Food: 450
+  Transport: 120
+  Home: 250
+  Growth: 80
+
+inferred_recurring:
+  - name: Rent share
+    amount: 980
+    category: Home
+  - name: Utilities bundle
+    amount: 145
+    category: Home
+  - name: Phone + internet
+    amount: 85
+    category: Home
+  - name: Transit pass
+    amount: 95
+    category: Transport
+insight_protect_names: []

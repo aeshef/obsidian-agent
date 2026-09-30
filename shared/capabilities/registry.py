@@ -33,10 +33,14 @@ PLANNING_TOOL_CONNECTORS: dict[str, ConnectorGate] = {
     "get_health_correlations": CONNECTOR_APPLE_HEALTH,
     "export_health_dataset": CONNECTOR_APPLE_HEALTH,
     "get_mac_context": CONNECTOR_MAC_CONTEXT,
+    "get_mac_capture_summary": CONNECTOR_MAC_CONTEXT,
     "get_mac_series": CONNECTOR_MAC_CONTEXT,
     "get_mac_snapshots": CONNECTOR_MAC_CONTEXT,
     "get_calendar": CONNECTOR_APPLE_CALENDAR,
     "get_calendar_analytics": CONNECTOR_APPLE_CALENDAR,
+    "create_calendar_event": CONNECTOR_APPLE_CALENDAR,
+    "get_calendar_event_status": CONNECTOR_APPLE_CALENDAR,
+    "list_calendar_calendars": CONNECTOR_APPLE_CALENDAR,
 }
 
 
@@ -106,8 +110,17 @@ def _planning_extra_allow(prof: CapabilityProfile, tool: Any) -> bool:
     from shared.capabilities.planning_gates import planning_routines_enabled
 
     name = _tool_name(tool)
+    if name == "get_mac_capture_summary":
+        from shared.agent.config import agent_config_dir
+        from shared.yaml_config import load_merged_config
+        return bool(load_merged_config(str(agent_config_dir()), "mac_capture").get("enabled"))
     if name in ("get_routines_status", "get_daily_signals"):
         return planning_routines_enabled()
+    if name in ("create_calendar_event", "get_calendar_event_status"):
+        from shared.agent.config import agent_config_dir
+        from shared.yaml_config import load_merged_config
+        cfg = load_merged_config(str(agent_config_dir()), "calendar_bridge")
+        return bool(cfg.get("enabled") and cfg.get("write_enabled"))
     return True
 
 

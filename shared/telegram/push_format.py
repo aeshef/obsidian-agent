@@ -77,4 +77,6 @@ async def send_push(
                 return
     except Exception:
         pass
-    await send_long_message(bot, chat_id, body, reply_markup=reply_markup)
+    await send_long_message(bot, chat_id, body, reply_markup=reply_markup,
+                            disable_notification=disable_notification,
+                            disable_web_page_preview=disable_web_page_preview)

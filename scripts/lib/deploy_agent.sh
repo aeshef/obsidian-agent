@@ -203,6 +203,12 @@ restart_unified_bot_remote() {
   common_ssh "bash -s" <<REMOTE
 set -euo pipefail
 cd "${bots}"
+if systemctl cat obsidian-assistant.service >/dev/null 2>&1; then
+  systemctl restart obsidian-assistant.service
+  sleep 3
+  systemctl is-active --quiet obsidian-assistant.service
+  exit
+fi
 pkill -f 'python -m unified_bot.main' 2>/dev/null || true
 sleep 1
 set -a && source .env && set +a

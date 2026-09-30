@@ -382,7 +382,8 @@ def test_get_kanban_reads_archive():
     assert KANBAN_COLUMNS[0] in out
 
 
-def test_build_system_prompt_layers():
+def test_build_system_prompt_layers(monkeypatch):
+    monkeypatch.setattr("shared.agent_runtime.config.enabled", lambda: False)
     from shared.memory.base import build_system_prompt
 
     class _Layer:
@@ -545,7 +546,8 @@ def test_merged_registry_deduplicates_shared_memory_tools():
 
     app = AgentApp(llm=None, adapters=[_MemOnly("finance"), _MemOnly("planning")])
     merged = app.merged_registry()
-    assert merged.names() == list(MEMORY_TOOL_NAMES)
+    assert set(MEMORY_TOOL_NAMES).issubset(merged.names())
+    assert len(merged.names()) == len(set(merged.names()))
 
 
 def test_clear_all_history(tmp_path, monkeypatch):

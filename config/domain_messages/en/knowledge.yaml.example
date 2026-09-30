@@ -41,7 +41,7 @@ knowledge_agent_tools:
 
 
     ... (truncated, full text in vault)'
-  unified_prompt: 'You are an Obsidian vault assistant. Respond in Russian, only based on tool results.
+  unified_prompt: 'You are an Obsidian vault assistant. Respond in English, only based on tool results.
 
 
     Specific note by title — read_knowledge_note; topic overview — search_knowledge_base.

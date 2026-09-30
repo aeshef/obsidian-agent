@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from shared.analytics.hub_hero import render_system_hero
-from shared.chart_paths import chart_path, chart_wikilink_png
+from shared.chart_paths import chart_path
 from shared.vault_paths_config import dashboards_sub, folder, vault_file
 
 
@@ -13,13 +13,6 @@ def _md_wikilink(key: str, label: str) -> str:
     rel = vault_file(key)
     stem = rel[:-3] if rel.lower().endswith(".md") else rel
     return f"[[{folder('dashboards')}/{dashboards_sub('charts')}/{stem}|{label}]]"
-
-
-def _png_exists(vault: Path, key: str) -> bool:
-    try:
-        return chart_path(vault, key).is_file()
-    except Exception:
-        return False
 
 
 def _safe_msg(msg: Callable[[str], str], key: str) -> str:
@@ -61,33 +54,6 @@ def render_system_hub(
     if agent_hint:
         lines.extend([agent_hint, ""])
 
-    if _png_exists(vault, "chart_agent_cost_daily_png"):
-        lines.extend(
-            [
-                f"### {msg('system_sub_agent_cost')}",
-                "",
-                chart_wikilink_png("chart_agent_cost_daily_png"),
-                "",
-            ]
-        )
-    if _png_exists(vault, "chart_agent_tokens_daily_png"):
-        lines.extend(
-            [
-                f"### {msg('system_sub_agent_tokens')}",
-                "",
-                chart_wikilink_png("chart_agent_tokens_daily_png"),
-                "",
-            ]
-        )
-    if _png_exists(vault, "chart_agent_tools_png"):
-        lines.extend(
-            [
-                f"### {msg('system_sub_agent_tools')}",
-                "",
-                chart_wikilink_png("chart_agent_tools_png"),
-                "",
-            ]
-        )
     try:
         if chart_path(vault, "agent_cost_dashboard_md").is_file():
             detail = _safe_msg(msg, "system_link_agent_cost_detail") or "Agent cost detail"

@@ -1,6 +1,7 @@
 # obsidian-agent monorepo
 .env
 .env.local
+.env.demo
 **/.env
 **/venv/
 **/.venv/
@@ -252,7 +253,18 @@ eval/gold/*.yaml
 eval/gold/local_basket.yaml
 config/agent/budget_stats.json
 
-
 # Demo capture sources (merged outputs obsidian-demo.* are committed)
 assets/demo/clips/
 assets/demo/build/
+
+
+config/agent/calendar_bridge.yaml
+
+/config/agent/mac_capture.yaml
+
+/config/agent/health_backfill.yaml
+
+/config/agent/architecture.yaml
+/config/agent/llm_reliability.yaml
+/config/agent/intro_defaults.yaml
+/config/obsidian_ui.*.yaml

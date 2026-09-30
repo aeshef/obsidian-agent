@@ -1,0 +1,14 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync('vault-templates/dashboards/category_progress.md.template', 'utf8');
+const functions = source.slice(source.indexOf('function taskIdFrom('), source.indexOf('function node('));
+const ctx = vm.createContext({});
+vm.runInContext(functions, ctx);
+const lines = ['- [x] First', '  🆔 ID: abcdef12', '- [x] Second', '- [x] Third', '  🆔 ID: 12345678'];
+assert.equal(ctx.taskIdFrom({line: 0, path: 'board'}, {board: lines}), 'abcdef12');
+assert.equal(ctx.taskIdFrom({line: 2, path: 'board'}, {board: lines}), null);
+assert.equal(ctx.taskIdFrom({line: 3, path: 'board'}, {board: lines}), '12345678');
+assert.equal(ctx.completionTs({section: {subpath: '2026-09'}}, {}, {}), null);
+assert.equal(ctx.completionTs({text: '🆔 ID: abcdef12'}, {abcdef12: 123}, {}), 123);
+console.log('WIP completion boundaries passed');

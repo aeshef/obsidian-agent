@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from planning_bot.core.config import DEFAULT_CATEGORY, DEFAULT_PRIORITY
 from planning_bot.core.pdmsg import pdmsg
+from planning_bot.app.task_tools import get_kanban, search_tasks, get_task_timeline, apply_kanban_task, get_recent_task_references
 
 import logging
 from typing import TYPE_CHECKING, List, Optional
@@ -27,62 +28,6 @@ def _bot(ctx: AgentContext) -> "PlanningBot":
     return bot
 
 
-@tool(category="tasks")
-async def get_kanban(ctx: AgentContext, column: Optional[str] = None) -> str:
-    """Kanban board snapshot (all columns or one)."""
-    from planning_bot.core.config import KANBAN_COLUMNS, DONE_COLUMN
-
-    bot = _bot(ctx)
-    from shared.agent.platform_config import platform_int
-
-    bot.kanban.load()
-    tasks = bot.kanban.get_tasks(
-        exclude_today=False,
-        exclude_blocked=False,
-        include_archive=True,
-    )
-    done_preview = max(1, platform_int("planning", "kanban_done_preview_max", default=1000))
-
-    from planning_bot.services.reference_date import format_deadline_hint, reference_today_iso
-
-    today = reference_today_iso()
-
-    def fmt(t: dict) -> str:
-        tid = t.get("task_id") or "—"
-        pri = t.get("priority") or "—"
-        cat = t.get("category") or "—"
-        dl = format_deadline_hint(t.get("deadline"), today)
-        done = pdmsg("agent_task_done_suffix") if t.get("completed") else ""
-        return f"  [{tid}] [{pri}] {t.get('title', '')} | {cat}{dl}{done}"
-
-    from planning_bot.services.kanban_agent import resolve_column_name
-
-    if column:
-        resolved = resolve_column_name(column)
-        cols = [resolved] if resolved else KANBAN_COLUMNS
-    else:
-        cols = KANBAN_COLUMNS
-    lines: list[str] = [
-        pdmsg("agent_kanban_today_anchor", today=today),
-        pdmsg("agent_kanban_today_hint"),
-        pdmsg("agent_kanban_board_header"),
-    ]
-    for col in cols:
-        all_col = [t for t in tasks if t.get("column") == col]
-        col_tasks = all_col
-        if col == DONE_COLUMN and len(all_col) > done_preview:
-            col_tasks = sorted(
-                all_col,
-                key=lambda t: (t.get("created_date") or "", t.get("task_id") or ""),
-                reverse=True,
-            )[:done_preview]
-            lines.append(
-                pdmsg("agent_kanban_col_truncated", col=col, total=len(all_col), preview=done_preview)
-            )
-        else:
-            lines.append(pdmsg("agent_kanban_col_count", col=col, count=len(col_tasks)))
-        lines.extend(fmt(t) for t in col_tasks) if col_tasks else lines.append(pdmsg("agent_kanban_empty"))
-    return "\n".join(lines)
 
 
 @tool(category="goals")
@@ -125,7 +70,7 @@ async def get_calendar(
     from planning_bot.services.calendar_service import get_calendar_for_tool
 
     try:
-        return get_calendar_for_tool(
+        body = get_calendar_for_tool(
             CALENDAR_JSON_FILE,
             day=day,
             from_date=from_date,
@@ -133,12 +78,51 @@ async def get_calendar(
             days=days,
             hours_ahead=hours_ahead,
         )
+        return body
     except Exception as e:
         log.debug("calendar failed: %s", e)
         return pdmsg("agent_calendar_unavailable")
 
 
-@tool(category="health")
+from unified_bot.integrations.verifiers import calendar as verify_calendar
+
+@tool(category="calendar", serial=True, mutating=True, verifier=verify_calendar)
+async def create_calendar_event(ctx: AgentContext, title: str, start: str, end: str,
+                                calendar: str = "", notes: str = "", location: str = "") -> str:
+    """Create Apple Calendar event ONLY on user's explicit request; start/end ISO8601 with UTC offsets. Queued is NOT created; use get_calendar_event_status to verify. No invitations or recurrence."""
+    import json
+    from planning_bot.services.calendar_bridge import config, normalize, enqueue
+    if not config().get("write_enabled"):
+        return json.dumps({"status": "disabled"})
+    try:
+        payload = normalize(title, start, end, calendar, notes, location)
+        return json.dumps(enqueue(ctx.user_id, payload), ensure_ascii=False)
+    except ValueError as exc:
+        return json.dumps({"status": "invalid_request", "error": str(exc)})
+
+
+@tool(category="calendar")
+async def list_calendar_calendars(ctx: AgentContext) -> str:
+    """List Apple Calendars with IDs and writable flag. Use an ID when calendar names are ambiguous."""
+    import json
+    from planning_bot.core.config import CALENDAR_JSON_FILE
+    from planning_bot.services.calendar_freshness import describe_calendar
+    try:
+        data = json.loads(CALENDAR_JSON_FILE.read_text())
+        return json.dumps({"freshness": describe_calendar(CALENDAR_JSON_FILE), "calendars": data.get("meta", {}).get("calendars", [])}, ensure_ascii=False)
+    except (OSError, ValueError):
+        return json.dumps({"status": "unavailable"})
+
+
+@tool(category="calendar", read_only=True)
+async def get_calendar_event_status(ctx: AgentContext, request_id: str) -> str:
+    """Check own queued Apple Calendar creation. Only status=created with event_id confirms creation; never retry outcome_unknown as a new event."""
+    import json
+    from planning_bot.services.calendar_bridge import status
+    return json.dumps(status(ctx.user_id, request_id), ensure_ascii=False)
+
+
+@tool(category="health", read_only=True)
 async def get_health_snapshot(ctx: AgentContext, day: str = "") -> str:
     """Health/Watch (IPhone/*.txt): one evening snapshot. day=YYYY-MM-DD; empty = latest."""
     from planning_bot.services.health_data import format_health_snapshot
@@ -215,6 +199,14 @@ async def get_mac_context(ctx: AgentContext, day: str = "") -> str:
 
 
 @tool(category="context")
+async def get_mac_capture_summary(ctx: AgentContext, from_date: str = "", to_date: str = "") -> str:
+    """Native Mac capture health and estimated active/idle/sleep time, unknown gaps, application duration. Dates YYYY-MM-DD in configured local timezone, inclusive. Use for duration questions; missing time is not activity."""
+    import json
+    from planning_bot.services.mac_capture import summary
+    return json.dumps(summary(from_date, to_date), ensure_ascii=False)
+
+
+@tool(category="context")
 async def get_mac_series(ctx: AgentContext, from_date: str = "", to_date: str = "") -> str:
     """Last foreground app per calendar day. Not duration-weighted time share."""
     from planning_bot.services.mac_context_query import format_mac_series
@@ -241,99 +233,10 @@ async def get_mac_snapshots(
     )
 
 
-@tool(category="tasks")
-async def search_tasks(
-    ctx: AgentContext,
-    query: str = "",
-    column: str = "",
-    category: str = "",
-    priority: str = "",
-    deadline_from: str = "",
-    deadline_to: str = "",
-    created_from: str = "",
-    created_to: str = "",
-    sort_by: str = "",
-    completed: Optional[bool] = None,
-    limit: int = 25,
-) -> str:
-    """Search kanban: text, column, category, priority, deadline/created ranges (YYYY-MM-DD), sort_by=created_asc|created_desc|deadline."""
-    from planning_bot.services.kanban_agent import filter_tasks, format_task_list
-
-    bot = _bot(ctx)
-    bot.kanban.load()
-    tasks = bot.kanban.get_tasks(
-        exclude_today=False,
-        exclude_blocked=False,
-        include_archive=True,
-    )
-    matched = filter_tasks(
-        tasks,
-        query=query,
-        column=column,
-        category=category,
-        priority=priority,
-        deadline_from=deadline_from,
-        deadline_to=deadline_to,
-        created_from=created_from,
-        created_to=created_to,
-        sort_by=sort_by,
-        completed=completed,
-        limit=limit,
-    )
-    return format_task_list(matched, header=pdmsg("agent_tasks_filter_header"))
 
 
-@tool(category="tasks")
-async def get_task_timeline(
-    ctx: AgentContext,
-    task_id: str = "",
-    task_title: str = "",
-) -> str:
-    """One task: board metadata (created_date, column) + full log chain (created/moved/completed)."""
-    from planning_bot.services.task_timeline_query import format_task_timeline
-
-    bot = _bot(ctx)
-    return format_task_timeline(
-        bot.logger,
-        bot.kanban,
-        task_id=task_id,
-        task_title=task_title,
-    )
 
 
-@tool(category="tasks", serial=True)
-async def apply_kanban_task(
-    ctx: AgentContext,
-    action: str,
-    dry_run: bool = False,
-    task_id: str = "",
-    title: str = "",
-    titles: Optional[List[str]] = None,
-    category: str = DEFAULT_CATEGORY,
-    priority: str = DEFAULT_PRIORITY,
-    deadline: str = "",
-    column: str = "",
-    all_matching: bool = False,
-) -> str:
-    """Board mutation: create | move | complete | delete (KANBAN_AGENT_WRITES=1). On create, pass deadline=YYYY-MM-DD only when the user requested a due date; otherwise leave it empty. delete = intentional remove + task_deleted log. For many new tasks use titles=[...] in one call."""
-    from planning_bot.services.kanban_agent import apply_kanban_action
-
-    bot = _bot(ctx)
-    logger = bot.logger
-    return apply_kanban_action(
-        bot.kanban,
-        action=action,
-        dry_run=dry_run,
-        task_id=task_id,
-        title=title,
-        titles=titles,
-        category=category,
-        priority=priority,
-        deadline=deadline,
-        column=column,
-        all_matching=all_matching,
-        logger=logger,
-    )
 
 
 @tool(category="calendar")
@@ -396,7 +299,7 @@ async def get_calendar_analytics(
     return "\n".join(lines)
 
 
-@tool(category="routines")
+@tool(category="routines", read_only=True)
 async def get_routines_status(ctx: AgentContext, day: str = "") -> str:
     """Routines checklist: day=YYYY-MM-DD (today file or history); empty = today."""
     from planning_bot.services.routines_status_query import format_routines_status
@@ -562,6 +465,8 @@ def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
         categories=", ".join(cats) if cats else DEFAULT_CATEGORY,
         priorities=", ".join(prios) if prios else DEFAULT_PRIORITY,
     )
+    # Keep reference handling separate from personalized legacy tool hints.
+    t.description += "\n" + pdmsg("kanban_reference_recovery_hint")
     # Keep this invariant in code: production may intentionally preserve a local
     # prompt catalog instead of replacing it from repository examples on deploy.
     t.description += (
@@ -587,12 +492,16 @@ def build_planning_registry() -> ToolRegistry:
         filter_planning_tools(
             [
                 get_kanban,
+                get_recent_task_references,
                 search_tasks,
                 get_task_timeline,
                 apply_kanban_task,
                 get_goals,
                 get_calendar,
                 get_calendar_analytics,
+                create_calendar_event,
+                get_calendar_event_status,
+                list_calendar_calendars,
                 get_health_snapshot,
                 get_health_series,
                 get_health_summary,
@@ -600,6 +509,7 @@ def build_planning_registry() -> ToolRegistry:
                 get_health_correlations,
                 export_health_dataset,
                 get_mac_context,
+                get_mac_capture_summary,
                 get_mac_series,
                 get_mac_snapshots,
                 get_routines_status,

@@ -27,6 +27,7 @@ async def _answer_knowledge_agent(
         agent_app,
         text,
         domain=DOMAIN_KNOWLEDGE,
+        request_key=f"telegram:{message.chat.id}:{message.message_id}",
         reply_markup=kb,
     )
 
@@ -72,6 +73,7 @@ async def try_handle_knowledge_text(
         agent_app,
         text,
         unified=True,
+        request_key=f"telegram:{message.chat.id}:{message.message_id}",
         reply_markup=kb,
     )
     return True

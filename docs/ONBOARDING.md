@@ -20,24 +20,29 @@ Build **any** combination of modules and connectors. Presets (`finance_only`, `p
 
 Playbook executed by the operator: `.cursor/skills/obsidian-agent-onboarding/SKILL.md` (**Single-chat script**)
 
-Interview CLI:
+**Stranger (<30 min):** [ONBOARDING_STRANGER.md](ONBOARDING_STRANGER.md)
+
+Interview CLI (use `./scripts/oa-python.sh`, not bare `python3`):
 
 ```bash
-python3 scripts/onboarding_interview.py next          # next question (JSON)
-python3 scripts/onboarding_interview.py answer ID '…' # save reply → slots + user_profile + initial_accounts
-python3 finance_bot/scripts/apply_initial_accounts.py # seed SQLite balances (finance)
-python3 scripts/onboarding_smoke.py --complete        # full done gate
+./scripts/oa-python.sh scripts/onboarding_interview.py next          # next question (JSON)
+./scripts/oa-python.sh scripts/onboarding_interview.py apply-intro-defaults  # fast path
+./scripts/oa-python.sh scripts/onboarding_interview.py answer ID '…' # save reply
+./scripts/oa-python.sh finance_bot/scripts/apply_initial_accounts.py # seed SQLite (finance)
+./scripts/oa-python.sh scripts/onboarding_smoke.py --complete        # full done gate
+./scripts/oa-python.sh scripts/onboarding_status.py                 # progress %
 ```
 
 ## One-shot shell wizard
 
 ```bash
-./scripts/onboarding_wizard.sh --playbook planning   # or finance | full
+./scripts/onboarding_wizard.sh --playbook planning --fast   # intro defaults; ~15 min + secrets
+./scripts/onboarding_wizard.sh --playbook finance
 ./scripts/onboarding_wizard.sh --modules knowledge --connectors --knowledge-serendipity
 ./scripts/onboarding_wizard.sh --dry-run --playbook finance
 ```
 
-The wizard runs `apply_capabilities_profile`, locale/`vault_paths` materialization, then `init_vault_layout` (only folders for enabled modules), `ensure_bot_prompts`, and `onboarding_smoke.py`. Secrets: `python3 scripts/setup/env_tools.py set KEY 'value'` or use `/setup` in Cursor.
+The wizard: minimal venv → **VAULT_PATH** → capabilities → locale → interview → `init_vault_layout` → `setup.sh` → secrets → smoke. Secrets: `./scripts/oa-python.sh scripts/setup/env_tools.py set KEY 'value'` or `/setup` in Cursor.
 
 **Locale:** wizard calls `set-locale --refresh-vault-paths` so Russian installs get `100_Задачи`, not `100_Tasks`. Never copy `vault_paths.yaml.example` by hand.
 

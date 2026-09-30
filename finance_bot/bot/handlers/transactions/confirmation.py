@@ -16,6 +16,22 @@ from bot.models import User, Account
 from bot.services.categories import load_categories
 from bot.services.transactions import get_missing_fields, parse_occurred_at
 from bot.ui import fmsg
+from shared.i18n import msg
+from html import escape
+
+
+def card(key: str, **values) -> str:
+    """Escape dynamic values before interpolating into trusted HTML templates."""
+    class SafeValue:
+        def __init__(self, value):
+            self.value = value
+        def __format__(self, spec):
+            text = format(self.value, spec)
+            if spec and "," in spec:
+                text = text.replace(",", chr(160))
+            return escape(text)
+    return msg("transaction_card", key).format(**{k: SafeValue(v) for k, v in values.items()})
+
 from shared.ui import common
 
 log = logging.getLogger("finance.transactions.confirmation")
@@ -63,57 +79,46 @@ async def show_transaction_confirmation(
 
     lines = []
     if total > 1:
-        lines.append(fmsg("confirm_preview_batch", index=index + 1, total=total))
+        lines.append(card("confirm_preview_batch", index=index + 1, total=total))
 
-    type_emoji = {
-        "expense": "➖",
-        "income": "➕",
-        "transfer": "↔️",
-        "debt_receivable": "💸",
-        "debt_payable": "💸",
-        "debt_settle_receivable": "💸",
-        "broker_withdraw": "📈",
-        "account_balance": "💳",
-    }
-    emoji = type_emoji.get(parsed.get("type", ""), "💰")
-    lines.append(fmsg("confirm_preview_title", emoji=emoji))
+    lines.append(card("confirm_preview_title"))
 
     if parsed.get("amount"):
         lines.append(
-            fmsg(
+            card(
                 "confirm_preview_amount",
                 amount=parsed["amount"],
                 currency=parsed.get("currency") or base_currency(),
             )
         )
     elif missing.get("amount"):
-        lines.append(fmsg("confirm_preview_amount_missing"))
+        lines.append(card("confirm_preview_amount_missing"))
 
     if parsed.get("type"):
-        lines.append(fmsg("confirm_preview_type", type_name=_txn_type_label(parsed["type"])))
+        lines.append(card("confirm_preview_type", type_name=_txn_type_label(parsed["type"])))
 
     if parsed.get("category"):
         category_display = parsed.get("_found_category_name") or parsed.get("category")
-        lines.append(fmsg("confirm_preview_category", category=category_display))
+        lines.append(card("confirm_preview_category", category=category_display))
     elif missing.get("category"):
-        lines.append(fmsg("confirm_preview_category_missing"))
+        lines.append(card("confirm_preview_category_missing"))
 
     if parsed.get("account"):
         account_display = parsed.get("_found_account_name") or parsed.get("account")
-        lines.append(fmsg("confirm_preview_account", account=account_display))
+        lines.append(card("confirm_preview_account", account=account_display))
     elif missing.get("account"):
-        lines.append(fmsg("confirm_preview_account_missing"))
+        lines.append(card("confirm_preview_account_missing"))
 
     if parsed.get("from_account"):
-        lines.append(fmsg("confirm_preview_from", account=parsed["from_account"]))
+        lines.append(card("confirm_preview_from", account=parsed["from_account"]))
     elif missing.get("from_account"):
-        lines.append(fmsg("confirm_preview_from_missing"))
+        lines.append(card("confirm_preview_from_missing"))
 
     if parsed.get("to_account"):
         to_account_display = parsed.get("_found_to_account_name") or parsed.get("to_account")
-        lines.append(fmsg("confirm_preview_to", account=to_account_display))
+        lines.append(card("confirm_preview_to", account=to_account_display))
     elif missing.get("to_account"):
-        lines.append(fmsg("confirm_preview_to_missing"))
+        lines.append(card("confirm_preview_to_missing"))
 
     if parsed.get("type") == "broker_withdraw":
         raw_fee = parsed.get("fee")
@@ -122,35 +127,38 @@ async def show_transaction_confirmation(
                 fee_dec = Decimal(str(raw_fee))
                 if fee_dec > 0:
                     lines.append(
-                        fmsg(
+                        card(
                             "confirm_preview_broker_fee",
                             fee=fee_dec,
                             currency=parsed.get("currency") or base_currency(),
                         )
                     )
                 else:
-                    lines.append(fmsg("confirm_preview_broker_fee_none"))
+                    lines.append(card("confirm_preview_broker_fee_none"))
             except Exception:
-                lines.append(fmsg("confirm_preview_broker_fee_raw", fee=raw_fee))
+                lines.append(card("confirm_preview_broker_fee_raw", fee=raw_fee))
 
     if parsed.get("counterparty"):
-        lines.append(fmsg("confirm_preview_counterparty", counterparty=parsed["counterparty"]))
+        lines.append(card("confirm_preview_counterparty", counterparty=parsed["counterparty"]))
     elif missing.get("counterparty"):
-        lines.append(fmsg("confirm_preview_counterparty_missing"))
+        lines.append(card("confirm_preview_counterparty_missing"))
 
     if parsed.get("description"):
-        lines.append(fmsg("confirm_preview_description", description=parsed["description"]))
+        lines.append(card("confirm_preview_description", description=parsed["description"]))
 
     occ = parse_occurred_at(parsed)
     occ_date_str = occ.strftime("%Y-%m-%d")
     today_str = datetime.now().strftime("%Y-%m-%d")
     if occ_date_str != today_str:
-        lines.append(fmsg("confirm_preview_date", date=occ_date_str))
+        lines.append(card("confirm_preview_date", date=occ_date_str))
     else:
-        lines.append(fmsg("confirm_preview_date_today"))
+        lines.append(card("confirm_preview_date_today"))
 
     text = "\n".join(lines)
 
+    from uuid import uuid4
+    revision = uuid4().hex[:12]
+    await state.update_data(confirm_revision=revision)
     kb_rows = []
 
     if missing.get("amount"):
@@ -284,7 +292,10 @@ async def show_transaction_confirmation(
         )
 
     if not missing:
-        kb_rows.append([InlineKeyboardButton(text=fmsg("wizard_confirm_btn"), callback_data=f"txn:confirm:{index}")])
+        kb_rows.append([InlineKeyboardButton(text=fmsg("wizard_confirm_btn"), callback_data=f"txn:confirm:{index}:{revision}")])
+
+    if data.get("import_token"):
+        kb_rows.append([InlineKeyboardButton(text=fmsg("import_back"), callback_data=f"imp:review:{data['import_token']}")])
 
     nav_row = []
     if index > 0:

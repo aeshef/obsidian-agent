@@ -1,6 +1,7 @@
 """Vault path segments from config/vault_paths.yaml (not hardcoded in Python)."""
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -23,7 +24,15 @@ def _vault_paths_stem() -> str:
 
 @lru_cache(maxsize=2)
 def vault_paths_config() -> dict:
-    """Local vault_paths.yaml wins; else locale example; else generic example."""
+    """Local vault_paths.yaml wins; else locale example; else generic example.
+
+    AGENT_EN_STRICT=1 forces English path segments (demo / OSS film sets).
+    """
+    if os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes"):
+        cfg = load_runtime_config(str(_REPO_CONFIG), "vault_paths.en")
+        if cfg:
+            return cfg
+        return load_yaml(_REPO_CONFIG / "vault_paths.en.yaml.example", default={}) or {}
     local = _REPO_CONFIG / "vault_paths.yaml"
     if local.is_file():
         cfg = load_yaml(local, default={})

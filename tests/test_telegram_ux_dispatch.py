@@ -274,7 +274,7 @@ def test_push_policy_defaults(monkeypatch, tmp_path):
 def test_root_keyboard_hides_auto_by_default(monkeypatch, tmp_path):
     from shared.agent import platform_config as pc
     from shared.capabilities.profile import clear_capabilities_cache
-    from unified_bot.host.keyboards import root_keyboard
+    from unified_bot.host.keyboards import root_keyboard, more_keyboard
     from unified_bot.host import labels as L
 
     cfg = tmp_path / "platform.yaml"
@@ -287,6 +287,8 @@ def test_root_keyboard_hides_auto_by_default(monkeypatch, tmp_path):
     clear_capabilities_cache()
     labels = {btn.text for row in root_keyboard().keyboard for btn in row}
     assert L.mode_auto() not in labels
-    assert L.mode_finance() in labels
+    assert L.mode_finance() not in labels
+    more = {btn.text for row in more_keyboard().keyboard for btn in row}
+    assert L.mode_finance() in more
     pc.load_platform_config.cache_clear()
     clear_capabilities_cache()

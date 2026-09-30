@@ -1,0 +1,9 @@
+{
+  "id": "assistant-dashboard-ux",
+  "name": "Assistant Dashboards",
+  "version": "1.1.2",
+  "minAppVersion": "1.6.0",
+  "description": "Local interactive dashboards with persistent filters, chart exploration and reading mode.",
+  "author": "Assistant workspace",
+  "isDesktopOnly": false
+}

@@ -184,8 +184,6 @@ def run_build(args: argparse.Namespace) -> None:
             planned_for_month,
             planned_upcoming,
             resolve_savings_buffer,
-            soft_cap_overages,
-            soft_caps_from_config,
             subscriptions_yaml_path,
         )
 
@@ -218,8 +216,6 @@ def run_build(args: argparse.Namespace) -> None:
             flexible_spent=flexible_spent,
         )
         flexible_left = max(0.0, float(snap.flexible_pool) - float(snap.flexible_spent))
-        soft_caps = soft_caps_from_config(mp_cfg)
-        overages = soft_cap_overages(econ.by_category, soft_caps)
 
         broker_ids = {
             a["id"]
@@ -240,10 +236,6 @@ def run_build(args: argparse.Namespace) -> None:
         cushion_runway_str = f"{safety.runway_months:.1f}"
 
         part_planned.extend([dtpl("sections", "month_plan", "heading"), ""])
-        note = dtpl("sections", "month_plan", "gauges_note")
-        if note:
-            part_planned.extend([note, ""])
-
         from shared.obsidian_metric_cards import MetricCard, metric_cards_lines
 
         inv = float(econ.investments)
@@ -264,12 +256,6 @@ def run_build(args: argparse.Namespace) -> None:
             if income > 0 and (flexible_left <= 0 or snap.burn_pct >= 100)
             else "#43a047"
         )
-        cushion_accent = (
-            "#e53935"
-            if safety.runway_months < safety.emergency_target_months
-            else "#7e57c2"
-        )
-
         cards: list[MetricCard] = [
             MetricCard(
                 label=dtpl("sections", "month_plan", "card_spent_label") or "Spent",
@@ -327,128 +313,12 @@ def run_build(args: argparse.Namespace) -> None:
                     ),
                 )
             )
-        cards.append(
-            MetricCard(
-                label=dtpl("sections", "month_plan", "card_cushion_label") or "Cushion",
-                value=dtpl(
-                    "sections",
-                    "month_plan",
-                    "card_cushion_value",
-                    months=fmt_num(safety.runway_months, decimals=1),
-                ) or f"{fmt_num(safety.runway_months, decimals=1)} mo",
-                accent=cushion_accent,
-                hint=dtpl(
-                    "sections",
-                    "month_plan",
-                    "card_cushion_hint",
-                    cash=fmt_num(safety.cash_rub, decimals=0),
-                    broker=fmt_num(safety.broker_rub, decimals=0),
-                ),
-            )
-        )
         part_planned.extend(metric_cards_lines(cards))
 
-        if income <= 0:
-            part_planned.append(dtpl("sections", "month_plan", "skip_income_zero"))
-            part_planned.append("")
-
-        # Soft caps (text tip — not a number row)
-        part_planned.append(dtpl("sections", "month_plan", "soft_open") or "> [!tip] Soft cuts")
-        if overages:
-            for row in overages[:4]:
-                part_planned.append(
-                    dtpl(
-                        "sections",
-                        "month_plan",
-                        "soft_line",
-                        category=row["category"],
-                        spent=fmt_num(row["spent"], decimals=0),
-                        cap=fmt_num(row["cap"], decimals=0),
-                        over=fmt_num(row["over"], decimals=0),
-                    )
-                )
-        else:
-            part_planned.append(
-                dtpl("sections", "month_plan", "soft_empty") or "> - Within soft caps."
-            )
-        part_planned.append("")
-
-        if specifics:
-            part_planned.extend(["", dtpl("sections", "month_plan", "specifics_heading")])
-            for sp in specifics:
-                part_planned.append(
-                    dtpl(
-                        "sections",
-                        "month_plan",
-                        "specifics_line",
-                        name=sp.name,
-                        amount=fmt_num(sp.amount, decimals=0),
-                        currency=sp.currency,
-                    )
-                )
-        if upcoming:
-            part_planned.extend(["", dtpl("sections", "month_plan", "upcoming_heading")])
-            for sp, due in upcoming:
-                part_planned.append(
-                    dtpl(
-                        "sections",
-                        "month_plan",
-                        "upcoming_line",
-                        name=sp.name,
-                        amount=fmt_num(sp.amount, decimals=0),
-                        currency=sp.currency,
-                        due=due.isoformat(),
-                    )
-                )
-        part_planned.extend(["", dtpl("sections", "month_plan", "hint"), ""])
-
-        # Optional LLM narrative (cached; never blocks dashboard on failure)
-        try:
-            from bot.services.dashboard_insight import generate_dashboard_month_insight
-
-            top_cats = sorted(
-                econ.by_category.items(), key=lambda kv: -kv[1]
-            )[:6]
-            protect = {
-                str(x).strip()
-                for x in (mp_cfg.get("insight_protect_names") or [])
-                if str(x).strip()
-            }
-            do_not_cut = [x.name for x in inferred if x.name in protect]
-            facts = {
-                "ym": ym,
-                "notes": (
-                    "Transfers and broker top-ups are not consumption. "
-                    "Non-salary income offsets group pays (reimbursements)."
-                ),
-                "economic": econ.to_dict(),
-                "plan": {
-                    "income_expected": income,
-                    "savings_rate_pct": savings_rate,
-                    "buffer_goal": buffer,
-                    "buffer_deposited": round(inv, 2),
-                    "buffer_status": buffer_status or "n/a",
-                    "flexible_pool": snap.flexible_pool,
-                    "flexible_spent": snap.flexible_spent,
-                    "flexible_left": round(flexible_left, 2),
-                    "burn_pct": snap.burn_pct,
-                    "daily_left": snap.daily_allowance_remaining,
-                    "days_left": snap.days_left,
-                    "recurring_budget": recurring_sum,
-                },
-                "soft_overages": overages,
-                "safety": safety.to_dict(),
-                "top_categories": [
-                    {"category": c, "amount": round(a, 0)} for c, a in top_cats
-                ],
-                "do_not_cut": do_not_cut,
-                "salary_received": econ.salary_income,
-            }
-            tip_md = generate_dashboard_month_insight(vault, facts)
-            if tip_md:
-                part_planned.extend([tip_md.rstrip(), ""])
-        except Exception as e:
-            print(f"dashboard month insight skipped: {e}")
+        payment_cards = [MetricCard(sp.name, f"{fmt_num(sp.amount, decimals=0)} {sp.currency}") for sp in specifics]
+        payment_cards += [MetricCard(sp.name, f"{fmt_num(sp.amount, decimals=0)} {sp.currency}", hint=due.isoformat()) for sp, due in upcoming if sp not in specifics]
+        if payment_cards:
+            part_planned.extend(metric_cards_lines(payment_cards))
     except Exception as e:
         print(f"month_plan section skipped: {e}")
 
@@ -473,16 +343,10 @@ def run_build(args: argparse.Namespace) -> None:
     part_structure = _analytics["part_structure"]
     part_exp_pies = _analytics["part_exp_pies"]
     part_moves = _analytics["part_moves"]
-    part_day_flow = _analytics["part_day_flow"]
-    part_day_regular = _analytics["part_day_regular"]
-    part_day_oneoff = _analytics["part_day_oneoff"]
     part_oneoff_list = _analytics["part_oneoff_list"]
-    part_monthly = _analytics["part_monthly"]
-    part_quarterly = _analytics["part_quarterly"]
     part_exp_by_account = _analytics["part_exp_by_account"]
     part_balances = _analytics["part_balances"]
     part_top_exp = _analytics["part_top_exp"]
-    part_total_balance = _analytics["part_total_balance"]
 
     # Hero: metric cards (same visual language as cockpit signals)
     fill_summary_hero(
@@ -492,7 +356,7 @@ def run_build(args: argparse.Namespace) -> None:
         cushion_runway_str=cushion_runway_str,
     )
 
-    _badge_raw = build_badge_section(conn, args.user_id, charts_dir, now, chart_wikilink=wikilink_png)
+    _badge_raw = build_badge_section(conn, args.user_id, charts_dir, now, chart_specs=_analytics["charts"])
     # Drop redundant ### heading when badge body sits inside a titled callout
     if _badge_raw and _badge_raw[0].startswith("###"):
         _badge_raw = _badge_raw[2:] if len(_badge_raw) > 2 and _badge_raw[1] == "" else _badge_raw[1:]
@@ -505,19 +369,17 @@ def run_build(args: argparse.Namespace) -> None:
         part_structure=part_structure,
         part_planned=part_planned,
         part_exp_pies=part_exp_pies,
-        part_day_flow=part_day_flow,
-        part_total_balance=part_total_balance,
-        part_monthly=part_monthly,
-        part_quarterly=part_quarterly,
-        part_day_regular=part_day_regular,
         part_badge=part_badge,
-        part_day_oneoff=part_day_oneoff,
         part_oneoff_list=part_oneoff_list,
         part_moves=part_moves,
         part_exp_by_account=part_exp_by_account,
         part_balances=part_balances,
         part_top_exp=part_top_exp,
     )
+    from bot.services.dashboard.presentation_data import export_presentation
+    from shared.obsidian_ui.layout import present_dashboard
+    export_presentation(vault, transactions, accounts, _analytics["charts"], _analytics["oneoff_threshold"])
+    body = present_dashboard(body, vault, "finance")
     write_dashboard_md(out_path, body)
     print(dtpl("logs", "written", out_path=out_path))
 

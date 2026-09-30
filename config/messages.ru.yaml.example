@@ -13,6 +13,30 @@ common:
   account_currency_mismatch: "Валюта счёта {account_currency} не совпадает с валютой долга {currency}"
 
 host:
+  data_group_row: "Последнее измерение — {group}: {date}"
+  data_group_nutrition: "питание"
+  data_group_sleep: "сон"
+  data_group_activity: "активность"
+  data_group_vitals: "показатели здоровья"
+  capture_button: "Записать"
+  find_button: "Найти"
+  data_status_button: "Статус данных"
+  more_button: "Ещё"
+  simple_placeholder: "Напиши, надиктуй или перешли сообщение"
+  more_hint: "Дополнительные функции. Свободный текст работает в любом разделе."
+  capture_hint: "Пришли расходы, задачу, мысль или ссылку. Расходы можно списком — перед записью будет проверка."
+  find_hint: "Напиши, что найти в задачах, заметках или финансах."
+  data_status_ok: "Полученные данные актуальны."
+  data_status_degraded: "Часть данных требует внимания."
+  data_status_unknown: "Статус отсутствует или устарел; свежесть не подтверждена."
+  data_source_row: "{source}: {status}; последняя выгрузка: {date}"
+  data_source_iphone: "iPhone"
+  data_source_mac: "Mac"
+  data_source_calendar: "Календарь"
+  data_source_broker: "Брокер"
+  data_date_unknown: "неизвестно"
+  data_queue: "Ожидают доставки: {count}"
+  data_scope: "Свежая доставка не означает полноту всех показателей. Для подробностей спроси отдельно про сон или питание."
   back_home: "🏠 Главное"
   mode_auto: "💬 Ассистент"
   mode_finance: "💰 Финансы"
@@ -78,6 +102,8 @@ wire:
   voice_error: "❌ Ошибка обработки голоса:\n\n{error}"
 
 agent:
+  operation_unknown: "Результат действия не подтверждён: изменение могло уже произойти. Повторно его не выполняла. Нужно проверить состояние. Операция: {ids}"
+  followup_result: "Поручение: {objective}\nСтатус: {status}\n{result}"
   tool_not_allowed: "Инструмент {name} не в списке для этого запроса. Доступны: {allowed}{ellipsis}"
   tool_error: "Ошибка инструмента {name}: {error}"
   no_answer: "Не удалось получить ответ."
@@ -470,6 +496,30 @@ planning:
     column_header: "{column} ({total}):\n\n"
 
 finance:
+  import_repair: "Исправить строки"
+  import_repair_prompt: "Пришли все {count} исправленные нераспознанные строки, по одной операции в строке. Уже распознанные останутся в черновике."
+  import_duplicate_rows: "Возможные дубли: строки {rows}"
+  import_missing_rows: "Нужно уточнение или отдельная проверка: строки {rows}"
+  import_summary: "Черновик: {count} операций. Готовы: {ready}; нераспознанных строк: {issues}; возможных дублей: {duplicates}; требуют уточнения или отдельной проверки: {missing}. Пока ничего не записано."
+  import_row: "{index}. {amount} {currency} · {account} · {date} · {description}"
+  import_more: "Ещё {count} строк — доступны в подробностях."
+  import_issue: "Не распознана исходная строка {line}: {text}"
+  import_save_ready: "Записать готовые"
+  import_edit: "Изменить группу"
+  import_details: "По одной"
+  import_toggle_duplicates: "Включить / исключить возможные дубли"
+  import_retry: "Повторить нераспознанные"
+  confirm_cancelled_button: "Отменить черновик"
+  import_edit_prompt: "Напиши изменение: «все со счёта Карта», «вторую и пятую за 28 августа 2026», «у третьей сумма 700». Затем проверь обновлённый черновик."
+  import_patch_invalid: "Не удалось однозначно применить изменение. Укажи строки и поле; черновик не изменён."
+  import_undone: "Импорт отменён: {count} операций."
+  import_undo_changed: "Нельзя отменить: операции уже изменены или удалены. Ничего не удалено."
+  import_stale: "Это устаревшее подтверждение. Открой последний черновик."
+  import_nothing_ready: "Нет готовых операций для записи."
+  import_recheck: "Данные изменились; проверь черновик перед записью."
+  import_saved: "Записано: {count} операций."
+  import_undo: "Отменить этот импорт"
+  import_back: "К обзору импорта"
   menu:
     add_expense: "➖ Добавить расход"
     add_expense_short: "➖ Расход"
@@ -510,6 +560,10 @@ finance:
   account_updated: "✅ Обновлен счет: {name} (баланс: {balance:,.0f} {currency})"
   account_added: "✅ Добавлен счет: {name} (баланс: {balance:,.0f} {currency})"
   nlu_pending_confirm: "⏳ Сначала подтверди или отмени текущие транзакции кнопками под сообщением «Транзакция N из M»."
+  nlu_processing_batch: '⏳ Разбираю список операций. Запись будет только после подтверждения.'
+  nlu_batch_progress: '⏳ Разбираю часть {index} из {total}. Пока ничего не записано.'
+  nlu_service_unavailable: '❌ Сервис распознавания сейчас недоступен. Ничего не записано. Повтори отправку списка позже.'
+  nlu_batch_parse_failed: '❌ Не удалось разобрать весь список операций. Ничего не записано. Проверь даты и суммы; если ошибка повторится, отправь список меньшими частями.'
   nlu_parse_error: "❌ Ошибка при распознавании транзакции:\n\n{error}\n\nТекст: {text}"
   nlu_not_recognized: |
     ❌ Не удалось распознать транзакцию из текста:
@@ -824,3 +878,26 @@ scripts:
   bootstrap:
     bot_root_missing: '❌ bootstrap_python: каталог не найден: {bot_root}'
     python_version: '❌ Требуется Python >= 3.9 (сейчас: {version})'
+
+transaction_card:
+  confirm_preview_batch: "Операция {index} из {total}"
+  confirm_preview_title: "<b>Проверить операцию</b>\n"
+  confirm_preview_amount: "Сумма: {amount:,.2f} {currency}"
+  confirm_preview_amount_missing: "Сумма: ❌ не распознана"
+  confirm_preview_type: "Тип: {type_name}"
+  confirm_preview_category: "Категория: {category}"
+  confirm_preview_category_missing: "Категория: ❌ не распознана"
+  confirm_preview_account: "Счет: {account}"
+  confirm_preview_account_missing: "Счет: ❌ не распознан"
+  confirm_preview_from: "Откуда: {account}"
+  confirm_preview_from_missing: "Откуда: ❌ не распознан"
+  confirm_preview_to: "Куда: {account}"
+  confirm_preview_to_missing: "Куда: ❌ не распознан"
+  confirm_preview_broker_fee: "Комиссия брокера: {fee:,.2f} {currency}"
+  confirm_preview_broker_fee_none: "Комиссия брокера: нет"
+  confirm_preview_broker_fee_raw: "Комиссия брокера: {fee}"
+  confirm_preview_counterparty: "Контрагент: {counterparty}"
+  confirm_preview_counterparty_missing: "Контрагент: ❌ не распознан"
+  confirm_preview_description: "Описание: {description}"
+  confirm_preview_date: "Дата: {date}"
+  confirm_preview_date_today: "Дата: сегодня"

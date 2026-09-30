@@ -58,7 +58,7 @@ def test_send_long_message_plain_fallback():
     asyncio.run(_run())
     assert bot.send_message.await_count == 1
     sent = bot.send_message.await_args.args[1]
-    assert "**" not in sent
+    assert sent == "**bold** answer"  # session presentation middleware renders it
 
 
 def test_send_long_message_rich_false_skips_rich():

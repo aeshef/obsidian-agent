@@ -45,7 +45,7 @@ def _money_line_count(text: str) -> int:
 def _looks_like_txn_batch(text: str) -> bool:
     """Multi-line money dump → confirm queue; never ask the intent LLM / agent."""
     t = (text or "").strip()
-    if not t or len(t) > 4000:
+    if not t:
         return False
     lines = _nonempty_lines(t)
     if len(lines) < 2:
@@ -57,8 +57,6 @@ def _looks_like_txn_candidate(text: str) -> bool:
     """Cheap prefilter before finance-intent LLM (avoid tax on every question)."""
     t = (text or "").strip()
     if not t:
-        return False
-    if len(t) > 4000:
         return False
     if _looks_like_txn_batch(t):
         return True
@@ -164,5 +162,6 @@ async def dispatch_auto_free_text(
         agent_app,
         text,
         unified=True,
+        request_key=f"telegram:{message.chat.id}:{message.message_id}",
         reply_markup=keyboard_for_mode(ui_mode, user_id=uid),
     )

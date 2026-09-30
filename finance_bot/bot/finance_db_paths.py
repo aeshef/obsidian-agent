@@ -15,6 +15,8 @@ import logging
 import os
 import shutil
 import sqlite3
+import tempfile
+from contextlib import closing
 from pathlib import Path
 from typing import Optional
 
@@ -123,24 +125,23 @@ def mirror_canonical_to_vault_replica(
         return False
 
     dst.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dst.with_name(dst.name + ".tmp-sync")
+    fd, name = tempfile.mkstemp(prefix=dst.name + ".", suffix=".tmp-sync", dir=dst.parent)
+    os.close(fd)
+    tmp = Path(name)
     try:
-        try:
-            con = sqlite3.connect(f"file:{src}?mode=ro", uri=True)
-            con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-            con.close()
-        except sqlite3.Error:
-            pass
-        shutil.copy2(src, tmp)
+        with closing(sqlite3.connect(src.resolve().as_uri() + "?mode=ro", uri=True)) as source:
+            with closing(sqlite3.connect(tmp)) as target:
+                source.backup(target)
+                if target.execute("PRAGMA quick_check").fetchone() != ("ok",):
+                    raise sqlite3.DatabaseError("replica quick_check failed")
         tmp.replace(dst)
         log.info("mirror: %s → %s", src, dst)
-        verify_replica_matches_canonical(canonical=src, replica=dst)
         return True
-    except OSError as e:
+    except (OSError, sqlite3.Error) as e:
         log.error("mirror failed %s → %s: %s", src, dst, e)
-        if tmp.exists():
-            tmp.unlink(missing_ok=True)
         return False
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def database_url_for_path(path: Path) -> str:

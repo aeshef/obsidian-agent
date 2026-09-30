@@ -42,7 +42,12 @@ def _cleanup_invalid_iphone_txt_files() -> int:
         if snap is not None and is_valid_health_snapshot(snap):
             continue
         try:
-            path.unlink()
+            # Preserve rejected or partially synced files for diagnosis and recovery.
+            import hashlib
+            quarantine = IPHONE_CONTEXT_DIR / ".quarantine"
+            quarantine.mkdir(exist_ok=True)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
+            path.replace(quarantine / f"{path.stem}.{digest}{path.suffix}")
             deleted += 1
             logger.info(pdmsg("auto_8b2d0f6a91"), path.name)
         except OSError as e:
@@ -58,7 +63,9 @@ def run_iphone_context_sync() -> bool:
         if n_garbage:
             print(pdmsg("auto_9c3e1a7b42", _p1=n_garbage), flush=True)
 
-        snaps_week = get_snapshots(IPHONE_CONTEXT_DIR, days=7)
+        from planning_bot.services.snapshot_query import latest_per_calendar_day
+        raw_week = get_snapshots(IPHONE_CONTEXT_DIR, days=7)
+        snaps_week = list(latest_per_calendar_day(raw_week).values())
         # (comment)
         d0 = date.today()
         d1 = d0 - timedelta(days=1)
@@ -81,6 +88,7 @@ def run_iphone_context_sync() -> bool:
                 "note": pdmsg("auto_4d250494e9"),
                 "snaps_today": len(snaps_today),
                 "snaps_week": len(snaps_week),
+                "raw_snapshot_count": len(raw_week),
                 "aggregates_today": {k: v for k, v in agg_today.items() if k != "snapshot_count"},
             },
             "today": snaps_today,

@@ -179,13 +179,14 @@ def test_dashboard_render_smoke():
     ]
     a = compute_week_analytics(ev, date(2026, 6, 1), horizon_days=2)
     md = render_meeting_focus_dashboard("2026-06-01T12:00:00", a, "ignored llm")
-    assert pdmsg("calendar_dash_hero_open") in md
-    assert pdmsg("calendar_dash_upcoming_title") in md
+    assert "au-agenda-day" in md
+    assert "Interview" in md
+    assert "10:00–12:00" in md
     assert pdmsg("calendar_dash_section_rhythms") not in md
     assert "invite" not in md.lower()
     assert "×0.45" not in md
     assert "_sync" not in md
     assert a.get("free_windows") is not None
     assert a.get("upcoming")
-    # List rows stay inside the callout (Obsidian), not as naked markdown below it.
-    assert "> - **" in md
+    assert "> [!" not in md
+    assert "ignored llm" not in md

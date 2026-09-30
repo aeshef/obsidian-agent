@@ -28,6 +28,9 @@ class Tool:
     category: str = "general"
     always: bool = False
     serial: bool = False
+    read_only: bool = False
+    mutating: bool = False
+    verifier: Any = None
 
 
 @dataclass

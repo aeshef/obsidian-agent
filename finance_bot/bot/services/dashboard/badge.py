@@ -9,7 +9,6 @@ from typing import Callable, Optional
 from bot.config_loader import get_badge_config, is_badge_enabled
 from bot.dashboard_templates import dtpl
 from bot.services.badge_tracker import BadgeTracker
-from bot.services.dashboard.charts import plot_stacked_bar_categories_png
 from bot.services.dashboard.format import fmt_num
 from shared.finance.currency import base_currency
 
@@ -21,6 +20,7 @@ def build_badge_section(
     now: datetime,
     *,
     vault_root: Optional[Path] = None,
+    chart_specs: Optional[list] = None,
     chart_wikilink: Optional[Callable[[Path], str]] = None,
 ) -> list[str]:
     """Badge nutrition section for current month."""
@@ -69,24 +69,11 @@ def build_badge_section(
         x_labels = [d.date.strftime("%d.%m") for d in wdays]
         spent_vals = [float(d.spent) for d in wdays]
         burned_vals = [float(d.burned) for d in wdays]
-        ok = plot_stacked_bar_categories_png(
-            x_labels,
-            {dtpl("badge", "chart_spent"): spent_vals, dtpl("badge", "chart_burned"): burned_vals},
-            title=dtpl("badge", "chart_title"),
-            y_label=base_currency(),
-            out_path=badge_png,
-            show_total_labels=True,
-            totals_for_labels=[float(d.limit) for d in wdays],
-        )
-        if ok:
-            if chart_wikilink:
-                lines.append(chart_wikilink(badge_png))
-            elif vault_root is not None:
-                rel = badge_png.resolve().relative_to(vault_root.resolve())
-                lines.append(f"![[{rel.as_posix()}]]")
-        elif badge_png.exists():
-            badge_png.unlink()
-        lines.append("")
+        if chart_specs is not None:
+            from shared.obsidian_ui.series import series_chart
+            chart_specs.append(series_chart('badge',dtpl('badge','chart_title'),[d.date for d in wdays],
+                {dtpl('badge','chart_spent'):spent_vals,dtpl('badge','chart_burned'):burned_vals},
+                method='sum',chart_type='bar',unit=base_currency(),filter_fields=[]))
     else:
         if float(m.total_spent) <= 0 and float(m.total_burned) > 0:
             lines.append(dtpl("badge", "idle_month"))

@@ -102,12 +102,21 @@ def latest_per_calendar_day(
     valid_fn = is_valid or is_valid_health_snapshot
     score = score_fn or health_snapshot_score
     by_day: Dict[date, Dict[str, Any]] = {}
+    revisions = []
     for s in snaps:
         if not valid_fn(s):
             continue
         d = snap_calendar_day(s)
         if d is not None:
-            by_day[d] = _pick_richer_snapshot(by_day.get(d), s, score_fn=score)
+            if s.get("schema_version") in (2, "2", "2.0"):
+                revisions.append((d, s))
+            else:
+                by_day[d] = _pick_richer_snapshot(by_day.get(d), s, score_fn=score)
+    from planning_bot.services.health_backfill import merge
+    # Apply oldest first so partial corrections preserve earlier exported fields
+    # even when messages/files arrive in a different order.
+    for d, s in sorted(revisions, key=lambda item: datetime.fromisoformat(item[1]["captured_at"].replace("Z", "+00:00"))):
+        by_day[d] = merge(by_day.get(d), s)
     return by_day
 
 
@@ -131,6 +140,9 @@ def latest_snapshot(
     is_valid: SnapshotPredicate | None = None,
     score_fn: SnapshotScoreFn | None = None,
 ) -> Optional[Dict[str, Any]]:
+    if any(s.get("schema_version") in (2, "2", "2.0") for s in snaps):
+        daily = latest_per_calendar_day(snaps, is_valid=is_valid, score_fn=score_fn)
+        return daily[max(daily)] if daily else None
     valid_fn = is_valid or is_valid_health_snapshot
     score = score_fn or health_snapshot_score
     valid = [s for s in snaps if valid_fn(s)]
@@ -190,7 +202,7 @@ def format_snapshot_provenance(
 
 def captured_at_dt(snap: Dict[str, Any]) -> Optional[datetime]:
     try:
-        return datetime.fromisoformat(str(snap.get("ts", "")))
+        return datetime.fromisoformat(str(snap.get("captured_at") or snap.get("ts", "")).replace("Z", "+00:00"))
     except (TypeError, ValueError):
         return None
 

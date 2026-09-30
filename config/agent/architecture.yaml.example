@@ -1,0 +1,25 @@
+enabled: true
+history_retention_days: 180
+history_max_rows_per_user: 10000
+search_limit: 8
+context_max_chars: 6500
+result_page_chars: 6000
+text_max_chars: 12000
+worker_interval_seconds: 60
+poll_min_seconds: 300
+worker_batch_size: 4
+probe_timeout_seconds: 30
+lease_seconds: 180
+max_probe_failures: 5
+max_open_followups: 30
+notification_max_chars: 3000
+# Only registered, explicitly read-only tools in enabled domains may run in background.
+background_tools:
+  - get_data_status
+  - get_calendar_event_status
+  - get_health_snapshot
+  - get_routines_status
+  - get_recent_task_references
+project_focus_seconds: 3600
+
+context_source_chars: 800

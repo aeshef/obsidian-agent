@@ -23,11 +23,13 @@ def is_local_telegram_api() -> bool:
 def create_bot(token: str, *, parse_mode=None) -> Bot:
     """Bot session: Local Bot API when TELEGRAM_API_BASE != api.telegram.org."""
     base = telegram_api_base()
-    session = None
+    session = AiohttpSession()
     if is_local_telegram_api():
         session = AiohttpSession(
             api=TelegramAPIServer.from_base(base, is_local=True),
         )
+    from shared.telegram.presentation import presentation_middleware
+    session.middleware(presentation_middleware)
     return Bot(
         token=token,
         session=session,

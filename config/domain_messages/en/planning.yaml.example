@@ -25,6 +25,9 @@ charts:
   other_slice: Other
   y_label_sum: Amount
 planning:
+  calendar_freshness_unknown: 'Calendar source freshness is unknown. Do not infer that missing events mean a free slot.'
+  calendar_freshness_ok: 'Calendar captured: {captured}; complete coverage: {start} to {end} (end exclusive). Outside coverage is unknown.'
+  calendar_freshness_stale: 'Calendar is STALE: captured {captured}; coverage {start} to {end}. Do not confirm availability from stale data.'
   calendar_day_header: 'Calendar {day}:'
   calendar_day_empty: No calendar events on {day}.
   calendar_range_header: 'Calendar {start} — {end}: {shown} events ({total} total).'
@@ -74,7 +77,16 @@ planning:
   agent_action_log_unique_completions: 'Unique completed tasks: {count}. Titles: {titles}'
   agent_action_log_completion_note: Use unique completions above only; each close logs both task_moved→Done and task_completed.
   apply_kanban_tool_hint: 'Kanban: create|move|complete|delete. delete = intentional remove (logs task_deleted, never auto-restore).
-    On create, pass deadline=YYYY-MM-DD only when the user requested a due date; otherwise leave deadline empty. Resolve relative dates from as_of_today. Many tasks → one create with titles=[...]. category (#goal): {categories}. priority: {priorities}.'
+    On create, pass deadline=YYYY-MM-DD only when the user requested a due date; otherwise leave deadline empty. Resolve relative dates from as_of_today.     For a task already returned by get_kanban/search_tasks, use its exact task_id, not a rewritten title.
+    If a lookup fails, inspect returned candidates or search the board; retry by ID when context identifies the task unambiguously.
+    Ask the user only if ambiguity remains. Never interpret an empty response as success or proof of a missing task.
+    Many tasks → one create with titles=[...]. category (#goal): {categories}. priority: {priorities}.'
+  kanban_task_not_found: 'No exact task match for "{ref}". No changes made.'
+  kanban_unknown_action: 'Unknown action: {action}. Allowed: create, move, complete, delete. No changes made.'
+  kanban_unknown_column: 'Unknown column: {column}. Allowed: {allowed}. No changes made.'
+  kanban_candidates: 'Possible matches (not selected automatically). Use the ID only after resolving the task from context; ask if ambiguous: {candidates}'
+  kanban_candidate_row: '[{task_id}] {title} | {column}'
+  kanban_reference_recovery_hint: 'Use the exact task_id from get_kanban/search_tasks for an already listed task. Do not rewrite its title. If lookup fails, inspect candidates or search and retry by ID when context is unambiguous; ask only if ambiguity remains. An empty tool response proves neither success nor absence.'
   kanban_task_created: 'Task created id={task_id}: {title} | #goal/{category} #priority/{priority}'
   kanban_invalid_deadline: 'Invalid deadline "{deadline}": use YYYY-MM-DD.'
   kanban_task_deleted: 'Deleted task id={task_id}: {title}'
@@ -223,7 +235,7 @@ planning:
     '
   auto_05a5c6be34: 'Task board (full snapshot, all columns):'
   auto_05a6fc3b0f: Wednesday
-  auto_05e12a3f7f: base = "You are a personal planning assistant. Respond in Russian, briefly and to the point."
+  auto_05e12a3f7f: base = "You are a personal planning assistant. Respond in English, briefly and to the point."
   auto_061500b24f: ' (not on board: {_p1})'
   auto_0672d5ba92: ' | deadline {deadline} (today)'
   auto_0686c32824: ' | ⚠️ Deadline: '
@@ -1205,7 +1217,7 @@ planning:
     ---
 
     '
-  auto_4772666fa2: You are a personal planning assistant. Respond in Russian, briefly and to the point.
+  auto_4772666fa2: You are a personal planning assistant. Respond in English, briefly and to the point.
   auto_478b778ab1: Stop signal received (Ctrl+C)
   auto_4794dff53c: ' hours in action logs have no task_moved / task_completed / task_created events (or log file is unavailable).
     Log directory: '
@@ -2101,7 +2113,7 @@ planning:
   auto_8b1dc6529e: '] No changes (total tasks in monitoring: '
   auto_8b1f811e32: Mac context for the week (
   auto_8b23271e60: '    (showing last '
-  auto_8b2d0f6a91: 'iphone_context_sync: removed invalid snapshot %s'
+  auto_8b2d0f6a91: 'iphone_context_sync: quarantined invalid snapshot %s'
   auto_8b4d1b1996: 'Scheduled review canceled: %s'
   auto_8b5b6cd95b: '(no Mac-context for '
   auto_8b5d65e49a: Created {timestamp}
@@ -2223,7 +2235,7 @@ planning:
   auto_9105976fe5: 'Board writing disabled: KANBAN_AGENT_WRITES≠1 in bot''s .env. Add KANBAN_AGENT_WRITES=1 and restart unified_bot.'
   auto_912c5ee296: '#deadline/\S+'
   auto_913449b759: 'ActionLogger: action logs in %s'
-  auto_9158eed63e: '## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n\*\*Type:\*\* (.+?)\n+\*\*Data:\*\*\n+```json\n+(.+?)\n+```'
+  auto_9158eed63e: '## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\n\n\*\*Type:\*\* (.+?)\n+\*\*Data:\*\*\n+```json\n+(.+?)\n+```'
   auto_9168e47a25: '📅 **In '
   auto_91cf50ab08: ' days with data; one point per calendar day:'
   auto_92474d141f: '⚠️ Movement logging error: {p1}'
@@ -2332,7 +2344,7 @@ planning:
   auto_9bac5628db: '   Deadline was: '
   auto_9bbda555e6: ❌ Error generating recommendations.
   auto_9bc7641ddc: 'State catalog: `'
-  auto_9c3e1a7b42: '   iphone_context_sync: removed {_p1} invalid IPhone/*.txt'
+  auto_9c3e1a7b42: '   iphone_context_sync: quarantined {_p1} invalid IPhone/*.txt'
   auto_9c65292420: 'No snapshots in history.
 
 
@@ -4362,7 +4374,8 @@ planning:
   health_hero_empty: '> [!info] No master_daily_panel rows yet — wait for health sync.'
   system_hero_open: '> [!abstract] Agent'
   system_hero_title: '> ### ${cost}'
-  system_hero_meta: '> Runs **{runs}** · usage **{usage}%**'
+  system_hero_meta: '> Runs **{runs}** · usage **{usage}%** · agent traces only; background calls excluded'
+  system_hero_scope: '> Coverage: interactive agent traces only; background jobs and provider billing are not included.'
   system_hero_empty: '> [!info] Agent cost summary not built yet.'
   analytics_overview_system_hint: '> [!note] Insights & agent cost → [[{system}|🛠 System]]
 
@@ -4549,6 +4562,50 @@ planning:
   analytics_cov_kcal: Kcal
   chart_updated_at: '_Updated: {ts}_'
   chart_updated_window_panel: '_Updated: {ts}_ · window **{window_days}** d · panel **{days}** days'
+  health_dashboard_hub: |
+    # 🏥 Health
+
+    > [!abstract] Dashboards
+    > [[📊 Finance_Dashboard|Finance]] · [[🛠 System|System]]
+
+    > [!info] Data: iPhone Shortcuts snapshots · updated {updated}
+
+    ---
+
+    ## 🍽 Nutrition
+
+    > [!note] Daily macros — look at protein/fat/carb balance and calorie trend, not a single day.
+
+    ![[300_Dashboards/Charts/Health/Nutrition_macros_by_day.png]]
+
+    ---
+
+    ## 📊 Metric trends
+
+    > [!note] Steps, kcal, weight, resting HR — lines + moving averages; daily noise is normal.
+
+    ![[300_Dashboards/Charts/Health/Health_metrics_trends.png]]
+
+    ---
+
+    ## 🧬 Correlations
+
+    > [!note] Pearson between health metrics. Strong correlation ≠ causation.
+
+    ![[300_Dashboards/Charts/Health/Health_metrics_correlations.png]]
+
+    ---
+
+    ## 🌐 Cross-domain (tasks × spending × steps)
+
+    How tasks, money, and body move together — for curiosity, not hard conclusions.
+
+    ![[300_Dashboards/Charts/Cross/Domain_correlations.png]]
+
+    ![[300_Dashboards/Charts/Cross/Tasks_and_steps.png]]
+
+    ![[300_Dashboards/Charts/Cross/Tasks_and_spending.png]]
+
   health_trends_title: Metric trends
   health_corr_title: Metric correlations
   health_insufficient_days: Not enough data (need ≥3 days with iPhone).
@@ -4688,6 +4745,14 @@ planning:
   kanban_flow_agent_goal_segment: 'Last week completions: dominant={dominant}; goal-linked share={goal_share}; daily/household={daily_share};
     unmapped={unmapped_share}'
   kanban_flow_agent_coverage: 'task_id coverage in logs: {pct}%'
+  health_source_unavailable: "> [!warning] Health: source unavailable · aggregated {aggregated_at}"
+  health_source_empty: "> [!warning] Health: no data · aggregated {aggregated_at}"
+  health_unknown: "unknown"
+  health_freshness: "> [!info] Health: measured **{measured}** · captured **{captured_s}** · aggregated **{aggregated_at}**\n> 14-day coverage: **{covered}/14** · {group_s}"
+  health_data_marker: "> \\[!info\\] Data:[^\\n]*"
+  cost_runs_pattern: "\\| (?:Runs|Runs total) \\| (\\d+) \\|"
+  cost_usage_pattern: "Usage coverage \\| ([0-9.]+)%"
+
 planning_forecast:
   avg_expense_3m: 'Avg expenses 3 mo: {amount:,.0f}'
   avg_income_3m: 'Avg income 3 mo: {amount:,.0f}'

@@ -2,6 +2,7 @@
 # Единый деплой монорепо obsidian-agent (серверная структура: $SERVER_BOTS/<component>).
 #
 #   ./scripts/deploy.sh --component all
+#   ./scripts/deploy.sh --component iphone-backfill --restart-unified
 #   ./scripts/deploy.sh --prod                    # patch .env + deploy all + unified restart (legacy bots без рестарта)
 #   ./scripts/deploy.sh --prod --install-deps
 #   ./scripts/deploy.sh --prod --legacy-bots      # legacy режим: рестартовать finance/knowledge/planning тоже
@@ -401,6 +402,57 @@ verify_bots() {
   fi
   echo "✅ post-deploy verify OK"
 }
+
+# Isolated health-receiver release: do not deploy unrelated platform scripts/config.
+if [ "${#COMPONENTS[@]}" = 1 ] && [ "${COMPONENTS[0]}" = iphone-backfill ]; then
+  [ "$PROD" = 0 ] && [ "$PATCH_AGENT_ENV" = 0 ] && [ "$LEGACY_BOTS" = 0 ] || {
+    echo 'iphone-backfill cannot be combined with prod/env/legacy modes' >&2; exit 2;
+  }
+  ssh_check
+  _health_files=(
+    planning_bot/services/health_backfill.py
+    config/agent/health_backfill.yaml.example
+    planning_bot/services/iphone_health_fields.py
+    planning_bot/services/snapshot_query.py
+    planning_bot/services/iphone_context_parser.py
+    planning_bot/services/daily_panel.py
+    planning_bot/tools/iphone_mail_sync.py
+    planning_bot/tools/iphone_context_sync.py
+    planning_bot/scripts/build_health_dashboard_hub.py
+    planning_bot/scripts/build_cross_domain_analytics.py
+    shared/analytics/life_os_scores.py
+    shared/analytics/panel_coverage.py
+    shared/analytics/hub_hero.py
+  )
+  _health_backup="$SERVER_BOTS/backups/iphone-backfill-$(date +%Y%m%d-%H%M%S)"
+  for _rel in "${_health_files[@]}"; do
+    [ -f "$MONOREPO/$_rel" ] || { echo "Missing: $_rel" >&2; exit 1; }
+  done
+  if [ "$DRYRUN" = 1 ]; then
+    printf 'Would deploy: %s\n' "${_health_files[@]}"
+    exit 0
+  fi
+  # Backup all existing target files before changing any of them.
+  for _rel in "${_health_files[@]}"; do
+    deploy_ssh "mkdir -p '$_health_backup/$(dirname "$_rel")' '$SERVER_BOTS/$(dirname "$_rel")'; if test -f '$SERVER_BOTS/$_rel'; then cp -p '$SERVER_BOTS/$_rel' '$_health_backup/$_rel'; fi" || exit 1
+  done
+  for _rel in "${_health_files[@]}"; do
+    rsync -az --checksum "$MONOREPO/$_rel" "$SERVER:$SERVER_BOTS/$_rel" || exit 1
+  done
+  for _rel in "${_health_files[@]}"; do
+    _local_sha="$(shasum -a 256 "$MONOREPO/$_rel" | awk '{print $1}')"
+    _remote_sha="$(deploy_ssh "sha256sum '$SERVER_BOTS/$_rel'" | awk '{print $1}')"
+    [ "$_local_sha" = "$_remote_sha" ] || { echo "Checksum failed: $_rel" >&2; exit 1; }
+    echo "Verified: $_rel"
+  done
+  deploy_ssh "cd '$SERVER_BOTS' && ./scripts/oa-python.sh -c 'from planning_bot.services.health_backfill import groups; from planning_bot.services.snapshot_query import latest_per_calendar_day; assert groups().get(\"nutrition\"); print(\"iphone_receiver_import_ok\")'" || exit 1
+  if [ "$RESTART_UNIFIED" = 1 ] && [ "$NO_RESTART" = 0 ]; then
+    restart_unified_bot_remote 0 || exit 1
+    verify_unified_bot_remote || exit 1
+  fi
+  echo "iphone-backfill deploy OK; backup=$_health_backup"
+  exit 0
+fi
 
 # ── Режимы только patch / только unified ─────────────────────────
 if [ "$PATCH_AGENT_ENV" = 1 ] && [ "$PROD" = 0 ] && [ "$RESTART_UNIFIED" = 0 ]; then

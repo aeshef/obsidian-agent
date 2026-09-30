@@ -114,7 +114,7 @@ for f in app.json appearance.json community-plugins.json core-plugins.json templ
     _safe_copy_to_icloud "$SRC/.obsidian/$f" "$MOBILE/.obsidian/$f"
   fi
 done
-for p in dataview templater-obsidian obsidian-kanban; do
+for p in dataview templater-obsidian obsidian-kanban obsidian-style-settings quickadd obsidian-meta-bind-plugin assistant-dashboard-ux; do
   if [[ -d "$SRC/.obsidian/plugins/$p" ]]; then
     mkdir -p "$MOBILE/.obsidian/plugins/$p"
     rsync -a --exclude='.DS_Store' "$SRC/.obsidian/plugins/$p/" "$MOBILE/.obsidian/plugins/$p/" \
@@ -126,5 +126,12 @@ if [[ -d "$SRC/.obsidian/snippets" ]]; then
   rsync -a --exclude='.DS_Store' "$SRC/.obsidian/snippets/" "$MOBILE/.obsidian/snippets/" \
     || echo "WARN: snippets sync failed" >&2
 fi
+
+if [[ -d "$SRC/.obsidian/themes/Minimal" ]]; then
+  mkdir -p "$MOBILE/.obsidian/themes/Minimal"
+  rsync -a "$SRC/.obsidian/themes/Minimal/" "$MOBILE/.obsidian/themes/Minimal/"
+fi
+# Apply the presentation export contract: library notes + an explicitly read-only UI.
+"$AGENT_ROOT/scripts/oa-python.sh" "$AGENT_ROOT/scripts/export_obsidian_presentation.py" --source "$SRC" --destination "$MOBILE"
 
 echo "OK: $(du -sh "$MOBILE" | awk '{print $1}') -> $MOBILE"

@@ -66,14 +66,6 @@ def _parse_archive_sections(content: str) -> Dict[str, List[str]]:
     return out
 
 
-def _archive_header_title() -> str:
-    archive_path = kanban_archive_path()
-    if archive_path is None:
-        return pdmsg("kanban_archive_default_title")
-    stem = archive_path.stem.lstrip("📦").strip()
-    return stem or pdmsg("kanban_archive_default_title")
-
-
 def _ensure_archive_skeleton() -> Path:
     archive_path = kanban_archive_path()
     if archive_path is None:
@@ -81,8 +73,10 @@ def _ensure_archive_skeleton() -> Path:
     if not archive_path.parent.is_dir():
         archive_path.parent.mkdir(parents=True, exist_ok=True)
     if not archive_path.is_file():
-        title = _archive_header_title()
-        archive_path.write_text(f"# {title}\n\n", encoding="utf-8")
+        archive_path.write_text(
+            "---\n\nkanban-plugin: board\n\n---\n\n",
+            encoding="utf-8",
+        )
     return archive_path
 
 
@@ -138,19 +132,81 @@ def _rebuild_active_content(original: str, sections: Dict[str, List[str]]) -> st
     return _rebuild_kanban_content(sections, original)
 
 
-def _rebuild_archive_content(header: str, sections: Dict[str, List[str]]) -> str:
-    lines = [header.rstrip()]
-    if not header.endswith("\n"):
-        lines[0] += "\n"
-    for col in sorted(sections.keys(), reverse=True):
-        blocks = sections[col]
+ARCHIVE_MONTH_RE = re.compile(r"(\d{4})-(\d{2})")
+
+
+def _archive_section_sort_key(title: str) -> tuple[int, int]:
+    match = ARCHIVE_MONTH_RE.search(title)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return 0, 0
+
+
+def _dedupe_blocks_by_id(blocks: List[str]) -> List[str]:
+    seen: set[str] = set()
+    out: List[str] = []
+    for block in blocks:
+        tid = kp.extract_id_from_block(block)
+        key = tid.lower() if tid else block.strip()
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(block)
+    return out
+
+
+def _archive_kanban_header(content: str) -> str:
+    header_match = re.search(
+        r"^---\s*\n\s*kanban-plugin: board\s*\n---\s*\n",
+        content,
+        re.MULTILINE,
+    )
+    if header_match:
+        return content[: header_match.end()]
+    return "---\n\nkanban-plugin: board\n\n---\n\n"
+
+
+def _archive_kanban_footer(content: str) -> str:
+    settings_match = re.search(r"%% kanban:settings", content)
+    if settings_match:
+        return content[settings_match.start() :]
+    return '\n\n%% kanban:settings\n```\n{"kanban-plugin":"board"}\n```\n%%\n'
+
+
+def _rebuild_archive_content(original: str, sections: Dict[str, List[str]]) -> str:
+    header = _archive_kanban_header(original)
+    footer = _archive_kanban_footer(original)
+    parts = [header]
+    for col in sorted(sections.keys(), key=_archive_section_sort_key, reverse=True):
+        blocks = _dedupe_blocks_by_id(sections[col])
         if not blocks:
             continue
-        lines.append(f"## {col}\n")
+        parts.append(f"## {col}\n\n")
         for block in blocks:
-            lines.append(block)
-            lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
+            parts.append(block + "\n\n")
+    parts.append(footer.lstrip("\n") if not footer.startswith("\n") else footer)
+    return "".join(parts)
+
+
+def repair_kanban_archive(*, dry_run: bool = False) -> bool:
+    """Re-sort archive months (newest first) and merge duplicate month sections."""
+    archive_path = kanban_archive_path()
+    if archive_path is None or not archive_path.is_file():
+        print(pdmsg("kanban_archive_skip_disabled"), flush=True)
+        return False
+    content = archive_path.read_text(encoding="utf-8")
+    sections = _parse_archive_sections(content)
+    repaired = _rebuild_archive_content(content, sections)
+    if repaired == content:
+        print("kanban archive: already sorted", flush=True)
+        return True
+    if dry_run:
+        print("kanban archive: repair planned", flush=True)
+        return True
+    with kanban_transaction(archive_path):
+        archive_path.write_text(repaired, encoding="utf-8")
+    print("kanban archive: repaired", flush=True)
+    return True
 
 
 def _sync_monitor_after_archive() -> None:
@@ -252,9 +308,7 @@ def archive_done_tasks(dry_run: bool = False) -> bool:
     sections[DONE_COLUMN] = keep_done
     new_active = _rebuild_active_content(active_content, sections)
 
-    header_match = re.match(r"(#.*?\n(?:\n|.)*?)(?=## |\Z)", archive_content, re.DOTALL)
-    header = header_match.group(1) if header_match else f"# {_archive_header_title()}\n\n"
-    new_archive = _rebuild_archive_content(header, archive_sections)
+    new_archive = _rebuild_archive_content(archive_content, archive_sections)
 
     from_sync = os.environ.get("FROM_SYNC", "").strip().lower() in ("1", "true", "yes")
     if not from_sync:

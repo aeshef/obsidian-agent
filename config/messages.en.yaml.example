@@ -3,6 +3,8 @@
 # Russian UI: messages.ru.yaml.example; your prod copy: messages.ru.yaml (gitignored).
 
 agent:
+  operation_unknown: "The action could not be confirmed and may already have taken effect. I have not repeated it. A state check is required. Operation: {ids}"
+  followup_result: "Follow-up: {objective}\nStatus: {status}\n{result}"
   date_hint: 'Today: {date}.'
   host_followup_hint: |
     The current message is the task. Clarifications of the last reply ("I mean…", "no, about…") keep that topic. A new question or a ping after an unanswered question continues that question — do not resume an older leftover thread.
@@ -28,6 +30,30 @@ common:
   need_start: First, press /start
   need_start_short: First /start
 finance:
+  import_repair: "Correct failed lines"
+  import_repair_prompt: "Send all {count} corrected unrecognized lines, one operation per line. Already parsed rows stay in the draft."
+  import_duplicate_rows: "Possible duplicate rows: {rows}"
+  import_missing_rows: "Need details or individual review: {rows}"
+  import_summary: "Draft: {count} operations. Ready: {ready}; unrecognized lines: {issues}; possible duplicates: {duplicates}; need details or individual review: {missing}. Nothing saved yet."
+  import_row: "{index}. {amount} {currency} · {account} · {date} · {description}"
+  import_more: "Another {count} rows — open details to review."
+  import_issue: "Unrecognized source line {line}: {text}"
+  import_save_ready: "Save ready operations"
+  import_edit: "Edit a group"
+  import_details: "Review individually"
+  import_toggle_duplicates: "Toggle inclusion of possible duplicates"
+  import_retry: "Retry unrecognized lines"
+  confirm_cancelled_button: "Cancel draft"
+  import_edit_prompt: "Describe the draft edit, e.g. “all from Card”, “rows 2 and 5 dated 2026-08-28”, or “third amount 700”. Then review the updated draft."
+  import_patch_invalid: "Could not apply the edit safely. Specify rows and a field; the draft is unchanged."
+  import_undone: "Import undone: {count} operations."
+  import_undo_changed: "Cannot undo: imported operations were changed or removed. Nothing deleted."
+  import_stale: "This preview is no longer current. Open the latest draft."
+  import_nothing_ready: "No operations are ready to save."
+  import_recheck: "Data changed; review the draft again before saving."
+  import_saved: "Saved: {count} operations."
+  import_undo: "Undo this import"
+  import_back: "Back to import review"
   account_added: '✅ Account added: {name} (balance: {balance:,.0f} {currency})'
   account_balance_suffix: ' (balance: {balance:,.0f} {currency})'
   account_portfolio_suffix: ' (API portfolio)'
@@ -227,6 +253,10 @@ finance:
     Try rephrasing or send transactions one at a time.
 
     '
+  nlu_processing_batch: '⏳ Parsing transactions. Nothing will be saved until confirmation.'
+  nlu_batch_progress: '⏳ Parsing batch {index} of {total}. Nothing saved yet.'
+  nlu_service_unavailable: '❌ The recognition service is unavailable. Nothing was saved. Please send the list again later.'
+  nlu_batch_parse_failed: '❌ Could not parse the complete list. Nothing was saved. Check dates and amounts; if this persists, send smaller batches.'
   nlu_parse_error: '❌ Error recognizing transaction:
 
 
@@ -411,6 +441,30 @@ push:
   memory_synth_title: "Memory"
   serendipity_title: "From vault"
 host:
+  data_group_row: "Latest measurement — {group}: {date}"
+  data_group_nutrition: "nutrition"
+  data_group_sleep: "sleep"
+  data_group_activity: "activity"
+  data_group_vitals: "vitals"
+  capture_button: "Record"
+  find_button: "Find"
+  data_status_button: "Data status"
+  more_button: "More"
+  simple_placeholder: "Write, dictate or forward a message"
+  more_hint: "Additional features. Free text works in every section."
+  capture_hint: "Send expenses, a task, a thought or a link. You can send expenses as a multiline list; review before saving."
+  find_hint: "Ask what you want to find in tasks, notes or finances."
+  data_status_ok: "Received data is up to date."
+  data_status_degraded: "Some data needs attention."
+  data_status_unknown: "Status is missing or old; freshness is not confirmed."
+  data_source_row: "{source}: {status}; latest capture: {date}"
+  data_source_iphone: "iPhone"
+  data_source_mac: "Mac"
+  data_source_calendar: "Calendar"
+  data_source_broker: "Broker"
+  data_date_unknown: "unknown"
+  data_queue: "Awaiting delivery: {count}"
+  data_scope: "Fresh delivery does not prove every metric is present. Ask about sleep or nutrition for a detailed check."
   agent_error: '❌ Agent error: {error}'
   telegram_flood: '⏳ Telegram rate limit. Wait ~{seconds}s and try again.'
   back_home: 🏠 Main
@@ -1104,3 +1158,26 @@ scripts:
   bootstrap:
     bot_root_missing: '❌ bootstrap_python: directory not found: {bot_root}'
     python_version: '❌ Python >= 3.9 required (current: {version})'
+
+transaction_card:
+  confirm_preview_account: "Account: {account}"
+  confirm_preview_account_missing: "Account: ❌ unrecognized"
+  confirm_preview_amount: "Amount: {amount:,.2f} {currency}"
+  confirm_preview_amount_missing: "Amount: ❌ unrecognized"
+  confirm_preview_batch: "Transaction {index} of {total}"
+  confirm_preview_broker_fee: "Broker fee: {fee:,.2f} {currency}"
+  confirm_preview_broker_fee_none: "Broker fee: none"
+  confirm_preview_broker_fee_raw: "Broker fee: {fee}"
+  confirm_preview_category: "Category: {category}"
+  confirm_preview_category_missing: "Category: ❌ unrecognized"
+  confirm_preview_counterparty: "Counterparty: {counterparty}"
+  confirm_preview_counterparty_missing: "Counterparty: ❌ unrecognized"
+  confirm_preview_date: "Date: {date}"
+  confirm_preview_date_today: "Date: today"
+  confirm_preview_description: "Description: {description}"
+  confirm_preview_from: "From: {account}"
+  confirm_preview_from_missing: "From: ❌ unrecognized"
+  confirm_preview_title: "<b>Review transaction</b>\n"
+  confirm_preview_to: "To: {account}"
+  confirm_preview_to_missing: "To: ❌ unrecognized"
+  confirm_preview_type: "Type: {type_name}"

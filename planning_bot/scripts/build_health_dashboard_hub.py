@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 
@@ -36,7 +37,7 @@ _bootstrap_path()
 
 from planning_bot.core.pdmsg import pdmsg
 from shared.analytics.hub_hero import render_health_hero
-from shared.vault_paths_config import folder, vault_file
+from shared.vault_paths_config import dashboards_sub, folder, vault_file, vault_rel_path
 
 
 def _discover_vault(start: Path) -> Path:
@@ -44,6 +45,31 @@ def _discover_vault(start: Path) -> Path:
         if (p / folder("tasks")).is_dir() and (p / folder("dashboards")).is_dir():
             return p
     return start.parents[3]
+
+
+def _health_freshness(vault: Path, aggregated_at: str) -> str:
+    iphone_dir = vault / folder("dashboards") / dashboards_sub("data") / vault_rel_path("actions_iphone")
+    try:
+        from planning_bot.services.iphone_context_parser import get_snapshots
+        from planning_bot.services.snapshot_query import captured_at_dt, latest_per_calendar_day, snap_calendar_day
+
+        raw = get_snapshots(iphone_dir, days=None)
+        daily = latest_per_calendar_day(raw)
+    except (ImportError, OSError, ValueError):
+        return pdmsg("health_source_unavailable", aggregated_at=aggregated_at)
+    if not daily:
+        return pdmsg("health_source_empty", aggregated_at=aggregated_at)
+    measured = max(daily).isoformat()
+    captured_values = [dt for dt in (captured_at_dt(s) for s in raw) if dt is not None]
+    captured = max(captured_values, key=lambda dt: dt.timestamp(), default=None)
+    captured_s = captured.isoformat(timespec="minutes") if captured else pdmsg("health_unknown")
+    cutoff = date.today() - timedelta(days=13)
+    covered = sum(1 for d in daily if cutoff <= d <= date.today())
+    groups = {}
+    for group in ("nutrition", "activity", "vitals", "sleep"):
+        groups[group] = len({snap_calendar_day(s) for s in raw if s.get("metric_group") == group and snap_calendar_day(s) and snap_calendar_day(s) >= cutoff})
+    group_s = " · ".join(f"{k} {v}/14" for k, v in groups.items())
+    return pdmsg("health_freshness", measured=measured, captured_s=captured_s, aggregated_at=aggregated_at, covered=covered, group_s=group_s)
 
 
 def main() -> int:
@@ -65,6 +91,8 @@ def main() -> int:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     if "{updated}" in body:
         body = body.replace("{updated}", ts)
+    freshness = _health_freshness(vault, ts)
+    body = re.sub(pdmsg("health_data_marker"), freshness, body, count=1)
     hero = render_health_hero(vault, pdmsg).rstrip()
     if hero:
         # Insert hero after nav callout (first ---) or right after title block.
@@ -74,6 +102,8 @@ def main() -> int:
             body = head + marker + "\n" + hero + "\n" + marker + rest
         else:
             body = hero + "\n\n" + body
+    from shared.obsidian_ui.layout import present_dashboard
+    body = present_dashboard(body, vault, "health")
     hub.parent.mkdir(parents=True, exist_ok=True)
     hub.write_text(body if body.endswith("\n") else body + "\n", encoding="utf-8")
     print(f"OK: {hub}")

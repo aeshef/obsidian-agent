@@ -1,0 +1,16 @@
+name: Question (redirect)
+description: Prefer GitHub Discussions for how-to questions
+labels: question
+body:
+  - type: markdown
+    value: |
+      **Please use [GitHub Discussions](https://github.com/aeshef/obsidian-agent/discussions)** for setup and architecture questions — issues are for bugs and concrete feature requests.
+
+      If this is a **bug**, close this draft and open **Bug report** instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question (optional — copy to Discussions)
+      description: If you still file here, include OS, Python, playbook, and smoke output.
+    validations:
+      required: false

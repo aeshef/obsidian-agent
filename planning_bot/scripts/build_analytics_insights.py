@@ -18,18 +18,7 @@ from planning_bot.services.daily_panel import (
     write_panel_csv,
 )
 from shared.analytics.hypotheses import run_partial_weight_hypotheses, run_sleep_hypotheses
-from shared.analytics.panel_charts import (
-    chart_dual_zscore,
-    chart_life_os_regimes,
-    chart_life_os_scores,
-    chart_panel_correlations,
-    chart_sleep_debt,
-    chart_sleep_hours,
-    chart_sleep_stages,
-    chart_sleep_weight_scatter,
-    chart_weight_trend,
-    panel_coverage,
-)
+from shared.analytics.panel_coverage import panel_coverage
 from shared.analytics.sleep_debt import compute_sleep_debt_series
 from shared.analytics.life_os_scores import compute_life_os_daily
 from shared.analytics.vault_analytics_config import vault_analytics_config
@@ -248,77 +237,6 @@ def render_insights_summary_md(
     return "\n".join(lines) + "\n"
 
 
-def _write_chart_note(vault: Path, md_key: str, png_key: str, title: str, ts: str, *, extra: str = "") -> None:
-    body = f"# {title}\n\n{pdmsg('chart_updated_at', ts=ts)}"
-    if extra:
-        body += f"\n\n{extra}"
-    body += f"\n\n{chart_wikilink_png(png_key)}\n"
-    chart_path(vault, md_key).write_text(body, encoding="utf-8")
-
-
-def _heatmap(
-    hypotheses: list[dict],
-    *,
-    sleep_top: int,
-    outcome_top: int,
-    title: str,
-    png_path: Path,
-) -> bool:
-    if not hypotheses:
-        return False
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except ImportError:
-        return False
-
-    by_sleep: dict[str, float] = {}
-    by_out: dict[str, float] = {}
-    for h in hypotheses:
-        sf = str(h["sleep_feature"])
-        oc = str(h["outcome"])
-        by_sleep[sf] = max(by_sleep.get(sf, 0.0), float(h["abs_rho"]))
-        by_out[oc] = max(by_out.get(oc, 0.0), float(h["abs_rho"]))
-    top_sleep = [k for k, _ in sorted(by_sleep.items(), key=lambda x: -x[1])[:sleep_top]]
-    top_out = [k for k, _ in sorted(by_out.items(), key=lambda x: -x[1])[:outcome_top]]
-    if not top_sleep or not top_out:
-        return False
-
-    mat = np.full((len(top_sleep), len(top_out)), np.nan)
-    lookup = {(h["sleep_feature"], h["outcome"]): h["spearman_rho"] for h in hypotheses}
-    for i, sf in enumerate(top_sleep):
-        for j, oc in enumerate(top_out):
-            v = lookup.get((sf, oc))
-            if v is not None:
-                mat[i, j] = float(v)
-
-    labels_out = []
-    for oc in top_out:
-        match = next((h for h in hypotheses if h["outcome"] == oc), None)
-        labels_out.append(str(match["outcome_label"]) if match else oc)
-
-    fig, ax = plt.subplots(figsize=(max(8, len(top_out) * 0.9), max(4, len(top_sleep) * 0.55)))
-    im = ax.imshow(mat, vmin=-1, vmax=1, cmap="RdBu_r")
-    ax.set_xticks(range(len(top_out)))
-    ax.set_yticks(range(len(top_sleep)))
-    ax.set_xticklabels(labels_out, rotation=30, ha="right", fontsize=8)
-    ax.set_yticklabels(top_sleep, fontsize=8)
-    for i in range(len(top_sleep)):
-        for j in range(len(top_out)):
-            v = mat[i, j]
-            if np.isfinite(v):
-                ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=7, color="#222")
-    fig.colorbar(im, ax=ax, fraction=0.046)
-    ax.set_title(title, fontsize=11)
-    fig.tight_layout()
-    ensure_parent(png_path)
-    fig.savefig(png_path, dpi=144, bbox_inches="tight", facecolor="white")
-    plt.close(fig)
-    return True
-
-
 def main() -> int:
     os.environ.pop("PYTHONPATH", None)
     from shared.domain_messages import clear_domain_messages_cache
@@ -392,41 +310,6 @@ def main() -> int:
     charts_root(vault).mkdir(parents=True, exist_ok=True)
     generated: list[str] = []
 
-    chart_specs = [
-        ("chart_analytics_weight_trend_png", "chart_analytics_weight_trend_md", "analytics_title_weight_trend",
-         lambda p: chart_weight_trend(rows, p, title=pdmsg("analytics_title_weight_trend"))),
-        ("chart_analytics_sleep_trend_png", "chart_analytics_sleep_trend_md", "analytics_title_sleep_trend",
-         lambda p: chart_sleep_hours(rows, p, title=pdmsg("analytics_title_sleep_trend"))),
-        ("chart_analytics_sleep_stages_png", "chart_analytics_sleep_stages_md", "analytics_title_sleep_stages",
-         lambda p: chart_sleep_stages(rows, p, title=pdmsg("analytics_title_sleep_stages"))),
-        ("chart_analytics_sleep_weight_png", "chart_analytics_sleep_weight_md", "analytics_title_sleep_weight",
-         lambda p: chart_sleep_weight_scatter(rows, p, title=pdmsg("analytics_title_sleep_weight"), min_pairs=min_pairs)),
-        ("chart_analytics_tasks_sleep_png", "chart_analytics_tasks_sleep_md", "analytics_title_tasks_sleep",
-         lambda p: chart_dual_zscore(
-             rows, "tasks_completed", "iphone_sleep_hours_lag1", p,
-             x_label=pdmsg("cross_label_tasks"), y_label=pdmsg("analytics_label_sleep_hours_lag1"),
-             title=pdmsg("analytics_title_tasks_sleep"), min_pairs=min_pairs,
-         )),
-    ]
-    corr_keys_cfg = cfg.get("panel_correlation_keys") or []
-    if corr_keys_cfg:
-        keys = [str(x["key"]) for x in corr_keys_cfg]
-        labels = [_label(str(x["label_key"])) for x in corr_keys_cfg]
-        png = chart_path(vault, "chart_analytics_panel_corr_png")
-        if chart_panel_correlations(
-            rows, png, keys=keys, labels=labels,
-            title=pdmsg("analytics_title_panel_corr"), min_pairs=min_pairs,
-        ):
-            generated.append("panel_corr")
-            _write_chart_note(vault, "chart_analytics_panel_corr_md", "chart_analytics_panel_corr_png",
-                              pdmsg("analytics_title_panel_corr"), ts)
-
-    for png_key, md_key, title_key, fn in chart_specs:
-        png = chart_path(vault, png_key)
-        if fn(png):
-            generated.append(png_key)
-            _write_chart_note(vault, md_key, png_key, pdmsg(title_key), ts)
-
     debt_cfg = cfg.get("sleep_debt") or {}
     debt_series = compute_sleep_debt_series(
         rows,
@@ -434,7 +317,7 @@ def main() -> int:
         decay=float(debt_cfg.get("decay") or 0.9),
     )
     # Enrich rows for Life OS
-    debt_by_day = {str(r["date"])[:10]: r.get("debt") for r in debt_series}
+    debt_by_day = {str(r["date"])[:10]: r.get("debt") for r in debt_series if not r.get("missing")}
     for r in rows:
         r["sleep_debt"] = debt_by_day.get(str(r.get("date") or "")[:10])
 
@@ -494,89 +377,8 @@ def main() -> int:
         encoding="utf-8",
     )
 
-    debt_png = chart_path(vault, "chart_analytics_sleep_debt_png")
-    if chart_sleep_debt(
-        debt_series,
-        debt_png,
-        title=pdmsg("analytics_title_sleep_debt"),
-        label_debt=pdmsg("analytics_label_sleep_debt"),
-        label_sleep=pdmsg("analytics_label_sleep_hours_axis"),
-        label_target=pdmsg("analytics_label_sleep_target"),
-        label_gap=pdmsg("analytics_label_sleep_gap") or "no data (debt frozen)",
-    ):
-        generated.append("sleep_debt")
-        _write_chart_note(
-            vault,
-            "chart_analytics_sleep_debt_md",
-            "chart_analytics_sleep_debt_png",
-            pdmsg("analytics_title_sleep_debt"),
-            ts,
-            extra=pdmsg("analytics_sleep_debt_how").strip(),
-        )
-
-    scores_png = chart_path(vault, "chart_analytics_life_os_scores_png")
-    if chart_life_os_scores(
-        life_series,
-        scores_png,
-        title=pdmsg("analytics_title_life_os_scores"),
-        label_capacity=pdmsg("analytics_label_capacity"),
-        label_output=pdmsg("analytics_label_output"),
-        label_drain=pdmsg("analytics_label_drain"),
-        label_axis=pdmsg("analytics_label_percentile_axis"),
-    ):
-        from planning_bot.services.calendar_analytics import work_attention_weight
-
-        generated.append("life_os_scores")
-        _write_chart_note(
-            vault,
-            "chart_analytics_life_os_scores_md",
-            "chart_analytics_life_os_scores_png",
-            pdmsg("analytics_title_life_os_scores"),
-            ts,
-            extra=(
-                pdmsg("analytics_life_os_scores_how").strip()
-                + "\n\n"
-                + pdmsg(
-                    "analytics_life_os_calendar_attention_note",
-                    work_weight=work_attention_weight(),
-                )
-            ),
-        )
-
-    regimes_png = chart_path(vault, "chart_analytics_life_os_regimes_png")
-    if chart_life_os_regimes(
-        life_series,
-        regimes_png,
-        title=pdmsg("analytics_title_life_os_regimes"),
-        regime_labels={
-            "flow": pdmsg("analytics_regime_flow"),
-            "charge": pdmsg("analytics_regime_charge"),
-            "overreach": pdmsg("analytics_regime_overreach"),
-            "recovery": pdmsg("analytics_regime_recovery"),
-        },
-    ):
-        generated.append("life_os_regimes")
-        _write_chart_note(
-            vault,
-            "chart_analytics_life_os_regimes_md",
-            "chart_analytics_life_os_regimes_png",
-            pdmsg("analytics_title_life_os_regimes"),
-            ts,
-            extra=pdmsg("analytics_life_os_regimes_how").strip(),
-        )
-
-    heat_png = chart_path(vault, "chart_analytics_sleep_heatmap_png")
-    drew_heat = _heatmap(
-        hypotheses,
-        sleep_top=int(hyp_cfg.get("heatmap_sleep_top") or 8),
-        outcome_top=int(hyp_cfg.get("heatmap_outcome_top") or 10),
-        title=pdmsg("analytics_title_sleep_heatmap"),
-        png_path=heat_png,
-    )
-    if drew_heat:
-        generated.append("heatmap")
-        _write_chart_note(vault, "chart_analytics_sleep_heatmap_md", "chart_analytics_sleep_heatmap_png",
-                          pdmsg("analytics_title_sleep_heatmap"), ts)
+    # Persist enriched observations, not a second set of static images.
+    write_panel_csv(panel_csv, rows, sorted(set(columns) | {k for r in rows for k in r}))
 
     summary_md = chart_path(vault, "chart_analytics_insights_md")
     summary_md.write_text(

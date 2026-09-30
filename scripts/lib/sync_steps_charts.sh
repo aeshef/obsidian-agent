@@ -3,26 +3,12 @@
 # Sourced by scripts/obsidian_sync.sh — do not run standalone.
 
 sync_steps_charts_planning() {
-# 5. Графики дашборда по action-логам: раз в день + повтор, если лог месяца новее PNG (конец дня).
+# 5. Графики дашборда по action-логам: раз в день + повтор, если лог месяца новее маркера сборки (конец дня).
 # Иначе прогон в 00:03 ставит маркер «сегодня», а события дня в графики не попадают до следующей полуночи.
 # FORCE_CHARTS=1 ~/bin/obsidian_sync.sh
 MARKER="$SYNC_DIR/daily_charts_date.txt"
 LOGS_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_LOGS}"
-_CHART_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}"
 _CUR_LOG="$LOGS_DIR/${VAULT_FILE_ACTION_LOG_PREFIX}$(date +%Y-%m).md"
-_chart_png_mtime_max() {
-  local d="$1" max=0 m f
-  for f in \
-    "$d/${VAULT_FILE_CHART_DAILY_ACTIVITY}" \
-    "$d/${VAULT_FILE_CHART_COMPLETIONS_PNG}" \
-    "$d/${VAULT_FILE_CHART_OPEN_PIPELINE_PNG}" \
-    "$d/${VAULT_FILE_CHART_DEADLINE_PNG}"; do
-    [ -f "$f" ] || continue
-    m=$(stat -f '%m' "$f" 2>/dev/null || echo 0)
-    [ "$m" -gt "$max" ] && max=$m
-  done
-  echo "$max"
-}
 HAS_LOGS=
 [ -d "$LOGS_DIR" ] && [ "$(find "$LOGS_DIR" -maxdepth 1 -name "${VAULT_FILE_ACTION_LOG_PREFIX}*.md" 2>/dev/null | wc -l)" -gt 0 ] && HAS_LOGS=1
 
@@ -38,32 +24,27 @@ if cap_module_enabled PLANNING; then
 fi
 unset _gmr_py
 
+if cap_step_enabled SYNC_PLANNING_CHARTS && [ -n "$CHART_PYTHON" ]; then
+  VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}" \
+    "$CHART_PYTHON" "$AGENT_ROOT/planning_bot/scripts/build_task_completions_index.py" --vault "$LOCAL_VAULT" \
+    >> "$AGENT_ROOT/planning_bot/logs/charts.log" 2>&1 || _sync_fail "task-completions-index"
+fi
+
 _SHOULD_CHARTS=0
-if [ -n "${FORCE_CHARTS:-}" ]; then
+if [ -n "${FORCE_CHARTS:-}" ] || [ ! -f "$MARKER" ] || [ "$(cat "$MARKER" 2>/dev/null)" != "$TODAY" ] || [ "$_CUR_LOG" -nt "$MARKER" ]; then
   _SHOULD_CHARTS=1
-elif [ ! -f "$MARKER" ] || [ "$(cat "$MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  _SHOULD_CHARTS=1
-elif [ -f "$_CUR_LOG" ] && [ "$(_chart_png_mtime_max "$_CHART_DIR")" = "0" ]; then
-  _SHOULD_CHARTS=1
-elif [ -f "$_CUR_LOG" ]; then
-  _log_m=$(stat -f '%m' "$_CUR_LOG" 2>/dev/null || echo 0)
-  _png_m=$(_chart_png_mtime_max "$_CHART_DIR")
-  [ "$_log_m" -gt "$_png_m" ] && _SHOULD_CHARTS=1
 fi
 if ! cap_step_enabled SYNC_PLANNING_CHARTS; then
   _SHOULD_CHARTS=0
 fi
 if [ "$_SHOULD_CHARTS" = "1" ]; then
   PLANNING_BOT="$AGENT_ROOT/planning_bot"
-  if [ -n "$HAS_LOGS" ] && [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" ]; then
+  if [ -n "$HAS_LOGS" ] && [ -n "$CHART_PYTHON" ] && [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_open_tasks_snapshot.py" ]; then
     echo "$(sh_msgf scripts.obsidian_sync.step_5_charts '{"python":"'$CHART_PYTHON'","log":"'$PLANNING_BOT/logs/charts.log'"}')" >&2
     export LOCAL_VAULT
     export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    if cd "$PLANNING_BOT" && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_task_activity_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_daily_completions_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_open_pipeline_by_category_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_kanban_flow_dashboard.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
-       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_deadline_horizon_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
+    if cd "$PLANNING_BOT" && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_open_tasks_snapshot.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 \
+       && common_run_python_script "$CHART_PYTHON" "$PLANNING_BOT/scripts/build_kanban_flow_dashboard.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
       echo "$TODAY" > "$MARKER"
     else
       echo "$(sh_msg scripts.obsidian_sync.step_5_charts_fail)" >&2
@@ -71,19 +52,31 @@ if [ "$_SHOULD_CHARTS" = "1" ]; then
     fi
   fi
 fi
-unset _SHOULD_CHARTS _CHART_DIR _CUR_LOG _log_m _png_m _chart_png_mtime_max
+# Interactive charts consume JSON, not the PNGs above. Refresh on every sync,
+# including runs where the daily/static-chart marker is already current.
+if cap_step_enabled SYNC_PLANNING_CHARTS && [ -n "$CHART_PYTHON" ]; then
+  VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}" \
+    "$CHART_PYTHON" -m unified_bot.integrations.dashboard_datasets --vault "$LOCAL_VAULT" \
+    >> "$AGENT_ROOT/planning_bot/logs/charts.log" 2>&1 || _sync_fail "planning-interactive-data"
+fi
+unset _SHOULD_CHARTS _CUR_LOG
 }
 
 sync_steps_charts_calendar() {
 # 5c. PNG встреч (calendar_sync) — раз в день + если JSON календаря новее PNG.
 CAL_MARKER="$SYNC_DIR/calendar_charts_date.txt"
 _CAL_JSON="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/${VAULT_FILE_CALENDAR_JSON}"
-_CAL_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_CALENDAR_WEEK_PNG}"
+_CAL_TXT="${_CAL_JSON%.json}.txt"
+_CAL_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Assistant UI/calendar.json"
 PLANNING_BOT="${PLANNING_BOT:-$AGENT_ROOT/planning_bot}"
 _SHOULD_CAL=0
 if [ -n "${FORCE_CHARTS:-}" ]; then
   _SHOULD_CAL=1
 elif [ ! -f "$CAL_MARKER" ] || [ "$(cat "$CAL_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  _SHOULD_CAL=1
+elif [ ! -f "$_CAL_PNG" ] || [ ! -f "$_CAL_JSON" ]; then
+  _SHOULD_CAL=1
+elif [ -f "$_CAL_TXT" ] && [ "$_CAL_TXT" -nt "$_CAL_JSON" ]; then
   _SHOULD_CAL=1
 elif [ -f "$_CAL_JSON" ] && [ -f "$_CAL_PNG" ]; then
   _cal_j=$(stat -f '%m' "$_CAL_JSON" 2>/dev/null || echo 0)
@@ -106,7 +99,7 @@ if [ "$_SHOULD_CAL" = "1" ]; then
     fi
   fi
 fi
-unset _SHOULD_CAL _CAL_JSON _CAL_PNG _cal_j _cal_p
+unset _SHOULD_CAL _CAL_JSON _CAL_TXT _CAL_PNG _cal_j _cal_p
 }
 
 sync_steps_charts_agent_cost() {
@@ -116,7 +109,7 @@ sync_steps_charts_agent_cost() {
 # изменилось / нет картинки / FORCE. Старый маркер «уже сегодня» + TRACE_DAY==TODAY
 # оставлял хаб с свежей датой и графики на утреннем снимке.
 AGENT_COST_MARKER="$SYNC_DIR/agent_cost_dashboard_date.txt"
-_AC_COST_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/Система/Агент_стоимость_день.png"
+_AC_COST_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Assistant UI/system.json"
 _TRACE_LOCAL="$AGENT_ROOT/logs/agent_traces.jsonl"
 _AC_LOG="$AGENT_ROOT/logs/agent_cost_dashboard.log"
 _rebuild_system_hub() {
@@ -194,83 +187,10 @@ unset _SHOULD_AGENT_COST _AC_COST_PNG _TRACE_LOCAL _AC_LOG _AC_CHANGED _AC_FORCE
 }
 
 sync_steps_charts_nutrition_health() {
-# 5d. График КБЖУ — после 5b.4 + 5b.4b. Раз в сутки по маркеру, НО также если появился новый IPhone/*.txt
-# позже последнего PNG (иначе ночной прогон в 00:04 блокирует день до вечернего снапшота).
-NUTR_MARKER="$SYNC_DIR/daily_iphone_nutrition_date.txt"
-_IPHONE_CTX_DIR="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}"
-_NUTR_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_NUTRITION_PNG}"
-_SHOULD_NUTR=0
-if [ -n "${FORCE_CHARTS:-}" ]; then
-  _SHOULD_NUTR=1
-elif [ ! -f "$NUTR_MARKER" ] || [ "$(cat "$NUTR_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  _SHOULD_NUTR=1
-elif [ -d "$_IPHONE_CTX_DIR" ] && [ -f "$_NUTR_PNG" ]; then
-  _latest_iph=$(
-    find "$_IPHONE_CTX_DIR" -maxdepth 1 -type f -name '*.txt' ! -iname '*copy*' -print0 2>/dev/null \
-      | xargs -0 stat -f '%m' 2>/dev/null | sort -rn | head -1
-  )
-  _png_m=$(stat -f '%m' "$_NUTR_PNG" 2>/dev/null || echo 0)
-  if [ -n "$_latest_iph" ] && [ "$_latest_iph" -gt "$_png_m" ]; then
-    _SHOULD_NUTR=1
-  fi
-fi
-if ! cap_step_enabled SYNC_NUTRITION; then
-  _SHOULD_NUTR=0
-fi
-if [ "$_SHOULD_NUTR" = "1" ]; then
-  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_iphone_nutrition_chart.py" ]; then
-    echo "$(sh_msgf scripts.obsidian_sync.step_5d '{"log":"'$PLANNING_BOT/logs/charts.log'"}')" >&2
-    export VAULT_PATH="$LOCAL_VAULT"
-    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    _nutr_py="${CHART_PYTHON:-python3}"
-    if cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_iphone_nutrition_chart.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
-      echo "$TODAY" > "$NUTR_MARKER"
-    fi
-  fi
-fi
-unset _SHOULD_NUTR _NUTR_PNG _latest_iph _png_m
-
-# 5d-b. Health analytics (trends, correlations)
-_HEALTH_MARKER="$SYNC_DIR/daily_health_analytics_date.txt"
-_HEALTH_PNG="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FILE_CHART_HEALTH_TRENDS_PNG:-Health/Health_metrics_trends.png}"
-_SHOULD_HEALTH=0
-if [ -n "${FORCE_CHARTS:-}" ]; then
-  _SHOULD_HEALTH=1
-elif [ ! -f "$_HEALTH_MARKER" ] || [ "$(cat "$_HEALTH_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  _SHOULD_HEALTH=1
-elif [ -d "$_IPHONE_CTX_DIR" ] && [ -f "$_HEALTH_PNG" ]; then
-  _latest_iph=$(
-    find "$_IPHONE_CTX_DIR" -maxdepth 1 -type f -name '*.txt' ! -iname '*copy*' -print0 2>/dev/null \
-      | xargs -0 stat -f '%m' 2>/dev/null | sort -rn | head -1
-  )
-  _hpng_m=$(stat -f '%m' "$_HEALTH_PNG" 2>/dev/null || echo 0)
-  if [ -n "$_latest_iph" ] && [ "$_latest_iph" -gt "$_hpng_m" ]; then
-    _SHOULD_HEALTH=1
-  fi
-fi
-if ! cap_step_enabled SYNC_HEALTH_ANALYTICS; then
-  _SHOULD_HEALTH=0
-fi
-if [ "$_SHOULD_HEALTH" = "1" ]; then
-  if [ -d "$PLANNING_BOT" ] && [ -f "$PLANNING_BOT/scripts/build_health_analytics.py" ]; then
-    export VAULT_PATH="$LOCAL_VAULT"
-    export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
-    _nutr_py="${CHART_PYTHON:-python3}"
-    if cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_health_analytics.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1; then
-      echo "$TODAY" > "$_HEALTH_MARKER"
-    fi
-  fi
-fi
-unset _SHOULD_HEALTH _HEALTH_MARKER _HEALTH_PNG _hpng_m _IPHONE_CTX_DIR _latest_iph
-
+# Health and nutrition observations are exported by the health hub below each sync.
 # 5d-c. Cross-domain analytics
 _CROSS_MARKER="$SYNC_DIR/daily_cross_analytics_date.txt"
-_SHOULD_CROSS=0
-if [ -n "${FORCE_CHARTS:-}" ]; then
-  _SHOULD_CROSS=1
-elif [ ! -f "$_CROSS_MARKER" ] || [ "$(cat "$_CROSS_MARKER" 2>/dev/null)" != "$TODAY" ]; then
-  _SHOULD_CROSS=1
-fi
+_SHOULD_CROSS=1
 if ! cap_step_enabled SYNC_CROSS_ANALYTICS; then
   _SHOULD_CROSS=0
 fi
@@ -309,7 +229,12 @@ if cap_step_enabled SYNC_HEALTH_ANALYTICS && [ -d "$PLANNING_BOT" ] && [ -f "$PL
   export VAULT_PATH="$LOCAL_VAULT"
   export PYTHONPATH="${CHART_PYTHONPATH}${PYTHONPATH:+:$PYTHONPATH}"
   _nutr_py="${CHART_PYTHON:-python3}"
-  cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_health_dashboard_hub.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1 || true
+  if (cd "$PLANNING_BOT" && common_run_python_script "$_nutr_py" "$PLANNING_BOT/scripts/build_health_dashboard_hub.py" --vault "$LOCAL_VAULT" >> logs/charts.log 2>&1); then
+    echo "$TODAY" > "$SYNC_DIR/daily_iphone_nutrition_date.txt"
+    echo "$TODAY" > "$SYNC_DIR/daily_health_analytics_date.txt"
+  else
+    _sync_fail "health-interactive-data"
+  fi
 fi
 }
 
@@ -318,7 +243,7 @@ sync_steps_charts_finance() {
 FINANCE_MARKER="$SYNC_DIR/finance_dashboard_date.txt"
 FINANCE_BOT="$AGENT_ROOT/finance_bot"
 FIN_DB="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/finance.db"
-FIN_CHART_REF="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_CHARTS}/${VAULT_FIN_CHART_DAILY_CATEGORIES_PNG}"
+FIN_CHART_REF="$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/${VAULT_DASH_DATA}/Assistant UI/finance.json"
 FIN_DB_NEWER=
 if [ -f "$FIN_DB" ] && [ -f "$FIN_CHART_REF" ] && [ "$FIN_DB" -nt "$FIN_CHART_REF" ]; then
   FIN_DB_NEWER=1
@@ -327,7 +252,7 @@ if cap_step_enabled SYNC_FINANCE_DASHBOARD && [ -d "$FINANCE_BOT" ] && [ -f "$FI
   if [ -n "$SYNC_STATE_DIR" ]; then FIN_LOG="$SYNC_DIR/finance_dashboard_daily.log"; else FIN_LOG="$FINANCE_BOT/logs/finance_dashboard_daily.log"; fi
   mkdir -p "$(dirname "$FIN_LOG")" 2>/dev/null || true
   _FIN_BUILD=0
-  if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ -n "$FIN_DB_NEWER" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(cat "$FINANCE_MARKER" 2>/dev/null)" != "$TODAY" ]; then
+  if [ -n "${FORCE_FINANCE_DASHBOARD:-}" ] || [ -n "$FIN_DB_NEWER" ] || [ ! -f "$FIN_CHART_REF" ] || [ ! -f "$FINANCE_MARKER" ] || [ "$(cat "$FINANCE_MARKER" 2>/dev/null)" != "$TODAY" ]; then
     _FIN_BUILD=1
   fi
   echo "$(sh_msgf scripts.obsidian_sync.step_6 '{"build":"'${_FIN_BUILD}'","log":"'$FIN_LOG'"}')" >&2
@@ -364,4 +289,3 @@ if cap_step_enabled SYNC_FINANCE_DASHBOARD && [ -d "$FINANCE_BOT" ] && [ -f "$FI
 fi
 unset _FIN_BUILD FIN_DB_NEWER
 }
-

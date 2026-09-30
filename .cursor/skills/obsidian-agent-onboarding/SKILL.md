@@ -72,6 +72,7 @@ Use **AskQuestion** once to pick a playbook, then **do not ask** about items in 
 |------|------------------|
 | Profile | `python3 scripts/apply_capabilities_profile.py --preset planning_only --write --patch-env` |
 | Core env | `env_tools.py set` → `VAULT_PATH`, `TELEGRAM_UNIFIED_BOT_TOKEN` (or `TELEGRAM_BOT_TOKEN`), `LLM_API_KEY` (or legacy `DEEPSEEK_API_KEY`) |
+| Intro fast path | `onboarding_interview.py apply-intro-defaults` — skips personal Q&A (~5 min saved) |
 | Layout | `python3 scripts/init_vault_layout.py` → `./scripts/setup.sh` → `bash scripts/setup_agent_config.sh` |
 | Prompts | `bash scripts/ensure_bot_prompts.sh` — personalize planning `*.txt` only |
 | Smoke | `python3 scripts/onboarding_smoke.py --verify-all --golden-planning` |

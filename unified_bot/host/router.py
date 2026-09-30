@@ -145,6 +145,13 @@ async def cmd_reset(message: Message, state: FSMContext) -> None:
     )
 
 
+@router.message(lambda message: (message.text or "") in {msg("host", k) for k in ("capture_button", "find_button", "data_status_button", "more_button")})
+async def entry_navigation(message: Message, state: FSMContext) -> None:
+    from unified_bot.host.entry_actions import handle_entry_action
+    # Keep a financial draft intact when checking status or opening extra features.
+    await handle_entry_action(message, message.text)
+
+
 @router.message(StateFilter(default_state), F.text)
 async def handle_text(
     message: Message, state: FSMContext, agent_app, planning=None
@@ -175,6 +182,10 @@ async def handle_text(
     if text == L.back_home():
         await state.update_data(ui_mode=UI_MODE_AUTO, fixed_domain=None)
         await message.answer(msg("host", "main_menu"), reply_markup=root_keyboard())
+        return
+
+    from unified_bot.host.entry_actions import handle_entry_action
+    if await handle_entry_action(message, text):
         return
 
     if text == L.memory_menu():

@@ -133,7 +133,7 @@ class ActionLogQuery:
         result = pdmsg("auto_87e5fbbd3a", week_start_str={week_start_str})
         for entry in entries:
             result += f"- {entry['timestamp']}: {entry['type']}"
-            if entry['type'] == 'task_moved':
+            if entry['type'] in ('task_moved', 'task_reopened'):
                 result += f" - \"{entry['data'].get('title', '')}\" ({entry['data'].get('from', '')} → {entry['data'].get('to', '')})"
             elif entry['type'] == 'task_completed':
                 result += f" - \"{entry['data'].get('title', '')}\""
@@ -185,7 +185,7 @@ class ActionLogQuery:
         result = pdmsg("auto_350cb8f834", _p1=max(1, days), _p3=period_start_str)
         for entry in entries:
             result += f"- {entry['timestamp']}: {entry['type']}"
-            if entry['type'] == 'task_moved':
+            if entry['type'] in ('task_moved', 'task_reopened'):
                 result += f" - \"{entry['data'].get('title', '')}\" ({entry['data'].get('from', '')} → {entry['data'].get('to', '')})"
             elif entry['type'] == 'task_completed':
                 result += f" - \"{entry['data'].get('title', '')}\""
@@ -193,4 +193,3 @@ class ActionLogQuery:
                 result += f" - \"{entry['data'].get('title', '')}\" [{entry['data'].get('category', '')}, {entry['data'].get('priority', '')}]"
             result += "\n"
         return result
-

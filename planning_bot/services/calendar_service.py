@@ -65,7 +65,10 @@ def _load(json_path: Path) -> List[Dict]:
 def _in_range(event: Dict, start: date, end: date) -> bool:
     try:
         ev_date = datetime.strptime(event["date"], "%Y-%m-%d").date()
-        return start <= ev_date <= end
+        last_day = date.fromisoformat(event.get("end_date") or event["date"])
+        if last_day > ev_date and event.get("end") == "00:00":
+            last_day -= timedelta(days=1)
+        return ev_date <= end and last_day >= start
     except (ValueError, KeyError):
         return False
 
@@ -139,7 +142,7 @@ def _format_event(ev: Dict) -> str:
         "calendar_event_timed",
         date=ev["date"],
         start=ev["start"],
-        end=ev["end"],
+        end=(f"{ev['end_date']} {ev['end']}" if ev.get("end_date") and ev["end_date"] != ev["date"] else ev["end"]),
         cancelled=cancelled,
         tag=tag_s,
         title=title,
@@ -202,6 +205,10 @@ def get_week_calendar_summary(json_path: Path, days_back: int = 7, days_ahead: i
 
     total_minutes = 0
     for ev in active_timed:
+        if ev.get("start_at") and ev.get("end_at"):
+            from planning_bot.services.calendar_retention import _event_minutes
+            total_minutes += _event_minutes(ev)
+            continue
         try:
             t0 = datetime.strptime(ev["start"], "%H:%M")
             t1 = datetime.strptime(ev["end"], "%H:%M")
@@ -400,6 +407,9 @@ def _calendar_meta_footer(json_path: Path) -> str:
             meta = (json.load(f).get("meta") or {})
     except Exception as e:
         return pdmsg("calendar_meta_read_error", error=e)
+    if meta.get("source") == "apple_calendar":
+        from planning_bot.services.calendar_freshness import describe_calendar
+        return describe_calendar(json_path)
     updated = meta.get("last_updated") or meta.get("txt_last_parsed") or "?"
     total = meta.get("total_events")
     tail = f"meta: last_updated={updated}"

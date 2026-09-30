@@ -110,7 +110,15 @@ def get_completion_events(
     dedup_per_task: bool = True,
 ) -> List[dict]:
     'Operation implementation.'
-    completion = [e for e in events if is_completion_event(e)]
+    reopened = {}
+    for event in events:
+        if event.get("type") == "task_reopened":
+            tid = (event.get("data") or {}).get("task_id")
+            if tid and event.get("dt"):
+                reopened[tid] = max(reopened.get(tid, event["dt"]), event["dt"])
+    completion = [e for e in events if is_completion_event(e)
+                  and (not (e.get("data") or {}).get("task_id") in reopened
+                       or e["dt"] > reopened[e["data"]["task_id"]])]
     completion.sort(key=lambda e: e["dt"])
     if filter_batch:
         completion = filter_batch_completions(completion, minute_threshold=batch_minute_threshold)

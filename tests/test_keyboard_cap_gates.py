@@ -58,7 +58,8 @@ def test_root_keyboard_omits_disabled_modules(monkeypatch):
     monkeypatch.setenv("CAP_MODULE_PLANNING", "1")
     monkeypatch.setenv("CAP_MODULE_KNOWLEDGE", "0")
     _clear_caches()
-    kb = root_keyboard()
+    from unified_bot.host.keyboards import more_keyboard
+    kb = more_keyboard()
     labels = {btn.text for row in kb.keyboard for btn in row}
     from unified_bot.host import labels as L
 

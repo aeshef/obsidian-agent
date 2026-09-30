@@ -7,6 +7,7 @@ Composes existing pieces:
   - actual consumption from transactions (caller supplies)
 """
 from __future__ import annotations
+import os
 from shared.finance.currency import base_currency
 
 from dataclasses import asdict, dataclass, field
@@ -114,6 +115,9 @@ _BOT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def _config_dir() -> Path:
+    override = os.environ.get("FINANCE_CONFIG_DIR", "").strip()
+    if override:
+        return Path(override)
     return _BOT_ROOT / "config"
 
 
