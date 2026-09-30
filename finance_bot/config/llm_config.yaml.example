@@ -14,6 +14,7 @@ temperature:
 
 # Таймауты (в секундах)
 timeout:
+  connect: 10.0
   default: 60.0
   json: 120.0  # длинные пачки транзакций
   text: 60.0
@@ -21,3 +22,7 @@ timeout:
 # Лимит токенов ответа (batch NLU)
 max_tokens:
   nlu: 8192
+
+retry:
+  json_attempts: 2
+  backoff_seconds: 1.0

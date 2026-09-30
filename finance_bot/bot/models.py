@@ -94,3 +94,13 @@ class PlannedExpense(Base):
 
     user: Mapped[User] = relationship(back_populates="planned_expenses")
 
+
+
+class TransactionImport(Base):
+    """Durable idempotency receipt and exact undo snapshot for a confirmed import."""
+    __tablename__ = "transaction_imports"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    payload: Mapped[str] = mapped_column(String, default="[]")
+    undone: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

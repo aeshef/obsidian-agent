@@ -127,6 +127,10 @@ async def _delete_portfolio_account_if_orphan(session: AsyncSession, acc: Accoun
             acc.name,
         )
         return False
+    history = await session.execute(select(func.count()).select_from(AccountBalanceSnapshot).where(AccountBalanceSnapshot.account_id == acc.id))
+    if history.scalar_one() > 0:
+        log.warning("Portfolio account id=%s has balance history; skipped auto-removal", acc.id)
+        return False
     await session.delete(acc)
     return True
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import requests
 from typing import Optional
 
 from aiogram import Router, types, F
@@ -97,19 +98,35 @@ async def process_transactions(
         )
         return
 
-    parser = TransactionNLUParser()
+    progress = await message.answer(fmsg("nlu_processing_batch"))
+
+    async def on_progress(index: int, total: int) -> None:
+        if total > 1:
+            try:
+                await progress.edit_text(fmsg("nlu_batch_progress", index=index, total=total), parse_mode=None)
+            except Exception:
+                log.warning("Could not update NLU progress", exc_info=True)
+
     try:
-        parsed_list = await parser.parse(text, telegram_id=message.from_user.id)
+        parser = TransactionNLUParser()
+        report = await parser.parse_report(text, telegram_id=message.from_user.id, on_progress=on_progress)
+        parsed_list = report.transactions
     except Exception as e:
         log.error("Transaction parse error: %s", e, exc_info=True)
-        await message.answer(fmsg("nlu_parse_error", error=e, text=text))
+        key = "nlu_service_unavailable" if isinstance(e, requests.RequestException) else "nlu_batch_parse_failed"
+        await message.answer(fmsg(key), parse_mode=None)
         return
+    finally:
+        try:
+            await progress.delete()
+        except Exception:
+            log.debug("Could not remove NLU progress", exc_info=True)
 
     log.info("parsed transactions count=%d badge=%s", len(parsed_list), badge_mode)
 
-    if not parsed_list:
+    if not parsed_list and not report.issues:
         log.warning("LLM did not recognize transaction from text: %r", text)
-        await message.answer(fmsg("nlu_not_recognized", text=text))
+        await message.answer(fmsg("nlu_batch_parse_failed"), parse_mode=None)
         return
 
     if not badge_mode and not ctx:
@@ -142,37 +159,38 @@ async def process_transactions(
                 )
                 break
 
-    for i, parsed in enumerate(parsed_list):
-        try:
-            missing = await get_missing_fields(
-                parsed, message.from_user.id, badge_mode=badge_mode
-            )
-        except Exception as e:
-            log.error(
-                "Transaction check error %d/%d: %s",
-                i + 1,
-                len(parsed_list),
-                e,
-                exc_info=True,
-            )
-            await message.answer(
-                fmsg(
-                    "nlu_check_error",
-                    index=i + 1,
-                    total=len(parsed_list),
-                    detail=str(e),
+    if report.total_lines == 1 and not report.issues:
+        for i, parsed in enumerate(parsed_list):
+            try:
+                missing = await get_missing_fields(
+                    parsed, message.from_user.id, badge_mode=badge_mode
                 )
+            except Exception as e:
+                log.error(
+                    "Transaction check error %d/%d: %s",
+                    i + 1,
+                    len(parsed_list),
+                    e,
+                    exc_info=True,
+                )
+                await message.answer(
+                    fmsg(
+                        "nlu_check_error",
+                        index=i + 1,
+                        total=len(parsed_list),
+                        detail=str(e),
+                    )
+                )
+                return
+            log.info(
+                "Transaction %d missing fields: %s",
+                i + 1,
+                list(missing.keys()) if missing else "none",
             )
-            return
-        log.info(
-            "Transaction %d missing fields: %s",
-            i + 1,
-            list(missing.keys()) if missing else "none",
-        )
-        if missing:
-            log.warning("  need to fill: %s", ", ".join(missing.keys()))
-        else:
-            log.info("  all fields recognized")
+            if missing:
+                log.warning("  need to fill: %s", ", ".join(missing.keys()))
+            else:
+                log.info("  all fields recognized")
 
     await state.set_state(ConfirmTransactionsState.transactions)
     await state.update_data(
@@ -181,6 +199,14 @@ async def process_transactions(
         wizard_message_id=None,
         badge_mode=badge_mode,
     )
+
+    if report.total_lines > 1 or report.issues:
+        from uuid import uuid4
+        from bot.handlers.transactions.import_review import review
+        await state.update_data(import_token=uuid4().hex, import_issues=report.issues,
+                                import_message_id=None, import_allow_duplicates=False)
+        await review(message, state, message.from_user.id)
+        return
 
     try:
         await show_transaction_confirmation(
