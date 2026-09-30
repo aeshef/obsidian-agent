@@ -8,7 +8,10 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from planning_bot.core.config import ACTION_LOGS_DIR, LOGS_DIR
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+from planning_bot.core.config import LOGS_DIR
 from planning_bot.services.action_log_parser import collect_events_from_logs, get_completion_events
 from shared.vault_paths_config import dashboards_sub, folder
 
@@ -18,9 +21,10 @@ def _output_path(vault: Path) -> Path:
 
 
 def build_task_completions_index(*, vault: Path | None = None) -> Path:
-    vault = vault or LOGS_DIR.parent.parent
+    vault = vault or LOGS_DIR.parent
+    logs_dir = vault / folder("dashboards") / dashboards_sub("logs")
     out_path = _output_path(vault)
-    events = collect_events_from_logs(ACTION_LOGS_DIR)
+    events = collect_events_from_logs(logs_dir)
     completions = get_completion_events(events, filter_batch=True, dedup_per_task=True)
 
     index: dict[str, str] = {}
@@ -54,5 +58,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     main()
