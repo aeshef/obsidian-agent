@@ -67,7 +67,8 @@ def parse_sections(content: str) -> Dict[str, List[str]]:
         if not col:
             continue
         body = match.group(2)
-        sections[col] = parse_task_blocks(body)
+        blocks = parse_task_blocks(body)
+        sections.setdefault(col, []).extend(blocks)
     return sections
 
 

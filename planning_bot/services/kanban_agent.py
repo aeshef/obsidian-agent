@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from difflib import SequenceMatcher
 from datetime import date
 from typing import Any, Dict, List, Optional
 
@@ -230,6 +231,38 @@ def _newest_id(sections: Dict[str, List[str]], ids: List[str]) -> str:
     return max(ids, key=key)
 
 
+def _title_suggestions(sections: Dict[str, List[str]], refs: List[str]) -> str:
+    """Suggest identifiers after a failed lookup; never authorize a fuzzy write."""
+    from shared.agent.platform_config import platform_float, platform_int
+
+    cutoff = platform_float("planning_kanban_search", "suggestion_cutoff", default=0.65)
+    limit = max(1, platform_int("planning_kanban_search", "suggestion_limit", default=5))
+    ranked = []
+    for column, blocks in sections.items():
+        for block in blocks:
+            tid = kp.extract_id_from_block(block)
+            title = kp.title_from_block(block)
+            if not tid or not title:
+                continue
+            words = _norm(title).split()
+            score = 0.0
+            for ref in refs:
+                query = _norm(ref)
+                width = len(query.split())
+                if not width:
+                    continue
+                for start in range(len(words)):
+                    window = " ".join(words[start:start + width])
+                    score = max(score, SequenceMatcher(None, query, window).ratio())
+            if score >= cutoff:
+                ranked.append((score, tid, title, column))
+    if not ranked:
+        return ""
+    rows = [pdmsg("kanban_candidate_row", task_id=tid, title=title, column=column)
+            for _, tid, title, column in sorted(ranked, reverse=True)[:limit]]
+    return "\n" + pdmsg("kanban_candidates", candidates="\n".join(rows))
+
+
 def resolve_task_ids(
     sections: Dict[str, List[str]],
     *,
@@ -273,7 +306,7 @@ def resolve_task_ids(
             [chosen],
             pdmsg("auto_d0350b047b", _p1=', '.join(uniq), _p3=chosen),
         )
-    return [], pdmsg("kanban_task_not_found", ref=refs[0])
+    return [], pdmsg("kanban_task_not_found", ref=refs[0]) + _title_suggestions(sections, refs)
 
 
 def resolve_task_ref(

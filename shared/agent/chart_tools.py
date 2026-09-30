@@ -341,6 +341,7 @@ async def refresh_vault_charts(
 
 def attach_chart_tools(registry) -> None:
     """Register chart tools on a domain registry (idempotent)."""
-    for fn in (list_vault_charts, send_vault_charts, refresh_vault_charts):
+    from shared.agent.dynamic_chart_tools import list_dashboard_charts, render_dashboard_chart
+    for fn in (list_dashboard_charts, render_dashboard_chart, list_vault_charts, send_vault_charts, refresh_vault_charts):
         if fn.__name__ not in registry.names():
             registry.register(fn)

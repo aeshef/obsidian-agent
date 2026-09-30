@@ -53,10 +53,17 @@ def test_trace_includes_cost_and_context(tmp_path: Path, monkeypatch):
 
 
 def test_summarize_traces_daily(tmp_path: Path):
+    from datetime import timedelta
+
+    from shared.tz import now_in_tz
+
+    now = now_in_tz()
+    ts1 = (now - timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+    ts2 = (now - timedelta(days=1)).replace(hour=10, minute=0, second=0, microsecond=0)
     path = tmp_path / "t.jsonl"
     rows = [
         {
-            "ts": "2026-08-01T10:00:00+00:00",
+            "ts": ts1.isoformat(),
             "domain": "unified",
             "prompt_tokens": 1000,
             "completion_tokens": 100,
@@ -72,7 +79,7 @@ def test_summarize_traces_daily(tmp_path: Path):
             "context_chars_peak": 5000,
         },
         {
-            "ts": "2026-08-02T10:00:00+00:00",
+            "ts": ts2.isoformat(),
             "domain": "finance",
             "prompt_tokens": 2000,
             "completion_tokens": 50,

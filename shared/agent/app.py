@@ -8,6 +8,7 @@ domain chosen by L1.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Awaitable, Callable
 
 from shared.agent.core import run_agent
@@ -69,13 +70,16 @@ class AgentApp:
 
     def _registry(self, domain: str) -> ToolRegistry:
         if domain not in self._registries:
-            self._registries[domain] = self._adapters[domain].build_registry()
+            from shared.agent_runtime.tools import attach
+            self._registries[domain] = attach(self._adapters[domain].build_registry())
         return self._registries[domain]
 
     def merged_registry(self) -> ToolRegistry:
         """All tools from registered domains (for unified host)."""
         if "_merged" not in self._registries:
             merged = ToolRegistry()
+            from shared.agent.data_status import get_data_status
+            merged.register(get_data_status)
             for dom in self.domains():
                 reg = self._registry(dom)
                 for name in reg.names():
@@ -85,6 +89,8 @@ class AgentApp:
                             continue
                         raise ValueError(f"duplicate tool name across domains: {name}")
                     merged._tools[name] = reg._tools[name]
+            from shared.agent_runtime.tools import attach
+            attach(merged)
             self._registries["_merged"] = merged
         return self._registries["_merged"]
 
@@ -95,12 +101,14 @@ class AgentApp:
         question: str,
         *,
         agent_progress: AgentProgress | None = None,
+        request_key: str | None = None,
     ) -> AgentAnswer:
         adapter = self._adapters.get(domain)
         if adapter is None:
             raise KeyError(f"domain not registered: {domain}")
 
         extras = await adapter.prepare_extras(user_id)
+        if request_key: extras["request_key"] = request_key
         extras.setdefault("telegram_id", user_id)
         extras.setdefault(KB_MEDIA_EXTRAS_KEY, [])
         if agent_progress is not None:
@@ -135,6 +143,8 @@ class AgentApp:
             role=adapter.role,
             agent_progress=agent_progress or NullAgentProgress(),
         )
+        from shared.agent_runtime.operations import guard_answer
+        answer_text = guard_answer(ctx, answer_text)
         from shared.agent.media_queue import collect_outbound_media
 
         media = collect_outbound_media(ctx)
@@ -152,6 +162,7 @@ class AgentApp:
         question: str,
         *,
         agent_progress: AgentProgress | None = None,
+        request_key: str | None = None,
     ) -> AgentAnswer:
         """Single agent loop with all domain tools (host / cross-domain)."""
         extras: dict = {"telegram_id": user_id}
@@ -160,6 +171,7 @@ class AgentApp:
             if adapter:
                 extras.update(await adapter.prepare_extras(user_id))
         extras.setdefault(KB_MEDIA_EXTRAS_KEY, [])
+        if request_key: extras["request_key"] = request_key
         extras.setdefault("telegram_id", user_id)
         if agent_progress is not None:
             extras["agent_progress"] = agent_progress
@@ -185,6 +197,8 @@ class AgentApp:
             role=ModelRole.ANALYZE,
             agent_progress=agent_progress or NullAgentProgress(),
         )
+        from shared.agent_runtime.operations import guard_answer
+        answer_text = guard_answer(ctx, answer_text)
         from shared.agent.media_queue import collect_outbound_media
 
         media = collect_outbound_media(ctx)
@@ -202,9 +216,18 @@ class AgentApp:
         from shared.memory.layers import build_memory_layers
 
         base = load_prompt(agent_config_dir(), "host_query", subdir="prompts", required=True)
+        # Demo / EN-strict film sets: never mirror RU chat history — always English.
+        if os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes"):
+            base = (
+                f"{base.rstrip()}\n"
+                "16. Always reply in English. The vault, dashboards, and UI are English. "
+                "Do not switch to Russian even if prior turns were Russian.\n"
+            )
         now = now_in_tz()
         date_hint = msgf("agent", "date_hint", date=now.strftime("%Y-%m-%d (%A)"))
         followup = msgf("agent", "host_followup_hint")
+        followup += "\n" + load_prompt(agent_config_dir(), "interaction_contract", subdir="prompts", required=True)
+        followup += "\n" + load_prompt(agent_config_dir(), "message_style", subdir="prompts", required=True)
         layers: list[MemoryLayer] = [
             *build_memory_layers("unified", insights=False),
             ToolFactsMemory(),

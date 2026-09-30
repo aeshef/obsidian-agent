@@ -20,7 +20,7 @@ def _schema_for_annotation(ann: Any) -> dict[str, Any]:
         return {"type": "string"}
     if origin is list:
         return {"type": "array", "items": _schema_for_annotation(get_args(ann)[0] if get_args(ann) else str)}
-    if origin is dict:
+    if origin is dict or ann is dict:
         return {"type": "object"}
     args = get_args(ann)
     if origin is not None and type(None) in args:
@@ -55,6 +55,9 @@ def tool(
     always: bool = False,
     serial: bool = False,
     name: str | None = None,
+    read_only: bool = False,
+    mutating: bool = False,
+    verifier=None,
 ):
     """Register async function as Tool when adding to ToolRegistry."""
 
@@ -63,6 +66,9 @@ def tool(
             "category": category,
             "always": always,
             "serial": serial,
+            "read_only": read_only,
+            "mutating": mutating,
+            "verifier": verifier,
             "name": name or fn.__name__,
             "description": (fn.__doc__ or fn.__name__).strip().split("\n")[0],
             "parameters": _build_parameters_schema(fn),
@@ -87,7 +93,10 @@ class ToolRegistry:
             handler=fn,
             category=meta["category"],
             always=meta["always"],
-            serial=bool(meta.get("serial")),
+            serial=bool(meta.get("serial")) or bool(meta.get("mutating")),
+            read_only=bool(meta.get("read_only")),
+            mutating=bool(meta.get("mutating")),
+            verifier=meta.get("verifier"),
         )
         self._tools[t.name] = t
 

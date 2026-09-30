@@ -24,6 +24,14 @@ CONFIG_STEM_LOADERS: dict[str, LoaderKind] = {
     "routing": "merged",
     "memory": "merged",
     "tools": "merged",
+    "intro_defaults": "merged",
+    "architecture": "catalog",
+    "calendar_bridge": "merged",
+    "health_backfill": "merged",
+    "mac_capture": "merged",
+    "llm_reliability": "merged",
+    "obsidian_ui.en": "catalog",
+    "obsidian_ui.ru": "catalog",
 }
 
 

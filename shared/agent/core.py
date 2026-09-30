@@ -194,7 +194,12 @@ async def execute_tool(
         )
     try:
         tool = registry.get(tc.name)
-        result = await tool.handler(**tc.arguments, ctx=ctx)
+        from shared.agent_runtime.config import enabled as architecture_enabled
+        if tool.mutating and architecture_enabled():
+            from shared.agent_runtime.operations import execute
+            result = await execute(tool,tc,ctx)
+        else:
+            result = await tool.handler(**tc.arguments, ctx=ctx)
         content = result if isinstance(result, str) else str(result)
         # Do not log tool output body (PII); name and size only.
         log.info("tool %s ok (%d chars)", tc.name, len(content))
@@ -231,6 +236,7 @@ async def run_agent(
     role: ModelRole = ModelRole.ANALYZE,
     agent_progress: AgentProgress | None = None,
 ) -> str:
+    ctx.extras["tool_registry"] = registry
     limit = max_iters if max_iters is not None else _max_iters()
     progress = agent_progress
     if progress is None:
@@ -244,6 +250,8 @@ async def run_agent(
     )
     # Pin stays in the catalog; schemas/allowlist only when this turn picked tools.
     selected = selection.offered if selection.picked else []
+    if selected and registry.has("read_tool_result") and "read_tool_result" not in selected:
+        selected = [*selected, "read_tool_result"]
     schemas = registry.schemas(selected)
     log.info(
         "agent tools offered=%s picked=%s schemas=%d",
@@ -329,7 +337,7 @@ async def run_agent(
         if max_tool_calls and tool_calls_used >= max_tool_calls:
             tool_choice = "none"
         on_delta = None
-        if answer_stream_enabled() and tool_choice != "required":
+        if answer_stream_enabled() and tool_choice != "required" and not ctx.extras.get("operation_receipts"):
             loop = asyncio.get_running_loop()
 
             def on_delta(text: str) -> None:
@@ -470,6 +478,7 @@ async def run_agent(
             if not escalated and iteration < limit - 1:
                 escalated = True
                 loop_role = strong_role()
+                force_tools = True
                 if trace is not None:
                     trace.note_cascade("empty_response")
                 log.warning(
@@ -539,6 +548,11 @@ async def run_agent(
 
         for tr, tc in zip(results, calls):
             clipped, stats = clip_tool_result(tr.content or "")
+            if stats.get("clipped") and registry.has("read_tool_result"):
+                rows = ctx.extras.get("loop_tool_results", [])
+                index = next((i for i,r in enumerate(rows) if r.get("name")==tr.name and r.get("content")==tr.content), None)
+                if index is not None:
+                    clipped += "\n" + json.dumps({"full_result_index": index, "total_chars": len(tr.content), "reader": "read_tool_result"})
             if trace is not None:
                 trace.note_tool_clip(tool=tc.name, stats=stats)
             tool_bodies.append(tr.content or "")
