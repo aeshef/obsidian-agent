@@ -590,7 +590,7 @@ fi
 echo "$(sh_msg scripts.obsidian_sync.done)" >&2
 
 # Refresh the visible audit after this cycle's final status is known.
-if [ -n "${CHART_PYTHON:-}" ]; then
+if [ -n "${CHART_PYTHON:-}" ] && [ -f "$AGENT_ROOT/planning_bot/scripts/build_system_audit_report.py" ]; then
   VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${CHART_PYTHONPATH}:${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}" \
     "$CHART_PYTHON" "$AGENT_ROOT/planning_bot/scripts/build_system_audit_report.py" --vault "$LOCAL_VAULT" >> "$AGENT_ROOT/planning_bot/logs/system_audit.log" 2>&1 || true
 fi
