@@ -55,6 +55,17 @@ fi
 # Важно: rsync с --update НЕ удаляет на удалённой стороне файлы, которые уже убраны локально.
 # Поэтому после шага 5b.2 (удаление дублей в Export на Mac) выполняется 5b.2b — тот же apply_duplicates на сервере.
 
+# Health revisions can originate from IMAP on either host. Merge raw packets
+# before local cleanup; never mirror deletions into this append-only history.
+if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE; then
+  _health_rel="${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}"
+  mkdir -p "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/$_health_rel"
+  "$RSYNC_BIN" "${FLAGS[@]}" --update --include='/*.txt' --exclude='*' \
+    "$SERVER:$SERVER_VAULT/${VAULT_FOLDER_DASHBOARDS}/$_health_rel/" \
+    "$LOCAL_VAULT/${VAULT_FOLDER_DASHBOARDS}/$_health_rel/" || _sync_fail "health-history-pull"
+  unset _health_rel
+fi
+
 # 1a. IPhone/Mac: DD.MM.YYYY → YYYY-MM-DD (сортировка); манифест → 1a-remote до push
 _PLANNING_BOT="${AGENT_ROOT}/planning_bot"
 if cap_module_enabled PLANNING && cap_step_enabled SYNC_MAC_IPHONE && [ -d "$_PLANNING_BOT" ] && [ -f "$_PLANNING_BOT/tools/rename_action_snapshots.py" ]; then
@@ -130,6 +141,7 @@ unset _PLANNING_BOT _PLAN_SP _PLAN_PYTHONPATH
 # Плюс не пушим корневой 📊 Логи_Действий_*.md — канон только 300_Дашборды/Логи/; иначе файл из корня (устаревшая структура) снова уезжает на сервер и «возвращается».
 # Не пушить устаревший график (выпилен из build_finance_dashboard; иначе вернётся с мака на сервер)
 PUSH_EXCLUDE_300=(
+  --filter="P ${VAULT_DASH_DATA}/${VAULT_PATH_ACTIONS_IPHONE}/***"
   --exclude='kanban_state.json'
   --exclude='kanban_archive_meta.json'
   --exclude='.kanban_monitor_state.json'

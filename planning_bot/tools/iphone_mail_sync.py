@@ -126,6 +126,10 @@ def _snap_filename(snap: Dict[str, Any]) -> Optional[str]:
         dt = datetime.strptime(ts_str, "%d.%m.%Y, %H:%M")
     except ValueError:
         return None
+    if snap.get("schema_version") in (2, "2", "2.0"):
+        import hashlib
+        revision = str(int(hashlib.sha256(json.dumps(snap, sort_keys=True).encode()).hexdigest()[:16], 16))
+        return format_snapshot_filename(dt, suffix=revision)
     return format_snapshot_filename(dt)
 
 
@@ -140,7 +144,9 @@ def _load_state(state_path: Path) -> Dict[str, Any]:
 
 def _save_state(state_path: Path, state: Dict[str, Any]) -> None:
     state_path.parent.mkdir(parents=True, exist_ok=True)
-    state_path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp = state_path.with_suffix(".tmp")
+    temp.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    temp.replace(state_path)
 
 
 def run_iphone_mail_sync(
@@ -153,7 +159,7 @@ def run_iphone_mail_sync(
     iphone_dir: Optional[Path] = None,
     state_path: Optional[Path] = None,
     limit: int = 50,
-    since_days: int = 30,
+    since_days: int = 180,
     dry_run: bool = False,
     today_only: Optional[bool] = None,
 ) -> Dict[str, Any]:
@@ -165,6 +171,7 @@ def run_iphone_mail_sync(
     # (comment)
     app_password = app_password.replace(" ", "")
     host = os.environ.get("GMAIL_IMAP_HOST", host)
+    mailbox = os.environ.get("GMAIL_IMAP_MAILBOX", "INBOX").strip() or "INBOX"
     subject_filter = os.environ.get("GMAIL_IMAP_SUBJECT", subject_filter)
 
     if not user or not app_password:
@@ -188,6 +195,10 @@ def run_iphone_mail_sync(
     state_file = state_path or (out_dir / ".sync_state.json")
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    from shared.agent.config import agent_config_dir
+    from shared.yaml_config import load_merged_config
+    archive_enabled = bool(load_merged_config(str(agent_config_dir()), "health_backfill").get("mail", {}).get("archive_successful", False)) and not dry_run and host == "imap.gmail.com"
+    accepted_uids = []
     state = _load_state(state_file)
     processed_ids: set = set(state.get("processed_ids", []))
 
@@ -210,9 +221,25 @@ def run_iphone_mail_sync(
         return {"ok": False, "error": f"IMAP connect/auth failed: {e}"}
 
     try:
-        imap.select("INBOX")
+        # A Gmail label is an IMAP mailbox. Read-only selection + PEEK never marks mail read.
+        status, _ = imap.select('"' + mailbox.replace('\\', '\\\\').replace('"', '\\"') + '"', readonly=not archive_enabled)
+        if status != "OK":
+            return {"ok": False, "error": "IMAP mailbox unavailable"}
         # (comment)
-        status, data = imap.search(None, "ALL")
+        # Server-side date filter avoids hundreds of header round-trips per poll.
+        cutoff = datetime.now() - timedelta(days=max(1, since_days))
+        months = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+        imap_since = f"{cutoff.day:02d}-{months[cutoff.month - 1]}-{cutoff.year}"
+        # Filter by the distinctive metrics subject on the server. This lets us
+        # scan a long recovery window without walking an entire busy Inbox.
+        if subject_filter.isascii():
+            safe_subject = subject_filter.replace("\\", "\\\\").replace('"', '\\"')
+            status, data = imap.search(None, "SINCE", imap_since, "SUBJECT", f'"{safe_subject}"')
+        else:
+            # imaplib serializes string arguments as ASCII. Non-ASCII subjects
+            # must be sent as a UTF-8 literal, with the matching SEARCH charset.
+            imap.literal = subject_filter.encode("utf-8")
+            status, data = imap.search("UTF-8", "SINCE", imap_since, "SUBJECT")
         if status != "OK":
             return {"ok": False, "error": "IMAP SEARCH failed"}
 
@@ -222,7 +249,7 @@ def run_iphone_mail_sync(
         subject_lower = subject_filter.lower()
 
         matched_ids: List[bytes] = []
-        for eid in reversed(ids[-500:]):  # (comment)
+        for eid in reversed(ids):
             if len(matched_ids) >= limit:
                 break
             # (comment)
@@ -261,7 +288,7 @@ def run_iphone_mail_sync(
 
         for eid, msg_id in matched_ids:
             try:
-                s3, full = imap.fetch(eid, "(RFC822)")
+                s3, full = imap.fetch(eid, "(UID BODY.PEEK[])" if archive_enabled else "(BODY.PEEK[])")
                 if s3 != "OK" or not full or not full[0]:
                     continue
                 raw = full[0][1]
@@ -285,7 +312,13 @@ def run_iphone_mail_sync(
                 snap = _parse_body(body, fallback_ts=fallback_ts)
                 if snap is None:
                     log.warning(pdmsg("auto_f467c12287"), msg_id)
+                    result["rejected"] += 1
                     result["errors"].append(pdmsg("auto_3c7a592b40", _p1=msg_id))
+                    # An empty/malformed message cannot become valid later. Mark
+                    # it handled so one poison email does not fail every poll;
+                    # the original remains preserved in Gmail for diagnosis.
+                    if not dry_run:
+                        processed_ids.add(msg_id)
                     continue
 
                 if not is_valid_health_snapshot(snap):
@@ -304,9 +337,14 @@ def run_iphone_mail_sync(
                 fpath = out_dir / fname
                 txt = _snap_to_txt(snap)
                 if not dry_run:
-                    fpath.write_text(txt, encoding="utf-8")
+                    temp = fpath.with_suffix(".tmp")
+                    temp.write_text(txt, encoding="utf-8")
+                    temp.replace(fpath)
                     processed_ids.add(msg_id)
                     result["written"] += 1
+                    if archive_enabled:
+                        from planning_bot.services.health_mail_archive import message_uid
+                        accepted_uids.append(message_uid(full[0][0]))
                 else:
                     print(pdmsg("auto_2b69581a2f", _p1=fname, _p3=txt), end="")
                     result["written"] += 1
@@ -316,8 +354,17 @@ def run_iphone_mail_sync(
                 log.exception(pdmsg("auto_f2deb0d2f1"), msg_id)
                 result["errors"].append(str(e))
     finally:
+        if archive_enabled:
+            from planning_bot.services.health_mail_archive import archive_accepted
+            for uid in accepted_uids:
+                try:
+                    archive_accepted(imap, uid)
+                    result["archived"] = result.get("archived", 0) + 1
+                except (ValueError, RuntimeError, imaplib.IMAP4.error):
+                    result["errors"].append("gmail_archive_failed")
         try:
-            imap.close()
+            if not archive_enabled:
+                imap.close()
         except Exception:
             pass
         try:
@@ -329,7 +376,9 @@ def run_iphone_mail_sync(
         state["processed_ids"] = list(processed_ids)
         _save_state(state_file, state)
 
-    result["ok"] = len(result["errors"]) == 0 or result["written"] > 0
+    # Partial ingestion is observable as a failure even if other messages were
+    # written successfully; callers must not turn a mixed batch into a green OK.
+    result["ok"] = len(result["errors"]) == 0
     return result
 
 
@@ -342,7 +391,7 @@ if __name__ == "__main__":
     )
     ap = argparse.ArgumentParser(description="Fetch iPhone context emails from Gmail IMAP")
     ap.add_argument("--limit", type=int, default=50)
-    ap.add_argument("--since-days", type=int, default=30)
+    ap.add_argument("--since-days", type=int, default=180)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--subject", default=pdmsg("auto_499df715b7"))
     ap.add_argument(

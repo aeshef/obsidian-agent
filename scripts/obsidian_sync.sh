@@ -346,6 +346,12 @@ for line in ensure_routines_layout(scaffold_stats=False):
     print('[0r]', line)
 " ) >> "${AGENT_ROOT}/planning_bot/logs/routines_layout.log" 2>&1 || true
 fi
+# Acknowledged iCloud queue delivery precedes the regular pull/import cycle.
+if cap_step_enabled SYNC_MAC_IPHONE && [ -n "$PLAN_PYTHON" ]; then
+  VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="$AGENT_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
+    "$PLAN_PYTHON" "$AGENT_ROOT/scripts/run_health_queue_bridge.py" >> "$AGENT_ROOT/logs/health_queue_bridge.log" 2>&1 \
+    || _sync_fail "health-queue-bridge"
+fi
 sync_steps_rsync_spine
 
 TODAY=$(date +%Y-%m-%d)
@@ -463,7 +469,10 @@ if cap_step_enabled SYNC_GMAIL_HEALTH && [ "$_SHOULD_IMAP" = "1" ] && [ -d "$PLA
   if [ -n "${GMAIL_IMAP_USER:-}" ] && [ -n "${GMAIL_IMAP_APP_PASSWORD:-}" ]; then
     export LOCAL_VAULT PYTHONPATH="${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}"
     # Окно «сегодня+вчера» по дате Date (см. IPHONE_MAIL_SYNC_RECENT_DAYS; по умолч. 2)
-    export IPHONE_MAIL_SYNC_TODAY_ONLY="${IPHONE_MAIL_SYNC_TODAY_ONLY:-1}"
+    # Process every unhandled metrics message in the recovery window. Packet
+    # revisions are idempotent, so limiting intake to today/yesterday only
+    # creates data loss after a Mac has been offline.
+    export IPHONE_MAIL_SYNC_TODAY_ONLY="${IPHONE_MAIL_SYNC_TODAY_ONLY:-0}"
     export IPHONE_MAIL_SYNC_RECENT_DAYS="${IPHONE_MAIL_SYNC_RECENT_DAYS:-2}"
     if [ -n "${FORCE_IPHONE_SYNC_ALL_DAYS:-}" ]; then
       export IPHONE_MAIL_SYNC_TODAY_ONLY=0
@@ -573,4 +582,15 @@ else
   unset _h_sync _h_maint _h_fin _h_mobile
   _trim_log "$SYNC_DIR/health.log" 500 300
 fi
+if [ -n "${CHART_PYTHON:-}" ] && [ -f "$AGENT_ROOT/scripts/check_pipeline_freshness.py" ]; then
+  VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${CHART_PYTHONPATH}:${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}" \
+    "$CHART_PYTHON" "$AGENT_ROOT/scripts/check_pipeline_freshness.py" >> "$SYNC_DIR/health.log" 2>&1 \
+    || echo "pipeline source freshness check failed" >> "$SYNC_DIR/health.log"
+fi
 echo "$(sh_msg scripts.obsidian_sync.done)" >&2
+
+# Refresh the visible audit after this cycle's final status is known.
+if [ -n "${CHART_PYTHON:-}" ]; then
+  VAULT_PATH="$LOCAL_VAULT" PYTHONPATH="${CHART_PYTHONPATH}:${AGENT_ROOT}${PYTHONPATH:+:$PYTHONPATH}" \
+    "$CHART_PYTHON" "$AGENT_ROOT/planning_bot/scripts/build_system_audit_report.py" --vault "$LOCAL_VAULT" >> "$AGENT_ROOT/planning_bot/logs/system_audit.log" 2>&1 || true
+fi

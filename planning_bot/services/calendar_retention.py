@@ -53,6 +53,10 @@ def _event_minutes(ev: dict) -> int:
     if ev.get("is_allday") or ev.get("is_cancelled"):
         return 0
     try:
+        if ev.get("start_at") and ev.get("end_at"):
+            a = datetime.fromisoformat(ev["start_at"].replace("Z", "+00:00"))
+            b = datetime.fromisoformat(ev["end_at"].replace("Z", "+00:00"))
+            return max(0, int((b - a).total_seconds() // 60))
         t0 = datetime.strptime(ev["start"], "%H:%M")
         t1 = datetime.strptime(ev["end"], "%H:%M")
         m = max(0, int((t1 - t0).total_seconds() // 60))

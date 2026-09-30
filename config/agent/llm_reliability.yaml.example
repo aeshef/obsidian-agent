@@ -1,0 +1,2 @@
+# Shared across processes on this host; a new API credential gets its own state.
+payment_cooldown_seconds: 900

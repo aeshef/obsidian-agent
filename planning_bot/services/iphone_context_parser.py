@@ -77,7 +77,9 @@ def get_snapshots(
 
 def get_latest_snapshot(iphone_dir: Path) -> Optional[Dict[str, Any]]:
     snaps = get_snapshots(iphone_dir, days=3)
-    return snaps[-1] if snaps else None
+    from planning_bot.services.snapshot_query import latest_per_calendar_day
+    daily = latest_per_calendar_day(snaps)
+    return daily[max(daily)] if daily else None
 
 
 def get_week_snapshots(iphone_dir: Path) -> List[Dict[str, Any]]:
@@ -87,6 +89,8 @@ def get_week_snapshots(iphone_dir: Path) -> List[Dict[str, Any]]:
 def week_numeric_aggregates(snaps: List[Dict[str, Any]]) -> Dict[str, Any]:
     'Operation implementation.'
     out: Dict[str, Any] = {"snapshot_count": len(snaps)}
+    from planning_bot.services.snapshot_query import latest_per_calendar_day
+    snaps = list(latest_per_calendar_day(snaps).values())
     for field in discover_numeric_keys(snaps):
         vals: List[float] = []
         for s in snaps:
@@ -113,6 +117,9 @@ def format_for_llm(snap: Optional[Dict[str, Any]]) -> str:
     if not snap:
         return ""
     lines = ["Health snapshot:"]
+    if snap.get("measurement_day"):
+        lines.append(f"  measurement_day: {snap['measurement_day']}")
+        lines.append(f"  captured_at: {snap.get('captured_at', '')}")
     try:
         dt = datetime.fromisoformat(snap["ts"])
         lines.append(f"  ts: {dt.strftime('%d.%m %H:%M')}")

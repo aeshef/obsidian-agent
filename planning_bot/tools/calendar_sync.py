@@ -42,7 +42,14 @@ def _dashboard_horizon_days() -> int:
 
 
 def _classify_on_sync() -> bool:
-    return bool(platform_int("planning_calendar", "classify_on_sync", default=1))
+    return bool(
+        platform_int(
+            "planning_calendar",
+            "classify_on_sync",
+            env="OA_CALENDAR_CLASSIFY",
+            default=1,
+        )
+    )
 
 
 def _build_and_write_dashboard(events: List[Dict], now_iso: str) -> None:
@@ -394,6 +401,30 @@ def _sync_from_txt(
 
 def run_calendar_sync() -> bool:
     'Operation implementation.'
+    # Complete EventKit snapshots supersede append-only Shortcuts exports. Rendering
+    # must not import stale legacy text or rewrite the native document concurrently.
+    native_data = _load_json(CALENDAR_JSON_FILE)
+    if native_data.get("meta", {}).get("source") == "apple_calendar":
+        if _classify_on_sync():
+            from planning_bot.services.calendar_bridge import config as bridge_config
+            from planning_bot.services.calendar_activity_classify import _needs_classify, allowed_activity_types
+            pending = [e for e in native_data.get("events", []) if _needs_classify(e, allowed_activity_types())]
+            pending.sort(key=lambda e: abs((date.fromisoformat(e['date']) - date.today()).days))
+            batch = pending[:bridge_config()["classify_per_refresh"]]
+            try:
+                ensure_activity_types(batch)
+            except Exception:
+                logger.warning("calendar classification deferred; native events remain available")
+            finally:
+                from planning_bot.services.calendar_snapshot import enrich
+                enrich(CALENDAR_JSON_FILE, batch)
+                native_data = _load_json(CALENDAR_JSON_FILE)
+        try:
+            _build_and_write_dashboard(native_data.get("events", []), datetime.now().isoformat(timespec="seconds"))
+            return True
+        except Exception:
+            logger.exception("native calendar dashboard failed")
+            return False
     if not CALENDAR_TXT_FILE.exists():
         logger.info(pdmsg("auto_b198725f3a"), CALENDAR_TXT_FILE)
         return True
@@ -435,11 +466,13 @@ def run_calendar_sync() -> bool:
                 data["meta"]["last_updated"] = now_iso
                 data["meta"]["total_events"] = len(events)
                 logger.info("calendar activity: classified %s event(s)", n_classified)
-        except LLMClassificationError as e:
+        except Exception as e:
+            # Network / provider failures should not abort dashboard rebuild.
             logger.warning("calendar activity classify failed: %s", e)
 
-    if changed or moved:
-        _save_json(CALENDAR_JSON_FILE, data)
+    data["meta"]["txt_last_parsed"] = txt_ts or now_iso
+    data["meta"]["last_checked"] = now_iso
+    _save_json(CALENDAR_JSON_FILE, data)
 
     if not unchanged_ts:
         line_count = txt_content.count("\n") + (1 if txt_content else 0)
@@ -458,6 +491,7 @@ def run_calendar_sync() -> bool:
         print(pdmsg("auto_f2964bb97c", CALENDAR_DASHBOARD_MD={CALENDAR_DASHBOARD_MD}), flush=True)
     except Exception as e:
         logger.warning(pdmsg("auto_58b2a8d2f2"), e)
+        return False
 
     if changed:
         print(pdmsg("auto_3d9d657bf4", _p1=added, _p3=updated, _p5=len(merged)), flush=True)

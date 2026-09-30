@@ -132,6 +132,9 @@ def attention_weight_for(ev: Dict, activity_type: Optional[str] = None) -> float
 
 
 def _d(ev: Dict) -> int:
+    if ev.get("start_at") and ev.get("end_at"):
+        from planning_bot.services.calendar_retention import _event_minutes
+        return _event_minutes(ev)
     if ev.get("is_allday") or ev.get("is_cancelled"):
         return 0
     try:

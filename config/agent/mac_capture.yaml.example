@@ -1,0 +1,13 @@
+# Native Mac capture; enable explicitly on a personal install.
+enabled: false
+upload_enabled: false
+heartbeat_seconds: 60
+idle_seconds: 120
+max_interval_seconds: 90
+stale_seconds: 180
+batch_size: 1000
+raw_days: 90
+aggregate_days: 730
+query_days_max: 90
+spool_warning_files: 10000
+rpc_timeout_seconds: 30
