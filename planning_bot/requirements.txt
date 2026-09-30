@@ -2,7 +2,7 @@ aiogram==3.13.1
 APScheduler==3.10.4
 requests==2.32.5
 pytz==2025.2
-matplotlib>=3.8,<4
+matplotlib>=3.11.2,<4
 scipy>=1.11.0
 PyYAML>=6.0
 faster-whisper>=1.0.0
