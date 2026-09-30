@@ -15,6 +15,9 @@ def test_bootstrap_checklist_contract():
     phases = data["phases"]
     ids = [p["id"] for p in phases]
     assert "capabilities" in ids
+    assert "vault_path" in ids
     assert "vault_layout" in ids
+    assert "venv_bootstrap" in ids
     assert "smoke" in ids
+    assert ids.index("vault_path") < ids.index("vault_layout")
     assert data["docker"]["role"] == "runtime_after_bootstrap"

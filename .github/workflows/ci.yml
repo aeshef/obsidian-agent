@@ -114,5 +114,5 @@ jobs:
             tests/test_messages_locale_parity.py tests/test_domain_messages_locale_parity.py \
             tests/test_prompt_git_policy.py tests/test_prompt_scaffolds.py \
             tests/test_cheap_router.py tests/test_fsm_sqlite.py tests/test_finance_category_match.py \
-            tests/test_host_import_boundary.py tests/test_bootstrap_checklist.py \
+            tests/test_host_import_boundary.py tests/test_bootstrap_checklist.py tests/test_github_hygiene.py \
             tests/test_config_policy.py tests/test_no_temperature_literals.py -q

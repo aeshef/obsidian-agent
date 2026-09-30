@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # One-shot onboarding wizard over obsidian-agent-onboarding skill phases.
-# Non-interactive setup steps; secrets still require: python3 scripts/setup/env_tools.py set KEY 'value'
+# Non-interactive setup steps; secrets still require env_tools or /setup in Cursor.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -22,12 +22,14 @@ DRY_RUN=0
 SKIP_PROMPTS=0
 SKIP_SMOKE=0
 WRITE_CAP=1
+FAST=0
 
 usage() {
   cat <<'EOF'
 Usage: scripts/onboarding_wizard.sh [options]
 
 Guided OSS setup (skill: .cursor/skills/obsidian-agent-onboarding/SKILL.md).
+Stranger target: <30 min with --fast (intro defaults) + /setup for secrets/finalize.
 
 Options:
   --playbook planning|finance|knowledge|full   Golden path (default: prompt if TTY)
@@ -35,6 +37,7 @@ Options:
   --connectors FLAGS                 Extra apply_capabilities_profile flags (repeatable)
   --ask-connectors                   TTY: offer optional connectors (default: skip — core only)
   --locale en|ru                     Default: en
+  --fast                             Apply intro interview defaults (skip personal Q&A)
   --dry-run                          apply_capabilities_profile --dry-run only
   --skip-prompts                     Skip ensure_bot_prompts / scaffold
   --skip-smoke                       Skip onboarding_smoke.py
@@ -42,13 +45,13 @@ Options:
   -h, --help                         This help
 
 Examples:
-  ./scripts/onboarding_wizard.sh --playbook planning
+  ./scripts/onboarding_wizard.sh --playbook planning --fast
   ./scripts/onboarding_wizard.sh --playbook finance --connectors --broker-sync
   ./scripts/onboarding_wizard.sh --playbook planning --ask-connectors
   ./scripts/onboarding_wizard.sh --playbook knowledge
 
-Secrets: wizard prompts on TTY, or set via scripts/setup/env_tools.py.
-Status anytime: ./scripts/oa-python.sh scripts/onboarding_status.py
+Secrets: wizard prompts on TTY, or set via ./scripts/oa-python.sh scripts/setup/env_tools.py set KEY 'value'
+Status:  ./scripts/oa-python.sh scripts/onboarding_status.py
 EOF
 }
 
@@ -59,6 +62,7 @@ while [[ $# -gt 0 ]]; do
     --connectors) CONNECTOR_FLAGS+=("${2:-}"); shift 2 ;;
     --ask-connectors) ASK_CONNECTORS=1; shift ;;
     --locale) AGENT_LOCALE="${2:-}"; shift 2 ;;
+    --fast) FAST=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --skip-prompts) SKIP_PROMPTS=1; shift ;;
     --skip-smoke) SKIP_SMOKE=1; shift ;;
@@ -68,24 +72,49 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-PY="${PYTHON:-}"
-for bot in finance_bot knowledge_bot planning_bot; do
-  if [[ -x "$ROOT/$bot/.venv/bin/python" ]]; then
-    PY="$ROOT/$bot/.venv/bin/python"
-    break
-  fi
-done
-PY="${PY:-python3}"
-
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+
+oa_py() {
+  if [[ -x "$ROOT/scripts/oa-python.sh" ]]; then
+    "$ROOT/scripts/oa-python.sh" "$@"
+  else
+    python3 "$@"
+  fi
+}
+
+_prompt_secret() {
+  local key="$1" hint="$2"
+  local cur=""
+  if [[ -f .env ]]; then
+    cur="$(grep -E "^${key}=" .env | tail -1 | cut -d= -f2- | tr -d "\"'" | xargs)"
+  fi
+  if [[ -n "${cur:-}" && "$cur" != *sk-...* && "$cur" != *YOUR* && "$cur" != *changeme* && "$cur" != *replace* ]]; then
+    log "$key already set"
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    log "NEED_ENV: $key ($hint)"
+    return 0
+  fi
+  echo "$hint"
+  if [[ "$key" == *KEY* || "$key" == *TOKEN* ]]; then
+    read -r -s -p "$key: " val
+    echo
+  else
+    read -r -p "$key: " val
+  fi
+  if [[ -n "${val:-}" ]]; then
+    oa_py scripts/setup/env_tools.py set "$key" "$val"
+  fi
+}
 
 # Phase 0 — detect
 log "Phase 0: detect context"
 if [[ -f config/agent/capabilities.yaml ]]; then
   echo "capabilities.yaml: present"
 else
-  echo "capabilities.yaml: absent (full install default on author machine)"
+  echo "capabilities.yaml: absent (OSS starter until --write)"
 fi
 if [[ -f .env ]]; then
   grep -E '^VAULT_PATH=' .env || echo "NEED_ENV: VAULT_PATH"
@@ -111,7 +140,7 @@ if [[ -z "$MODULES" ]]; then
     full) MODULES="planning finance knowledge" ;;
     "")
       if [[ -t 0 ]]; then
-        echo "Select playbook: 1=planning 2=finance 3=knowledge 4=full"
+        echo "Select playbook: 1=planning (~15m) 2=finance (~20m) 3=knowledge 4=full"
         read -r -p "Choice [1]: " choice
         case "${choice:-1}" in
           2) MODULES="finance" ;;
@@ -179,99 +208,86 @@ if [[ "$WRITE_CAP" -eq 1 ]]; then
 fi
 CAP_ARGS+=("${CONNECTOR_FLAGS[@]}")
 
-log "Phase 3: capabilities profile (modules: $MODULES)"
-if [[ "$DRY_RUN" -eq 1 ]]; then
-  "$PY" scripts/apply_capabilities_profile.py "${CAP_ARGS[@]}" --dry-run
+log "Phase 1: bootstrap minimal venv (PyYAML for oa-python.sh)"
+if [[ ! -x finance_bot/.venv/bin/python ]]; then
+  ./scripts/setup.sh
 else
-  "$PY" scripts/apply_capabilities_profile.py "${CAP_ARGS[@]}"
-  "$PY" scripts/setup/env_tools.py append-hints || true
-  "$PY" scripts/setup/env_tools.py status || true
+  log "finance_bot/.venv already present"
 fi
 
+log "Phase 2: VAULT_PATH (required before init_vault_layout)"
+_prompt_secret VAULT_PATH "Absolute path to your Obsidian vault folder"
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
+  log "Phase 3 (dry-run): capabilities profile (modules: $MODULES)"
+  oa_py scripts/apply_capabilities_profile.py "${CAP_ARGS[@]}" --dry-run
   log "Dry-run complete"
   exit 0
 fi
 
-log "Phase 4: locale + repo config (before vault layout)"
-"$PY" scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" --refresh-vault-paths || true
-"$PY" scripts/setup/materialize_locale.py "$AGENT_LOCALE" --refresh-vault-paths
+log "Phase 3: capabilities profile (modules: $MODULES)"
+oa_py scripts/apply_capabilities_profile.py "${CAP_ARGS[@]}"
+oa_py scripts/setup/env_tools.py append-hints || true
+oa_py scripts/setup/env_tools.py status || true
+
+log "Phase 4: locale + repo config"
+oa_py scripts/setup/env_tools.py set-locale "$AGENT_LOCALE" --refresh-vault-paths || true
+oa_py scripts/setup/materialize_locale.py "$AGENT_LOCALE" --refresh-vault-paths
 AGENT_LOCALE="$AGENT_LOCALE" bash scripts/ensure_repo_config.sh
 
-log "Phase 5: vault layout + dependencies"
 if [[ ! -f config/agent/capabilities.yaml ]]; then
   die "capabilities.yaml missing — run apply_capabilities_profile --write first"
 fi
-"$PY" scripts/init_vault_layout.py
-./scripts/setup.sh
-bash scripts/setup_agent_config.sh
 
-if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
-  log "Phase 6: prompts"
-  bash scripts/ensure_bot_prompts.sh
-  if [[ ! -f config/agent/onboarding_slots.yaml && -f config/agent/onboarding_slots.yaml.example ]]; then
-    cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
-  fi
-  "$PY" scripts/scaffold_personalized_prompts.py || true
-  if [[ "$MODULES" == *planning* ]]; then
-    "$PY" scripts/seed_planning_prompts.py || true
-  fi
-  bash scripts/ensure_bot_prompts.sh --warn-stubs || true
-fi
-
-log "Phase 7: interview scaffold"
+log "Phase 5: interview scaffold"
 if [[ ! -f config/agent/onboarding_slots.yaml && -f config/agent/onboarding_slots.yaml.example ]]; then
   cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
 fi
 if [[ ! -f config/agent/onboarding_state.yaml && -f config/agent/onboarding_state.yaml.example ]]; then
   cp config/agent/onboarding_state.yaml.example config/agent/onboarding_state.yaml
 fi
-"$PY" scripts/onboarding_interview.py list || true
-echo "Run /setup in Cursor for live interview, or: python3 scripts/onboarding_interview.py answer ID 'text'"
+if [[ "$FAST" -eq 1 ]]; then
+  oa_py scripts/onboarding_interview.py apply-intro-defaults --locale "$AGENT_LOCALE"
+else
+  oa_py scripts/onboarding_interview.py list --phase intro || true
+  echo "Run /setup in Cursor for live interview, or: oa-python.sh scripts/onboarding_interview.py answer ID 'text'"
+fi
+
+log "Phase 6: vault layout + dependencies"
+oa_py scripts/init_vault_layout.py
+./scripts/setup.sh
+bash scripts/setup_agent_config.sh
+
+if [[ "$SKIP_PROMPTS" -eq 0 ]]; then
+  log "Phase 7: prompts"
+  bash scripts/ensure_bot_prompts.sh
+  if [[ ! -f config/agent/onboarding_slots.yaml && -f config/agent/onboarding_slots.yaml.example ]]; then
+    cp config/agent/onboarding_slots.yaml.example config/agent/onboarding_slots.yaml
+  fi
+  oa_py scripts/scaffold_personalized_prompts.py || true
+  if [[ "$MODULES" == *planning* ]]; then
+    oa_py scripts/seed_planning_prompts.py || true
+  fi
+  bash scripts/ensure_bot_prompts.sh --warn-stubs || true
+fi
 
 log "Phase 8: secrets"
-_prompt_secret() {
-  local key="$1" hint="$2"
-  local cur=""
-  if [[ -f .env ]]; then
-    cur="$(grep -E "^${key}=" .env | tail -1 | cut -d= -f2- | tr -d "\"'" | xargs)"
-  fi
-  if [[ -n "${cur:-}" && "$cur" != *sk-...* && "$cur" != *YOUR* && "$cur" != *changeme* && "$cur" != *replace* ]]; then
-    log "$key already set"
-    return 0
-  fi
-  if [[ ! -t 0 ]]; then
-    log "NEED_ENV: $key ($hint)"
-    return 0
-  fi
-  echo "$hint"
-  if [[ "$key" == *KEY* || "$key" == *TOKEN* ]]; then
-    read -r -s -p "$key: " val
-    echo
-  else
-    read -r -p "$key: " val
-  fi
-  if [[ -n "${val:-}" ]]; then
-    "$PY" scripts/setup/env_tools.py set "$key" "$val"
-  fi
-}
-_prompt_secret VAULT_PATH "Absolute path to your Obsidian vault"
 _prompt_secret TELEGRAM_UNIFIED_BOT_TOKEN "BotFather → /newbot → paste token"
 _prompt_secret LLM_API_KEY "OpenAI-compatible key (DeepSeek / OpenRouter / Groq / local) — also accepts DEEPSEEK_API_KEY"
 case "$MODULES" in
-  *knowledge*) _prompt_secret OPENROUTER_API_KEY "https://openrouter.ai (vision/KB) — optional until ingest" ;;
+  *knowledge*) _prompt_secret OPENROUTER_API_KEY "https://openrouter.ai (vision/KB) — needed before KB ingest" ;;
 esac
-"$PY" scripts/setup/env_tools.py list-missing VAULT_PATH LLM_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
+oa_py scripts/setup/env_tools.py list-missing VAULT_PATH LLM_API_KEY TELEGRAM_UNIFIED_BOT_TOKEN 2>/dev/null || true
 
 log "OS checklist (you do these — not automated)"
 echo "  - Obsidian: enable community plugins from vault .obsidian/community-plugins.json"
 echo "  - macOS Full Disk Access if Mac sync / Health Shortcuts"
-echo "  - See: ./scripts/oa-python.sh scripts/onboarding_status.py"
+echo "  - Status: ./scripts/oa-python.sh scripts/onboarding_status.py"
 
 if [[ "$MODULES" == *finance* ]]; then
-  log "Phase 8b: finance initial accounts (after telegram_id in interview)"
+  log "Phase 8b: finance initial accounts (after telegram_id in /setup interview)"
   if [[ -f finance_bot/config/initial_accounts.yaml ]]; then
-    "$PY" finance_bot/scripts/apply_initial_accounts.py --dry-run 2>/dev/null || true
+    oa_py finance_bot/scripts/apply_initial_accounts.py --dry-run 2>/dev/null || true
   fi
 fi
 
@@ -279,10 +295,10 @@ if [[ "$SKIP_SMOKE" -eq 0 ]]; then
   log "Phase 9: smoke"
   SMOKE_ARGS=(--verify-all)
   SMOKE_ARGS+=("${GOLDEN_FLAGS[@]}")
-  "$PY" scripts/onboarding_smoke.py "${SMOKE_ARGS[@]}"
+  oa_py scripts/onboarding_smoke.py "${SMOKE_ARGS[@]}"
 fi
 
-log "Status"
-"$PY" scripts/onboarding_status.py || true
-log "Done. Interview: /setup in Cursor or onboarding_interview.py next"
-log "Start bot: ./scripts/run_unified_bot.sh → confirm-bot → finalize deploy"
+log "Phase 10: status"
+oa_py scripts/onboarding_status.py || true
+log "Done. Finish in Cursor: /setup → after_secrets interview → run bot → confirm-bot → finalize deploy"
+log "Start bot: ./scripts/run_unified_bot.sh"

@@ -109,4 +109,4 @@ Open a [capability request](.github/ISSUE_TEMPLATE/capability_request.md) or [lo
 - Скрипты: `scripts/lib/common.sh` + `sync_steps_*.sh`, без хардкода путей VPS.
 - Deploy: `./scripts/deploy.sh --prod` для production.
 
-Документация: [docs/README.md](docs/README.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md).
+Документация: [docs/README.md](docs/README.md) · [SUPPORT.md](SUPPORT.md) · [SECURITY.md](SECURITY.md) · [CHANGELOG.md](CHANGELOG.md).

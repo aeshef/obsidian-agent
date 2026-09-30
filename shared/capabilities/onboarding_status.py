@@ -9,7 +9,8 @@ from typing import Optional
 from shared.agent.config import agent_config_dir
 from shared.capabilities.onboarding_catalog import playbooks_for_module
 from shared.capabilities.onboarding_completion import completion_report
-from shared.capabilities.onboarding_interview import iter_visible_questions
+from shared.capabilities.onboarding_deploy import iter_visible_questions
+from shared.capabilities.onboarding_progress import collect_progress, format_progress_text
 from shared.capabilities.profile import (
     MODULE_FINANCE,
     MODULE_KNOWLEDGE,
@@ -195,8 +196,11 @@ def collect_status(
         "knowledge_serendipity",
     ) if prof.connector(c)}
 
+    progress = collect_progress(prof, locale=loc)
+
     return {
         "locale": loc,
+        "progress": progress,
         "capabilities_present": cap_path.is_file(),
         "modules": modules,
         "connectors_on": connectors,
@@ -225,6 +229,16 @@ def collect_status(
 def format_status_text(data: dict) -> str:
     lines: list[str] = []
     lines.append("=== onboarding status ===")
+    if data.get("progress"):
+        prog = data["progress"]
+        lines.append(
+            f"progress: {prog['done']}/{prog['total']} ({prog['percent']}%)"
+            + (
+                f" — next: {prog['next_phase']} (~{prog['eta_minutes']} min)"
+                if prog.get("next_phase")
+                else " — all automated phases done"
+            )
+        )
     lines.append(f"locale: {data['locale']}")
     lines.append(
         "modules: "

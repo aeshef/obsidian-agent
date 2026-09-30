@@ -12,6 +12,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `docs/OSS_AUDIT.md` / `docs/LAUNCH_POST.md` from public tree (local copies under gitignored `docs/_maintainer/`)
 
 ### Added
+- GitHub hygiene: `ISSUE_TEMPLATE/config.yml`, `dependabot.yml`, `SUPPORT.md`, question template
+- Stranger onboarding: `docs/ONBOARDING_STRANGER.md`, progress %, wizard `--fast`, `apply-intro-defaults`
 - `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` (DeepSeek env names remain aliases)
 - Portable health snapshot spec + samples (`docs/connectors/health/`)
 - Shortcut / Tasker recipes (`docs/connectors/shortcuts/`) + optional iCloud starter links (Mac context, iPhone context, Calendar)

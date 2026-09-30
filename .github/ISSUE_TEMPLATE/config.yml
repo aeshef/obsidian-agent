@@ -1,0 +1,8 @@
+blank_issues: false
+contact_links:
+  - name: Ask a question (Discussions)
+    url: https://github.com/aeshef/obsidian-agent/discussions/new
+    about: Setup, architecture, or how-to — prefer Discussions over blank issues
+  - name: Security vulnerability
+    url: https://github.com/aeshef/obsidian-agent/blob/main/SECURITY.md
+    about: Do not open public issues for secrets leakage or RCE-class bugs
