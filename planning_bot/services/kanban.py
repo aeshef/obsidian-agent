@@ -16,6 +16,7 @@ from planning_bot.services.kanban_format import (
     normalize_category,
     normalize_priority,
     task_created_line,
+    task_deadline_line,
     task_meta_line,
 )
 from planning_bot.services.kanban_lock import kanban_transaction
@@ -65,6 +66,7 @@ class KanbanBoard:
         priority: str,
         *,
         created_date: str,
+        deadline: Optional[str] = None,
         task_id: Optional[str] = None,
     ) -> str:
         tid = task_id or str(uuid.uuid4())[:8]
@@ -79,6 +81,9 @@ class KanbanBoard:
             parts.append(task_meta)
         if task_date.strip():
             parts.append(task_date)
+        task_deadline = task_deadline_line(deadline or "")
+        if task_deadline.strip():
+            parts.append(task_deadline)
         parts.append(task_id_line)
         new_task = "\n".join(parts)
 
@@ -110,7 +115,8 @@ class KanbanBoard:
         title: str,
         category: str,
         priority: str,
-        created_date: Optional[str] = None
+        created_date: Optional[str] = None,
+        deadline: Optional[str] = None,
     ) -> str:
         'Operation implementation.'
         with kanban_transaction(self.file_path):
@@ -119,7 +125,7 @@ class KanbanBoard:
             if created_date is None:
                 created_date = datetime.now().strftime("%Y-%m-%d")
             tid = self._insert_task_block_at_backlog(
-                title, category, priority, created_date=created_date
+                title, category, priority, created_date=created_date, deadline=deadline
             )
             self.save()
             self._verify_tasks_persisted([tid])
@@ -130,6 +136,7 @@ class KanbanBoard:
         items: list[tuple[str, ...]],
         *,
         created_date: Optional[str] = None,
+        deadline: Optional[str] = None,
     ) -> list[str]:
         """Insert many tasks in one locked read/write (safe for bulk agent creates)."""
         if not items:
@@ -154,6 +161,7 @@ class KanbanBoard:
                         category,
                         priority,
                         created_date=str(row_created)[:10],
+                        deadline=deadline,
                         task_id=preset_id,
                     )
                 )

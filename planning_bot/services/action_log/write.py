@@ -53,6 +53,7 @@ class ActionLogWrite:
         category: str,
         priority: str,
         task_id: Optional[str] = None,
+        deadline: Optional[str] = None,
     ):
         'Operation implementation.'
         # (comment)
@@ -64,6 +65,8 @@ class ActionLogWrite:
         payload = {"title": task_title, "category": category, "priority": priority}
         if task_id:
             payload["task_id"] = task_id
+        if deadline:
+            payload["deadline"] = deadline
         self.log_action("task_created", payload)
 
     def log_task_completed(
@@ -149,4 +152,3 @@ class ActionLogWrite:
         if from_column:
             payload["from"] = from_column
         self.log_action("task_removed", payload)
-

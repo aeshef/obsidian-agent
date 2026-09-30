@@ -467,6 +467,12 @@ def _enrich_apply_kanban_tool(reg: ToolRegistry) -> None:
     )
     # Keep reference handling separate from personalized legacy tool hints.
     t.description += "\n" + pdmsg("kanban_reference_recovery_hint")
+    # Keep this invariant in code: production may intentionally preserve a local
+    # prompt catalog instead of replacing it from repository examples on deploy.
+    t.description += (
+        " On create, pass deadline=YYYY-MM-DD only when the user requested a due date;"
+        " otherwise leave deadline empty. Resolve relative dates from as_of_today."
+    )
     props = dict(t.parameters.get("properties") or {})
     if cats:
         props["category"] = {"type": "string", "enum": cats}

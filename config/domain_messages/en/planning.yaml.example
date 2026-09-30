@@ -77,7 +77,7 @@ planning:
   agent_action_log_unique_completions: 'Unique completed tasks: {count}. Titles: {titles}'
   agent_action_log_completion_note: Use unique completions above only; each close logs both task_moved→Done and task_completed.
   apply_kanban_tool_hint: 'Kanban: create|move|complete|delete. delete = intentional remove (logs task_deleted, never auto-restore).
-    For a task already returned by get_kanban/search_tasks, use its exact task_id, not a rewritten title.
+    On create, pass deadline=YYYY-MM-DD only when the user requested a due date; otherwise leave deadline empty. Resolve relative dates from as_of_today.     For a task already returned by get_kanban/search_tasks, use its exact task_id, not a rewritten title.
     If a lookup fails, inspect returned candidates or search the board; retry by ID when context identifies the task unambiguously.
     Ask the user only if ambiguity remains. Never interpret an empty response as success or proof of a missing task.
     Many tasks → one create with titles=[...]. category (#goal): {categories}. priority: {priorities}.'
@@ -88,6 +88,7 @@ planning:
   kanban_candidate_row: '[{task_id}] {title} | {column}'
   kanban_reference_recovery_hint: 'Use the exact task_id from get_kanban/search_tasks for an already listed task. Do not rewrite its title. If lookup fails, inspect candidates or search and retry by ID when context is unambiguous; ask only if ambiguity remains. An empty tool response proves neither success nor absence.'
   kanban_task_created: 'Task created id={task_id}: {title} | #goal/{category} #priority/{priority}'
+  kanban_invalid_deadline: 'Invalid deadline "{deadline}": use YYYY-MM-DD.'
   kanban_task_deleted: 'Deleted task id={task_id}: {title}'
   kanban_orphan_heal_summary: 'kanban_orphan_heal: mode={mode} candidates={candidates} missing={missing} skip_id={skip_id}
     skip_title={skip_title}'

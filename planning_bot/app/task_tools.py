@@ -178,6 +178,7 @@ async def apply_kanban_task(
         titles=titles,
         category=category,
         priority=priority,
+        deadline=deadline,
         column=column,
         all_matching=all_matching,
         logger=logger,

@@ -334,6 +334,7 @@ def apply_kanban_action(
     titles: Optional[List[str]] = None,
     category: str = DEFAULT_CATEGORY,
     priority: str = DEFAULT_PRIORITY,
+    deadline: str = "",
     column: str = "",
     all_matching: bool = False,
     logger=None,
@@ -355,6 +356,12 @@ def apply_kanban_action(
 
         cat_norm = normalize_category(category)
         pri_norm = normalize_priority(priority)
+        deadline_norm = (deadline or "").strip()
+        if deadline_norm and (
+            not re.fullmatch(r"\d{4}-\d{2}-\d{2}", deadline_norm)
+            or parse_iso_calendar_day(deadline_norm) is None
+        ):
+            return pdmsg("kanban_invalid_deadline", deadline=deadline_norm)
 
         if dry_run:
             lines = [
@@ -365,6 +372,7 @@ def apply_kanban_action(
                     _p5=cat_norm,
                     _p7=pri_norm,
                 )
+                + (f" | deadline={deadline_norm}" if deadline_norm else "")
                 for t in batch
             ]
             return "\n".join(lines)
@@ -373,15 +381,20 @@ def apply_kanban_action(
 
         items = [(t, cat_norm, pri_norm) for t in batch]
         if len(items) == 1:
-            tid = board.add_task_to_backlog(items[0][0], items[0][1], items[0][2])
+            tid = board.add_task_to_backlog(
+                items[0][0], items[0][1], items[0][2], deadline=deadline_norm or None
+            )
             created = [(tid, items[0][0], cat_norm, pri_norm)]
         else:
-            ids = board.add_tasks_to_backlog(items)
+            ids = board.add_tasks_to_backlog(items, deadline=deadline_norm or None)
             created = list(zip(ids, batch, [cat_norm] * len(ids), [pri_norm] * len(ids)))
 
         for tid, t_title, c_norm, p_norm in created:
             if logger:
-                logger.log_task_created(t_title, c_norm, p_norm, task_id=tid)
+                log_kwargs = {"task_id": tid}
+                if deadline_norm:
+                    log_kwargs["deadline"] = deadline_norm
+                logger.log_task_created(t_title, c_norm, p_norm, **log_kwargs)
         _sync_state_file(board)
 
         lines_out: List[str] = []
@@ -394,6 +407,7 @@ def apply_kanban_action(
                     category=c_norm,
                     priority=p_norm,
                 )
+                + (f" | deadline={deadline_norm}" if deadline_norm else "")
             )
         out = "\n".join(lines_out)
         raw_cat = (category or "").strip().lower()

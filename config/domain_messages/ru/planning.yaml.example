@@ -107,7 +107,7 @@ planning:
   agent_action_log_unique_completions: 'Уникальных завершённых задач: {count}. Список: {titles}'
   agent_action_log_completion_note: Считай только уникальные завершения выше; одно закрытие даёт и task_moved→Сделано, и task_completed.
   apply_kanban_tool_hint: 'Канбан: create|move|complete|delete. delete — намеренное удаление (пишет task_deleted, не автовосстанавливать).
-    Для задачи, уже показанной get_kanban/search_tasks, используй точный task_id, а не переписанное название.
+    При create передавай deadline=YYYY-MM-DD, только если пользователь назвал срок; иначе оставь deadline пустым. Относительные даты разрешай от as_of_today.     Для задачи, уже показанной get_kanban/search_tasks, используй точный task_id, а не переписанное название.
     При промахе изучи кандидатов или поищи на доске; повтори по ID, если задача однозначно определена из контекста.
     Спрашивай пользователя только при оставшейся неоднозначности. Пустой ответ не означает успех или отсутствие задачи.
     Несколько задач — один create с titles=[...]. category (#цель): {categories}. priority: {priorities}.'
@@ -118,6 +118,7 @@ planning:
   kanban_candidate_row: '[{task_id}] {title} | {column}'
   kanban_reference_recovery_hint: 'Для уже показанной задачи используй точный task_id из get_kanban/search_tasks, не переписывай название. При промахе проверь кандидатов или поищи и повтори по ID, если контекст однозначен; уточняй только при оставшейся неоднозначности. Пустой ответ не доказывает ни успех, ни отсутствие задачи.'
   kanban_task_created: 'Создана задача id={task_id}: {title} | #цель/{category} #приоритет/{priority}'
+  kanban_invalid_deadline: 'Некорректный дедлайн «{deadline}»: используй YYYY-MM-DD.'
   kanban_task_deleted: 'Удалена задача id={task_id}: {title}'
   kanban_orphan_heal_summary: 'kanban_orphan_heal: mode={mode} candidates={candidates} missing={missing} skip_id={skip_id}
     skip_title={skip_title}'
