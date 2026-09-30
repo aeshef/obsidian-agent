@@ -12,3 +12,47 @@ expect:
     - "12 000"
     - "10 000"
     - "+20%"
+
+---
+id: period-compare-format-en-food-out
+kind: period_compare_format
+input:
+  label_a: "2026-08-01 … 2026-08-31"
+  total_a: 7500
+  label_b: "2026-07-01 … 2026-07-31"
+  total_b: 10000
+  category: Food/Out
+expect:
+  contains:
+    - "Compare spend (Food/Out)"
+    - "7 500"
+    - "10 000"
+    - "-2 500 (-25%)"
+
+---
+id: period-compare-format-en-food-zero-baseline
+kind: period_compare_format
+input:
+  label_a: "2026-09-01 … 2026-09-30"
+  total_a: 3200
+  label_b: "2026-08-01 … 2026-08-31"
+  total_b: 0
+  category: Food
+expect:
+  contains:
+    - "Compare spend (Food)"
+    - "3 200"
+    - "Δ A−B: +3 200 (n/a)"
+
+---
+id: period-compare-format-default-category
+kind: period_compare_format
+input:
+  label_a: "2026-10-01 … 2026-10-31"
+  total_a: 5000
+  label_b: "2026-09-01 … 2026-09-30"
+  total_b: 5000
+expect:
+  contains:
+    - "Compare spend (all)"
+    - "Δ A−B: 0 (+0%)"
