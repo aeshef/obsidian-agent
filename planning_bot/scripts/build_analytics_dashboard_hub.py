@@ -60,6 +60,8 @@ def main() -> int:
     ts = datetime.now().strftime("%Y-%m-%d %H:%M")
     body = render_analytics_hub(vault, ts=ts, msg=pdmsg)
     hub = vault / folder("dashboards") / vault_file("analytics_dashboard_md")
+    from shared.obsidian_ui.layout import present_dashboard
+    body = present_dashboard(body, vault, "analytics")
     hub.parent.mkdir(parents=True, exist_ok=True)
     hub.write_text(body, encoding="utf-8")
     print(f"OK: {hub}")

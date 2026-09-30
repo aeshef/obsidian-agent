@@ -17,7 +17,7 @@ chart_refresh:
     finance:
       script: finance_bot/scripts/build_finance_dashboard.py
     planning_activity:
-      script: planning_bot/scripts/build_daily_task_activity_chart.py
+      script: scripts/refresh_progress_dashboard.py
     kanban_flow:
       script: planning_bot/scripts/build_kanban_flow_dashboard.py
 """,

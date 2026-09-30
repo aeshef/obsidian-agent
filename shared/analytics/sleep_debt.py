@@ -64,16 +64,9 @@ def compute_sleep_debt_series(
 def sleep_debt_today(series: Sequence[dict[str, Any]]) -> float | None:
     if not series:
         return None
-    # Prefer last day with known sleep; else last frozen value
-    for row in reversed(series):
-        if row.get("missing"):
-            continue
-        try:
-            return float(row.get("debt"))
-        except (TypeError, ValueError):
-            continue
-    last = series[-1]
+    if series[-1].get("missing"):
+        return None
     try:
-        return float(last.get("debt"))
+        return float(series[-1].get("debt"))
     except (TypeError, ValueError):
         return None

@@ -64,7 +64,7 @@ def _col(rows: Sequence[dict], key: str) -> np.ndarray:
     return np.asarray(out, dtype=float)
 
 
-def _weighted_score(parts: dict[str, float], weights: dict[str, float]) -> float:
+def _weighted_score(parts: dict[str, float], weights: dict[str, float]) -> float | None:
     num = 0.0
     den = 0.0
     for k, w in weights.items():
@@ -76,7 +76,7 @@ def _weighted_score(parts: dict[str, float], weights: dict[str, float]) -> float
         num += parts[k] * ww
         den += ww
     if den <= 0:
-        return 50.0
+        return None
     return float(np.clip(num / den, 0.0, 100.0))
 
 
@@ -171,7 +171,13 @@ def compute_life_os_daily(
         capacity = _weighted_score(cap_parts, w.get("capacity") or {})
         output = _weighted_score(out_parts, w.get("output") or {})
         drain = _weighted_score(drain_parts, w.get("drain") or {})
-        regime = classify_regime(capacity, output, drain, mid=mid, high_drain=high_drain)
+        complete = capacity is not None and output is not None and drain is not None
+        regime = (
+            classify_regime(capacity, output, drain, mid=mid, high_drain=high_drain)
+            if complete
+            else {"regime": "insufficient_data", "high_drain": None,
+                  "capacity": capacity, "output": output, "drain": drain}
+        )
         row_out: dict[str, Any] = {
             "date": dates[i],
             **regime,
@@ -179,6 +185,12 @@ def compute_life_os_daily(
                 "capacity": cap_parts,
                 "output": out_parts,
                 "drain": drain_parts,
+            },
+            "coverage": {
+                "capacity": len(cap_parts),
+                "output": len(out_parts),
+                "drain": len(drain_parts),
+                "complete": complete,
             },
         }
         if np.isfinite(debt[i]):

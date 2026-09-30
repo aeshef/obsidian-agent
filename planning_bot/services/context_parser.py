@@ -68,7 +68,7 @@ def _fields_to_snap(fields: Dict[str, str], fallback_ts: Optional[datetime] = No
         pass
     idle_sec: Optional[int] = None
     try:
-        idle_sec = int(str(fields.get("idle_sec", "")).strip())
+        idle_sec = int(float(str(fields.get("idle_sec", "")).strip()))
     except (ValueError, TypeError):
         pass
     window_title = (
@@ -81,7 +81,7 @@ def _fields_to_snap(fields: Dict[str, str], fallback_ts: Optional[datetime] = No
         except Exception:
             safari = safari[:60]
     return {
-        "ts": ts.isoformat(timespec="minutes"),
+        "ts": ts.isoformat(timespec="seconds") if fields.get("source") == "mac_native_v1" else ts.isoformat(timespec="minutes"),
         "source": fields.get("source") or "mac",
         "app": fields.get("app") or None,
         "safari": safari or None,
@@ -91,7 +91,8 @@ def _fields_to_snap(fields: Dict[str, str], fallback_ts: Optional[datetime] = No
         "weather": (fields.get("weather") or "").strip() or None,
         "window_title": window_title,
         "idle_sec": idle_sec,
-        "active": idle_sec is not None and idle_sec < 120,
+        "active": fields.get("active", "").lower() == "true" if "active" in fields else idle_sec is not None and idle_sec < 120,
+        **({k: fields.get(k) for k in ("id", "session_id", "kind", "bundle_id", "awake", "session_active")} if fields.get("source") == "mac_native_v1" else {}),
     }
 
 

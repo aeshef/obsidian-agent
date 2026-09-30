@@ -17,6 +17,16 @@ from shared.capabilities.vault_dashboard_scaffold import (
 )
 
 
+def _rendered_source(vault: Path, path: Path) -> str:
+    import re
+    body = path.read_text(encoding="utf-8")
+    for view in re.findall(r'await dv.view\("([^"\n]+)"', body):
+        source = vault / (view + ".js")
+        if source.is_file():
+            body += "\n" + source.read_text(encoding="utf-8")
+    return body
+
+
 def _profile(modules: list[str]) -> CapabilityProfile:
     mods = {MODULE_FINANCE: False, MODULE_PLANNING: False, MODULE_KNOWLEDGE: False}
     for m in modules:
@@ -34,6 +44,8 @@ def _patch_vault_paths(monkeypatch, doc: dict) -> None:
     from shared import vault_paths_config as vpc
 
     vpc.vault_paths_config.cache_clear()
+    defaults = yaml.safe_load((Path(__file__).resolve().parents[1] / "config/vault_paths.en.yaml.example").read_text())
+    doc = {**defaults, **{key: ({**defaults.get(key, {}), **value} if isinstance(value, dict) else value) for key, value in doc.items()}}
 
     @lru_cache(maxsize=1)
     def _cfg() -> dict:
@@ -111,10 +123,13 @@ def test_scaffold_main_dashboard_en_planning(tmp_path, monkeypatch):
     assert written
     out = vault / "300_Dashboards" / "Main_Dashboard.md"
     assert out.is_file()
-    text = out.read_text(encoding="utf-8")
-    assert "#goal/" in text or 'TAG_GOAL = "goal"' in text
+    text = _rendered_source(vault, out)
+    assert 'focusTag: "focus"' in text
+    assert "/home" in text
+    assert "[!example]-" not in out.read_text()
     assert "Finance_Dashboard" not in text
-    assert "Daily_activity" in text or "Charts" in text
+    assert "Daily_activity" not in text
+    assert any('kind: "progress"' in Path(p).read_text() for p in written)
 
 
 def test_scaffold_category_progress_includes_archive(tmp_path, monkeypatch):
@@ -170,9 +185,10 @@ def test_scaffold_category_progress_includes_archive(tmp_path, monkeypatch):
     prof = _profile([MODULE_PLANNING])
     written = scaffold_vault_dashboards(prof, vault, locale="en", force=True)
     assert written
-    main = (vault / "300_Dashboards" / "Main_Dashboard.md").read_text(encoding="utf-8")
-    progress = (vault / "300_Dashboards" / "Progress_2026.md").read_text(encoding="utf-8")
-    assert "Closed_Tasks" in main
+    main = _rendered_source(vault, vault / "300_Dashboards" / "Main_Dashboard.md")
+    progress = _rendered_source(vault, vault / "300_Dashboards" / "Progress_2026.md")
+    assert "/home" in main
+    assert "Closed_Tasks" not in main
     assert "Closed_Tasks" in progress
     assert "kanbanPages" in progress
 

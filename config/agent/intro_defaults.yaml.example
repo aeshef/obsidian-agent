@@ -1,0 +1,38 @@
+user_about:
+  en: I use this assistant for my Obsidian vault and Telegram — tasks, notes, and
+    daily ops.
+  ru: Использую ассистента для Obsidian и Telegram — задачи, заметки и повседневные
+    дела.
+user_tone:
+  choice: 1
+finance_currency:
+  choice_by_locale:
+    en: 0
+    ru: 2
+    default: 0
+finance_accounts:
+  en: Checking, Cash
+  ru: Карта, Наличные
+finance_categories:
+  mvp: true
+planning_task_examples:
+  en: 'Review inbox
+
+    Plan the week
+
+    Deep work block'
+  ru: 'Разобрать входящие
+
+    План на неделю
+
+    Глубокая работа'
+planning_goals:
+  en: 'Ship current projects
+
+    Stay healthy'
+  ru: 'Закрыть текущие проекты
+
+    Поддерживать здоровье'
+knowledge_folders:
+  en: Video, Articles, Links, Ideas
+  ru: Видео, Статьи, Ссылки, Идеи

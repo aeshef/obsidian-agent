@@ -19,7 +19,7 @@ def test_hub_no_duplicate_png_in_overview(tmp_path: Path):
         ts="2026-01-01 12:00",
         msg=lambda k: k,
     )
-    assert body.count("Вес_динамика.png") == 1
+    assert body.count("Вес_динамика.png") == 0
     assert "Корреляции_доменов" not in body
-    # Cross-domain charts live on the health hub, not analytics overview.
-    assert "analytics_section_body" in body
+    # Dynamic views are mounted once by present_dashboard, never PNG fallbacks.
+    assert "![[" not in body

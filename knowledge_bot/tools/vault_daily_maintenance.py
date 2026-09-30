@@ -37,6 +37,9 @@ def main() -> None:
     else:
         print("vault_daily_maintenance:", "ok" if out.get("ok", True) else "ERR", out)
 
+    if not out.get("ok", True):
+        raise SystemExit(1)
+
 
 if __name__ == "__main__":
     main()

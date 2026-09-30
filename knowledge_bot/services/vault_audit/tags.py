@@ -85,68 +85,22 @@ def render_tags_report(vault: Path, *, as_json: bool = False) -> str:
 def render_tags_markdown(vault: Path, *, data: dict | None = None) -> str:
     """Human vault-audit tags section — callouts, no ASCII fences."""
     data = data or _scan(vault)
-    kd = knowledge_subdir()
-    lines: list[str] = [
-        va("tags_title", knowledge_dir=kd),
-        va(
-            "tags_summary",
-            total=data["total"],
-            with_tags=data["with_tags"],
-            without_tags=data["without_tags"],
-        ),
-        va("tags_unique", count=data["unique"]),
-        "",
-    ]
-
-    if data["without_tags"]:
-        lines.append(va("tags_untagged_header"))
-        for p in data["untagged_paths"][:12]:
-            lines.append(f"- `{p.relative_to(vault).as_posix()}`")
-        extra = len(data["untagged_paths"]) - 12
-        if extra > 0:
-            lines.append(va("tags_untagged_more", count=extra))
-        lines.append("")
-
-    single_n = len(data["topic_single"]) + len(data["domain_single"])
-    if single_n:
-        lines.append(va("tags_topic_single_header"))
-        lines.append(va("tags_topic_single_count", count=single_n))
-        lines.append("")
-
-    lines.append(va("tags_domain_header"))
-    lines.append("")
-    for value, count in data["domain_counts"][:12]:
-        lines.append(va("tags_row", name=value, count=count))
-    extra = len(data["domain_counts"]) - 12
-    if extra > 0:
-        lines.append(va("tags_untagged_more", count=extra))
-    lines.append("")
-
-    lines.append(va("tags_topic_header"))
-    lines.append("")
-    for value, count in data["topic_counts"][:15]:
-        lines.append(va("tags_row", name=value, count=count))
-    extra = len(data["topic_counts"]) - 15
-    if extra > 0:
-        lines.append(va("tags_untagged_more", count=extra))
-    lines.append("")
-
-    if data["topic_single"]:
-        lines.append(va("tags_topic_single_header"))
-        for value, count in sorted(data["topic_single"], key=lambda x: (x[1], x[0]))[:20]:
-            lines.append(va("tags_topic_single_row", topic=value, count=count))
-        extra = len(data["topic_single"]) - 20
-        if extra > 0:
-            lines.append(va("tags_untagged_more", count=extra))
-        lines.append("")
-
-    other = {k: v for k, v in data["other_ns"].items() if k not in LEGACY_NAMESPACES}
-    if other:
-        lines.append(va("tags_other_ns_header"))
-        for ns in sorted(other.keys()):
-            items = other[ns]
-            top = ", ".join(f"{n} ({c})" for n, c in items[:4])
-            lines.append(va("tags_other_ns_row", namespace=ns, count=len(items), top=top))
-        lines.append("")
-
-    return "\n".join(lines).rstrip() + "\n"
+    import html
+    from shared.obsidian_metric_cards import MetricCard, metric_cards_html
+    from shared.obsidian_ui.config import ui_config
+    L=ui_config()['labels']
+    def panel(title, rows, limit=15):
+        rendered=['<div class="au-audit-row"><span>'+html.escape(str(name))+'</span><strong>'+str(count)+'</strong></div>' for name,count in rows]
+        body=''.join(rendered[:limit])
+        if len(rendered)>limit:
+            body+='<details><summary>+ '+str(len(rendered)-limit)+'</summary>'+''.join(rendered[limit:])+'</details>'
+        return '<section class="au-audit-panel"><h3>'+html.escape(title)+'</h3>'+body+'</section>'
+    cards=metric_cards_html([MetricCard(L['audit_notes'],str(data['total'])),MetricCard(L['audit_untagged'],str(data['without_tags'])),MetricCard(L['audit_tags'],str(data['unique']))])
+    lines=[va('tags_title',knowledge_dir=knowledge_subdir()),'',cards,'', '<div class="au-audit-grid">'+panel('DOMAIN',data['domain_counts'])+panel('TOPIC',data['topic_counts'])+'</div>','']
+    if data['without_tags']:
+        lines+=['> [!warning] '+L['audit_untagged']]+['> - [['+p.relative_to(vault).as_posix()+']]' for p in data['untagged_paths'][:12]]+['']
+    sparse=[('domain/'+n,c) for n,c in data['domain_single']]+[('topic/'+n,c) for n,c in data['topic_single']]
+    if sparse:lines += [panel(L['audit_sparse'],sparse),'']
+    other={k:v for k,v in data['other_ns'].items() if k not in LEGACY_NAMESPACES}
+    if other:lines += ['<div class="au-audit-grid">'+''.join(panel(ns,rows,4) for ns,rows in sorted(other.items()))+'</div>','']
+    return '\n'.join(lines)

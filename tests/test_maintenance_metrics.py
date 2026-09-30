@@ -178,12 +178,19 @@ def test_render_maintenance_chart_path(tmp_path: Path, monkeypatch):
     )
     from knowledge_bot.services.maintenance_metrics import render_maintenance_charts
 
+    import json
+    from shared.obsidian_ui import assets
+    root='300_Дашборды/Данные/Assistant UI'
+    (vault/root).mkdir(parents=True)
+    monkeypatch.setattr(assets,'install_assets',lambda _vault: root)
     paths = render_maintenance_charts(vault)
-    assert len(paths) == 1
-    assert paths[0].name == "Динамика_обслуживания.png"
-    assert paths[0].parent.name == "Хранилище"
-    legacy = vault / "300_Дашборды" / "Графики" / "vault_maintenance_dynamics.png"
-    assert not legacy.is_file()
+    assert paths == []
+    data=json.loads((vault/root/'maintenance.json').read_text())
+    assert len(data['charts']) == 5
+    notes=next(c for c in data['charts'] if c['id']=='maintenance_notes')
+    assert notes['method']=='last'
+    assert [r['value'] for r in notes['rows']]==[1,1]
+    assert not list(vault.rglob('*.png'))
 
 
 def test_write_deletion_manifest(tmp_path: Path):

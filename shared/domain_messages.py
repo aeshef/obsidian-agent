@@ -6,6 +6,7 @@ Legacy monolith ``domain_messages.{locale}.yaml.example`` is no longer shipped;
 """
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -71,11 +72,17 @@ def _en_domain() -> dict:
     return _load_monolith("en")
 
 
+def _en_strict() -> bool:
+    return os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes")
+
+
 @lru_cache(maxsize=2)
 def _domain(_locale: str) -> dict:
     if _locale.startswith("en"):
-        ru = _ru_domain()
         en = _en_domain()
+        if _en_strict():
+            return en
+        ru = _ru_domain()
         if ru and en:
             return deep_merge(ru, en)
         return en or ru

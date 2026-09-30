@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from bot.dashboard_templates import dtpl
+from shared.obsidian_ui.config import ui_config
 
 
 def plot_lines_png(
@@ -30,10 +31,7 @@ def plot_lines_png(
 
     x = list(range(n))
     fig, ax = plt.subplots(figsize=(11.5, 4.8))
-    colors = [
-        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-    ]
+    colors = ui_config()['chart']['series_palette']
     for i, (name, vals) in enumerate(series.items()):
         vals = (vals or [])[:n] + [0] * max(0, n - len(vals or []))
         safe_name = name.replace('"', "'")[:30]
@@ -49,9 +47,12 @@ def plot_lines_png(
     else:
         ax.set_ylim(bottom=y_min)
     ax.yaxis.set_major_locator(MaxNLocator(integer=False))
-    ax.legend(loc="upper left", framealpha=0.9, fontsize=9, ncols=2 if len(series) > 4 else 1)
+    ax.legend(loc="upper left", bbox_to_anchor=(0, -0.23), frameon=False, fontsize=10, ncols=3)
+    ax.margins(y=0.14)
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    from shared.charts.presentation import polish_chart
+    polish_chart(fig)
     fig.savefig(out_path, dpi=140, bbox_inches="tight")
     plt.close(fig)
     return True
@@ -84,10 +85,7 @@ def plot_stacked_bar_categories_png(
         row = [float(x) for x in ((v or [])[:n] + [0.0] * max(0, n - len(v or [])))]
         stacks.append(row)
 
-    colors = [
-        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
-        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
-    ]
+    colors = ui_config()['chart']['series_palette']
     w = max(11.5, min(24.0, 0.2 * n + 6))
     fig, ax = plt.subplots(figsize=(w, 5.4))
     x_pos = list(range(n))
@@ -122,12 +120,15 @@ def plot_stacked_bar_categories_png(
     ax.set_ylabel(y_label)
     ax.set_xticks(x_pos)
     ax.set_xticklabels(x_labels, rotation=45, ha="right", fontsize=8 if n > 20 else 9)
-    ax.set_ylim(bottom=0)
+    ax.set_ylim(bottom=0, top=max(max(bottom, default=0) * 1.14, 1))
     ax.yaxis.set_major_locator(MaxNLocator(integer=False))
-    ax.legend(loc="upper left", framealpha=0.9, fontsize=8, ncols=2 if len(cats) > 5 else 1)
+    ax.legend(loc="upper left", bbox_to_anchor=(0, -0.23), frameon=False, fontsize=10, ncols=3)
     ax.grid(True, axis="y", alpha=0.25)
+    ax.margins(y=0.14)
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    from shared.charts.presentation import polish_chart
+    polish_chart(fig)
     fig.savefig(out_path, dpi=140, bbox_inches="tight")
     plt.close(fig)
     return True

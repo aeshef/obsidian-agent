@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -64,59 +65,6 @@ def _vault_out_paths(vault: Path) -> tuple[Path, Path, Path, Path]:
     return md, tokens_png, cost_png, tools_png
 
 
-def _try_plot_lines(path: Path, title: str, xs: list[str], ys: list[float], ylabel: str) -> bool:
-    if not xs or not ys:
-        return False
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except Exception:
-        return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(9, 3.6))
-    ax.plot(range(len(ys)), ys, marker="o", linewidth=2)
-    ax.set_title(title)
-    ax.set_ylabel(ylabel)
-    n = len(xs)
-    step = 1 if n <= 16 else max(1, n // 10)
-    ticks = list(range(0, n, step))
-    if ticks[-1] != n - 1:
-        ticks.append(n - 1)
-    ax.set_xticks(ticks)
-    ax.set_xticklabels([xs[i] for i in ticks], rotation=45, ha="right", fontsize=8)
-    ax.grid(True, alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(path, dpi=140)
-    plt.close(fig)
-    return True
-
-
-def _try_plot_bars(path: Path, title: str, labels: list[str], values: list[float]) -> bool:
-    if not labels:
-        return False
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except Exception:
-        return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fig, ax = plt.subplots(figsize=(9, 3.8))
-    ax.barh(range(len(labels)), values)
-    ax.set_yticks(range(len(labels)))
-    ax.set_yticklabels(labels, fontsize=9)
-    ax.invert_yaxis()
-    ax.set_title(title)
-    ax.grid(True, axis="x", alpha=0.25)
-    fig.tight_layout()
-    fig.savefig(path, dpi=140)
-    plt.close(fig)
-    return True
-
-
 def _wikilink(vault: Path, path: Path) -> str:
     try:
         rel = path.resolve().relative_to(vault.resolve())
@@ -134,11 +82,119 @@ def render_markdown(
     tools_png: Path | None,
 ) -> str:
     from shared.charts.mermaid import mermaid_pie
+    from shared.locale import agent_locale
     from shared.tz import now_in_tz
 
     ts = now_in_tz().strftime("%Y-%m-%d %H:%M")
     d = summary.as_dict()
-    lines: list[str] = [
+    en = agent_locale().startswith("en") or os.environ.get("AGENT_EN_STRICT", "").strip() in (
+        "1",
+        "true",
+        "yes",
+    )
+    if en:
+        lines: list[str] = [
+            "# ✦ Agent cost",
+            "",
+            f"> [!info] Window — last **{d['days']}d** · updated `{ts}`",
+            f"> Runs **{d['runs']}** · tokens **{d['total_tokens']:,}** · "
+            f"est. **${d['est_cost_usd']:.4f}** · tool calls **{d['tool_calls_executed']}**",
+            "",
+            "## Why this exists",
+            "",
+            "Transparent spend and efficiency for the agent: tokens, USD estimate, "
+            "tool calls, context size, latency. No message bodies — ops metrics from "
+            "`agent_traces.jsonl` only.",
+            "",
+            "## Snapshot",
+            "",
+            "| Metric | Value |",
+            "| --- | ---: |",
+            f"| Runs | {d['runs']} |",
+            f"| Prompt tokens | {d['prompt_tokens']:,} |",
+            f"| Completion tokens | {d['completion_tokens']:,} |",
+            f"| Total tokens | {d['total_tokens']:,} |",
+            f"| Est. cost (USD) | ${d['est_cost_usd']:.4f} |",
+            f"| Cost / run | ${(d['est_cost_usd'] / d['runs']) if d['runs'] else 0:.5f} |",
+            f"| Tool calls | {d['tool_calls_executed']} |",
+            f"| Avg LLM rounds / run | {d['avg_rounds']:.2f} |",
+            f"| Avg selected tools | {d['avg_selected_tools']:.1f} |",
+            f"| Context peak (chars) | {d['avg_context_peak']:.0f} |",
+            f"| Latency p50 / p95 (ms) | {d['p50_latency_ms']:.0f} / {d['p95_latency_ms']:.0f} |",
+            f"| Usage coverage | {d['usage_coverage_pct']:.1f}% |",
+            "",
+            "## Notes",
+            "",
+        ]
+        for tip in d.get("insights") or []:
+            lines.append(f"- {tip}")
+        if not d.get("insights"):
+            lines.append("- (none yet)")
+
+        lines.extend(["", "## By day", ""])
+        daily = d.get("daily") or []
+        if daily:
+            lines.append("| Date | Runs | Tokens | Est. $ | Tools |")
+            lines.append("| --- | ---: | ---: | ---: | ---: |")
+            for row in daily[-21:]:
+                lines.append(
+                    f"| {row['date']} | {row['runs']} | {row['tokens']:,} | "
+                    f"${row['est_cost_usd']:.4f} | {row['tool_calls']} |"
+                )
+        else:
+            lines.append("_No daily rows yet._")
+
+        if tokens_png and tokens_png.is_file():
+            lines.extend(["", "### Tokens chart", "", _wikilink(vault, tokens_png), ""])
+        if cost_png and cost_png.is_file():
+            lines.extend(["", "### Cost chart", "", _wikilink(vault, cost_png), ""])
+
+        lines.extend(["", "## By domain", ""])
+        dom_cost = d.get("domain_cost") or []
+        if dom_cost:
+            lines.append("| Domain | Runs | Est. $ |")
+            lines.append("| --- | ---: | ---: |")
+            for row in dom_cost:
+                lines.append(
+                    f"| {row['domain']} | {row['runs']} | ${row['est_cost_usd']:.4f} |"
+                )
+            pie = [(r["domain"], float(r["est_cost_usd"]) * 1_000_000) for r in dom_cost]
+            if sum(v for _, v in pie) > 0:
+                lines.extend(
+                    [
+                        "",
+                        "```mermaid",
+                        mermaid_pie([(a, max(1.0, b)) for a, b in pie], "Cost by domain"),
+                        "```",
+                    ]
+                )
+        else:
+            lines.append("_No domain breakdown yet._")
+
+        lines.extend(["", "## End reasons", ""])
+        reasons = d.get("end_reasons") or {}
+        if reasons:
+            lines.append("| Reason | Count |")
+            lines.append("| --- | ---: |")
+            for k, v in reasons.items():
+                lines.append(f"| `{k}` | {v} |")
+        else:
+            lines.append("_n/a_")
+
+        lines.extend(["", "## Top tools", ""])
+        top = d.get("top_tools") or []
+        if top:
+            lines.append("| Tool | Calls |")
+            lines.append("| --- | ---: |")
+            for name, n in top:
+                lines.append(f"| `{name}` | {n} |")
+            if tools_png and tools_png.is_file():
+                lines.extend(["", _wikilink(vault, tools_png), ""])
+        else:
+            lines.append("_No tool calls recorded yet._")
+        return "\n".join(lines).rstrip() + "\n"
+
+    lines = [
         "# ✦ Стоимость агента",
         "",
         f"> [!info] Окно — последние **{d['days']}д** · обновлено `{ts}`",
@@ -237,6 +293,7 @@ def render_markdown(
             lines.extend(["", _wikilink(vault, tools_png), ""])
     else:
         lines.append("_Вызовов инструментов пока не записано._")
+    return "\n".join(lines).rstrip() + "\n"
 
     lines.extend(
         [
@@ -302,33 +359,19 @@ def main(argv: list[str] | None = None) -> int:
         md_path = args.out
 
     plot_daily = dense_daily_series(summary.daily, days=args.days) if summary.daily else []
-    if not args.no_png and plot_daily:
-        xs = [r["date"][5:] for r in plot_daily]
-        _try_plot_lines(
-            tokens_png,
-            "Токены агента / день",
-            xs,
-            [float(r["tokens"]) for r in plot_daily],
-            "токены",
-        )
-        _try_plot_lines(
-            cost_png,
-            "Оценка стоимости агента / день (USD)",
-            xs,
-            [float(r["est_cost_usd"]) for r in plot_daily],
-            "USD",
-        )
-    if not args.no_png and summary.top_tools:
-        labels = [n for n, _ in summary.top_tools[:10]]
-        vals = [float(v) for _, v in summary.top_tools[:10]]
-        _try_plot_bars(tools_png, "Топ вызванных инструментов", labels, vals)
+    en = (
+        os.environ.get("AGENT_LOCALE", "").lower().startswith("en")
+        or os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes")
+    )
+    from shared.obsidian_ui.system import export_system
+    export_system(vault, plot_daily, rows)
 
     md = render_markdown(
         summary,
         vault=vault,
-        tokens_png=None if args.no_png else tokens_png,
-        cost_png=None if args.no_png else cost_png,
-        tools_png=None if args.no_png else tools_png,
+        tokens_png=None,
+        cost_png=None,
+        tools_png=None,
     )
     md_path.parent.mkdir(parents=True, exist_ok=True)
     md_path.write_text(md, encoding="utf-8")

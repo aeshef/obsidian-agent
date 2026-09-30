@@ -11,7 +11,6 @@ from typing import Any, Optional
 
 from shared.finance.currency import base_currency, is_base_currency
 from bot.broker_portfolio import BROKER_PORTFOLIO_ACCOUNT_TYPE, is_broker_portfolio_account
-from bot.services.dashboard.charts import plot_lines_png, plot_stacked_bar_categories_png
 from bot.services.dashboard.data import (
     acc_balance,
     external_base_non_portfolio_total,
@@ -67,23 +66,20 @@ def build_analytics_sections(
 ) -> dict[str, list]:
     """Build analytics markdown parts (structure through quarterly)."""
 
-    def wikilink_png(png_path: Path) -> str:
-        rel = png_path.resolve().relative_to(vault_root)
-        return f"![[{rel.as_posix()}]]"
+    charts = []
+
+    def publish(chart_id, dates, series, title, *, method='sum', chart_type='line'):
+        from shared.obsidian_ui.series import series_chart
+        charts.append(series_chart(chart_id, title, dates, series, method=method,
+                                   chart_type=chart_type, unit=base_currency(), filter_fields=[]))
 
     part_structure: list = []
     part_exp_pies: list = []
     part_moves: list = []
-    part_day_flow: list = []
-    part_day_regular: list = []
-    part_day_oneoff: list = []
     part_oneoff_list: list = []
-    part_monthly: list = []
-    part_quarterly: list = []
     part_exp_by_account: list = []
     part_balances: list = []
     part_top_exp: list = []
-    part_total_balance: list = []
 
     _badge_acc_name = badge_acc_name
 
@@ -241,215 +237,7 @@ def build_analytics_sections(
     )
 
     today = now.date()
-    spending_daily_window = chart_window_int(
-        "daily_spending_days", "FIN_SPENDING_DAILY_WINDOW_DAYS", 0
-    )
-    oneoff_daily_window = chart_window_int("daily_oneoff_days", "FIN_ONEOFF_DAILY_WINDOW_DAYS", 0)
-    flow_daily_window = chart_window_int("daily_flow_days", "FIN_FLOW_DAILY_WINDOW_DAYS", 0)
-    balance_daily_window = chart_window_int("balance_days", "FIN_BALANCE_DAILY_WINDOW_DAYS", 0)
-    weekly_flow_weeks = chart_window_int("weekly_flow_weeks", "FIN_FLOW_WEEKLY_WINDOW_WEEKS", 0)
-    weekly_spending_weeks = chart_window_int(
-        "weekly_spending_weeks", "FIN_SPENDING_WEEKLY_WINDOW_WEEKS", 0
-    )
-    last_spend_date = max(day_exp_regular.keys()) if day_exp_regular else None
-
-    if day_exp_regular:
-        regular_dates = set(day_exp_regular.keys())
-        regular_end = spending_axis_end(regular_dates, today=today)
-        regular_floor = series_floor(regular_dates, fallback=dashboard_start_date)
-        days_sorted = day_range(regular_end, regular_floor, spending_daily_window)
-        all_cats = set()
-        for d in day_exp_regular:
-            all_cats.update(day_exp_regular[d].keys())
-        top8 = ordered_top_categories(
-            all_cats, category_order=list(dtpl_raw("category_order") or []), top_n=8
-        )
-        series, day_totals_all = stacked_category_series(
-            day_exp_regular,
-            days_sorted,
-            top8,
-            rest_label=dtpl("misc", "rest_category"),
-        )
-        x_labels = format_day_labels(days_sorted)
-        part_day_regular.extend([
-            dtpl("sections", "daily_regular", "heading"),
-            "",
-            dtpl("sections", "daily_regular", "threshold_note", threshold=oneoff_threshold_rub),
-        ])
-        if badge_category:
-            part_day_regular.append(dtpl("sections", "daily_regular", "badge_note", category=badge_category))
-        if last_spend_date:
-            gap = (today - last_spend_date).days
-            part_day_regular.append(
-                dtpl("sections", "daily_regular", "last_spend_gap", date=last_spend_date.strftime("%d.%m.%Y"), gap=gap)
-                if gap > 0
-                else dtpl("sections", "daily_regular", "last_spend", date=last_spend_date.strftime("%d.%m.%Y"))
-            )
-        part_day_regular.extend(["", ""])
-        out_png = charts_dir / dtpl("charts", "daily_categories_file")
-        ok = plot_stacked_bar_categories_png(
-            x_labels,
-            series,
-            title=dtpl("charts", "daily_categories_title"),
-            y_label=base_currency(),
-            out_path=out_png,
-            totals_for_labels=day_totals_all,
-        )
-        if ok:
-            part_day_regular.append(wikilink_png(out_png))
-        else:
-            part_day_regular.append(dtpl("sections", "daily_regular", "no_data"))
-        part_day_regular.extend(["", ""])
-    else:
-        part_day_regular.extend([
-            dtpl("sections", "daily_regular", "empty_heading"),
-            "",
-            dtpl("sections", "daily_regular", "empty_hint"),
-            "",
-        ])
-
-    # One-off large expenses by day
-    if day_exp_oneoff_total:
-        oneoff_dates = set(day_exp_oneoff_total.keys())
-        oneoff_end = spending_axis_end(oneoff_dates, today=today)
-        oneoff_floor = series_floor(oneoff_dates, fallback=dashboard_start_date)
-        days_sorted_oneoff = day_range(oneoff_end, oneoff_floor, oneoff_daily_window)
-        x_labels = format_day_labels(days_sorted_oneoff)
-        vals = [float(day_exp_oneoff_total.get(d, 0)) for d in days_sorted_oneoff]
-        part_day_oneoff.extend([
-            dtpl("sections", "daily_oneoff", "heading"),
-            "",
-            dtpl("sections", "daily_oneoff", "threshold_note", threshold=oneoff_threshold_rub),
-            "",
-        ])
-        out_png = charts_dir / dtpl("charts", "oneoff_daily_file")
-        ok = plot_lines_png(
-            x_labels,
-            {dtpl("charts", "oneoff_series"): vals},
-            title=dtpl("charts", "oneoff_daily_title"),
-            y_label=base_currency(),
-            out_path=out_png,
-        )
-        if ok:
-            part_day_oneoff.append(wikilink_png(out_png))
-        else:
-            part_day_oneoff.append(dtpl("sections", "daily_oneoff", "no_data"))
-        part_day_oneoff.extend(["", ""])
-
-    # Daily income vs expense
-    day_flow = accumulate_daily_flow(
-        transactions,
-        acc_by_id=acc_by_id,
-        exclude_categories=exclude_spending_categories,
-        badge_category=badge_category,
-        parse_datetime=parse_datetime,
-    )
-
-    if day_flow:
-        flow_dates = set(day_flow.keys())
-        flow_end_date = spending_axis_end(flow_dates, today=today)
-        flow_floor = series_floor(flow_dates, fallback=dashboard_start_date)
-        days_sorted_flow = day_range(flow_end_date, flow_floor, flow_daily_window)
-        inc_vals = [float(day_flow.get(d, {}).get("income", 0)) for d in days_sorted_flow]
-        exp_vals = [float(day_flow.get(d, {}).get("expense", 0)) for d in days_sorted_flow]
-        x_labels = format_day_labels(days_sorted_flow)
-        part_day_flow.extend([
-            dtpl("sections", "daily_flow", "heading"),
-            "",
-        ])
-        out_png = charts_dir / dtpl("charts", "flow_daily_file")
-        ok = plot_lines_png(
-            x_labels,
-            {dtpl("charts", "income"): inc_vals, dtpl("charts", "expense"): exp_vals},
-            title=dtpl("charts", "flow_daily_title"),
-            y_label=base_currency(),
-            out_path=out_png,
-        )
-        if ok:
-            part_day_flow.append(wikilink_png(out_png))
-        else:
-            part_day_flow.append(dtpl("sections", "daily_flow", "no_data"))
-        part_day_flow.extend(["", ""])
-
-        # Weekly charts
-        week_flow = accumulate_weekly_flow(
-            transactions,
-            acc_by_id=acc_by_id,
-            exclude_categories=exclude_spending_categories,
-            parse_datetime=parse_datetime,
-        )
-
-        if week_flow:
-            week_end = max(week_flow.keys())
-            week_floor = min(week_flow.keys())
-            weeks_sorted = week_range(week_end, week_floor, weekly_flow_weeks)
-            xw = [w.strftime("%d.%m") for w in weeks_sorted]
-            inc_w = [float(week_flow.get(w, {}).get("income", 0)) for w in weeks_sorted]
-            exp_w = [float(week_flow.get(w, {}).get("expense", 0)) for w in weeks_sorted]
-            out_png = charts_dir / dtpl("charts", "flow_weekly_file")
-            ok = plot_lines_png(
-                xw,
-                {dtpl("charts", "income"): inc_w, dtpl("charts", "expense"): exp_w},
-                title=dtpl("charts", "flow_weekly_title"),
-                y_label=base_currency(),
-                out_path=out_png,
-            )
-            if ok:
-                part_day_flow.extend([
-                    dtpl("sections", "daily_flow", "weekly_heading"),
-                    "",
-                    wikilink_png(out_png),
-                    "",
-                ])
-
-        # Weekly spending by category
-        week_exp_regular = accumulate_weekly_regular_spending(
-            transactions,
-            acc_by_id=acc_by_id,
-            exclude_categories=exclude_spending_categories,
-            badge_category=badge_category,
-            oneoff_threshold_rub=oneoff_threshold_rub,
-            misc_label=misc_category_label(),
-            parse_datetime=parse_datetime,
-        )
-
-        if week_exp_regular:
-            week_end = max(week_exp_regular.keys())
-            week_floor = min(week_exp_regular.keys())
-            weeks_sorted = week_range(week_end, week_floor, weekly_spending_weeks)
-            top_cats = top_cats_by_total(week_exp_regular, weeks_sorted, top_n=8)
-            series, week_totals_labels = stacked_category_series(
-                week_exp_regular,
-                weeks_sorted,
-                top_cats,
-                rest_label=dtpl("misc", "rest_category"),
-            )
-            xw = [w.strftime("%d.%m") for w in weeks_sorted]
-            out_png = charts_dir / dtpl("charts", "exp_weekly_file")
-            ok = plot_stacked_bar_categories_png(
-                xw,
-                series,
-                title=dtpl("charts", "exp_weekly_title"),
-                y_label=base_currency(),
-                out_path=out_png,
-                totals_for_labels=week_totals_labels,
-            )
-            if ok:
-                part_day_flow.extend([
-                    dtpl("sections", "daily_flow", "weekly_exp_heading"),
-                    "",
-                    dtpl("sections", "daily_regular", "threshold_note", threshold=oneoff_threshold_rub),
-                    "",
-                    wikilink_png(out_png),
-                    "",
-                ])
-    else:
-        part_day_flow.extend([
-            dtpl("sections", "daily_flow", "empty_heading"),
-            "",
-            dtpl("sections", "daily_flow", "empty_hint"),
-            "",
-        ])
+    balance_daily_window = chart_window_int('balance_days','FIN_BALANCE_DAILY_WINDOW_DAYS',0)
 
     # Total balance over time
     balance_data_dates: set[date] = set()
@@ -540,46 +328,13 @@ def build_analytics_sections(
         cards_by_day.append(cards_d)
         broker_by_day.append(broker_d)
         total_by_day.append(day_total)
-    part_total_balance.extend([
-        dtpl("sections", "balance", "heading"),
-        "",
-    ])
     out_png = charts_dir / dtpl("charts", "balance_daily_file")
     balance_series = {dtpl("charts", "total_rub"): total_by_day}
     if show_cards:
         balance_series[dtpl("charts", "cards_rub")] = cards_by_day
     if show_broker:
         balance_series[dtpl("charts", "broker_rub")] = broker_by_day
-    ok = plot_lines_png(
-        format_day_labels(days_total),
-        balance_series,
-        title=dtpl("charts", "balance_daily_title"),
-        y_label=base_currency(),
-        out_path=out_png,
-    )
-    if ok:
-        part_total_balance.append(wikilink_png(out_png))
-        if total_by_day and days_total:
-            ld = days_total[-1]
-            fv = days_total[0]
-            lv = total_by_day[-1]
-            cv = cards_by_day[-1]
-            bv = broker_by_day[-1]
-            part_total_balance.append(
-                dtpl(
-                    "sections", "balance", "axis_note",
-                    from_date=fv.strftime("%d.%m.%Y"),
-                    to_date=ld.strftime("%d.%m.%Y"),
-                    days=len(days_total),
-                    total=fmt_num(float(lv), decimals=0),
-                    cards=fmt_num(float(cv), decimals=0),
-                    broker=fmt_num(float(bv), decimals=0),
-                    built_at=now.strftime("%Y-%m-%d %H:%M"),
-                )
-            )
-    else:
-        part_total_balance.append(dtpl("sections", "balance", "no_data"))
-    part_total_balance.extend(["", ""])
+    publish('balance', days_total, balance_series, dtpl('charts','balance_daily_title'), method='last')
 
     # Spending by account — current month only (list, not lifetime dump pie)
     exp_by_account = defaultdict(Decimal)
@@ -684,63 +439,6 @@ def build_analytics_sections(
             )
         part_top_exp.append("")
 
-    # Monthly income vs expense
-    monthly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
-    for t in transactions:
-        occ = parse_datetime(t["occurred_at"])
-        if not occ:
-            continue
-        if t.get("type") not in ("income", "expense"):
-            continue
-        if is_excluded_category(t, exclude_spending_categories):
-            continue
-        if is_badge_expense(t, badge_category):
-            continue
-        key = occ.strftime("%Y-%m")
-        amt = Decimal(str(t["amount"]))
-        monthly[key][t["type"]] += amt
-
-
-    # Quarterly dynamics
-    quarterly = defaultdict(lambda: {"income": Decimal(0), "expense": Decimal(0)})
-    for t in transactions:
-        occ = parse_datetime(t["occurred_at"])
-        if not occ:
-            continue
-        if t.get("type") not in ("income", "expense"):
-            continue
-        if is_excluded_category(t, exclude_spending_categories):
-            continue
-        if is_badge_expense(t, badge_category):
-            continue
-        q = (occ.month - 1) // 3 + 1
-        key = f"{occ.year}Q{q}"
-        amt = Decimal(str(t["amount"]))
-        quarterly[key][t["type"]] += amt
-    if quarterly:
-        q_keys = sorted(quarterly.keys())[-6:]
-        inc_q = [float(quarterly[k]["income"]) for k in q_keys]
-        exp_q = [float(quarterly[k]["expense"]) for k in q_keys]
-        part_quarterly.extend([
-            dtpl("sections", "quarterly", "heading"),
-            "",
-            dtpl("sections", "quarterly", "hint"),
-            "",
-        ])
-        out_png = charts_dir / dtpl("charts", "quarterly_file")
-        ok = plot_lines_png(
-            q_keys,
-            {dtpl("charts", "income"): inc_q, dtpl("charts", "expense"): exp_q},
-            title=dtpl("charts", "quarterly_title"),
-            y_label=base_currency(),
-            out_path=out_png,
-        )
-        if ok:
-            part_quarterly.append(wikilink_png(out_png))
-        else:
-            part_quarterly.append(dtpl("sections", "quarterly", "no_data"))
-        part_quarterly.extend(["", ""])
-
     # One-off list (bullets — tables break inside Obsidian <details>)
     if "oneoff_txns" in locals() and oneoff_txns:
         oneoff_txns.sort(key=lambda x: -x[2])
@@ -755,49 +453,14 @@ def build_analytics_sections(
             )
         part_oneoff_list.append("")
 
-    if monthly:
-        months = sorted(monthly.keys())[-6:]
-        inc_vals = [float(monthly[m]["income"]) for m in months]
-        exp_vals = [float(monthly[m]["expense"]) for m in months]
-        x_labels = [m.replace("-", ".") for m in months]
-        part_monthly.extend([
-            dtpl("sections", "monthly", "heading"),
-            "",
-        ])
-        out_png = charts_dir / dtpl("charts", "monthly_file")
-        ok = plot_lines_png(
-            x_labels,
-            {dtpl("charts", "income"): inc_vals, dtpl("charts", "expense"): exp_vals},
-            title=dtpl("charts", "monthly_title"),
-            y_label=base_currency(),
-            out_path=out_png,
-        )
-        if ok:
-            part_monthly.append(wikilink_png(out_png))
-        else:
-            part_monthly.append(dtpl("sections", "monthly", "no_data"))
-        part_monthly.extend(["", ""])
-    else:
-        part_monthly.extend([
-            dtpl("sections", "monthly", "heading"),
-            "",
-            dtpl("sections", "monthly", "empty_hint"),
-            "",
-        ])
-
-
     return {
+        "charts": charts,
+        "oneoff_threshold": oneoff_threshold_rub,
         "part_structure": part_structure,
         "part_exp_pies": part_exp_pies,
         "part_moves": part_moves,
-        "part_day_flow": part_day_flow,
-        "part_day_regular": part_day_regular,
-        "part_day_oneoff": part_day_oneoff,
         "part_oneoff_list": part_oneoff_list,
-        "part_monthly": part_monthly,
-        "part_quarterly": part_quarterly,
         "part_exp_by_account": part_exp_by_account,
         "part_balances": part_balances,
         "part_top_exp": part_top_exp,
-        "part_total_balance": part_total_balance,
     }

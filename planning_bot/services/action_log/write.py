@@ -77,7 +77,9 @@ class ActionLogWrite:
         # (comment)
         if task_id:
             history = self.get_task_history(task_id=task_id)
-            if any(h.get("type") == "task_completed" for h in history):
+            relevant = [h for h in history if h.get("type") in ("task_completed", "task_reopened")]
+            relevant.sort(key=lambda h: str(h.get("timestamp") or h.get("dt") or ""))
+            if relevant and relevant[-1].get("type") == "task_completed":
                 return
         payload = {"title": task_title}
         if task_id:

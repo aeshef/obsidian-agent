@@ -4,7 +4,7 @@ from __future__ import annotations
 import csv
 import json
 import sys
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,8 @@ def _daily_iphone_metrics(vault: Path) -> dict[str, dict[str, float]]:
     cfg = vault_analytics_config()
     metric_keys = [str(k) for k in (cfg.get("iphone_metrics") or [])]
     snaps = _iphone_snapshots(vault)
+    from planning_bot.services.snapshot_query import latest_per_calendar_day
+    snaps = list(latest_per_calendar_day(snaps).values())
     by_day: dict[str, dict[str, float]] = {}
     for s in sorted(snaps, key=lambda x: str(x.get("ts", ""))):
         day = str(s.get("ts", ""))[:10]
@@ -82,35 +84,40 @@ def _load_cross_rows(vault: Path) -> list[dict[str, Any]]:
 def _recent_rows(rows: list[dict[str, Any]], window_days: int) -> list[dict[str, Any]]:
     if not rows:
         return rows
-    cutoff = (datetime.now().date() - timedelta(days=window_days)).isoformat()
+    cutoff = (datetime.now().date() - timedelta(days=max(1, window_days) - 1)).isoformat()
     return [r for r in rows if str(r.get("date", "")) >= cutoff]
 
 
 def _add_lags(rows: list[dict[str, Any]], keys: list[str]) -> None:
-    for i, row in enumerate(rows):
+    by_day = {str(row.get("date", "")): row for row in rows}
+    for row in rows:
+        try:
+            previous_day = (date.fromisoformat(str(row["date"])[:10]) - timedelta(days=1)).isoformat()
+        except (KeyError, ValueError):
+            previous_day = ""
+        previous = by_day.get(previous_day) or {}
         for k in keys:
-            if i == 0:
-                row[f"{k}_lag1"] = None
-                continue
-            prev = rows[i - 1].get(k)
-            row[f"{k}_lag1"] = prev
+            row[f"{k}_lag1"] = previous.get(k)
 
 
 def _add_weight_next(rows: list[dict[str, Any]]) -> None:
-    for i, row in enumerate(rows):
+    by_day = {str(row.get("date", "")): row for row in rows}
+    for row in rows:
         w = row.get("iphone_weight_kg")
         if w is None:
             continue
         row["iphone_weight_delta"] = None
-        if i > 0:
-            prev = rows[i - 1].get("iphone_weight_kg")
-            if prev is not None:
-                row["iphone_weight_delta"] = float(w) - float(prev)
-        if i + 1 < len(rows):
-            nxt = rows[i + 1].get("iphone_weight_kg")
-            if nxt is not None:
-                row["iphone_weight_kg_next"] = float(nxt)
-                row["iphone_weight_delta_next"] = float(nxt) - float(w)
+        try:
+            current_day = date.fromisoformat(str(row["date"])[:10])
+        except (KeyError, ValueError):
+            continue
+        prev = (by_day.get((current_day - timedelta(days=1)).isoformat()) or {}).get("iphone_weight_kg")
+        if prev is not None:
+            row["iphone_weight_delta"] = float(w) - float(prev)
+        nxt = (by_day.get((current_day + timedelta(days=1)).isoformat()) or {}).get("iphone_weight_kg")
+        if nxt is not None:
+            row["iphone_weight_kg_next"] = float(nxt)
+            row["iphone_weight_delta_next"] = float(nxt) - float(w)
 
 
 def build_master_panel(vault: Path) -> tuple[list[dict[str, Any]], list[str]]:
@@ -121,7 +128,11 @@ def build_master_panel(vault: Path) -> tuple[list[dict[str, Any]], list[str]]:
     if not cross and not iphone:
         return [], []
 
-    days = sorted(set(str(r.get("date", "")) for r in cross) | set(iphone.keys()))
+    end_day = datetime.now().date()
+    start_day = end_day - timedelta(days=max(1, window) - 1)
+    iphone = {d: row for d, row in iphone.items() if start_day.isoformat() <= d <= end_day.isoformat()}
+    # A continuous calendar makes lag1 mean D-1 and preserves missingness as null.
+    days = [(start_day + timedelta(days=i)).isoformat() for i in range((end_day - start_day).days + 1)]
     cross_by_day = {str(r["date"]): r for r in cross if r.get("date")}
     rows: list[dict[str, Any]] = []
     for d in days:

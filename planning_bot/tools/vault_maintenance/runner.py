@@ -173,7 +173,7 @@ def run_all() -> bool:
                 + (f" errors={res.get('errors')}" if res.get("errors") else ""),
                 flush=True,
             )
-            results.append(("iPhone mail sync", ok or written == 0))
+            results.append(("iPhone mail sync", ok))
         except Exception as e:
             print(pdmsg("auto_a9432c09f4", e={e}))
             results.append(("iPhone mail sync", False))

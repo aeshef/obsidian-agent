@@ -187,7 +187,35 @@ def test_archive_moves_old_done_tasks(kanban_archive_vault: Path, monkeypatch):
     archive_path = kanban_archive_vault / "100_Tasks" / "📦 Closed_Tasks.md"
     archive_text = archive_path.read_text(encoding="utf-8")
     assert "deadbeef" in archive_text
+    assert "kanban-plugin: board" in archive_text
 
     state = get_kanban_state()
     assert state["deadbeef"] == DONE_COLUMN
     assert state["bb222222"] == DONE_COLUMN
+
+
+def test_archive_rebuild_merges_duplicate_months_and_sorts():
+    from planning_bot.services import kanban_parse as kp
+    from planning_bot.tools.vault_maintenance.kanban_archive import _rebuild_archive_content
+
+    original = (
+        "---\n\nkanban-plugin: board\n\n---\n\n"
+        "## ✅ Done · 2026-05\n\n"
+        "- [x] Old may\n\t🆔 ID: aaa11111\n\n"
+        "## ✅ Done · 2026-08\n\n"
+        "- [x] August task\n\t🆔 ID: bbb22222\n\n"
+        "## ✅ Done · 2026-05\n\n"
+        "- [x] More may\n\t🆔 ID: ccc33333\n\n"
+        "## ✅ Done · 2026-06\n\n"
+        "- [x] June task\n\t🆔 ID: ddd44444\n\n"
+    )
+    sections = kp.parse_sections(original)
+    text = _rebuild_archive_content(original, sections)
+    headings = [line for line in text.splitlines() if line.startswith("## ")]
+    assert headings == [
+        "## ✅ Done · 2026-08",
+        "## ✅ Done · 2026-06",
+        "## ✅ Done · 2026-05",
+    ]
+    assert "aaa11111" in text and "ccc33333" in text
+    assert text.count("## ✅ Done · 2026-05") == 1

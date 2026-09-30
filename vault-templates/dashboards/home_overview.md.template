@@ -1,0 +1,3 @@
+```dataviewjs
+await dv.view("Assistant UI/home", {goals: "{{goals_page}}", focusTag: "{{tag_focus}}"})
+```

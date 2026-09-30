@@ -54,10 +54,15 @@ def _dashboards_catalog(locale: str | None = None) -> dict:
 
 
 def _kanban_schema() -> dict:
-    path = _REPO / "planning_bot" / "config" / "kanban_schema.yaml"
-    if not path.is_file():
-        path = _REPO / "planning_bot" / "config" / "kanban_schema.yaml.example"
-    return load_yaml(path, default={}) or {}
+    """Prefer locale example; under AGENT_EN_STRICT ignore personal RU kanban_schema.yaml."""
+    from shared.yaml_config import load_locale_merged_config, load_yaml
+
+    cfg_dir = _REPO / "planning_bot" / "config"
+    if os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes"):
+        path = cfg_dir / "kanban_schema.en.yaml.example"
+        if path.is_file():
+            return load_yaml(path, default={}) or {}
+    return load_locale_merged_config(str(cfg_dir), "kanban_schema", _locale())
 
 
 def _json_js(val: Any) -> str:
@@ -154,6 +159,8 @@ def build_scaffold_context(
         "charts_subdir": charts_sub,
         "dashboards_folder": dash_folder,
         "data_subdir": data_sub,
+        "logs_subdir": dashboards_sub("logs"),
+        "action_log_prefix": vault_file("action_log_prefix"),
         "calendar_dashboard": f"{dash_folder}/{calendar_dash}",
         "calendar_json": calendar_json,
         "nutrition_dashboard": nutrition_dash,
@@ -323,7 +330,12 @@ def scaffold_vault_dashboards(
         if dry_run:
             written.append(f"(dry-run) {out_path}")
             continue
+        from shared.obsidian_ui.layout import present_dashboard
+        body = present_dashboard(body, root, "main" if dash_id == "main" else "progress")
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(body, encoding="utf-8")
         written.append(str(out_path))
+    if not dry_run and prof.module("knowledge"):
+        from shared.obsidian_ui.library import build_library
+        build_library(root)
     return written

@@ -1,4 +1,4 @@
-/* Цветные теги для приоритетов */
+/* Priority tags — RU */
 .tag[href="#приоритет/высокий"],
 a.tag[href="#приоритет/высокий"] {
   background-color: #ff4444 !important;
@@ -20,7 +20,29 @@ a.tag[href="#приоритет/низкий"] {
   border: 1px solid #666666 !important;
 }
 
-/* Цветные теги для категорий целей */
+/* Priority tags — EN */
+.tag[href="#priority/high"],
+a.tag[href="#priority/high"] {
+  background-color: #ff4444 !important;
+  color: white !important;
+  border: 1px solid #cc0000 !important;
+}
+
+.tag[href="#priority/medium"],
+a.tag[href="#priority/medium"] {
+  background-color: #ffaa00 !important;
+  color: white !important;
+  border: 1px solid #cc8800 !important;
+}
+
+.tag[href="#priority/low"],
+a.tag[href="#priority/low"] {
+  background-color: #888888 !important;
+  color: white !important;
+  border: 1px solid #666666 !important;
+}
+
+/* Goal tags — RU */
 .tag[href="#цель/карьера"],
 a.tag[href="#цель/карьера"] {
   background-color: #4a90e2 !important;
@@ -84,11 +106,131 @@ a.tag[href="#цель/семья"] {
   border: 1px solid #cc7033 !important;
 }
 
-/* Стили для тегов в канбан-карточках */
+/* Goal tags — EN */
+.tag[href="#goal/career"],
+a.tag[href="#goal/career"] {
+  background-color: #4a90e2 !important;
+  color: white !important;
+  border: 1px solid #357abd !important;
+}
+
+.tag[href="#goal/study"],
+a.tag[href="#goal/study"] {
+  background-color: #7b68ee !important;
+  color: white !important;
+  border: 1px solid #5a4fcf !important;
+}
+
+.tag[href="#goal/growth"],
+a.tag[href="#goal/growth"] {
+  background-color: #50c878 !important;
+  color: white !important;
+  border: 1px solid #3da05a !important;
+}
+
+.tag[href="#goal/home"],
+a.tag[href="#goal/home"] {
+  background-color: #ff6b9d !important;
+  color: white !important;
+  border: 1px solid #cc5579 !important;
+}
+
+.tag[href="#goal/health"],
+a.tag[href="#goal/health"] {
+  background-color: #32cd32 !important;
+  color: white !important;
+  border: 1px solid #28a828 !important;
+}
+
+.tag[href="#goal/infrastructure"],
+a.tag[href="#goal/infrastructure"] {
+  background-color: #9370db !important;
+  color: white !important;
+  border: 1px solid #7559b0 !important;
+}
+
+.tag[href="#goal/creativity"],
+a.tag[href="#goal/creativity"] {
+  background-color: #ff69b4 !important;
+  color: white !important;
+  border: 1px solid #cc5490 !important;
+}
+
+.tag[href="#goal/experience"],
+a.tag[href="#goal/experience"] {
+  background-color: #20b2aa !important;
+  color: white !important;
+  border: 1px solid #198b85 !important;
+}
+
+.tag[href="#goal/family"],
+a.tag[href="#goal/family"] {
+  background-color: #ff8c42 !important;
+  color: white !important;
+  border: 1px solid #cc7033 !important;
+}
+
+/* Tags inside kanban cards */
 .kanban-plugin__item-prefix-button .tag,
-.kanban-plugin__item-title-wrapper .tag {
+.kanban-plugin__item-title-wrapper .tag,
+.kanban-plugin__item-metadata .tag {
   font-size: 0.85em;
   padding: 2px 6px;
   border-radius: 3px;
   margin-right: 4px;
+}
+
+/* Kanban card tint by goal category */
+.kanban-plugin__item:has(a.tag[href="#цель/карьера"]),
+.kanban-plugin__item:has(a.tag[href="#goal/career"]) {
+  background: linear-gradient(90deg, rgba(74, 144, 226, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #4a90e2 !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/учеба"]),
+.kanban-plugin__item:has(a.tag[href="#goal/study"]) {
+  background: linear-gradient(90deg, rgba(123, 104, 238, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #7b68ee !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/развитие"]),
+.kanban-plugin__item:has(a.tag[href="#goal/growth"]) {
+  background: linear-gradient(90deg, rgba(80, 200, 120, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #50c878 !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/дом"]),
+.kanban-plugin__item:has(a.tag[href="#goal/home"]) {
+  background: linear-gradient(90deg, rgba(255, 107, 157, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #ff6b9d !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/здоровье"]),
+.kanban-plugin__item:has(a.tag[href="#goal/health"]) {
+  background: linear-gradient(90deg, rgba(50, 205, 50, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #32cd32 !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/инфраструктура"]),
+.kanban-plugin__item:has(a.tag[href="#goal/infrastructure"]) {
+  background: linear-gradient(90deg, rgba(147, 112, 219, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #9370db !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/творчество"]),
+.kanban-plugin__item:has(a.tag[href="#goal/creativity"]) {
+  background: linear-gradient(90deg, rgba(255, 105, 180, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #ff69b4 !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/опыт"]),
+.kanban-plugin__item:has(a.tag[href="#goal/experience"]) {
+  background: linear-gradient(90deg, rgba(32, 178, 170, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #20b2aa !important;
+}
+
+.kanban-plugin__item:has(a.tag[href="#цель/семья"]),
+.kanban-plugin__item:has(a.tag[href="#goal/family"]) {
+  background: linear-gradient(90deg, rgba(255, 140, 66, 0.16), transparent 62%) !important;
+  box-shadow: inset 4px 0 0 #ff8c42 !important;
 }

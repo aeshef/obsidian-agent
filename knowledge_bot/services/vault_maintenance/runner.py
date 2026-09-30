@@ -166,6 +166,8 @@ def run_daily_maintenance(
         secs = round(time.monotonic() - t0, 1)
         rc = int(r.returncode or 0)
         metrics = extract_step_metrics(name, r.stdout or "", r.stderr or "")
+        if any(value for key, value in metrics.items() if key.endswith("llm_errors")):
+            rc = rc or 1
         out["steps"].append(
             {
                 "name": name,

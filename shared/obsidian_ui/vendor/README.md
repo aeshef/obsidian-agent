@@ -1,0 +1,1 @@
+Apache ECharts 6.1.0, full UMD distribution (including heatmap and visualMap). Source: https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz. SHA-512 integrity verified against registry metadata. Apache-2.0; LICENSE and NOTICE included. Bundled locally, no runtime network requests.

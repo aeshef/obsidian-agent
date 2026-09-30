@@ -20,6 +20,8 @@ def _output_path(vault: Path) -> Path:
 def build_task_completions_index(*, vault: Path | None = None) -> Path:
     vault = vault or LOGS_DIR.parent.parent
     out_path = _output_path(vault)
+    sources = list(Path(ACTION_LOGS_DIR).glob("*.md"))
+    source_mtime_ms = max((p.stat().st_mtime * 1000 for p in sources), default=0)
     events = collect_events_from_logs(ACTION_LOGS_DIR)
     completions = get_completion_events(events, filter_batch=True, dedup_per_task=True)
 
@@ -37,10 +39,19 @@ def build_task_completions_index(*, vault: Path | None = None) -> Path:
     payload = {
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "count": len(index),
+        "source_mtime_ms": source_mtime_ms,
         "completions": index,
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    import tempfile
+    import os
+    fd, name = tempfile.mkstemp(dir=out_path.parent, prefix=".completions-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w") as stream:
+            json.dump(payload, stream, ensure_ascii=False, indent=2)
+        Path(name).replace(out_path)
+    finally:
+        Path(name).unlink(missing_ok=True)
     return out_path
 
 

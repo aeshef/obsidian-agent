@@ -32,6 +32,8 @@ async function readVaultFile(path) {
 }
 
 async function loadCompletionByTaskId() {
+  const LOG_DIR = "{{dashboards_folder}}/{{logs_subdir}}";
+  const LOG_PREFIX = "{{action_log_prefix}}";
   const map = {};
   const put = (tid, ts) => {
     if (!tid || ts == null || Number.isNaN(ts)) return;
@@ -46,11 +48,12 @@ async function loadCompletionByTaskId() {
       for (const [tid, iso] of Object.entries(raw)) {
         put(tid, Date.parse(String(iso).replace(" ", "T")));
       }
-      if (Object.keys(map).length) return map;
+      const newestLog = Math.max(0, ...app.vault.getFiles()
+        .filter(f => f.parent?.path === LOG_DIR && f.name.startsWith(LOG_PREFIX))
+        .map(f => f.stat.mtime));
+      if (Number(payload.source_mtime_ms) >= newestLog && Object.keys(map).length) return map;
     }
   } catch (_) {}
-  const LOG_DIR = "{{dashboards_folder}}/{{logs_subdir}}";
-  const LOG_PREFIX = "{{action_log_prefix}}";
   const entryRe = /^## (\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s*\n+\*\*(?:Тип|Type):\*\* (.+?)\s*\n+\*\*(?:Данные|Data):\*\*\s*\n```json\n([\s\S]*?)\n```/gm;
   const now = new Date();
   for (let i = 0; i < 13; i++) {

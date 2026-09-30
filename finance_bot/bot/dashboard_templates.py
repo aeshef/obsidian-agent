@@ -1,18 +1,31 @@
 """Dashboard markdown templates from finance_bot/config/dashboard_templates.yaml."""
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from pathlib import Path
 
 from shared.locale import agent_locale
-from shared.yaml_config import load_locale_merged_config
+from shared.yaml_config import load_locale_merged_config, load_yaml
 
 _CONFIG = Path(__file__).resolve().parent.parent / "config"
 
 
+def _config_dir() -> Path:
+    override = os.environ.get("FINANCE_CONFIG_DIR", "").strip()
+    if override:
+        return Path(override)
+    return _CONFIG
+
+
 @lru_cache(maxsize=1)
 def _templates() -> dict:
-    return load_locale_merged_config(str(_CONFIG), "dashboard_templates", agent_locale())
+    cfg = _config_dir()
+    if os.environ.get("FINANCE_CONFIG_DIR", "").strip():
+        local = cfg / "dashboard_templates.yaml"
+        if local.is_file():
+            return load_yaml(local, default={})
+    return load_locale_merged_config(str(cfg), "dashboard_templates", agent_locale())
 
 
 def dtpl_raw(*keys: str):

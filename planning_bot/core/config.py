@@ -93,6 +93,13 @@ DEEPSEEK_MODEL = deepseek_model()
 @lru_cache(maxsize=1)
 def _kanban_schema() -> dict:
     # Locale-specific example first so EN installs do not inherit RU column labels.
+    # AGENT_EN_STRICT: demo/OSS film sets — never merge personal kanban_schema.yaml (RU columns).
+    if os.environ.get("AGENT_EN_STRICT", "").strip().lower() in ("1", "true", "yes"):
+        en_ex = _PLANNING_CONFIG_DIR / "kanban_schema.en.yaml.example"
+        if en_ex.is_file():
+            from shared.yaml_config import load_yaml
+
+            return load_yaml(en_ex, default={})
     return load_locale_merged_config(str(_PLANNING_CONFIG_DIR), "kanban_schema", agent_locale())
 
 

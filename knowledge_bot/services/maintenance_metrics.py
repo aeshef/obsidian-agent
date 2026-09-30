@@ -132,6 +132,9 @@ def extract_step_metrics(step_name: str, stdout: str, stderr: str = "") -> dict[
     if not text.strip() and not (stderr or "").strip():
         return {}
     out: dict[str, Any] = {}
+    provider_errors = len(re.findall(r"LLM HTTP [45]\d\d|Traceback \(most recent call last\)", stderr or ""))
+    if provider_errors:
+        out["provider_llm_errors"] = provider_errors
     if step_name in ("retag_notes", "retag_untagged"):
         m = re.search(mm("regex_retag_total"), text)
         if m:
@@ -559,78 +562,12 @@ def load_history(vault: Path, *, max_rows: int | None = 120) -> list[dict[str, A
 
 
 def render_maintenance_charts(vault: Path) -> list[Path]:
-    """English docstring omitted (see domain_messages.yaml)."""
-    rows = load_history(vault, max_rows=400)
-    if len(rows) < 1:
-        return []
-    rows = rows[-90:]
-
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-    except ImportError:
-        return []
-
-    dates = [datetime.strptime(str(r["date"]), "%Y-%m-%d").date() for r in rows]
-    notes_b = [int((r.get("before") or {}).get("notes_md_db700", 0)) for r in rows]
-    notes_a = [int((r.get("after") or {}).get("notes_md_db700", 0)) for r in rows]
-    exp_mb = [round(int((r.get("before") or {}).get("bytes_export", 0)) / (1024 * 1024), 2) for r in rows]
-    rq = [int((r.get("before") or {}).get("reprocess_eligible", 0)) for r in rows]
-    retag = [int((r.get("run") or {}).get("retag_touched", 0) or 0) for r in rows]
-    repro_s = [int((r.get("run") or {}).get("reprocess_saved", 0) or 0) for r in rows]
-    repro_d = [int((r.get("run") or {}).get("reprocess_deleted_empty", 0) or 0) for r in rows]
-    dup_mb = [float((r.get("run") or {}).get("duplicates_mb_freed", 0) or 0) for r in rows]
-
-    from knowledge_bot.i18n.domain_text import maintenance as mm
-    from shared.chart_paths import chart_path, ensure_parent
-
-    out_path = chart_path(vault, "chart_maintenance_dynamics_png")
-    ensure_parent(out_path)
-    cleanup_legacy_maintenance_chart(vault)
-
-    fig, axes = plt.subplots(2, 2, figsize=(11, 7))
-    fig.suptitle(mm("chart_suptitle"), fontsize=12)
-
-    ax = axes[0, 0]
-    ax.plot(dates, notes_b, label=mm("chart_notes_before"), marker="o", ms=3, linewidth=1)
-    ax.plot(dates, notes_a, label=mm("chart_notes_after"), marker="o", ms=3, linewidth=1)
-    ax.set_title(mm("chart_notes_title"))
-    ax.legend(fontsize=8)
-    ax.tick_params(axis="x", rotation=35, labelsize=7)
-    ax.grid(True, alpha=0.3)
-
-    ax = axes[0, 1]
-    ax.fill_between(dates, exp_mb, alpha=0.25)
-    ax.plot(dates, exp_mb, color="tab:orange", marker="o", ms=3, linewidth=1)
-    ax.set_title(mm("chart_export_title"))
-    ax.tick_params(axis="x", rotation=35, labelsize=7)
-    ax.grid(True, alpha=0.3)
-
-    ax = axes[1, 0]
-    ax.plot(dates, rq, color="tab:red", marker="o", ms=3, linewidth=1)
-    ax.set_title(mm("chart_queue_title"))
-    ax.tick_params(axis="x", rotation=35, labelsize=7)
-    ax.grid(True, alpha=0.3)
-
-    ax = axes[1, 1]
-    width = 0.22
-    x = range(len(dates))
-    ax.bar([i - 1.5 * width for i in x], retag, width=width, label="retag")
-    ax.bar([i - 0.5 * width for i in x], repro_s, width=width, label=mm("chart_bar_reprocess"))
-    ax.bar([i + 0.5 * width for i in x], repro_d, width=width, label=mm("chart_bar_empty"))
-    ax.bar([i + 1.5 * width for i in x], dup_mb, width=width, label=mm("chart_bar_dup"))
-    ax.set_title(mm("chart_daily_title"))
-    ax.set_xticks(list(x))
-    ax.set_xticklabels([str(d) for d in dates], rotation=55, ha="right", fontsize=6)
-    ax.legend(fontsize=7)
-    ax.grid(True, axis="y", alpha=0.3)
-
-    fig.tight_layout()
-    fig.savefig(out_path, dpi=120)
-    plt.close(fig)
-    return [out_path]
+    """Refresh interactive history; retain the public maintenance entry point."""
+    from shared.obsidian_ui.assets import install_assets
+    from unified_bot.integrations.dashboard_datasets import export_dataset
+    root=install_assets(vault)
+    export_dataset(vault,root,'maintenance')
+    return []
 
 
 def build_dynamics_markdown_section(
@@ -649,13 +586,9 @@ def build_dynamics_markdown_section(
         mm("report_dynamics_hist", history_path=hist),
         "",
     ]
-    if paths:
-        rel = paths[0].relative_to(vault)
-        lines.append(f"![[{rel.as_posix()}]]")
-        lines.append("")
-    else:
-        lines.append(mm("report_chart_pending"))
-        lines.append("")
+    from shared.obsidian_ui.assets import install_assets
+    root=install_assets(vault)
+    lines.extend(['```dataviewjs',f'await dv.view("{root}/explorer", {{kind: "maintenance"}})','```',''])
 
     if not rows:
         lines.append(mm("report_no_history"))

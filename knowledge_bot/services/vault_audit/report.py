@@ -409,5 +409,6 @@ def write_vault_audit_report(vault: Path, out_path: Path | None = None) -> Path:
     if not target.is_absolute():
         target = vault / target
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(build_vault_audit_report(vault), encoding="utf-8")
+    from shared.obsidian_ui.layout import present_dashboard
+    target.write_text(present_dashboard(build_vault_audit_report(vault), vault, "vault_audit"), encoding="utf-8")
     return target

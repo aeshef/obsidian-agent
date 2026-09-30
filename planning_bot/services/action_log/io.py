@@ -16,7 +16,7 @@ from planning_bot.services.action_log_format import content_for_parse
 _log = logging.getLogger(__name__)
 
 _TASK_EVENT_TYPES = frozenset(
-    {"task_moved", "task_completed", "task_created", "task_deleted", "task_removed"}
+    {"task_moved", "task_completed", "task_created", "task_deleted", "task_removed", "task_reopened", "task_rescheduled"}
 )
 
 
