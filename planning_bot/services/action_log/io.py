@@ -127,4 +127,3 @@ class ActionLogIO:
         if cap > 0:
             months = months[-cap:]
         return months
-

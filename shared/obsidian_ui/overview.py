@@ -45,4 +45,3 @@ def analytics_overview(vault: Path) -> str:
     report = chart_path(vault, 'chart_analytics_insights_md')
     link = f"\n\n[[{report.relative_to(vault).with_suffix('')}|{labels['evidence_details']}]]" if report.is_file() else ''
     return metric_cards_html(cards)+link+'\n'
-

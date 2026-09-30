@@ -23,5 +23,3 @@ def panel_coverage(rows: Sequence[dict], metrics: Sequence[tuple[str, str]]) -> 
         cnt = int(np.isfinite(_col(rows, key)).sum())
         out.append((label, cnt, n))
     return out
-
-

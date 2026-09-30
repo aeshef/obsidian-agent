@@ -193,4 +193,3 @@ class ActionLogQuery:
                 result += f" - \"{entry['data'].get('title', '')}\" [{entry['data'].get('category', '')}, {entry['data'].get('priority', '')}]"
             result += "\n"
         return result
-

@@ -23,12 +23,12 @@ async def prev_transaction_cb(callback: types.CallbackQuery, state: FSMContext) 
     index = int(callback.data.split(":")[-1])
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index > 0:
         prev_index = index - 1
         await state.update_data(current_index=prev_index)
         await show_transaction_confirmation(transactions[prev_index], callback.message, state, prev_index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -38,12 +38,12 @@ async def next_transaction_cb(callback: types.CallbackQuery, state: FSMContext) 
     index = int(callback.data.split(":")[-1])
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions) - 1:
         next_index = index + 1
         await state.update_data(current_index=next_index)
         await show_transaction_confirmation(transactions[next_index], callback.message, state, next_index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -61,15 +61,15 @@ async def set_category_cb(callback: types.CallbackQuery, state: FSMContext) -> N
     parts = callback.data.split(":")
     index = int(parts[2])
     category = ":".join(parts[3:])  # category may contain ":"
-    
+
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         transactions[index]["category"] = category
         await state.update_data(transactions=transactions)
         await show_transaction_confirmation(transactions[index], callback.message, state, index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -79,10 +79,10 @@ async def set_account_cb(callback: types.CallbackQuery, state: FSMContext) -> No
     parts = callback.data.split(":")
     index = int(parts[2])
     account_id = int(parts[3])
-    
+
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         async with AsyncSessionLocal() as session:
             account = (await session.execute(select(Account).join(User).where(Account.id == account_id, User.telegram_id == callback.from_user.id))).scalar_one_or_none()
@@ -90,7 +90,7 @@ async def set_account_cb(callback: types.CallbackQuery, state: FSMContext) -> No
                 transactions[index]["account"] = account.name
                 await state.update_data(transactions=transactions)
                 await show_transaction_confirmation(transactions[index], callback.message, state, index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -100,10 +100,10 @@ async def set_from_account_cb(callback: types.CallbackQuery, state: FSMContext) 
     parts = callback.data.split(":")
     index = int(parts[2])
     account_id = int(parts[3])
-    
+
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         async with AsyncSessionLocal() as session:
             account = (await session.execute(select(Account).join(User).where(Account.id == account_id, User.telegram_id == callback.from_user.id))).scalar_one_or_none()
@@ -111,7 +111,7 @@ async def set_from_account_cb(callback: types.CallbackQuery, state: FSMContext) 
                 transactions[index]["from_account"] = account.name
                 await state.update_data(transactions=transactions)
                 await show_transaction_confirmation(transactions[index], callback.message, state, index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -121,10 +121,10 @@ async def set_to_account_cb(callback: types.CallbackQuery, state: FSMContext) ->
     parts = callback.data.split(":")
     index = int(parts[2])
     account_id = int(parts[3])
-    
+
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         async with AsyncSessionLocal() as session:
             account = (await session.execute(select(Account).join(User).where(Account.id == account_id, User.telegram_id == callback.from_user.id))).scalar_one_or_none()
@@ -132,7 +132,7 @@ async def set_to_account_cb(callback: types.CallbackQuery, state: FSMContext) ->
                 transactions[index]["to_account"] = account.name
                 await state.update_data(transactions=transactions)
                 await show_transaction_confirmation(transactions[index], callback.message, state, index, len(transactions), tg_id=callback.from_user.id)
-    
+
     await callback.answer()
 
 
@@ -142,7 +142,7 @@ async def set_counterparty_cb(callback: types.CallbackQuery, state: FSMContext) 
     index = int(callback.data.split(":")[-1])
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         await state.update_data(editing_field=f"counterparty:{index}")
         await callback.message.edit_text(
@@ -151,7 +151,7 @@ async def set_counterparty_cb(callback: types.CallbackQuery, state: FSMContext) 
                 inline_keyboard=[[InlineKeyboardButton(text=common("cancel_button"), callback_data="txn:cancel")]]
             ),
         )
-    
+
     await callback.answer()
 
 
@@ -161,7 +161,7 @@ async def set_amount_cb(callback: types.CallbackQuery, state: FSMContext) -> Non
     index = int(callback.data.split(":")[-1])
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         await state.update_data(editing_field=f"amount:{index}")
         await callback.message.edit_text(
@@ -170,7 +170,7 @@ async def set_amount_cb(callback: types.CallbackQuery, state: FSMContext) -> Non
                 inline_keyboard=[[InlineKeyboardButton(text=common("cancel_button"), callback_data="txn:cancel")]]
             ),
         )
-    
+
     await callback.answer()
 
 
@@ -180,7 +180,7 @@ async def set_category_text_cb(callback: types.CallbackQuery, state: FSMContext)
     index = int(callback.data.split(":")[-1])
     data = await state.get_data()
     transactions = data.get("transactions", [])
-    
+
     if index < len(transactions):
         await state.update_data(editing_field=f"category:{index}")
         await callback.message.edit_text(
@@ -189,7 +189,7 @@ async def set_category_text_cb(callback: types.CallbackQuery, state: FSMContext)
                 inline_keyboard=[[InlineKeyboardButton(text=common("cancel_button"), callback_data="txn:cancel")]]
             ),
         )
-    
+
     await callback.answer()
 
 
@@ -264,23 +264,23 @@ async def handle_transaction_field_input(message: types.Message, state: FSMConte
             ),
         )
         return
-    
+
     field_name, index_str = editing_field.split(":", 1)
     index = int(index_str)
-    
+
     if index >= len(transactions):
         await message.answer(fmsg("confirm_tx_error"))
         await state.update_data(editing_field=None)
         return
-    
+
     text = message.text.strip()
-    
+
     # Delete user message
     try:
         await message.delete()
     except Exception as e:
         log.debug("Failed to delete user message: %s", e)
-    
+
     # Update field
     if field_name == "counterparty":
         transactions[index]["counterparty"] = text
@@ -292,9 +292,9 @@ async def handle_transaction_field_input(message: types.Message, state: FSMConte
             return
     elif field_name == "category":
         transactions[index]["category"] = text
-    
+
     await state.update_data(transactions=transactions, editing_field=None)
-    
+
     # Refresh confirmation UI
     await show_transaction_confirmation(
         transactions[index],

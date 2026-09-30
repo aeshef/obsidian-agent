@@ -64,14 +64,14 @@ async def _confirm_transaction(callback: types.CallbackQuery, state: FSMContext)
             await callback.answer(fmsg("import_stale"), show_alert=True)
             return
         await state.update_data(confirm_revision=None)
-        
+
         log.info("Confirm transaction %s of %s user=%s", index, len(transactions), callback.from_user.id)
-        
+
         if index < 0 or index >= len(transactions):
             log.error("Transaction %s not found (total %s)", index, len(transactions))
             await callback.answer(fmsg("confirm_tx_not_found"), show_alert=True)
             return
-        
+
         parsed = transactions[index]
         from bot.services.transactions import get_missing_fields
         if await get_missing_fields(parsed, callback.from_user.id, badge_mode=bool(data.get("badge_mode"))):
@@ -79,16 +79,16 @@ async def _confirm_transaction(callback: types.CallbackQuery, state: FSMContext)
             await callback.answer(fmsg("import_nothing_ready"), show_alert=True)
             return
         log.info("Transaction %s: type=%s amount=%s", index, parsed.get("type"), parsed.get("amount"))
-        
+
         async with AsyncSessionLocal() as session:
             tg_id = callback.from_user.id
             user = (await session.execute(select(User).where(User.telegram_id == tg_id))).scalar_one_or_none()
-            
+
             if not user:
                 log.error("User %s not found on confirm", tg_id)
                 await callback.answer(fmsg("confirm_user_not_found"), show_alert=True)
                 return
-            
+
             from .badge import transaction_uses_badge
 
             badge_save = transaction_uses_badge(
@@ -97,16 +97,16 @@ async def _confirm_transaction(callback: types.CallbackQuery, state: FSMContext)
             saved = await _process_confirmed_transaction(
                 session, user, parsed, callback, badge_mode=badge_save
             )
-        
+
         if saved is False:
             await show_transaction_confirmation(parsed, callback.message, state, index, len(transactions), tg_id=callback.from_user.id)
             return
 
         # Remove confirmed txn from queue
         transactions.pop(index)
-        
+
         log.info("Transactions remaining: %s", len(transactions))
-        
+
         # Show next if any remain
         if transactions:
             # Index unchanged after pop
@@ -117,10 +117,10 @@ async def _confirm_transaction(callback: types.CallbackQuery, state: FSMContext)
                 # Pass tg_id explicitly
                 # Edit current callback message
                 await show_transaction_confirmation(
-                    transactions[next_index], 
-                    callback.message, 
-                    state, 
-                    next_index, 
+                    transactions[next_index],
+                    callback.message,
+                    state,
+                    next_index,
                     len(transactions),
                     tg_id=callback.from_user.id
                 )

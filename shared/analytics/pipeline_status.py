@@ -43,4 +43,3 @@ def _pipeline_problems(sync_dir: Path) -> list[str]:
     except (OSError, ValueError, KeyError, TypeError):
         problems.append("pipeline_health: missing/invalid")
     return problems
-

@@ -29,11 +29,11 @@ async def _process_confirmed_transaction(
         account_name = parsed.get("account", fmsg("default_wallet_name"))
         balance = Decimal(str(parsed.get("balance", 0)))
         currency = parsed.get("currency") or base_currency()
-        
+
         existing = (
             await session.execute(select(Account).where(Account.user_id == user.id, Account.name == account_name))
         ).scalar_one_or_none()
-        
+
         if existing:
             existing.external_balance = balance
             existing.currency = currency
@@ -50,11 +50,11 @@ async def _process_confirmed_transaction(
                 external_balance=balance,
             )
             session.add(account)
-        
+
         await session.commit()
         await callback.answer(fmsg("confirm_account_updated_name", name=account_name))
         return True
-    
+
     # broker_withdraw
     if parsed.get("type") == "broker_withdraw":
         from bot.handlers.transactions import _handle_broker_withdraw
@@ -62,7 +62,7 @@ async def _process_confirmed_transaction(
         await session.commit()
         await callback.answer(fmsg("confirm_broker_withdraw"))
         return True
-    
+
     # debt_settle_receivable
     if parsed.get("type") == "debt_settle_receivable":
         from bot.handlers.transactions import _get_or_create_account
@@ -168,17 +168,17 @@ async def _process_confirmed_transaction(
             )
         await callback.answer(msg)
         return True
-    
+
     # expense / income / transfer
     if parsed.get("type") in ["expense", "income", "transfer"]:
         from bot.handlers.transactions import _get_or_create_account
-        
+
         occurred = _parse_occurred_at(parsed)
         if parsed.get("type") == "transfer":
             from_acc = await _get_or_create_account(session, user.id, parsed.get("from_account"))
             to_acc = await _get_or_create_account(session, user.id, parsed.get("to_account"))
             amount = Decimal(str(parsed["amount"]))
-            
+
             # debit from_account
             session.add(Transaction(
                 user_id=user.id,
@@ -190,7 +190,7 @@ async def _process_confirmed_transaction(
                 description=dmsg("finance", "transfer_to_description", account=to_acc.name),
                 occurred_at=occurred,
             ))
-            
+
             # credit to_account
             session.add(Transaction(
                 user_id=user.id,
@@ -208,7 +208,7 @@ async def _process_confirmed_transaction(
             account = await resolve_expense_account(
                 session, user.id, parsed, badge_mode=badge_mode
             )
-            
+
             txn = Transaction(
                 user_id=user.id,
                 account_id=account.id,
@@ -220,7 +220,7 @@ async def _process_confirmed_transaction(
                 occurred_at=occurred,
             )
             session.add(txn)
-        
+
         await session.commit()
         await callback.answer(fmsg("confirm_recorded"))
     return True

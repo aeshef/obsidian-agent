@@ -10,5 +10,3 @@ def health_coverage():
     daily=latest_per_calendar_day(get_snapshots(IPHONE_CONTEXT_DIR, days=days))
     return {group:max((str(day) for day,row in daily.items() if any(row.get(field) is not None for field in fields)),default=None)
             for group,fields in groups().items()}
-
-
