@@ -17,7 +17,7 @@ Open-source **Obsidian + Telegram** personal assistant: capture from chat (text,
 
 Edit in Obsidian whenever you want. Optional VPS for 24/7 capture. Vault sync = Obsidian Sync, Syncthing, or optional desktop scripts — [no Mac required](docs/connectors/HOSTING_WITHOUT_MAC.md).
 
-![demo](assets/demo/demo.gif)
+![Telegram demo](assets/demo/demo.gif)
 
 ## Who this is for
 
@@ -128,6 +128,10 @@ The host can route a single sentence across tools, for example:
 - a category of spend vs the week’s calendar load
 
 Cheap intents skip the heavy model; ambiguous or cross-domain ones escalate. Charts go out as Telegram media without mixing in random knowledge-base images.
+
+![Obsidian vault walkthrough](assets/demo/obsidian-demo.gif)
+
+*Goals, kanban, dashboards, and graph — the same files you edit in Obsidian.*
 
 ### Split-brain hosting
 

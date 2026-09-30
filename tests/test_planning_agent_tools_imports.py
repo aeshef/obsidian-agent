@@ -25,3 +25,11 @@ def test_get_kanban_done_preview_from_platform():
     src = inspect.getsource(agent_tools.get_kanban)
     assert "kanban_done_preview_max" in src
     assert "default=1000" in src
+
+
+def test_apply_kanban_tool_prompt_includes_optional_deadline_rule():
+    from planning_bot.app import agent_tools
+
+    src = inspect.getsource(agent_tools._enrich_apply_kanban_tool)
+    assert "deadline=YYYY-MM-DD only when the user requested" in src
+    assert "otherwise leave deadline empty" in src
