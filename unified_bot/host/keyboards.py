@@ -17,6 +17,17 @@ def configure_host_keyboards() -> None:
 
 
 def root_keyboard() -> ReplyKeyboardMarkup:
+    from shared.capabilities.profile import get_capabilities
+    prof = get_capabilities()
+    rows = []
+    if any(prof.module(name) for name in ("finance", "planning", "knowledge")):
+        rows.append([KeyboardButton(text=msg("host", "capture_button")), KeyboardButton(text=msg("host", "find_button"))])
+    rows.append([KeyboardButton(text=msg("host", "data_status_button")), KeyboardButton(text=msg("host", "more_button"))])
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True,
+                               input_field_placeholder=msg("host", "simple_placeholder"))
+
+
+def more_keyboard() -> ReplyKeyboardMarkup:
     from shared.capabilities.profile import (
         MODULE_FINANCE,
         MODULE_KNOWLEDGE,
@@ -41,7 +52,7 @@ def root_keyboard() -> ReplyKeyboardMarkup:
         bottom.append(KeyboardButton(text=L.mode_auto()))
     if bottom:
         rows.append(bottom)
-    rows.append([KeyboardButton(text=L.memory_menu())])
+    rows.append([KeyboardButton(text=L.memory_menu()), KeyboardButton(text=L.back_home())])
     return ReplyKeyboardMarkup(
         keyboard=rows,
         resize_keyboard=True,
@@ -113,4 +124,4 @@ def keyboard_for_mode(mode: str, user_id: int | None = None) -> ReplyKeyboardMar
         from knowledge_bot.app.state import is_bulk_ingest
 
         return knowledge_keyboard(bulk_active=is_bulk_ingest(user_id) if user_id else False)
-    return auto_keyboard()
+    return root_keyboard()

@@ -29,19 +29,20 @@ async def deliver_agent_answer(
     domain: str | None = None,
     unified: bool = False,
     reply_markup: Any = None,
+    request_key: str | None = None,
 ) -> AgentAnswer:
     """Agent loop + optional step status; final via rich markdown when enabled."""
     progress = _progress_for(bot, chat_id)
     try:
         if unified:
             result = await agent_app.answer_unified(
-                chat_id, question, agent_progress=progress
+                chat_id, question, agent_progress=progress, **({"request_key": request_key} if request_key else {})
             )
         else:
             if not domain:
                 raise ValueError("domain required when unified=False")
             result = await agent_app.answer(
-                domain, chat_id, question, agent_progress=progress
+                domain, chat_id, question, agent_progress=progress, **({"request_key": request_key} if request_key else {})
             )
     finally:
         await progress.on_complete()

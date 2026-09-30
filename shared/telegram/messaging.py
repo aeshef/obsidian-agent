@@ -15,8 +15,10 @@ async def send_long_message(
     max_len: int | None = None,
     *,
     rich: bool | None = None,
+    disable_notification: bool | None = None,
+    disable_web_page_preview: bool | None = None,
 ):
-    """Send long text; prefer Rich Messages when enabled, else plain chunks.
+    """Send long text; prefer Rich Messages when enabled, else chunks rendered by session presentation middleware.
 
     Pass rich=False for control panels (lists with #id and [tags] must stay literal).
     """
@@ -27,12 +29,12 @@ async def send_long_message(
     use_rich = rich_messages_enabled() if rich is None else bool(rich)
     if use_rich and len(body) <= rich_max_chars():
         msg = await send_rich_message(
-            bot, chat_id, body, reply_markup=reply_markup
+            bot, chat_id, body, reply_markup=reply_markup, disable_notification=disable_notification
         )
         if msg is not None:
             return
 
-    plain = strip_telegram_markdown(body)
+    plain = body if rich is not False else strip_telegram_markdown(body)
     limit = max_len if max_len is not None else max_message_chars()
     chunks = split_message(plain, max_len=limit)
     for i, ch in enumerate(chunks):
@@ -41,4 +43,6 @@ async def send_long_message(
             chat_id,
             ch,
             reply_markup=reply_markup if i == len(chunks) - 1 else None,
+            disable_notification=disable_notification,
+            disable_web_page_preview=disable_web_page_preview,
         )

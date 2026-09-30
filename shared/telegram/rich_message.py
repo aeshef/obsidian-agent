@@ -44,7 +44,7 @@ class SendRichMessageDraft(TelegramMethod[bool]):
 
 
 def rich_messages_enabled() -> bool:
-    return platform_bool("telegram", "rich_messages", default=True)
+    return platform_bool("telegram", "rich_messages", default=False)
 
 
 def rich_max_chars() -> int:
