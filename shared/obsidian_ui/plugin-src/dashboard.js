@@ -6,7 +6,9 @@ function renderInteractive(dv,cfg,kind,data){
  for(const card of Object.values(saved.cards||{})){delete card.table;delete card.expanded;}
  const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify(saved));}catch{}};
  const initial=()=>({preset:kind==='calendar'?'upcoming':String(cfg.interactive.default_days),from:C.range(kind==='calendar'?'upcoming':cfg.interactive.default_days)[0],to:C.range(kind==='calendar'?'upcoming':cfg.interactive.default_days)[1],filters:{}});
- let state=Object.assign(initial(),saved.page||{});state.filters||={};saved.page=state;saved.cards||={};
+ let state=Object.assign(initial(),saved.page||{});state.filters||={};state.favoritesOnly=!!state.favoritesOnly;saved.page=state;saved.cards||={};
+ const chartIds=new Set((data.charts||[]).map(chart=>chart.id));
+ saved.pins=(Array.isArray(saved.pins)?saved.pins:[]).filter(id=>chartIds.has(id));
  // Relative presets follow today when reopening. Explicit ranges remain fixed.
  if(state.preset!=='custom')[state.from,state.to]=C.range(state.preset);
  const fmt=v=>v===null||v===undefined?'—':new Intl.NumberFormat(cfg.locale,{maximumFractionDigits:2}).format(v);
@@ -45,7 +47,14 @@ function renderInteractive(dv,cfg,kind,data){
   if(data.note)el(root,'div',data.note,'au-notice');
   if(kind==='finance')financeSummary();
   if(data.charts?.length>1)select(toolbar,L.chart_picker,[['',L.all_charts],...data.charts.map(c=>[c.id,c.title])],state.chart||'',v=>{state.chart=v;render();});
-  for(const spec of data.charts||[])if(!state.chart||state.chart===spec.id)renderCard(spec);
+  check(toolbar,L.favorites_only,state.favoritesOnly,v=>{state.favoritesOnly=v;render();});
+  const selected=(data.charts||[]).filter(spec=>(!state.chart||state.chart===spec.id)&&(!state.favoritesOnly||saved.pins.includes(spec.id)));
+  const ordered=[...selected.filter(spec=>saved.pins.includes(spec.id)),...selected.filter(spec=>!saved.pins.includes(spec.id))];
+  if(state.favoritesOnly&&!ordered.length){
+   const notice=el(root,'div',L.no_favorite_charts,'au-notice');
+   btn(notice,L.show_all_charts,()=>{state.favoritesOnly=false;render();});
+  }
+  for(const spec of ordered)renderCard(spec);
   if(data.pairs)renderPairs();
  }
  function financeSummary(){
@@ -58,6 +67,10 @@ function renderInteractive(dv,cfg,kind,data){
   const defaults={own:false,from:state.from,to:state.to,grain:'auto',compare:false,table:false,expanded:false,smooth:'0',share:false};
   const s=Object.assign(defaults,saved.cards[spec.id]||{});saved.cards[spec.id]=s;
   const card=el(root,'section',null,'au-chart-card'+(spec.type==='correlation'?' au-matrix-card':'')+(s.expanded?' au-expanded':''));el(card,'h3',spec.title);
+  const pinned=saved.pins.includes(spec.id),pin=btn(card,pinned?L.unpin_chart:L.pin_chart,()=>{
+   saved.pins=pinned?saved.pins.filter(id=>id!==spec.id):[...saved.pins,spec.id];render();
+  });
+  pin.setAttribute('aria-pressed',String(pinned));
   if(spec.note)el(card,'div',spec.note,'au-notice');
   if(spec.source_updated)el(card,'div',L.source_date+': '+spec.source_updated,'au-muted');
   if(['correlation','scatter','normalized'].includes(spec.type)){renderAnalysis(spec,card,s);return;}
