@@ -73,6 +73,7 @@ function renderInteractive(dv,cfg,kind,data){
   const tableButton=btn(controls,s.table?L.hide_table:L.show_table,()=>{s.table=!s.table;render();});
   tableButton.setAttribute('aria-expanded',String(s.table));
   btn(controls,s.expanded?L.collapse:L.expand,()=>{s.expanded=!s.expanded;render();});
+  btn(controls,L.reset_chart,()=>{delete saved.cards[spec.id];render();});
   let rows=filter(spec.rows,spec.filter_fields);
   if(spec.max_series&&!state.filters.category){const totals={};for(const r of spec.rows)totals[r.series]=(totals[r.series]||0)+r.value;const keep=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]).slice(0,spec.max_series);rows=rows.map(r=>({...r,series:keep.includes(r.series)?r.series:L.other}));}
   const grain=C.granularity(s.grain,from,to),preset=s.own?'custom':state.preset,comparisonPeriod=C.comparison([],from,to,grain,spec.method,0,preset).period,pfrom=s.compare?comparisonPeriod[0]:from,series=[...new Set(rows.filter(r=>r.date>=pfrom&&r.date<=to).map(r=>r.series))].sort();
