@@ -20,7 +20,7 @@ Verification covers aggregation semantics, export exclusions, HTML escaping, gen
 
 ## Interactive exploration
 
-Assistant Dashboards 1.1 bundles Apache ECharts 6.1 locally (Apache-2.0). `plugin-src/` contains the modular sources; run `python scripts/build_obsidian_plugin.py` after edits. Vendor integrity and license information are in `shared/obsidian_ui/vendor/`. No CDN calls or data uploads are made.
+Assistant Dashboards 1.1 bundles Apache ECharts 6.1 locally (Apache-2.0). `plugin-src/` contains the modular sources; run `python scripts/build_obsidian_plugin.py` after edits. Run `python scripts/build_obsidian_plugin.py --check` to verify the generated bundle is current without writing files. Vendor integrity and license information are in `shared/obsidian_ui/vendor/`. No CDN calls or data uploads are made.
 
 Finance, health, task progress, calendar and cross-domain analytics expose shared controls. Each chart can inherit the page range or use its own dates and grain; comparisons use the immediately preceding equal-length interval, aligned by day offset. Event counts and expenses sum, health averages observed daily values, and workload takes the last observed snapshot. Missing observations remain null. Calendar hours split overnight events and exclude cancelled/all-day entries; overlapping appointments remain separate booked hours.
 
