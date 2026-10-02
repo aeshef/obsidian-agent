@@ -32,7 +32,7 @@ function renderInteractive(dv,cfg,kind,data){
   clear();root.empty();save();
   el(root,'h2',L.interactive).title=L.local_preferences;
   const toolbar=el(root,'div',null,'au-toolbar');
-  select(toolbar,L.period,[...(kind==='calendar'?[['upcoming',L.upcoming]]:[]),['30',L.last30],['90',L.last90],['month',L.month],['quarter',L.quarter],['year',L.year],['custom',L.custom]],state.preset,v=>{state.preset=v;if(v!=='custom')[state.from,state.to]=C.range(v);render();});
+  select(toolbar,L.period,[...(kind==='calendar'?[['upcoming',L.upcoming]]:[]),['7',L.last7],['30',L.last30],['90',L.last90],['month',L.month],['quarter',L.quarter],['year',L.year],['custom',L.custom]],state.preset,v=>{state.preset=v;if(v!=='custom')[state.from,state.to]=C.range(v);render();});
   let from=state.from,to=state.to;
   dateInput(toolbar,L.from,from,v=>from=v);dateInput(toolbar,L.to,to,v=>to=v);
   const error=el(root,'div','','au-muted');
