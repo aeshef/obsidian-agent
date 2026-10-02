@@ -26,6 +26,11 @@ function aggregate(rows,from,to,grain,method='sum'){
 }
 function rolling(rows,days){if(!days)return rows;return rows.map(r=>{const a=rows.filter(x=>x.date<=r.date&&x.date>=add(r.date,1-days)&&Number.isFinite(x.value));return {...r,value:Number.isFinite(r.value)&&a.length?a.reduce((s,x)=>s+x.value,0)/a.length:null};});}
 function previous(from,to){const n=Math.round((parse(to)-parse(from))/DAY)+1;return [add(from,-n),add(from,-1)];}
+function coverage(rows,from,to){
+ const total=valid(from)&&valid(to)&&from<=to?Math.round((parse(to)-parse(from))/DAY)+1:0;
+ const observed=new Set(rows.filter(r=>r.date>=from&&r.date<=to&&Number.isFinite(r.value)).map(r=>r.date)).size;
+ return {observed,total};
+}
 // Calendar presets compare corresponding dates; arbitrary ranges use equal day counts.
 function shiftMonths(day,n){const d=parse(day),last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n+1,0)).getUTCDate();return key(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n,Math.min(d.getUTCDate(),last))));}
 function comparison(rows,from,to,grain,method='sum',smooth=0,preset='custom'){
@@ -51,4 +56,4 @@ function spearman(points){
  const x=standardize(rank(points.map(p=>p[0]))),y=standardize(rank(points.map(p=>p[1])));
  return x.some(v=>v===null)||y.some(v=>v===null)?null:x.reduce((s,v,i)=>s+v*y[i],0)/x.length;
 }
-module.exports={standardize,spearman,key,add,today,range,valid,bucket,next,granularity,aggregate,rolling,previous,comparison,shiftMonths,paired};
+module.exports={standardize,spearman,key,add,today,range,valid,bucket,next,granularity,aggregate,rolling,previous,coverage,comparison,shiftMonths,paired};
