@@ -79,6 +79,14 @@ function renderInteractive(dv,cfg,kind,data){
   const current=series.map(name=>({name,points:C.aggregate(C.rolling(rows.filter(r=>r.series===name),Number(s.smooth)),from,to,grain,spec.method)}));
   const days=new Set(rows.filter(r=>r.date>=from&&r.date<=to&&Number.isFinite(r.value)).map(r=>r.date));
   el(card,'div',`${from} → ${to} · ${L[spec.method]} · ${L[grain]} · ${L.observed_days}: ${days.size}`,'au-muted');
+  if(kind==='health'){
+   const metricNames=[...new Set(rows.map(r=>r.series))].sort();if(!metricNames.length)metricNames.push(spec.title);
+   for(const name of metricNames){
+    const metricRows=rows.filter(r=>r.series===name),coverage=C.coverage(metricRows,from,to);
+    el(card,'div',`${L.observed_coverage}: ${name}: ${L.coverage_days.replace('{observed}',coverage.observed).replace('{total}',coverage.total)}`,'au-muted');
+   }
+   el(card,'div',L.coverage_note,'au-muted');
+  }
   el(card,'div',L.boundary,'au-muted');
   if(spec.filter_fields&&Object.keys(state.filters).some(f=>state.filters[f]&&!spec.filter_fields.includes(f)))el(card,'div',L.filter_scope+': '+spec.filter_fields.map(f=>L[f]).join(', '),'au-notice');
   const priorDays=new Set(rows.filter(r=>r.date>=comparisonPeriod[0]&&r.date<=comparisonPeriod[1]&&Number.isFinite(r.value)).map(r=>r.date));
