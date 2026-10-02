@@ -97,6 +97,7 @@
     "expand": "Expand",
     "collapse": "Collapse",
     "reset": "Reset filters",
+    "reset_chart": "Reset chart",
     "all_values": "All",
     "goal": "Goal",
     "priority": "Priority",
