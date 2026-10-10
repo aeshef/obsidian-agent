@@ -12,7 +12,7 @@ telethon
 faster-whisper
 
 # Optional extractors
-trafilatura==1.12.2
+trafilatura==2.2.0
 # readability-lxml==0.8.1
 # pdfminer.six==20231228
 pillow==11.3.0
