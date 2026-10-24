@@ -35,3 +35,52 @@ def test_stale_dataset_not_masked_by_recent_file_mtime(tmp_path,monkeypatch):
     statuses=freshness.dataset_status(tmp_path,datetime(2026,9,28,tzinfo=timezone.utc))
     assert statuses['progress']['status']=='stale'
     assert statuses['analytics']['status']=='missing'
+
+def test_null_generated_at_is_invalid(tmp_path, monkeypatch):
+    monkeypatch.setattr(freshness, 'get_capabilities', lambda: SimpleNamespace(module=lambda n: n == 'planning', connector=lambda n: False))
+    monkeypatch.setattr(freshness, 'folder', lambda n: 'dash')
+    monkeypatch.setattr(freshness, 'dashboards_sub', lambda n: 'data')
+    monkeypatch.setattr(freshness, 'ui_config', lambda: {'layout': {'view_root': 'ui'}, 'freshness': {'max_age_seconds': 7200, 'daily_seconds': 93600}})
+    p = tmp_path / 'dash/data/ui'
+    p.mkdir(parents=True)
+    (p / 'progress.json').write_text(json.dumps({'generated_at': None}))
+    statuses = freshness.dataset_status(tmp_path, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert statuses['progress']['status'] == 'invalid'
+
+
+def test_numeric_generated_at_is_invalid(tmp_path, monkeypatch):
+    monkeypatch.setattr(freshness, 'get_capabilities', lambda: SimpleNamespace(module=lambda n: n == 'planning', connector=lambda n: False))
+    monkeypatch.setattr(freshness, 'folder', lambda n: 'dash')
+    monkeypatch.setattr(freshness, 'dashboards_sub', lambda n: 'data')
+    monkeypatch.setattr(freshness, 'ui_config', lambda: {'layout': {'view_root': 'ui'}, 'freshness': {'max_age_seconds': 7200, 'daily_seconds': 93600}})
+    p = tmp_path / 'dash/data/ui'
+    p.mkdir(parents=True)
+    (p / 'progress.json').write_text(json.dumps({'generated_at': 1234567890}))
+    statuses = freshness.dataset_status(tmp_path, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert statuses['progress']['status'] == 'invalid'
+
+
+def test_non_object_json_is_invalid(tmp_path, monkeypatch):
+    monkeypatch.setattr(freshness, 'get_capabilities', lambda: SimpleNamespace(module=lambda n: n == 'planning', connector=lambda n: False))
+    monkeypatch.setattr(freshness, 'folder', lambda n: 'dash')
+    monkeypatch.setattr(freshness, 'dashboards_sub', lambda n: 'data')
+    monkeypatch.setattr(freshness, 'ui_config', lambda: {'layout': {'view_root': 'ui'}, 'freshness': {'max_age_seconds': 7200, 'daily_seconds': 93600}})
+    p = tmp_path / 'dash/data/ui'
+    p.mkdir(parents=True)
+    (p / 'progress.json').write_text('null')
+    statuses = freshness.dataset_status(tmp_path, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert statuses['progress']['status'] == 'invalid'
+
+
+def test_valid_dashboard_still_evaluated_when_another_is_invalid(tmp_path, monkeypatch):
+    monkeypatch.setattr(freshness, 'get_capabilities', lambda: SimpleNamespace(module=lambda n: n == 'planning', connector=lambda n: False))
+    monkeypatch.setattr(freshness, 'folder', lambda n: 'dash')
+    monkeypatch.setattr(freshness, 'dashboards_sub', lambda n: 'data')
+    monkeypatch.setattr(freshness, 'ui_config', lambda: {'layout': {'view_root': 'ui'}, 'freshness': {'max_age_seconds': 7200, 'daily_seconds': 93600}})
+    p = tmp_path / 'dash/data/ui'
+    p.mkdir(parents=True)
+    (p / 'progress.json').write_text(json.dumps({'generated_at': None}))  # invalid
+    (p / 'analytics.json').write_text(json.dumps({'generated_at': '2026-09-27T00:00:00Z'}))  # valid, 1 day old < 93600s
+    statuses = freshness.dataset_status(tmp_path, datetime(2026, 9, 28, tzinfo=timezone.utc))
+    assert statuses['progress']['status'] == 'invalid'
+    assert statuses['analytics']['status'] == 'ok'
