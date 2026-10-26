@@ -15,7 +15,7 @@ faster-whisper
 trafilatura==1.12.2
 # readability-lxml==0.8.1
 # pdfminer.six==20231228
-pillow==11.3.0
+pillow==12.3.0
 # pymupdf==1.24.10
 # OCR engines
 pytesseract==0.3.13
