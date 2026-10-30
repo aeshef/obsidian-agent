@@ -75,6 +75,11 @@ function aggregate(rows,from,to,grain,method='sum'){
 }
 function rolling(rows,days){if(!days)return rows;return rows.map(r=>{const a=rows.filter(x=>x.date<=r.date&&x.date>=add(r.date,1-days)&&Number.isFinite(x.value));return {...r,value:Number.isFinite(r.value)&&a.length?a.reduce((s,x)=>s+x.value,0)/a.length:null};});}
 function previous(from,to){const n=Math.round((parse(to)-parse(from))/DAY)+1;return [add(from,-n),add(from,-1)];}
+function coverage(rows,from,to){
+ const total=valid(from)&&valid(to)&&from<=to?Math.round((parse(to)-parse(from))/DAY)+1:0;
+ const observed=new Set(rows.filter(r=>r.date>=from&&r.date<=to&&Number.isFinite(r.value)).map(r=>r.date)).size;
+ return {observed,total};
+}
 // Calendar presets compare corresponding dates; arbitrary ranges use equal day counts.
 function shiftMonths(day,n){const d=parse(day),last=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n+1,0)).getUTCDate();return key(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+n,Math.min(d.getUTCDate(),last))));}
 function comparison(rows,from,to,grain,method='sum',smooth=0,preset='custom'){
@@ -100,7 +105,7 @@ function spearman(points){
  const x=standardize(rank(points.map(p=>p[0]))),y=standardize(rank(points.map(p=>p[1])));
  return x.some(v=>v===null)||y.some(v=>v===null)?null:x.reduce((s,v,i)=>s+v*y[i],0)/x.length;
 }
-module.exports={standardize,spearman,key,add,today,range,valid,bucket,next,granularity,aggregate,rolling,previous,comparison,shiftMonths,paired};
+module.exports={standardize,spearman,key,add,today,range,valid,bucket,next,granularity,aggregate,rolling,previous,coverage,comparison,shiftMonths,paired};
 
 return module.exports;})();
 function renderInteractive(dv,cfg,kind,data){
@@ -111,7 +116,9 @@ function renderInteractive(dv,cfg,kind,data){
  for(const card of Object.values(saved.cards||{})){delete card.table;delete card.expanded;}
  const save=()=>{try{localStorage.setItem(storageKey,JSON.stringify(saved));}catch{}};
  const initial=()=>({preset:kind==='calendar'?'upcoming':String(cfg.interactive.default_days),from:C.range(kind==='calendar'?'upcoming':cfg.interactive.default_days)[0],to:C.range(kind==='calendar'?'upcoming':cfg.interactive.default_days)[1],filters:{}});
- let state=Object.assign(initial(),saved.page||{});state.filters||={};saved.page=state;saved.cards||={};
+ let state=Object.assign(initial(),saved.page||{});state.filters||={};state.favoritesOnly=!!state.favoritesOnly;saved.page=state;saved.cards||={};
+ const chartIds=new Set((data.charts||[]).map(chart=>chart.id));
+ saved.pins=(Array.isArray(saved.pins)?saved.pins:[]).filter(id=>chartIds.has(id));
  // Relative presets follow today when reopening. Explicit ranges remain fixed.
  if(state.preset!=='custom')[state.from,state.to]=C.range(state.preset);
  const fmt=v=>v===null||v===undefined?'—':new Intl.NumberFormat(cfg.locale,{maximumFractionDigits:2}).format(v);
@@ -130,14 +137,34 @@ function renderInteractive(dv,cfg,kind,data){
  const names=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]||a.localeCompare(b));
  names.unshift(L.other);
  const color=n=>palette[Math.max(0,names.indexOf(n))%palette.length];
- function table(parent,headers,rows){const wrap=el(parent,'div',null,'au-table-wrap'),t=el(wrap,'table',null,'au-table'),head=el(el(t,'thead'),'tr');headers.forEach(x=>el(head,'th',x));const body=el(t,'tbody');let offset=0;const more=btn(parent,L.more,append);function append(){for(const row of rows.slice(offset,offset+cfg.interactive.table_page_size)){const tr=el(body,'tr');row.forEach(x=>el(tr,'td',String(x??'—')));}offset+=cfg.interactive.table_page_size;more.hidden=offset>=rows.length;}append();}
+ function table(parent,headers,rows){
+  const search=el(parent,'label',null,'au-control');el(search,'span',L.table_search);
+  const input=el(search,'input');input.type='search';input.value='';input.setAttribute('aria-label',L.table_search);
+  const count=el(parent,'div',null,'au-muted'),empty=el(parent,'div',L.table_no_matches,'au-muted');
+  const wrap=el(parent,'div',null,'au-table-wrap'),t=el(wrap,'table',null,'au-table'),head=el(el(t,'thead'),'tr');
+  headers.forEach(x=>el(head,'th',x));const body=el(t,'tbody');let matched=rows,offset=0;
+  const more=btn(parent,L.more,append);
+  function append(){
+   for(const row of matched.slice(offset,offset+cfg.interactive.table_page_size)){
+    const tr=el(body,'tr');row.slice(0,headers.length).forEach(x=>el(tr,'td',String(x??'—')));
+   }
+   offset+=cfg.interactive.table_page_size;more.hidden=offset>=matched.length;
+  }
+  function update(){
+   const query=input.value.trim().toLocaleLowerCase(cfg.locale);
+   matched=query?rows.filter(row=>row.slice(0,headers.length).some(value=>String(value??'').toLocaleLowerCase(cfg.locale).includes(query))):rows;
+   count.textContent=L.table_match_count.replace('{matched}',matched.length).replace('{total}',rows.length);
+   empty.hidden=matched.length!==0;body.empty();offset=0;append();
+  }
+  input.oninput=update;update();
+ }
  function chart(parent,option,onClick){const host=el(parent,'div',null,'au-echart');const instance=echarts.init(host,null,{renderer:'svg'});const style=getComputedStyle(root);instance.setOption({animation:false,color:palette,backgroundColor:'transparent',textStyle:{color:style.getPropertyValue('--text-normal').trim()},...option});const ro=new ResizeObserver(()=>instance.resize());ro.observe(host);if(onClick)instance.on('click',onClick);cleanups.push(()=>{ro.disconnect();instance.dispose();});return instance;}
  function filter(rows,fields){return rows.filter(r=>Object.entries(state.filters).every(([f,v])=>!v||(fields&&!fields.includes(f))||(Array.isArray(r[f])?r[f].includes(v):String(r[f]??L.unknown)===v)));}
  function render(){
   clear();root.empty();save();
   el(root,'h2',L.interactive).title=L.local_preferences;
   const toolbar=el(root,'div',null,'au-toolbar');
-  select(toolbar,L.period,[...(kind==='calendar'?[['upcoming',L.upcoming]]:[]),['30',L.last30],['90',L.last90],['month',L.month],['quarter',L.quarter],['year',L.year],['custom',L.custom]],state.preset,v=>{state.preset=v;if(v!=='custom')[state.from,state.to]=C.range(v);render();});
+  select(toolbar,L.period,[...(kind==='calendar'?[['upcoming',L.upcoming]]:[]),['7',L.last7],['30',L.last30],['90',L.last90],['month',L.month],['quarter',L.quarter],['year',L.year],['custom',L.custom]],state.preset,v=>{state.preset=v;if(v!=='custom')[state.from,state.to]=C.range(v);render();});
   let from=state.from,to=state.to;
   dateInput(toolbar,L.from,from,v=>from=v);dateInput(toolbar,L.to,to,v=>to=v);
   const error=el(root,'div','','au-muted');
@@ -150,7 +177,14 @@ function renderInteractive(dv,cfg,kind,data){
   if(data.note)el(root,'div',data.note,'au-notice');
   if(kind==='finance')financeSummary();
   if(data.charts?.length>1)select(toolbar,L.chart_picker,[['',L.all_charts],...data.charts.map(c=>[c.id,c.title])],state.chart||'',v=>{state.chart=v;render();});
-  for(const spec of data.charts||[])if(!state.chart||state.chart===spec.id)renderCard(spec);
+  check(toolbar,L.favorites_only,state.favoritesOnly,v=>{state.favoritesOnly=v;render();});
+  const selected=(data.charts||[]).filter(spec=>(!state.chart||state.chart===spec.id)&&(!state.favoritesOnly||saved.pins.includes(spec.id)));
+  const ordered=[...selected.filter(spec=>saved.pins.includes(spec.id)),...selected.filter(spec=>!saved.pins.includes(spec.id))];
+  if(state.favoritesOnly&&!ordered.length){
+   const notice=el(root,'div',L.no_favorite_charts,'au-notice');
+   btn(notice,L.show_all_charts,()=>{state.favoritesOnly=false;render();});
+  }
+  for(const spec of ordered)renderCard(spec);
   if(data.pairs)renderPairs();
  }
  function financeSummary(){
@@ -163,6 +197,10 @@ function renderInteractive(dv,cfg,kind,data){
   const defaults={own:false,from:state.from,to:state.to,grain:'auto',compare:false,table:false,expanded:false,smooth:'0',share:false};
   const s=Object.assign(defaults,saved.cards[spec.id]||{});saved.cards[spec.id]=s;
   const card=el(root,'section',null,'au-chart-card'+(spec.type==='correlation'?' au-matrix-card':'')+(s.expanded?' au-expanded':''));el(card,'h3',spec.title);
+  const pinned=saved.pins.includes(spec.id),pin=btn(card,pinned?L.unpin_chart:L.pin_chart,()=>{
+   saved.pins=pinned?saved.pins.filter(id=>id!==spec.id):[...saved.pins,spec.id];render();
+  });
+  pin.setAttribute('aria-pressed',String(pinned));
   if(spec.note)el(card,'div',spec.note,'au-notice');
   if(spec.source_updated)el(card,'div',L.source_date+': '+spec.source_updated,'au-muted');
   if(['correlation','scatter','normalized'].includes(spec.type)){renderAnalysis(spec,card,s);return;}
@@ -178,12 +216,21 @@ function renderInteractive(dv,cfg,kind,data){
   const tableButton=btn(controls,s.table?L.hide_table:L.show_table,()=>{s.table=!s.table;render();});
   tableButton.setAttribute('aria-expanded',String(s.table));
   btn(controls,s.expanded?L.collapse:L.expand,()=>{s.expanded=!s.expanded;render();});
+  btn(controls,L.reset_chart,()=>{delete saved.cards[spec.id];render();});
   let rows=filter(spec.rows,spec.filter_fields);
   if(spec.max_series&&!state.filters.category){const totals={};for(const r of spec.rows)totals[r.series]=(totals[r.series]||0)+r.value;const keep=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]).slice(0,spec.max_series);rows=rows.map(r=>({...r,series:keep.includes(r.series)?r.series:L.other}));}
   const grain=C.granularity(s.grain,from,to),preset=s.own?'custom':state.preset,comparisonPeriod=C.comparison([],from,to,grain,spec.method,0,preset).period,pfrom=s.compare?comparisonPeriod[0]:from,series=[...new Set(rows.filter(r=>r.date>=pfrom&&r.date<=to).map(r=>r.series))].sort();
   const current=series.map(name=>({name,points:C.aggregate(C.rolling(rows.filter(r=>r.series===name),Number(s.smooth)),from,to,grain,spec.method)}));
   const days=new Set(rows.filter(r=>r.date>=from&&r.date<=to&&Number.isFinite(r.value)).map(r=>r.date));
   el(card,'div',`${from} → ${to} · ${L[spec.method]} · ${L[grain]} · ${L.observed_days}: ${days.size}`,'au-muted');
+  if(kind==='health'){
+   const metricNames=[...new Set(rows.map(r=>r.series))].sort();if(!metricNames.length)metricNames.push(spec.title);
+   for(const name of metricNames){
+    const metricRows=rows.filter(r=>r.series===name),coverage=C.coverage(metricRows,from,to);
+    el(card,'div',`${L.observed_coverage}: ${name}: ${L.coverage_days.replace('{observed}',coverage.observed).replace('{total}',coverage.total)}`,'au-muted');
+   }
+   el(card,'div',L.coverage_note,'au-muted');
+  }
   el(card,'div',L.boundary,'au-muted');
   if(spec.filter_fields&&Object.keys(state.filters).some(f=>state.filters[f]&&!spec.filter_fields.includes(f)))el(card,'div',L.filter_scope+': '+spec.filter_fields.map(f=>L[f]).join(', '),'au-notice');
   const priorDays=new Set(rows.filter(r=>r.date>=comparisonPeriod[0]&&r.date<=comparisonPeriod[1]&&Number.isFinite(r.value)).map(r=>r.date));
