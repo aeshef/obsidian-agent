@@ -75,3 +75,27 @@ assert.equal(searchContainer.all('tbody')[0].all('tr').length,4,'pagination resu
 assert.equal(chartBuilds,beforeSearch);
 assert.ok(!persisted.includes('LAST')&&!persisted.includes('SHOP'),'query is not persisted');
 stopSearch();console.log('Table search: pagination, clearing, plain text and chart isolation passed');
+persisted=JSON.stringify({page:{preset:'custom',from:'2026-09-01',to:'2026-09-03',filters:{}},cards:{chart_A:{grain:'week',compare:true},chart_B:{grain:'month'}}});
+const multiContainer=new Element('div');
+const stopMulti=sandbox.renderInteractive({container:multiContainer,component:{register(){}}},cfg,'test',{charts:[{id:'chart_A',title:'A',type:'bar',method:'sum',rows:[]},{id:'chart_B',title:'B',type:'bar',method:'sum',rows:[]}]});
+assert.equal(JSON.parse(persisted).cards.chart_A.grain,'week');
+assert.equal(JSON.parse(persisted).cards.chart_B.grain,'month');
+
+let sectionA=multiContainer.all('section').find(s=>s.all('h3').some(h=>h.textContent==='A'));
+assert.equal(sectionA.all('select').find(s=>s.attrs['aria-label']===cfg.labels.grain).value, 'week');
+assert.equal(sectionA.all('input').find(i=>i.type==='checkbox').checked, true);
+
+const resetBtnA=sectionA.all('button').find(b=>b.textContent===cfg.labels.reset_chart);
+assert.ok(resetBtnA, 'Reset button should exist');
+resetBtnA.onclick();
+
+assert.equal(JSON.parse(persisted).cards.chart_A, undefined);
+assert.equal(JSON.parse(persisted).cards.chart_B.grain,'month');
+
+// Verify DOM was rebuilt with defaults
+sectionA=multiContainer.all('section').find(s=>s.all('h3').some(h=>h.textContent==='A'));
+assert.equal(sectionA.all('select').find(s=>s.attrs['aria-label']===cfg.labels.grain).value, 'auto');
+assert.equal(sectionA.all('input').find(i=>i.type==='checkbox').checked, false);
+
+stopMulti();
+console.log('Chart reset: isolated card reset and persistence passed');

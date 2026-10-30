@@ -102,6 +102,7 @@
     "favorites_only": "Favorites only",
     "no_favorite_charts": "No favorite charts match the current selection.",
     "show_all_charts": "Show all charts",
+    "reset_chart": "Reset chart",
     "all_values": "All",
     "goal": "Goal",
     "priority": "Priority",

@@ -102,6 +102,7 @@
     "favorites_only": "Только избранные",
     "no_favorite_charts": "Нет избранных графиков для текущего выбора.",
     "show_all_charts": "Показать все графики",
+    "reset_chart": "Сбросить график",
     "all_values": "Все",
     "goal": "Цель",
     "priority": "Приоритет",
