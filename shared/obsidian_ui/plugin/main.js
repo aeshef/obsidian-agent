@@ -130,7 +130,27 @@ function renderInteractive(dv,cfg,kind,data){
  const names=Object.keys(totals).sort((a,b)=>totals[b]-totals[a]||a.localeCompare(b));
  names.unshift(L.other);
  const color=n=>palette[Math.max(0,names.indexOf(n))%palette.length];
- function table(parent,headers,rows){const wrap=el(parent,'div',null,'au-table-wrap'),t=el(wrap,'table',null,'au-table'),head=el(el(t,'thead'),'tr');headers.forEach(x=>el(head,'th',x));const body=el(t,'tbody');let offset=0;const more=btn(parent,L.more,append);function append(){for(const row of rows.slice(offset,offset+cfg.interactive.table_page_size)){const tr=el(body,'tr');row.forEach(x=>el(tr,'td',String(x??'—')));}offset+=cfg.interactive.table_page_size;more.hidden=offset>=rows.length;}append();}
+ function table(parent,headers,rows){
+  const search=el(parent,'label',null,'au-control');el(search,'span',L.table_search);
+  const input=el(search,'input');input.type='search';input.value='';input.setAttribute('aria-label',L.table_search);
+  const count=el(parent,'div',null,'au-muted'),empty=el(parent,'div',L.table_no_matches,'au-muted');
+  const wrap=el(parent,'div',null,'au-table-wrap'),t=el(wrap,'table',null,'au-table'),head=el(el(t,'thead'),'tr');
+  headers.forEach(x=>el(head,'th',x));const body=el(t,'tbody');let matched=rows,offset=0;
+  const more=btn(parent,L.more,append);
+  function append(){
+   for(const row of matched.slice(offset,offset+cfg.interactive.table_page_size)){
+    const tr=el(body,'tr');row.slice(0,headers.length).forEach(x=>el(tr,'td',String(x??'—')));
+   }
+   offset+=cfg.interactive.table_page_size;more.hidden=offset>=matched.length;
+  }
+  function update(){
+   const query=input.value.trim().toLocaleLowerCase(cfg.locale);
+   matched=query?rows.filter(row=>row.slice(0,headers.length).some(value=>String(value??'').toLocaleLowerCase(cfg.locale).includes(query))):rows;
+   count.textContent=L.table_match_count.replace('{matched}',matched.length).replace('{total}',rows.length);
+   empty.hidden=matched.length!==0;body.empty();offset=0;append();
+  }
+  input.oninput=update;update();
+ }
  function chart(parent,option,onClick){const host=el(parent,'div',null,'au-echart');const instance=echarts.init(host,null,{renderer:'svg'});const style=getComputedStyle(root);instance.setOption({animation:false,color:palette,backgroundColor:'transparent',textStyle:{color:style.getPropertyValue('--text-normal').trim()},...option});const ro=new ResizeObserver(()=>instance.resize());ro.observe(host);if(onClick)instance.on('click',onClick);cleanups.push(()=>{ro.disconnect();instance.dispose();});return instance;}
  function filter(rows,fields){return rows.filter(r=>Object.entries(state.filters).every(([f,v])=>!v||(fields&&!fields.includes(f))||(Array.isArray(r[f])?r[f].includes(v):String(r[f]??L.unknown)===v)));}
  function render(){

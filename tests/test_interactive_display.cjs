@@ -36,3 +36,42 @@ assert.equal(deadlineOption.xAxis.minInterval,1);
 deadlineClick({name:'2026-10-01'});
 assert.ok(deadlineContainer.all('td').some(e=>e.textContent==='Future task'));
 stop();console.log('Deadline snapshot: future dates, horizontal axis and task drilldown passed');
+
+// Table search filters all supplied rows before pagination and leaves the chart alone.
+let chartBuilds=0;
+sandbox.echarts.init=()=>({setOption(){chartBuilds++;},on(){},resize(){},dispose(){}});
+persisted=JSON.stringify({page:{preset:'custom',from:'2026-09-01',to:'2026-09-04',filters:{}}});
+cfg.interactive.table_page_size=2;
+const searchContainer=new Element('div');
+const searchRows=[
+ {date:'2026-09-01',x:'Food',series:'Spend',value:1,description:'First merchant'},
+ {date:'2026-09-02',x:'Food',series:'Spend',value:2,description:'Second merchant'},
+ {date:'2026-09-03',x:'Food',series:'Spend',value:3,description:'<b>Shop</b>'},
+ {date:'2026-09-04',x:'Food',series:'Spend',value:4,description:'Last merchant'},
+];
+const stopSearch=sandbox.renderInteractive({container:searchContainer,component:{register(){}}},cfg,'search-test',{
+ charts:[{id:'merchants',title:'Merchants',type:'categorical',snapshot:'2026-09-04',rows:searchRows}],
+});
+searchContainer.all('button').find(b=>b.textContent===cfg.labels.show_table).onclick();
+const beforeSearch=chartBuilds;
+const input=searchContainer.all('input').find(i=>i.attrs['aria-label']===cfg.labels.table_search);
+assert.ok(input,'search input must have a localized accessible label');
+assert.equal(searchContainer.all('tbody')[0].all('tr').length,2,'first page only');
+input.value='LAST';input.oninput();
+assert.equal(chartBuilds,beforeSearch,'typing must not rebuild the chart');
+assert.equal(searchContainer.all('tbody')[0].all('tr').length,1,'search includes later pages');
+assert.ok(searchContainer.all('td').some(e=>e.textContent==='Last merchant'));
+assert.equal(searchContainer.all('div').find(e=>e.textContent==='1 of 4 rows')?.textContent,'1 of 4 rows');
+input.value='<B>SHOP</B>';input.oninput();
+assert.ok(searchContainer.all('td').some(e=>e.textContent==='<b>Shop</b>'),'HTML-like text stays plain text');
+assert.equal(searchContainer.all('b').length,0,'cell text must not become markup');
+input.value='missing';input.oninput();
+assert.equal(searchContainer.all('tbody')[0].all('tr').length,0);
+assert.equal(searchContainer.all('div').find(e=>e.textContent===cfg.labels.table_no_matches)?.hidden,false);
+input.value='';input.oninput();
+assert.equal(searchContainer.all('tbody')[0].all('tr').length,2,'clearing restores first page');
+searchContainer.all('button').find(b=>b.textContent===cfg.labels.more).onclick();
+assert.equal(searchContainer.all('tbody')[0].all('tr').length,4,'pagination resumes after clearing');
+assert.equal(chartBuilds,beforeSearch);
+assert.ok(!persisted.includes('LAST')&&!persisted.includes('SHOP'),'query is not persisted');
+stopSearch();console.log('Table search: pagination, clearing, plain text and chart isolation passed');
