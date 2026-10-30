@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import os
 
+from shared.telegram.access import OwnerAccessMiddleware, configured_owner_id
 from shared.telegram.bot_factory import create_bot
 from aiogram import BaseMiddleware, Dispatcher
 
@@ -73,6 +74,8 @@ async def run_host_bot(
     if not resolved:
         raise RuntimeError(f"{token_env} or TELEGRAM_BOT_TOKEN required")
 
+    owner_id = configured_owner_id()
+
     os.environ.setdefault("DEPLOY_MODE", "single")
     configure_host_keyboards()
 
@@ -111,6 +114,7 @@ async def run_host_bot(
     bot = create_bot(resolved, parse_mode=None)
     storage = _build_fsm_storage()
     dp = Dispatcher(storage=storage)
+    dp.update.outer_middleware(OwnerAccessMiddleware(owner_id))
     if planning_bot is not None:
         # Scheduled weekly review sets ReflectionState via fsm_storage — must bind
         # the same storage the dispatcher uses (otherwise bind_fsm is never called).
